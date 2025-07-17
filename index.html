@@ -125,15 +125,33 @@
             function autoResizeTextarea(element) { element.style.height = 'auto'; element.style.height = (element.scrollHeight) + 'px'; }
             function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); }
             
-            function updateJournalView() { 
-                const selectedSymbol = getSafeSymbol(journalSymbolEl.value); 
-                const selectedTimeframe = journalTimeframeEl.value; 
-                const symbolTextData = allJournalText[selectedSymbol] || {}; 
-                journalEntryEl.value = symbolTextData[selectedTimeframe] || ''; 
-                autoResizeTextarea(journalEntryEl); 
-                const symbolImageData = allJournalImages[selectedSymbol] || {}; 
-                renderJournalImages(selectedSymbol, selectedTimeframe, symbolImageData); 
-            }
+            // =========================================================================
+// ==  REPLACE your old updateJournalView function with this new one      ==
+// =========================================================================
+function updateJournalView() { 
+    // --- START DEBUG LOGGING ---
+    console.log("%c--- Running updateJournalView() ---", "background-color: #eee; color: #000;");
+    
+    // Log the raw data we have available
+    console.log("Current full dataset for allJournalImages:", allJournalImages);
+
+    const rawSymbol = journalSymbolEl.value;
+    const selectedSymbol = getSafeSymbol(rawSymbol); 
+    const selectedTimeframe = journalTimeframeEl.value; 
+
+    console.log(`Dropdown value is "${rawSymbol}", which becomes safe symbol "${selectedSymbol}".`);
+
+    // This is the most important step: Let's see what data we find for our symbol.
+    const symbolImageData = allJournalImages[selectedSymbol] || {}; 
+    console.log(`For symbol "${selectedSymbol}", we found this image data:`, symbolImageData);
+    // --- END DEBUG LOGGING ---
+
+    // The rest of the original function remains the same
+    const symbolTextData = allJournalText[selectedSymbol] || {}; 
+    journalEntryEl.value = symbolTextData[selectedTimeframe] || ''; 
+    autoResizeTextarea(journalEntryEl); 
+    renderJournalImages(selectedSymbol, selectedTimeframe, symbolImageData); 
+}
             
             function checkMasterMode() { 
                 const urlParams = new URLSearchParams(window.location.search); 
