@@ -20,26 +20,38 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        h1, h2 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
         h2 {
             margin-top: 40px;
             border-top: 1px solid #ddd;
             padding-top: 20px;
         }
-        p.subtitle {
-            text-align: center;
-            font-style: italic;
-            margin-top: 0;
-            color: #666;
+        .section-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
         }
+        .backup-controls {
+            position: absolute;
+            right: 0;
+            display: flex;
+            gap: 10px;
+        }
+        .backup-controls button, .backup-controls label {
+            font-size: 12px;
+            padding: 6px 12px;
+            cursor: pointer;
+            background-color: #6c757d;
+            border: none;
+            color: white;
+            border-radius: 4px;
+        }
+        .backup-controls input[type="file"] { display: none; }
 
-        .master-only {
-            display: none;
-        }
+        p.subtitle { text-align: center; font-style: italic; margin-top: 0; color: #666; }
+
+        .master-only { display: none; }
 
         #add-trade-form {
             max-width: 950px;
@@ -52,15 +64,8 @@
             gap: 15px;
             align-items: end;
         }
-        #add-trade-form div {
-            display: flex;
-            flex-direction: column;
-        }
-        label {
-            margin-bottom: 5px;
-            font-weight: bold;
-            font-size: 14px;
-        }
+        #add-trade-form div { display: flex; flex-direction: column; }
+        label { margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input, select, button {
             padding: 10px;
             border: 1px solid #ccc;
@@ -92,28 +97,11 @@
         }
         
         .table-wrapper { overflow-x: auto; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-            white-space: nowrap;
-        }
-        th {
-            background-color: #e9ecef;
-            font-weight: bold;
-        }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; white-space: nowrap; }
+        th { background-color: #e9ecef; font-weight: bold; }
         tr:nth-child(even) { background-color: #f9f9f9; }
-        #loading-state, #loading-state-completed {
-            text-align: center;
-            padding: 40px;
-            font-size: 18px;
-            color: #777;
-        }
+        #loading-state, #loading-state-completed { text-align: center; padding: 40px; font-size: 18px; color: #777; }
 
         @media (max-width: 768px) {
             body { padding: 5px; }
@@ -121,10 +109,10 @@
             h1 { font-size: 24px; }
             #add-trade-form { grid-template-columns: 1fr; }
             table, th, td { font-size: 12px; padding: 6px; }
+            .section-header { flex-direction: column; }
+            .backup-controls { position: static; margin-top: 10px; }
         }
-        @media (max-width: 480px) {
-            table, th, td { font-size: 11px; padding: 4px; }
-        }
+        @media (max-width: 480px) { table, th, td { font-size: 11px; padding: 4px; } }
     </style>
 </head>
 <body>
@@ -134,83 +122,50 @@
         <p class="subtitle">Data updates in real-time for all viewers.</p>
 
         <form id="add-trade-form" class="master-only">
-             <div>
-                <label for="trade-symbol">Symbol:</label>
-                <select id="trade-symbol">
-                    <option value="BTCUSDT">BTCUSDT</option>
-                    <option value="ETHUSDT">ETHUSDT</option>
-                </select>
-            </div>
-            <div>
-                <label for="trade-type">Trade Type:</label>
-                <select id="trade-type">
-                    <option value="Long">Long</option>
-                    <option value="Short">Short</option>
-                </select>
-            </div>
-            <div>
-                <label for="entry-price">Entry Price:</label>
-                <input type="number" id="entry-price" step="any" required>
-            </div>
-            <div>
-                <label for="stop-loss">Stop Loss:</label>
-                <input type="number" id="stop-loss" step="any" required>
-            </div>
-            <div>
-                <label for="target">Target:</label>
-                <input type="number" id="target" step="any" required>
-            </div>
-            <div>
-                <label for="position-value">Position Value ($):</label>
-                <input type="number" id="position-value" step="any" required>
-            </div>
-            <div>
-                 <button type="submit">Add Trade</button>
-            </div>
+             <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTCUSDT">BTCUSDT</option><option value="ETHUSDT">ETHUSDT</option></select></div>
+             <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
+             <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
+             <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
+             <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
+             <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
+             <div><button type="submit">Add Trade</button></div>
         </form>
 
-        <h2>Live Trades</h2>
+        <div class="section-header">
+            <h2>Live Trades</h2>
+            <div class="backup-controls master-only">
+                <button id="save-live-btn">Save JSON</button>
+                <label for="load-live-input">Load JSON</label>
+                <input type="file" id="load-live-input" accept=".json">
+            </div>
+        </div>
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
-                        <th>Symbol</th>
-                        <th>Type</th>
-                        <th>Entry Price</th>
-                        <th>Stop Loss</th>
-                        <th>Target</th>
-                        <th>Position Value ($)</th>
-                        <th>Net Profit Est. ($)</th>
-                        <th>Net Loss Est. ($)</th>
-                        <th>Date Opened</th>
-                        <th class="master-only">Actions</th>
+                        <th>Symbol</th><th>Type</th><th>Entry Price</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th class="master-only">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="trades-tbody">
-                    <tr id="loading-state"><td colspan="9">Connecting to database...</td></tr>
-                </tbody>
+                <tbody id="trades-tbody"><tr id="loading-state"><td colspan="9">Connecting to database...</td></tr></tbody>
             </table>
         </div>
 
-        <h2>Completed Trades</h2>
+        <div class="section-header">
+            <h2>Completed Trades</h2>
+            <div class="backup-controls master-only">
+                <button id="save-completed-btn">Save JSON</button>
+                <label for="load-completed-input">Load JSON</label>
+                <input type="file" id="load-completed-input" accept=".json">
+            </div>
+        </div>
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
-                        <th>Symbol</th>
-                        <th>Type</th>
-                        <th>Entry Price</th>
-                        <th>Exit Price</th>
-                        <th>Fees ($)</th>
-                        <th>Net Result ($)</th>
-                        <th>Date Opened</th>
-                        <th>Date Closed</th>
-                        <th class="master-only">Actions</th>
+                        <th>Symbol</th><th>Type</th><th>Entry Price</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th class="master-only">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="completed-trades-tbody">
-                    <tr id="loading-state-completed"><td colspan="8">Loading completed trades...</td></tr>
-                </tbody>
+                <tbody id="completed-trades-tbody"><tr id="loading-state-completed"><td colspan="8">Loading completed trades...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -242,13 +197,14 @@
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('master') === 'true') {
                 isMasterUser = true;
-                const form = document.getElementById('add-trade-form');
-                if (form) form.style.display = 'grid';
-                
                 document.querySelectorAll('.master-only').forEach(el => {
-                    el.style.display = 'table-cell';
+                    const displayStyle = el.id === 'add-trade-form' ? 'grid' : 'flex';
+                     if (el.tagName === 'TH' || el.tagName === 'TD') {
+                        el.style.display = 'table-cell';
+                    } else {
+                        el.style.display = displayStyle;
+                    }
                 });
-
                 document.getElementById('loading-state')?.firstElementChild?.setAttribute("colspan", "10");
                 document.getElementById('loading-state-completed')?.firstElementChild?.setAttribute("colspan", "9");
             } else {
@@ -263,43 +219,24 @@
         const tradesTbody = document.getElementById('trades-tbody');
         const completedTradesTbody = document.getElementById('completed-trades-tbody');
 
+        // Render functions (unchanged)
         function renderLiveTable(tradesData) {
             tradesTbody.innerHTML = '';
             const colspan = isMasterUser ? 10 : 9;
-
             if (!tradesData) {
                 tradesTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No live trades.</td></tr>`;
                 return;
             }
-
             const tradeIds = Object.keys(tradesData).sort((a, b) => new Date(tradesData[b].date) - new Date(tradesData[a].date));
             tradeIds.forEach(tradeId => {
                 const trade = tradesData[tradeId];
                 const row = document.createElement('tr');
                 row.setAttribute('data-id', tradeId);
-
                 let masterColumn = '';
                 if (isMasterUser) {
-                    masterColumn = `
-                    <td class="action-buttons">
-                        <button class="win-btn" data-id="${tradeId}">Win</button>
-                        <button class="loss-btn" data-id="${tradeId}">Loss</button>
-                        <button class="delete-btn" data-id="${tradeId}">Delete</button>
-                    </td>`;
+                    masterColumn = `<td class="action-buttons"><button class="win-btn" data-id="${tradeId}">Win</button><button class="loss-btn" data-id="${tradeId}">Loss</button><button class="delete-btn" data-id="${tradeId}">Delete</button></td>`;
                 }
-
-                row.innerHTML = `
-                    <td>${trade.symbol}</td>
-                    <td>${trade.type}</td>
-                    <td>${parseFloat(trade.entry).toFixed(2)}</td>
-                    <td>${parseFloat(trade.stoploss).toFixed(2)}</td>
-                    <td>${parseFloat(trade.target).toFixed(2)}</td>
-                    <td>${parseFloat(trade.size).toFixed(2)}</td>
-                    <td style="color: #28a745;">${parseFloat(trade.expected_profit).toFixed(2)}</td>
-                    <td style="color: #dc3545;">${parseFloat(trade.expected_loss).toFixed(2)}</td>
-                    <td>${trade.date}</td>
-                    ${masterColumn}
-                `;
+                row.innerHTML = `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(2)}</td><td>${parseFloat(trade.stoploss).toFixed(2)}</td><td>${parseFloat(trade.target).toFixed(2)}</td><td>${parseFloat(trade.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(trade.expected_profit).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(trade.expected_loss).toFixed(2)}</td><td>${trade.date}</td>${masterColumn}`;
                 tradesTbody.appendChild(row);
             });
         }
@@ -307,58 +244,35 @@
         function renderCompletedTable(tradesData) {
             completedTradesTbody.innerHTML = '';
             const colspan = isMasterUser ? 9 : 8;
-
             if (!tradesData) {
                 completedTradesTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No completed trades yet.</td></tr>`;
                 return;
             }
-
             const tradeIds = Object.keys(tradesData).sort((a, b) => new Date(tradesData[b].closed_date) - new Date(tradesData[a].closed_date));
             tradeIds.forEach(tradeId => {
                 const trade = tradesData[tradeId];
                 const row = document.createElement('tr');
                 const resultColor = trade.net_result >= 0 ? '#28a745' : '#dc3545';
-                
                 let masterColumn = '';
                 if (isMasterUser) {
                     masterColumn = `<td class="action-buttons"><button class="delete-btn-completed" data-id="${tradeId}">Delete</button></td>`;
                 }
-                
                 const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
-
-                row.innerHTML = `
-                    <td>${trade.symbol}</td>
-                    <td>${trade.type}</td>
-                    <td>${parseFloat(trade.entry).toFixed(2)}</td>
-                    <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
-                    <td>${totalFees.toFixed(2)}</td>
-                    <td style="color: ${resultColor}; font-weight: bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
-                    <td>${trade.date}</td>
-                    <td>${trade.closed_date}</td>
-                    ${masterColumn}
-                `;
+                row.innerHTML = `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(2)}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color: ${resultColor}; font-weight: bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date}</td><td>${trade.closed_date}</td>${masterColumn}`;
                 completedTradesTbody.appendChild(row);
             });
         }
 
+        // Calculation functions (unchanged)
         function calculateNetResult(trade, exitPrice) {
             const entry = parseFloat(trade.entry);
             const posValue = parseFloat(trade.size);
             const exit = parseFloat(exitPrice);
-
             if (isNaN(entry) || isNaN(posValue) || isNaN(exit)) return { net_result: 0, entry_fee: 0, exit_fee: 0 };
-
             const entryFee = posValue * FEE_RATE;
             const exitPosValue = (exit / entry) * posValue;
             const exitFee = exitPosValue * FEE_RATE;
-
-            let grossResult;
-            if (trade.type === "Long") {
-                grossResult = (exit - entry) * (posValue / entry);
-            } else { // Short
-                grossResult = (entry - exit) * (posValue / entry);
-            }
-
+            let grossResult = trade.type === "Long" ? (exit - entry) * (posValue / entry) : (entry - exit) * (posValue / entry);
             const netResult = grossResult - entryFee - exitFee;
             return { net_result: netResult, entry_fee: entryFee, exit_fee: exitFee };
         }
@@ -367,62 +281,81 @@
             database.ref('trades/' + tradeId).once('value', (snapshot) => {
                 const trade = snapshot.val();
                 if (!trade) return;
-
                 const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
                 const exitPriceStr = prompt(`Enter the exact exit price:`, defaultExit);
-
-                if (exitPriceStr === null || isNaN(parseFloat(exitPriceStr))) {
+                if (exitPriceStr === null) return; // User cancelled
+                const exitPrice = parseFloat(exitPriceStr);
+                if (isNaN(exitPrice)) {
                     alert("Invalid exit price. Action cancelled.");
                     return;
                 }
-                const exitPrice = parseFloat(exitPriceStr);
-                
                 const { net_result, entry_fee, exit_fee } = calculateNetResult(trade, exitPrice);
-
-                const completedTrade = {
-                    ...trade,
-                    closed_date: new Date().toLocaleString(),
-                    exit_price: exitPrice,
-                    net_result: net_result,
-                    entry_fee: entry_fee,
-                    exit_fee: exit_fee
-                };
-                
-                // Remove unwanted properties from old trade
+                const completedTrade = { ...trade, closed_date: new Date().toLocaleString(), exit_price: exitPrice, net_result: net_result, entry_fee: entry_fee, exit_fee: exit_fee };
                 delete completedTrade.expected_profit;
                 delete completedTrade.expected_loss;
-
-                completedTradesRef.push(completedTrade)
-                    .then(() => {
-                        database.ref('trades/' + tradeId).remove();
-                    });
+                completedTradesRef.push(completedTrade).then(() => database.ref('trades/' + tradeId).remove());
             });
         }
-        
-        // Listeners
+
+        // --- NEW BACKUP/RESTORE LOGIC ---
+        function saveToJSON(ref, fileNamePrefix) {
+            ref.once('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) {
+                    alert("No data available to save.");
+                    return;
+                }
+                const dataStr = JSON.stringify(data, null, 2); // Pretty print JSON
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const date = new Date().toISOString().slice(0, 10);
+                a.href = url;
+                a.download = `${fileNamePrefix}_${date}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
+
+        function loadFromJSON(event, ref, sectionName) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!confirm(`Are you sure you want to restore ${sectionName} trades from this file? This will OVERWRITE all current ${sectionName} data.`)) {
+                event.target.value = ''; // Reset file input
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    ref.set(data)
+                        .then(() => alert(`${sectionName} trades restored successfully.`))
+                        .catch((error) => alert(`Error restoring data: ${error.message}`));
+                } catch (error) {
+                    alert(`Error parsing JSON file: ${error.message}`);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset file input
+        }
+
+        // Firebase Listeners
         tradesRef.on('value', (snapshot) => renderLiveTable(snapshot.val()));
         completedTradesRef.on('value', (snapshot) => renderCompletedTable(snapshot.val()));
 
+        // Event Listeners
         addForm.addEventListener('submit', function (e) {
             e.preventDefault();
             if (!isMasterUser) return;
-
-            const newTrade = {
-                symbol: document.getElementById('trade-symbol').value,
-                date: new Date().toLocaleString(),
-                type: document.getElementById('trade-type').value,
-                entry: document.getElementById('entry-price').value,
-                stoploss: document.getElementById('stop-loss').value,
-                target: document.getElementById('target').value,
-                size: document.getElementById('position-value').value
-            };
-
+            const newTrade = { symbol: document.getElementById('trade-symbol').value, date: new Date().toLocaleString(), type: document.getElementById('trade-type').value, entry: document.getElementById('entry-price').value, stoploss: document.getElementById('stop-loss').value, target: document.getElementById('target').value, size: document.getElementById('position-value').value };
             const profitCalc = calculateNetResult(newTrade, newTrade.target);
             const lossCalc = calculateNetResult(newTrade, newTrade.stoploss);
-            
             newTrade.expected_profit = profitCalc.net_result;
-            newTrade.expected_loss = lossCalc.net_result; // This will be negative
-
+            newTrade.expected_loss = lossCalc.net_result;
             tradesRef.push(newTrade);
             addForm.reset();
         });
@@ -432,7 +365,6 @@
             const target = e.target;
             const tradeId = target.dataset.id;
             if (!tradeId) return;
-
             if (target.classList.contains('delete-btn')) {
                 if (confirm('Are you sure you want to permanently delete this live trade?')) {
                     database.ref('trades/' + tradeId).remove();
@@ -446,14 +378,18 @@
 
         completedTradesTbody.addEventListener('click', function (e) {
             if (!isMasterUser || !e.target.classList.contains('delete-btn-completed')) return;
-            
             const tradeId = e.target.dataset.id;
             if (!tradeId) return;
-
             if (confirm('Are you sure you want to delete this completed trade? This cannot be undone.')) {
                 completedTradesRef.child(tradeId).remove();
             }
         });
+
+        // Backup/Restore Event Listeners
+        document.getElementById('save-live-btn')?.addEventListener('click', () => saveToJSON(tradesRef, 'live_trades_backup'));
+        document.getElementById('load-live-input')?.addEventListener('change', (e) => loadFromJSON(e, tradesRef, 'Live'));
+        document.getElementById('save-completed-btn')?.addEventListener('click', () => saveToJSON(completedTradesRef, 'completed_trades_backup'));
+        document.getElementById('load-completed-input')?.addEventListener('change', (e) => loadFromJSON(e, completedTradesRef, 'Completed'));
     });
 </script>
 
