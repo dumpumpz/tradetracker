@@ -20,10 +20,15 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        h1 {
+        h1, h2 {
             text-align: center;
             color: #2c3e50;
             margin-bottom: 5px;
+        }
+        h2 {
+            margin-top: 40px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
         }
         p.subtitle {
             text-align: center;
@@ -36,14 +41,12 @@
             display: none;
         }
 
-        /* MODIFICATION: Removed 'display: grid;' from this rule */
         #add-trade-form {
             margin-bottom: 20px;
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 5px;
             background-color: #fafafa;
-            /* The 'display: grid' is now set by JavaScript for master users only */
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
             align-items: end;
@@ -71,18 +74,23 @@
             border: none;
             cursor: pointer;
             transition: background-color 0.3s;
+            margin-top: 5px; /* Spacing for buttons in a row */
         }
-        button.delete-btn {
-            background-color: #dc3545;
-        }
-        button:hover {
-            opacity: 0.85;
-        }
+        button.delete-btn { background-color: #dc3545; }
+        button.win-btn { background-color: #28a745; }
+        button.loss-btn { background-color: #ffc107; color: #333; }
 
-        .table-wrapper {
-            overflow-x: auto;
-        }
+        button:hover { opacity: 0.85; }
 
+        .action-buttons button {
+            display: inline-block;
+            width: auto;
+            margin-right: 5px;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .table-wrapper { overflow-x: auto; }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -98,10 +106,8 @@
             background-color: #e9ecef;
             font-weight: bold;
         }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        #loading-state {
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        #loading-state, #loading-state-completed {
             text-align: center;
             padding: 40px;
             font-size: 18px;
@@ -109,30 +115,14 @@
         }
 
         @media (max-width: 768px) {
-            body {
-                padding: 5px;
-            }
-            .container {
-                padding: 10px;
-            }
-            h1 {
-                font-size: 24px;
-            }
-            #add-trade-form {
-                grid-template-columns: 1fr;
-            }
-        }
-        @media (max-width: 768px) {
-            table, th, td {
-                font-size: 12px;
-                padding: 6px;
-            }
+            body { padding: 5px; }
+            .container { padding: 10px; }
+            h1 { font-size: 24px; }
+            #add-trade-form { grid-template-columns: 1fr; }
+            table, th, td { font-size: 12px; padding: 6px; }
         }
         @media (max-width: 480px) {
-            table, th, td {
-                font-size: 11px;
-                padding: 4px;
-            }
+            table, th, td { font-size: 11px; padding: 4px; }
         }
     </style>
 </head>
@@ -143,6 +133,13 @@
         <p class="subtitle">Data updates in real-time for all viewers.</p>
 
         <form id="add-trade-form" class="master-only">
+            <div>
+                <label for="trade-symbol">Symbol:</label>
+                <select id="trade-symbol">
+                    <option value="BTCUSDT">BTCUSDT</option>
+                    <option value="ETHUSDT">ETHUSDT</option>
+                </select>
+            </div>
             <div>
                 <label for="trade-type">Trade Type:</label>
                 <select id="trade-type">
@@ -175,7 +172,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Date & Time</th>
+                        <th>Symbol</th>
                         <th>Type</th>
                         <th>Entry Price</th>
                         <th>Stop Loss</th>
@@ -183,15 +180,37 @@
                         <th>Position Value ($)</th>
                         <th>Expected Profit ($)</th>
                         <th>Expected Loss ($)</th>
+                        <th>Date Opened</th>
                         <th class="master-only">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="trades-tbody">
-                    <tr id="loading-state"><td colspan="8">Connecting to database...</td></tr>
+                    <tr id="loading-state"><td colspan="9">Connecting to database...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>Completed Trades</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Type</th>
+                        <th>Entry Price</th>
+                        <th>Exit Price</th>
+                        <th>Result ($)</th>
+                        <th>Date Opened</th>
+                        <th>Date Closed</th>
+                    </tr>
+                </thead>
+                <tbody id="completed-trades-tbody">
+                    <tr id="loading-state-completed"><td colspan="7">Loading completed trades...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
+
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -209,6 +228,7 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const tradesRef = database.ref('trades');
+    const completedTradesRef = database.ref('completed_trades');
 
     document.addEventListener('DOMContentLoaded', function () {
         let isMasterUser = false;
@@ -217,25 +237,16 @@
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('master') === 'true') {
                 isMasterUser = true;
-
-                // Specifically target the form and set its display to 'grid'
                 const form = document.getElementById('add-trade-form');
-                if (form) {
-                    form.style.display = 'grid';
-                }
+                if (form) form.style.display = 'grid';
+                
+                document.querySelectorAll('.master-only').forEach(el => {
+                    el.style.display = 'table-cell';
+                });
 
-                // Specifically target the master-only table header
-                const masterHeader = document.querySelector('th.master-only');
-                if (masterHeader) {
-                    masterHeader.style.display = 'table-cell';
-                }
-
-                const loadingCell = document.getElementById('loading-state');
-                if (loadingCell) loadingCell.firstElementChild?.setAttribute("colspan", "9");
+                document.getElementById('loading-state')?.firstElementChild?.setAttribute("colspan", "10");
             } else {
-                // For viewers, ensure master-only elements are hidden (relies on CSS)
-                const loadingCell = document.getElementById('loading-state');
-                if (loadingCell) loadingCell.firstElementChild?.setAttribute("colspan", "8");
+                document.getElementById('loading-state')?.firstElementChild?.setAttribute("colspan", "9");
             }
         }
 
@@ -243,13 +254,14 @@
 
         const addForm = document.getElementById('add-trade-form');
         const tradesTbody = document.getElementById('trades-tbody');
+        const completedTradesTbody = document.getElementById('completed-trades-tbody');
 
-        function renderTable(tradesData) {
+        function renderLiveTable(tradesData) {
             tradesTbody.innerHTML = '';
+            const colspan = isMasterUser ? 10 : 9;
 
             if (!tradesData) {
-                const colspan = isMasterUser ? 9 : 8;
-                tradesTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; white-space:normal;">No trades recorded. Add one to get started!</td></tr>`;
+                tradesTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No live trades.</td></tr>`;
                 return;
             }
 
@@ -259,24 +271,55 @@
                 const row = document.createElement('tr');
                 row.setAttribute('data-id', tradeId);
 
-                // Conditionally render the delete button column
                 let masterColumn = '';
                 if (isMasterUser) {
-                    masterColumn = `<td style="display: table-cell;"><button class="delete-btn" data-id="${tradeId}">Delete</button></td>`;
+                    masterColumn = `
+                    <td class="action-buttons">
+                        <button class="win-btn" data-id="${tradeId}">Win</button>
+                        <button class="loss-btn" data-id="${tradeId}">Loss</button>
+                        <button class="delete-btn" data-id="${tradeId}">Delete</button>
+                    </td>`;
                 }
 
                 row.innerHTML = `
-                    <td>${trade.date}</td>
+                    <td>${trade.symbol}</td>
                     <td>${trade.type}</td>
-                    <td>${parseFloat(trade.entry).toFixed(0)}</td>
-                    <td>${parseFloat(trade.stoploss).toFixed(0)}</td>
-                    <td>${parseFloat(trade.target).toFixed(0)}</td>
+                    <td>${parseFloat(trade.entry).toFixed(2)}</td>
+                    <td>${parseFloat(trade.stoploss).toFixed(2)}</td>
+                    <td>${parseFloat(trade.target).toFixed(2)}</td>
                     <td>${parseFloat(trade.size).toFixed(2)}</td>
-                    <td>${parseFloat(trade.expected_profit).toFixed(2)}</td>
-                    <td>${parseFloat(trade.expected_loss).toFixed(2)}</td>
+                    <td style="color: #28a745;">${parseFloat(trade.expected_profit).toFixed(2)}</td>
+                    <td style="color: #dc3545;">${parseFloat(trade.expected_loss).toFixed(2)}</td>
+                    <td>${trade.date}</td>
                     ${masterColumn}
                 `;
                 tradesTbody.appendChild(row);
+            });
+        }
+        
+        function renderCompletedTable(tradesData) {
+            completedTradesTbody.innerHTML = '';
+            if (!tradesData) {
+                completedTradesTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No completed trades yet.</td></tr>`;
+                return;
+            }
+
+            const tradeIds = Object.keys(tradesData).sort((a, b) => new Date(tradesData[b].closed_date) - new Date(tradesData[a].closed_date));
+            tradeIds.forEach(tradeId => {
+                const trade = tradesData[tradeId];
+                const row = document.createElement('tr');
+                const resultColor = trade.result >= 0 ? '#28a745' : '#dc3545';
+                
+                row.innerHTML = `
+                    <td>${trade.symbol}</td>
+                    <td>${trade.type}</td>
+                    <td>${parseFloat(trade.entry).toFixed(2)}</td>
+                    <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
+                    <td style="color: ${resultColor}; font-weight: bold;">${parseFloat(trade.result).toFixed(2)}</td>
+                    <td>${trade.date}</td>
+                    <td>${trade.closed_date}</td>
+                `;
+                completedTradesTbody.appendChild(row);
             });
         }
 
@@ -294,24 +337,42 @@
             if (trade.type === "Long") {
                 expected_profit = (target - entry) * (pos_value / entry);
                 expected_loss = (entry - stoploss) * (pos_value / entry);
-            } else {
+            } else { // Short
                 expected_profit = (entry - target) * (pos_value / entry);
                 expected_loss = (stoploss - entry) * (pos_value / entry);
             }
-
             return { expected_profit, expected_loss };
         }
 
-        tradesRef.on('value', (snapshot) => {
-            const tradesData = snapshot.val();
-            renderTable(tradesData);
-        });
+        function completeTrade(tradeId, outcome) {
+            if (!isMasterUser) return;
+
+            database.ref('trades/' + tradeId).once('value', (snapshot) => {
+                const trade = snapshot.val();
+                if (!trade) return;
+
+                const completedTrade = {
+                    ...trade,
+                    closed_date: new Date().toLocaleString(),
+                    exit_price: outcome === 'win' ? trade.target : trade.stoploss,
+                    result: outcome === 'win' ? trade.expected_profit : -Math.abs(trade.expected_loss)
+                };
+
+                completedTradesRef.push(completedTrade);
+                database.ref('trades/' + tradeId).remove();
+            });
+        }
+        
+        // Listeners
+        tradesRef.on('value', (snapshot) => renderLiveTable(snapshot.val()));
+        completedTradesRef.on('value', (snapshot) => renderCompletedTable(snapshot.val()));
 
         addForm.addEventListener('submit', function (e) {
             e.preventDefault();
             if (!isMasterUser) return;
 
             const newTrade = {
+                symbol: document.getElementById('trade-symbol').value,
                 date: new Date().toLocaleString(),
                 type: document.getElementById('trade-type').value,
                 entry: document.getElementById('entry-price').value,
@@ -329,11 +390,18 @@
         });
 
         tradesTbody.addEventListener('click', function (e) {
-            if (isMasterUser && e.target.classList.contains('delete-btn')) {
-                const tradeId = e.target.dataset.id;
-                if (confirm('Are you sure you want to delete this trade permanently?')) {
+            if (!isMasterUser) return;
+            const target = e.target;
+            const tradeId = target.dataset.id;
+
+            if (target.classList.contains('delete-btn')) {
+                if (confirm('Are you sure you want to permanently delete this trade?')) {
                     database.ref('trades/' + tradeId).remove();
                 }
+            } else if (target.classList.contains('win-btn')) {
+                completeTrade(tradeId, 'win');
+            } else if (target.classList.contains('loss-btn')) {
+                completeTrade(tradeId, 'loss');
             }
         });
     });
