@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Trade & Journal Tracker</title>
-    <!-- SCRIPT FOR IMAGE COMPRESSION -->
+    
+    <!-- THIS IS THE CRITICAL LINE THAT WAS MISSING. IT LOADS THE COMPRESSION LIBRARY. -->
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 10px; background-color: #f4f7f6; color: #333; }
         .container { max-width: 1200px; margin: auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -120,7 +122,7 @@
             const journalTab = document.getElementById('journal-tab');
 
             function autoResizeTextarea(element) { element.style.height = 'auto'; element.style.height = (element.scrollHeight) + 'px'; }
-            function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); } // Use global replace for safety
+            function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); }
             
             function updateJournalView() { 
                 const selectedSymbol = getSafeSymbol(journalSymbolEl.value); 
@@ -282,7 +284,6 @@
                 }
             });
 
-            // --- ALL OTHER EVENT LISTENERS AND FUNCTIONS ---
             toggleBalanceBtn.addEventListener('click', () => { bankBalanceContainer.classList.toggle('balance-minimized'); balanceTextEl.textContent = bankBalanceContainer.classList.contains('balance-minimized') ? 'Balance Hidden' : 'Current Balance: '; });
             const saveJournalEntry = (() => { let t; return () => { clearTimeout(t); t = setTimeout(() => { if (!isMasterUser || !masterPassword) return; const safeSymbol = getSafeSymbol(journalSymbolEl.value); const timeframe = journalTimeframeEl.value; document.getElementById('save-status').textContent = 'Saving...'; journalRef.child(safeSymbol).child(timeframe).set(journalEntryEl.value).then(() => { document.getElementById('save-status').textContent = 'Saved.'; setTimeout(() => document.getElementById('save-status').textContent = '', 2000); }).catch(e => document.getElementById('save-status').textContent = `Error: ${e.message}`); }, 750); }; })();
             journalEntryEl.addEventListener('input', () => autoResizeTextarea(journalEntryEl));
@@ -302,10 +303,9 @@
             function renderLiveTable(d){const t=document.getElementById('trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.stoploss).toFixed(2)}</td><td>${parseFloat(a.target).toFixed(2)}</td><td>${parseFloat(a.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(a.expected_profit).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(a.expected_loss).toFixed(2)}</td><td>${a.date}</td>${isMasterUser?`<td class="action-buttons"><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="delete-btn" data-id="${id}">Delete</button></td>`:''}`;t.appendChild(r);});}
             function renderCompletedTable(d){const t=document.getElementById('completed-trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].closed_date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const c=a.net_result>=0?'#28a745':'#dc3545',e=(a.entry_fee||0)+(a.exit_fee||0);r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.exit_price).toFixed(2)}</td><td>${e.toFixed(2)}</td><td style="color:${c};font-weight:bold;">${parseFloat(a.net_result).toFixed(2)}</td><td>${a.date}</td><td>${a.closed_date}</td>${isMasterUser?`<td class="action-buttons"><button class="delete-btn-completed" data-id="${id}">Delete</button></td>`:''}`;t.appendChild(r);});}
             
-            // --- FIREBASE DATA LISTENERS ---
             tradesRef.on('value',snapshot=>renderLiveTable(snapshot.val()));
             completedTradesRef.on('value',snapshot=>{const d=snapshot.val();renderCompletedTable(d);let t=0;if(d)t=Object.values(d).reduce((s,a)=>s+(a.net_result||0),0);bankRef.set({currentBalance:STARTING_BALANCE+t});});
-            bankRef.on('value',s=>{let b=STARTING_BALANCE;if(s.exists()&&s.val().currentBalance!==null)b=s.val().currentBalance;document.getElementById('bank-balance-value').textContent=`$${parseFloat(b).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;document.getElementById('bank-balance-value').style.color=b>=STARTING_BALANCE?'#28a745':'#dc3545';});
+            bankRef.on('value',s=>{let b=STARTING_BALANCE;if(s.exists()&&s.val().current_balance!==null)b=s.val().current_balance;document.getElementById('bank-balance-value').textContent=`$${parseFloat(b).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;document.getElementById('bank-balance-value').style.color=b>=STARTING_BALANCE?'#28a745':'#dc3545';});
             journalRef.on('value', (s) => { allJournalText = s.val() || {}; updateJournalView(); });
             journalImagesRef.on('value', (s) => { allJournalImages = s.val() || {}; updateJournalView(); });
         });
