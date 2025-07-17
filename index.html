@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Trade & Journal Tracker</title>
     
-    <!-- THE SCRIPT TAG IS NO LONGER HERE. WE MOVED IT TO THE BOTTOM. -->
+    <!-- NO EXTERNAL LIBRARIES HERE, TO KEEP IT SIMPLE -->
     
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 10px; background-color: #f4f7f6; color: #333; }
@@ -75,6 +75,7 @@
 </head>
 <body>
     <div class="container">
+        <!-- All your HTML body content here... -->
         <h1>Live Trade & Journal Tracker</h1>
         <p class="subtitle">Data updates in real-time for all viewers.</p>
         <div class="tabs"><button class="tab-link active" data-tab="tracker">Trade Tracker</button><button class="tab-link" data-tab="journal">Journal</button></div>
@@ -82,14 +83,11 @@
         <div id="journal-tab" class="tab-content"><div id="journal-controls"><div><label for="journal-symbol">Symbol:</label><select id="journal-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div><div><label for="journal-timeframe">Timeframe:</label><select id="journal-timeframe"><option value="15min">15min</option><option value="30min">30min</option><option value="1hour">1hour</option><option value="2hour">2hour</option><option value="4hour">4hour</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div></div><textarea id="journal-entry" placeholder="Select a symbol and timeframe to view entry. Master access required to edit."></textarea><p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p><div id="image-upload-section" class="master-only"><label for="journal-image-upload" class="image-upload-label">Add Picture</label><input type="file" id="journal-image-upload" accept="image/*"><div id="upload-progress" style="display:none"></div></div><div id="journal-images-container"></div></div>
     </div>
     
-    <!-- SCRIPT LOADING ORDER FIX: Load all external libraries BEFORE our main script runs. -->
-    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     
     <script>
-        // All of your application logic goes here, now guaranteed to run AFTER the libraries are loaded.
         const firebaseConfig = {
             apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
             authDomain: "journal-a003f.firebaseapp.com",
@@ -159,8 +157,9 @@
             }
             checkMasterMode();
 
-            async function handleFileUpload(file) {
-                console.log("--- Starting Image Upload ---");
+            // SIMPLIFIED UPLOAD FUNCTION - NO COMPRESSION
+            function handleFileUpload(file) {
+                console.log("--- Starting SIMPLE Image Upload ---");
                 if (!isMasterUser || !masterPassword) {
                     console.error("Upload stopped: Not in master mode or no password.");
                     return;
@@ -172,59 +171,44 @@
                 
                 const uploadProgressEl = document.getElementById('upload-progress');
                 uploadProgressEl.style.display = 'block';
-                uploadProgressEl.textContent = 'Compressing image...';
 
-                const options = {
-                    maxSizeMB: 2,
-                    maxWidthOrHeight: 1920,
-                    useWebWorker: true
-                };
+                const safeSymbol = getSafeSymbol(journalSymbolEl.value);
+                const timeframe = journalTimeframeEl.value;
+                const fileName = `${Date.now()}_${file.name}`;
+                const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
+                
+                console.log(`%cAttempting to upload to STORAGE path: "${storagePath}"`, 'color: blue; font-weight: bold;');
+                
+                const fileRef = storage.ref(storagePath);
+                const metadata = { customMetadata: { 'password': masterPassword } };
+                const uploadTask = fileRef.put(file, metadata);
 
-                try {
-                    const compressedFile = await browserImageCompression(file, options);
-                    console.log(`Original/Compressed size: ${(file.size / 1024 / 1024).toFixed(2)}MB / ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
-
-                    const safeSymbol = getSafeSymbol(journalSymbolEl.value);
-                    const timeframe = journalTimeframeEl.value;
-                    const fileName = `${Date.now()}_${compressedFile.name}`;
-                    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
-                    
-                    console.log(`%cAttempting to upload to STORAGE path: "${storagePath}"`, 'color: blue; font-weight: bold;');
-                    
-                    const fileRef = storage.ref(storagePath);
-                    const metadata = { customMetadata: { 'password': masterPassword } };
-                    const uploadTask = fileRef.put(compressedFile, metadata);
-
-                    uploadTask.on('state_changed', 
-                        (s) => { 
-                            uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; 
-                        }, 
-                        (storageError) => { 
-                            console.error("!!! STORAGE UPLOAD FAILED !!!", storageError);
-                            uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; 
-                        }, 
-                        () => {
-                            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                                console.log("Storage upload successful. Saving metadata to DB...");
-                                const imageData = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
-                                journalImagesRef.child(safeSymbol).child(timeframe).push(imageData)
-                                    .then(() => { 
-                                        console.log("%cSUCCESS: Metadata saved to Realtime Database.", 'color: green; font-weight: bold;');
-                                        uploadProgressEl.textContent = 'Upload Complete!'; 
-                                        setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
-                                    })
-                                    .catch((dbError) => { 
-                                        console.error("!!! DATABASE SAVE FAILED !!!", dbError);
-                                        uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; 
-                                        fileRef.delete(); 
-                                    });
-                            });
-                        }
-                    );
-                } catch (error) {
-                    console.error('Image compression error:', error);
-                    uploadProgressEl.textContent = `Error: ${error.message}`;
-                }
+                uploadTask.on('state_changed', 
+                    (s) => { 
+                        uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; 
+                    }, 
+                    (storageError) => { 
+                        console.error("!!! STORAGE UPLOAD FAILED !!!", storageError);
+                        uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; 
+                    }, 
+                    () => {
+                        uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                            console.log("Storage upload successful. Saving metadata to DB...");
+                            const imageData = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
+                            journalImagesRef.child(safeSymbol).child(timeframe).push(imageData)
+                                .then(() => { 
+                                    console.log("%cSUCCESS: Metadata saved to Realtime Database.", 'color: green; font-weight: bold;');
+                                    uploadProgressEl.textContent = 'Upload Complete!'; 
+                                    setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
+                                })
+                                .catch((dbError) => { 
+                                    console.error("!!! DATABASE SAVE FAILED !!!", dbError);
+                                    uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; 
+                                    fileRef.delete(); 
+                                });
+                        });
+                    }
+                );
             }
             
             function renderJournalImages(symbol, timeframe, imagesForSymbol) {
@@ -300,7 +284,7 @@
             ['dragenter','dragover','dragleave','drop'].forEach(ev=>journalTab.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();}));
             ['dragenter','dragover'].forEach(ev=>journalTab.addEventListener(ev,()=>(isMasterUser && masterPassword) && journalTab.classList.add('drag-over')));
             ['dragleave','drop'].forEach(ev=>journalTab.addEventListener(ev,()=>(isMasterUser && masterPassword) && journalTab.classList.remove('drag-over')));
-            journalTab.addEventListener('drop', (e) => { if (isMasterUser && e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files[0]); });
+            journalTab.addEventListener('drop', (e) => { if (isMasterUser && e.dataTransfer.files.length) handleFileUpload(e.target.files[0]); });
             function calculateNetResult(trade, exitPrice) { const entry=parseFloat(trade.entry),posValue=parseFloat(trade.size),exit=parseFloat(exitPrice);if(isNaN(entry)||isNaN(posValue)||isNaN(exit))return{net_result:0,entry_fee:0,exit_fee:0};const entryFee=posValue*FEE_RATE,exitPosValue=(exit/entry)*posValue,exitFee=exitPosValue*FEE_RATE;const grossResult=trade.type==="Long"?(exit-entry)*(posValue/entry):(entry-exit)*(posValue/entry);return{net_result:grossResult-entryFee-exitFee,entry_fee:entryFee,exit_fee:exitFee};}
             function completeTrade(tradeId,outcome){database.ref('trades/'+tradeId).once('value',s=>{const t=s.val();if(!t)return;const d=outcome==='win'?t.target:t.stoploss;const p=prompt(`Enter exact exit price:`,d);if(p===null)return;const e=parseFloat(p);if(isNaN(e))return alert("Invalid exit price.");const{net_result,entry_fee,exit_fee}=calculateNetResult(t,e);const c={...t,closed_date:new Date().toLocaleString(),exit_price:e,net_result,entry_fee,exit_fee};delete c.expected_profit;delete c.expected_loss;completedTradesRef.push(c).then(()=>tradesRef.child(tradeId).remove());});}
             function renderLiveTable(d){const t=document.getElementById('trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.stoploss).toFixed(2)}</td><td>${parseFloat(a.target).toFixed(2)}</td><td>${parseFloat(a.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(a.expected_profit).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(a.expected_loss).toFixed(2)}</td><td>${a.date}</td>${isMasterUser?`<td class="action-buttons"><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="delete-btn" data-id="${id}">Delete</button></td>`:''}`;t.appendChild(r);});}
