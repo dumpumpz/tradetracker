@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Trade & Journal Tracker</title>
+    <!-- SCRIPT FOR IMAGE COMPRESSION -->
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 10px; background-color: #f4f7f6; color: #333; }
         .container { max-width: 1200px; margin: auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -118,106 +120,169 @@
             const journalTab = document.getElementById('journal-tab');
 
             function autoResizeTextarea(element) { element.style.height = 'auto'; element.style.height = (element.scrollHeight) + 'px'; }
-            function getSafeSymbol(symbol) { return symbol.replace('/', '-'); }
+            function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); } // Use global replace for safety
             
-            function updateJournalView() { const selectedSymbol = getSafeSymbol(journalSymbolEl.value); const selectedTimeframe = journalTimeframeEl.value; const symbolTextData = allJournalText[selectedSymbol] || {}; journalEntryEl.value = symbolTextData[selectedTimeframe] || ''; autoResizeTextarea(journalEntryEl); const symbolImageData = allJournalImages[selectedSymbol] || {}; renderJournalImages(selectedSymbol, selectedTimeframe, symbolImageData); }
-            function checkMasterMode() { const urlParams = new URLSearchParams(window.location.search); if (urlParams.get('master') === 'true') { const password = prompt("Please enter master password:"); if (password) { isMasterUser = true; masterPassword = password; document.querySelectorAll('.master-only').forEach(el => { if (el.id === 'add-trade-form') el.style.display = 'grid'; else if (el.tagName === 'TH' || el.tagName === 'TD') el.style.display = 'table-cell'; else if (el.classList.contains('backup-controls')) el.style.display = 'flex'; else el.style.display = 'block'; }); journalEntryEl.readOnly = false; } } if (!isMasterUser) { journalEntryEl.readOnly = true; } }
+            function updateJournalView() { 
+                const selectedSymbol = getSafeSymbol(journalSymbolEl.value); 
+                const selectedTimeframe = journalTimeframeEl.value; 
+                const symbolTextData = allJournalText[selectedSymbol] || {}; 
+                journalEntryEl.value = symbolTextData[selectedTimeframe] || ''; 
+                autoResizeTextarea(journalEntryEl); 
+                const symbolImageData = allJournalImages[selectedSymbol] || {}; 
+                renderJournalImages(selectedSymbol, selectedTimeframe, symbolImageData); 
+            }
+            
+            function checkMasterMode() { 
+                const urlParams = new URLSearchParams(window.location.search); 
+                if (urlParams.get('master') === 'true') { 
+                    const password = prompt("Please enter master password:"); 
+                    if (password) { 
+                        isMasterUser = true; 
+                        masterPassword = password; 
+                        document.querySelectorAll('.master-only').forEach(el => { 
+                            if (el.id === 'add-trade-form') el.style.display = 'grid'; 
+                            else if (el.tagName === 'TH' || el.tagName === 'TD') el.style.display = 'table-cell'; 
+                            else if (el.classList.contains('backup-controls')) el.style.display = 'flex'; 
+                            else el.style.display = 'block'; 
+                        }); 
+                        journalEntryEl.readOnly = false; 
+                    } 
+                } 
+                if (!isMasterUser) { 
+                    journalEntryEl.readOnly = true; 
+                } 
+            }
             checkMasterMode();
 
-            function handleFileUpload(file) {
-    // --- Start of Debug Version ---
-    console.log("--- Starting Image Upload ---");
-
-    if (!isMasterUser || !masterPassword) {
-        console.error("Upload stopped: Not in master mode or no password provided.");
-        return;
-    }
-    console.log("Master mode check passed. Password is:", masterPassword);
-
-    if (!file || !file.type.startsWith('image/')) {
-        console.error("Upload stopped: No file or not an image.");
-        return;
-    }
-    console.log("File check passed:", file.name, file.type);
-
-    const rawSymbol = journalSymbolEl.value;
-    const safeSymbol = getSafeSymbol(rawSymbol);
-    const timeframe = journalTimeframeEl.value;
-
-    console.log(`Raw symbol from dropdown: "${rawSymbol}"`);
-    console.log(`Sanitized symbol for Firebase: "${safeSymbol}"`);
-    console.log(`Timeframe from dropdown: "${timeframe}"`);
-
-    const fileName = `${Date.now()}_${file.name}`;
-    
-    // LOG THE EXACT PATHS WE ARE ABOUT TO USE
-    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
-    const dbPath = `journal_images/${safeSymbol}/${timeframe}`;
-    console.log(`%cAttempting to upload to STORAGE path: "${storagePath}"`, 'color: blue; font-weight: bold;');
-    console.log(`%cWill save metadata to DATABASE path: "${dbPath}"`, 'color: green; font-weight: bold;');
-    
-    const fileRef = storage.ref(storagePath);
-    const metadata = { customMetadata: { 'password': masterPassword } };
-    
-    const uploadTask = fileRef.put(file, metadata);
-    const uploadProgressEl = document.getElementById('upload-progress');
-    uploadProgressEl.style.display = 'block';
-
-    uploadTask.on('state_changed', 
-        (s) => { 
-            uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; 
-        }, 
-        (storageError) => { 
-            // THIS WILL CATCH THE ERROR IF IT'S A RULE/PATHING PROBLEM
-            console.error("!!! STORAGE UPLOAD FAILED !!!", storageError.code, storageError.message);
-            uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; 
-        }, 
-        () => {
-            console.log("Storage upload successful. Getting download URL...");
-            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                console.log("Download URL obtained:", downloadURL);
-                const imageData = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
+            async function handleFileUpload(file) {
+                console.log("--- Starting Image Upload ---");
+                if (!isMasterUser || !masterPassword) {
+                    console.error("Upload stopped: Not in master mode or no password.");
+                    return;
+                }
+                if (!file || !file.type.startsWith('image/')) {
+                    console.error("Upload stopped: No file or not an image.");
+                    return;
+                }
                 
-                journalImagesRef.child(safeSymbol).child(timeframe).push(imageData)
-                    .then(() => { 
-                        console.log("SUCCESS: Metadata saved to Realtime Database.");
-                        uploadProgressEl.textContent = 'Upload Complete!'; 
-                        setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
-                    })
-                    .catch((dbError) => { 
-                        console.error("!!! DATABASE SAVE FAILED !!!", dbError);
-                        uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; 
-                        fileRef.delete(); 
-                    });
-            });
-        }
-    );
-    // --- End of Debug Version ---
-}
-            // --- THIS IS THE CORRECTED FUNCTION ---
+                const uploadProgressEl = document.getElementById('upload-progress');
+                uploadProgressEl.style.display = 'block';
+                uploadProgressEl.textContent = 'Compressing image...';
+
+                const options = {
+                    maxSizeMB: 2,
+                    maxWidthOrHeight: 1920,
+                    useWebWorker: true
+                };
+
+                try {
+                    const compressedFile = await browserImageCompression(file, options);
+                    console.log(`Original/Compressed size: ${(file.size / 1024 / 1024).toFixed(2)}MB / ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+
+                    const safeSymbol = getSafeSymbol(journalSymbolEl.value);
+                    const timeframe = journalTimeframeEl.value;
+                    const fileName = `${Date.now()}_${compressedFile.name}`;
+                    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
+                    
+                    console.log(`%cAttempting to upload to STORAGE path: "${storagePath}"`, 'color: blue; font-weight: bold;');
+                    
+                    const fileRef = storage.ref(storagePath);
+                    const metadata = { customMetadata: { 'password': masterPassword } };
+                    const uploadTask = fileRef.put(compressedFile, metadata);
+
+                    uploadTask.on('state_changed', 
+                        (s) => { 
+                            uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; 
+                        }, 
+                        (storageError) => { 
+                            console.error("!!! STORAGE UPLOAD FAILED !!!", storageError);
+                            uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; 
+                        }, 
+                        () => {
+                            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                                console.log("Storage upload successful. Saving metadata to DB...");
+                                const imageData = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
+                                journalImagesRef.child(safeSymbol).child(timeframe).push(imageData)
+                                    .then(() => { 
+                                        console.log("%cSUCCESS: Metadata saved to Realtime Database.", 'color: green; font-weight: bold;');
+                                        uploadProgressEl.textContent = 'Upload Complete!'; 
+                                        setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
+                                    })
+                                    .catch((dbError) => { 
+                                        console.error("!!! DATABASE SAVE FAILED !!!", dbError);
+                                        uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; 
+                                        fileRef.delete(); 
+                                    });
+                            });
+                        }
+                    );
+                } catch (error) {
+                    console.error('Image compression error:', error);
+                    uploadProgressEl.textContent = `Error: ${error.message}`;
+                }
+            }
+            
             function renderJournalImages(symbol, timeframe, imagesForSymbol) {
-    journalImagesContainer.innerHTML = '';
+                console.log(`%cRendering images for Symbol: "${symbol}", Timeframe: "${timeframe}"`, 'color: orange; font-weight: bold;');
+                
+                journalImagesContainer.innerHTML = '';
+                const imagesForTimeframe = imagesForSymbol[timeframe] || {};
+                const imageKeys = Object.keys(imagesForTimeframe);
+                
+                console.log(`Found ${imageKeys.length} image(s) to render.`);
 
-    // CORRECT: 'imagesForSymbol' already holds the data for the selected symbol.
-    // We just need to get the object for the selected timeframe from it.
-    const imagesForTimeframe = imagesForSymbol[timeframe] || {};
+                if (imageKeys.length === 0) return;
 
-    Object.keys(imagesForTimeframe)
-        .sort((a, b) => imagesForTimeframe[a].timestamp - imagesForTimeframe[b].timestamp)
-        .forEach(id => {
-            const img = imagesForTimeframe[id];
-            const wrapper = document.createElement('div');
-            wrapper.className = 'journal-image-wrapper';
+                imageKeys
+                    .sort((a, b) => imagesForTimeframe[a].timestamp - imagesForTimeframe[b].timestamp)
+                    .forEach(id => {
+                        const imgData = imagesForTimeframe[id];
+
+                        if (!imgData || !imgData.url || !imgData.fileName) {
+                            console.warn("Skipping invalid image data object:", id, imgData);
+                            return;
+                        }
+                        
+                        console.log(` > Rendering image: ${imgData.fileName}`);
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'journal-image-wrapper';
+                        
+                        const deleteButton = (isMasterUser && masterPassword) 
+                            ? `<button class="delete-journal-image" title="Delete Image" data-safe-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${imgData.fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` 
+                            : '';
+
+                        wrapper.innerHTML = `${deleteButton}<img src="${imgData.url}" alt="Journal Image for ${imgData.fileName}">`;
+                        journalImagesContainer.appendChild(wrapper);
+                    });
+            }
             
-            const deleteButton = (isMasterUser && masterPassword) 
-                ? `<button class="delete-journal-image" title="Delete Image" data-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${img.fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` 
-                : '';
+            journalImagesContainer.addEventListener('click', (e) => {
+                const button = e.target.closest('.delete-journal-image');
+                if (!isMasterUser || !masterPassword || !button) return;
 
-            wrapper.innerHTML = `${deleteButton}<img src="${img.url}" alt="Journal Image">`;
-            journalImagesContainer.appendChild(wrapper);
-        });
-}
-            
+                const { safeSymbol, timeframe, id, filename } = button.dataset;
+                console.log("Delete button clicked with data:", { safeSymbol, timeframe, id, filename });
+                
+                if (confirm(`Are you sure you want to delete this image?\n\n${filename}`)) {
+                    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${filename}`;
+                    const dbPath = `journal_images/${safeSymbol}/${timeframe}/${id}`;
+
+                    storage.ref(storagePath).delete()
+                        .then(() => {
+                            console.log("Storage delete successful. Deleting from DB...");
+                            database.ref(dbPath).remove();
+                        })
+                        .catch((err) => {
+                            console.error("Error deleting from Storage:", err);
+                            if (err.code === 'storage/object-not-found') {
+                                console.log("File not in storage, but removing DB entry anyway.");
+                                database.ref(dbPath).remove();
+                            }
+                        });
+                }
+            });
+
+            // --- ALL OTHER EVENT LISTENERS AND FUNCTIONS ---
             toggleBalanceBtn.addEventListener('click', () => { bankBalanceContainer.classList.toggle('balance-minimized'); balanceTextEl.textContent = bankBalanceContainer.classList.contains('balance-minimized') ? 'Balance Hidden' : 'Current Balance: '; });
             const saveJournalEntry = (() => { let t; return () => { clearTimeout(t); t = setTimeout(() => { if (!isMasterUser || !masterPassword) return; const safeSymbol = getSafeSymbol(journalSymbolEl.value); const timeframe = journalTimeframeEl.value; document.getElementById('save-status').textContent = 'Saving...'; journalRef.child(safeSymbol).child(timeframe).set(journalEntryEl.value).then(() => { document.getElementById('save-status').textContent = 'Saved.'; setTimeout(() => document.getElementById('save-status').textContent = '', 2000); }).catch(e => document.getElementById('save-status').textContent = `Error: ${e.message}`); }, 750); }; })();
             journalEntryEl.addEventListener('input', () => autoResizeTextarea(journalEntryEl));
@@ -227,7 +292,6 @@
             journalSymbolEl.addEventListener('change', updateJournalView);
             journalTimeframeEl.addEventListener('change', updateJournalView);
             document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
-            journalImagesContainer.addEventListener('click', (e) => { const button = e.target.closest('.delete-journal-image'); if (!isMasterUser || !masterPassword || !button) return; const { symbol, timeframe, id, filename } = button.dataset; if (confirm('Delete this image?')) { storage.ref(`journal_images/${symbol}/${timeframe}/${filename}`).delete().then(() => journalImagesRef.child(symbol).child(timeframe).child(id).remove()).catch((err) => { console.error(err); if (err.code === 'storage/object-not-found') journalImagesRef.child(symbol).child(timeframe).child(id).remove(); }); } });
             document.querySelector('.tabs').addEventListener('click', (e) => { if (e.target.matches('.tab-link')) { document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active')); e.target.classList.add('active'); document.getElementById(e.target.dataset.tab + '-tab').classList.add('active'); } });
             ['dragenter','dragover','dragleave','drop'].forEach(ev=>journalTab.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();}));
             ['dragenter','dragover'].forEach(ev=>journalTab.addEventListener(ev,()=>(isMasterUser && masterPassword) && journalTab.classList.add('drag-over')));
@@ -238,6 +302,7 @@
             function renderLiveTable(d){const t=document.getElementById('trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.stoploss).toFixed(2)}</td><td>${parseFloat(a.target).toFixed(2)}</td><td>${parseFloat(a.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(a.expected_profit).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(a.expected_loss).toFixed(2)}</td><td>${a.date}</td>${isMasterUser?`<td class="action-buttons"><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="delete-btn" data-id="${id}">Delete</button></td>`:''}`;t.appendChild(r);});}
             function renderCompletedTable(d){const t=document.getElementById('completed-trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].closed_date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const c=a.net_result>=0?'#28a745':'#dc3545',e=(a.entry_fee||0)+(a.exit_fee||0);r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.exit_price).toFixed(2)}</td><td>${e.toFixed(2)}</td><td style="color:${c};font-weight:bold;">${parseFloat(a.net_result).toFixed(2)}</td><td>${a.date}</td><td>${a.closed_date}</td>${isMasterUser?`<td class="action-buttons"><button class="delete-btn-completed" data-id="${id}">Delete</button></td>`:''}`;t.appendChild(r);});}
             
+            // --- FIREBASE DATA LISTENERS ---
             tradesRef.on('value',snapshot=>renderLiveTable(snapshot.val()));
             completedTradesRef.on('value',snapshot=>{const d=snapshot.val();renderCompletedTable(d);let t=0;if(d)t=Object.values(d).reduce((s,a)=>s+(a.net_result||0),0);bankRef.set({currentBalance:STARTING_BALANCE+t});});
             bankRef.on('value',s=>{let b=STARTING_BALANCE;if(s.exists()&&s.val().currentBalance!==null)b=s.val().currentBalance;document.getElementById('bank-balance-value').textContent=`$${parseFloat(b).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;document.getElementById('bank-balance-value').style.color=b>=STARTING_BALANCE?'#28a745':'#dc3545';});
