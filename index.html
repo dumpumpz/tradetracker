@@ -125,26 +125,75 @@
             checkMasterMode();
 
             function handleFileUpload(file) {
-                if (!isMasterUser || !masterPassword) return; 
-                if (!file || !file.type.startsWith('image/')) return;
-                const safeSymbol = getSafeSymbol(journalSymbolEl.value);
-                const timeframe = journalTimeframeEl.value;
-                const fileName = `${Date.now()}_${file.name}`;
-                const fileRef = storage.ref(`journal_images/${safeSymbol}/${timeframe}/${fileName}`);
-                const metadata = { customMetadata: { 'password': masterPassword } };
-                const uploadTask = fileRef.put(file, metadata);
-                const uploadProgressEl = document.getElementById('upload-progress');
-                uploadProgressEl.style.display = 'block';
-                uploadTask.on('state_changed', (s) => { uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred/s.totalBytes)*100)}%`; }, (storageError) => { console.error("STORAGE ERROR:", storageError); uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; }, () => {
-                    uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                        const imageData = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
-                        journalImagesRef.child(safeSymbol).child(timeframe).push(imageData)
-                            .then(() => { uploadProgressEl.textContent = 'Upload Complete!'; setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); })
-                            .catch((dbError) => { console.error("DATABASE ERROR:", dbError); uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; fileRef.delete(); });
-                    });
-                });
-            }
+    // --- Start of Debug Version ---
+    console.log("--- Starting Image Upload ---");
 
+    if (!isMasterUser || !masterPassword) {
+        console.error("Upload stopped: Not in master mode or no password provided.");
+        return;
+    }
+    console.log("Master mode check passed. Password is:", masterPassword);
+
+    if (!file || !file.type.startsWith('image/')) {
+        console.error("Upload stopped: No file or not an image.");
+        return;
+    }
+    console.log("File check passed:", file.name, file.type);
+
+    const rawSymbol = journalSymbolEl.value;
+    const safeSymbol = getSafeSymbol(rawSymbol);
+    const timeframe = journalTimeframeEl.value;
+
+    console.log(`Raw symbol from dropdown: "${rawSymbol}"`);
+    console.log(`Sanitized symbol for Firebase: "${safeSymbol}"`);
+    console.log(`Timeframe from dropdown: "${timeframe}"`);
+
+    const fileName = `${Date.now()}_${file.name}`;
+    
+    // LOG THE EXACT PATHS WE ARE ABOUT TO USE
+    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
+    const dbPath = `journal_images/${safeSymbol}/${timeframe}`;
+    console.log(`%cAttempting to upload to STORAGE path: "${storagePath}"`, 'color: blue; font-weight: bold;');
+    console.log(`%cWill save metadata to DATABASE path: "${dbPath}"`, 'color: green; font-weight: bold;');
+    
+    const fileRef = storage.ref(storagePath);
+    const metadata = { customMetadata: { 'password': masterPassword } };
+    
+    const uploadTask = fileRef.put(file, metadata);
+    const uploadProgressEl = document.getElementById('upload-progress');
+    uploadProgressEl.style.display = 'block';
+
+    uploadTask.on('state_changed', 
+        (s) => { 
+            uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; 
+        }, 
+        (storageError) => { 
+            // THIS WILL CATCH THE ERROR IF IT'S A RULE/PATHING PROBLEM
+            console.error("!!! STORAGE UPLOAD FAILED !!!", storageError.code, storageError.message);
+            uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; 
+        }, 
+        () => {
+            console.log("Storage upload successful. Getting download URL...");
+            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                console.log("Download URL obtained:", downloadURL);
+                const imageData = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
+                
+                journalImagesRef.child(safeSymbol).child(timeframe).push(imageData)
+                    .then(() => { 
+                        console.log("SUCCESS: Metadata saved to Realtime Database.");
+                        uploadProgressEl.textContent = 'Upload Complete!'; 
+                        setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
+                    })
+                    .catch((dbError) => { 
+                        console.error("!!! DATABASE SAVE FAILED !!!", dbError);
+                        uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; 
+                        fileRef.delete(); 
+                    });
+            });
+        }
+    );
+    // --- End of Debug Version ---
+}
             // --- THIS IS THE CORRECTED FUNCTION ---
             function renderJournalImages(symbol, timeframe, imagesForSymbol) {
     journalImagesContainer.innerHTML = '';
