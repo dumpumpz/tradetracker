@@ -50,6 +50,19 @@
         .backup-controls input[type="file"] { display: none; }
 
         p.subtitle { text-align: center; font-style: italic; margin-top: 0; color: #666; }
+        
+        #bank-balance-container {
+            text-align: center;
+            margin: 10px auto 25px auto;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            max-width: 400px;
+        }
+        #bank-balance-value { font-weight: bolder; }
 
         .master-only { display: none; }
 
@@ -120,6 +133,10 @@
     <div class="container">
         <h1>Live Trade Journal</h1>
         <p class="subtitle">Data updates in real-time for all viewers.</p>
+        
+        <div id="bank-balance-container">
+            Current Balance: <span id="bank-balance-value">$0.00</span>
+        </div>
 
         <form id="add-trade-form" class="master-only">
              <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTCUSDT">BTCUSDT</option><option value="ETHUSDT">ETHUSDT</option></select></div>
@@ -188,22 +205,23 @@
     const database = firebase.database();
     const tradesRef = database.ref('trades');
     const completedTradesRef = database.ref('completed_trades');
-    const FEE_RATE = 0.00075; // 0.075%
+    const bankRef = database.ref('bank');
+    const FEE_RATE = 0.00075;
+    const STARTING_BALANCE = 4000;
 
     document.addEventListener('DOMContentLoaded', function () {
         let isMasterUser = false;
+        
+        const bankValueEl = document.getElementById('bank-balance-value');
 
         function checkMasterMode() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('master') === 'true') {
                 isMasterUser = true;
                 document.querySelectorAll('.master-only').forEach(el => {
-                    const displayStyle = el.id === 'add-trade-form' ? 'grid' : 'flex';
-                     if (el.tagName === 'TH' || el.tagName === 'TD') {
-                        el.style.display = 'table-cell';
-                    } else {
-                        el.style.display = displayStyle;
-                    }
+                    if (el.id === 'add-trade-form') el.style.display = 'grid';
+                    else if (el.tagName === 'TH' || el.tagName === 'TD') el.style.display = 'table-cell';
+                    else el.style.display = 'flex';
                 });
                 document.getElementById('loading-state')?.firstElementChild?.setAttribute("colspan", "10");
                 document.getElementById('loading-state-completed')?.firstElementChild?.setAttribute("colspan", "9");
@@ -214,13 +232,10 @@
         }
 
         checkMasterMode();
-
-        const addForm = document.getElementById('add-trade-form');
-        const tradesTbody = document.getElementById('trades-tbody');
-        const completedTradesTbody = document.getElementById('completed-trades-tbody');
-
-        // Render functions (unchanged)
+        
+        // Render functions remain largely the same
         function renderLiveTable(tradesData) {
+            const tradesTbody = document.getElementById('trades-tbody');
             tradesTbody.innerHTML = '';
             const colspan = isMasterUser ? 10 : 9;
             if (!tradesData) {
@@ -231,21 +246,18 @@
             tradeIds.forEach(tradeId => {
                 const trade = tradesData[tradeId];
                 const row = document.createElement('tr');
-                row.setAttribute('data-id', tradeId);
-                let masterColumn = '';
-                if (isMasterUser) {
-                    masterColumn = `<td class="action-buttons"><button class="win-btn" data-id="${tradeId}">Win</button><button class="loss-btn" data-id="${tradeId}">Loss</button><button class="delete-btn" data-id="${tradeId}">Delete</button></td>`;
-                }
+                let masterColumn = isMasterUser ? `<td class="action-buttons"><button class="win-btn" data-id="${tradeId}">Win</button><button class="loss-btn" data-id="${tradeId}">Loss</button><button class="delete-btn" data-id="${tradeId}">Delete</button></td>` : '';
                 row.innerHTML = `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(2)}</td><td>${parseFloat(trade.stoploss).toFixed(2)}</td><td>${parseFloat(trade.target).toFixed(2)}</td><td>${parseFloat(trade.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(trade.expected_profit).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(trade.expected_loss).toFixed(2)}</td><td>${trade.date}</td>${masterColumn}`;
                 tradesTbody.appendChild(row);
             });
         }
         
         function renderCompletedTable(tradesData) {
-            completedTradesTbody.innerHTML = '';
+            const completedTbody = document.getElementById('completed-trades-tbody');
+            completedTbody.innerHTML = '';
             const colspan = isMasterUser ? 9 : 8;
             if (!tradesData) {
-                completedTradesTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No completed trades yet.</td></tr>`;
+                completedTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No completed trades yet.</td></tr>`;
                 return;
             }
             const tradeIds = Object.keys(tradesData).sort((a, b) => new Date(tradesData[b].closed_date) - new Date(tradesData[a].closed_date));
@@ -253,143 +265,130 @@
                 const trade = tradesData[tradeId];
                 const row = document.createElement('tr');
                 const resultColor = trade.net_result >= 0 ? '#28a745' : '#dc3545';
-                let masterColumn = '';
-                if (isMasterUser) {
-                    masterColumn = `<td class="action-buttons"><button class="delete-btn-completed" data-id="${tradeId}">Delete</button></td>`;
-                }
+                let masterColumn = isMasterUser ? `<td class="action-buttons"><button class="delete-btn-completed" data-id="${tradeId}">Delete</button></td>` : '';
                 const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                 row.innerHTML = `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(2)}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color: ${resultColor}; font-weight: bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date}</td><td>${trade.closed_date}</td>${masterColumn}`;
-                completedTradesTbody.appendChild(row);
+                completedTbody.appendChild(row);
             });
         }
-
-        // Calculation functions (unchanged)
+        
+        // Calculation and Firebase interaction functions
         function calculateNetResult(trade, exitPrice) {
-            const entry = parseFloat(trade.entry);
-            const posValue = parseFloat(trade.size);
-            const exit = parseFloat(exitPrice);
+            const entry = parseFloat(trade.entry), posValue = parseFloat(trade.size), exit = parseFloat(exitPrice);
             if (isNaN(entry) || isNaN(posValue) || isNaN(exit)) return { net_result: 0, entry_fee: 0, exit_fee: 0 };
-            const entryFee = posValue * FEE_RATE;
-            const exitPosValue = (exit / entry) * posValue;
-            const exitFee = exitPosValue * FEE_RATE;
-            let grossResult = trade.type === "Long" ? (exit - entry) * (posValue / entry) : (entry - exit) * (posValue / entry);
-            const netResult = grossResult - entryFee - exitFee;
-            return { net_result: netResult, entry_fee: entryFee, exit_fee: exitFee };
+            const entryFee = posValue * FEE_RATE, exitPosValue = (exit / entry) * posValue, exitFee = exitPosValue * FEE_RATE;
+            const grossResult = trade.type === "Long" ? (exit - entry) * (posValue / entry) : (entry - exit) * (posValue / entry);
+            return { net_result: grossResult - entryFee - exitFee, entry_fee: entryFee, exit_fee: exitFee };
         }
 
         function completeTrade(tradeId, outcome) {
-            database.ref('trades/' + tradeId).once('value', (snapshot) => {
+            database.ref('trades/' + tradeId).once('value', snapshot => {
                 const trade = snapshot.val();
                 if (!trade) return;
                 const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
                 const exitPriceStr = prompt(`Enter the exact exit price:`, defaultExit);
-                if (exitPriceStr === null) return; // User cancelled
+                if (exitPriceStr === null) return;
                 const exitPrice = parseFloat(exitPriceStr);
-                if (isNaN(exitPrice)) {
-                    alert("Invalid exit price. Action cancelled.");
-                    return;
-                }
+                if (isNaN(exitPrice)) return alert("Invalid exit price. Action cancelled.");
                 const { net_result, entry_fee, exit_fee } = calculateNetResult(trade, exitPrice);
-                const completedTrade = { ...trade, closed_date: new Date().toLocaleString(), exit_price: exitPrice, net_result: net_result, entry_fee: entry_fee, exit_fee: exit_fee };
+                const completedTrade = { ...trade, closed_date: new Date().toLocaleString(), exit_price: exitPrice, net_result, entry_fee, exit_fee };
                 delete completedTrade.expected_profit;
                 delete completedTrade.expected_loss;
-                completedTradesRef.push(completedTrade).then(() => database.ref('trades/' + tradeId).remove());
+                completedTradesRef.push(completedTrade).then(() => tradesRef.child(tradeId).remove());
             });
         }
-
-        // --- NEW BACKUP/RESTORE LOGIC ---
+        
         function saveToJSON(ref, fileNamePrefix) {
-            ref.once('value', (snapshot) => {
+            ref.once('value', snapshot => {
                 const data = snapshot.val();
-                if (!data) {
-                    alert("No data available to save.");
-                    return;
-                }
-                const dataStr = JSON.stringify(data, null, 2); // Pretty print JSON
+                if (!data) return alert("No data available to save.");
+                const dataStr = JSON.stringify(data, null, 2);
                 const blob = new Blob([dataStr], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                const date = new Date().toISOString().slice(0, 10);
                 a.href = url;
-                a.download = `${fileNamePrefix}_${date}.json`;
-                document.body.appendChild(a);
+                a.download = `${fileNamePrefix}_${new Date().toISOString().slice(0, 10)}.json`;
                 a.click();
-                document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                a.remove();
             });
         }
 
         function loadFromJSON(event, ref, sectionName) {
             const file = event.target.files[0];
             if (!file) return;
-
-            if (!confirm(`Are you sure you want to restore ${sectionName} trades from this file? This will OVERWRITE all current ${sectionName} data.`)) {
-                event.target.value = ''; // Reset file input
-                return;
+            if (!confirm(`Are you sure you want to restore ${sectionName} trades? This will OVERWRITE all current ${sectionName} data.`)) {
+                event.target.value = ''; return;
             }
-
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = e => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    ref.set(data)
-                        .then(() => alert(`${sectionName} trades restored successfully.`))
-                        .catch((error) => alert(`Error restoring data: ${error.message}`));
-                } catch (error) {
-                    alert(`Error parsing JSON file: ${error.message}`);
-                }
+                    ref.set(data).then(() => alert(`${sectionName} trades restored.`)).catch(err => alert(`Error: ${err.message}`));
+                } catch (err) { alert(`Error parsing JSON: ${err.message}`); }
             };
             reader.readAsText(file);
-            event.target.value = ''; // Reset file input
+            event.target.value = '';
         }
 
-        // Firebase Listeners
-        tradesRef.on('value', (snapshot) => renderLiveTable(snapshot.val()));
-        completedTradesRef.on('value', (snapshot) => renderCompletedTable(snapshot.val()));
+        // --- EVENT LISTENERS ---
+        
+        // Listen for changes to completed trades to recalculate bank balance
+        completedTradesRef.on('value', snapshot => {
+            const completedData = snapshot.val();
+            renderCompletedTable(completedData); // Render the table first
+            
+            let totalNetProfitLoss = 0;
+            if (completedData) {
+                totalNetProfitLoss = Object.values(completedData).reduce((sum, trade) => sum + (trade.net_result || 0), 0);
+            }
+            const newBalance = STARTING_BALANCE + totalNetProfitLoss;
+            bankRef.set({ currentBalance: newBalance }); // Update Firebase, which triggers the UI update
+        });
 
-        // Event Listeners
-        addForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            if (!isMasterUser) return;
+        // Listen for bank balance changes to update the UI
+        bankRef.on('value', snapshot => {
+            let currentBalance = STARTING_BALANCE;
+            if (snapshot.exists() && snapshot.val().currentBalance !== null) {
+                currentBalance = snapshot.val().currentBalance;
+            }
+            bankValueEl.textContent = `$${parseFloat(currentBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            bankValueEl.style.color = currentBalance >= STARTING_BALANCE ? '#28a745' : '#dc3545';
+        });
+        
+        // Other listeners
+        tradesRef.on('value', snapshot => renderLiveTable(snapshot.val()));
+
+        document.getElementById('add-trade-form').addEventListener('submit', e => {
+            e.preventDefault(); if (!isMasterUser) return;
             const newTrade = { symbol: document.getElementById('trade-symbol').value, date: new Date().toLocaleString(), type: document.getElementById('trade-type').value, entry: document.getElementById('entry-price').value, stoploss: document.getElementById('stop-loss').value, target: document.getElementById('target').value, size: document.getElementById('position-value').value };
             const profitCalc = calculateNetResult(newTrade, newTrade.target);
             const lossCalc = calculateNetResult(newTrade, newTrade.stoploss);
             newTrade.expected_profit = profitCalc.net_result;
             newTrade.expected_loss = lossCalc.net_result;
             tradesRef.push(newTrade);
-            addForm.reset();
+            e.target.reset();
         });
 
-        tradesTbody.addEventListener('click', function (e) {
+        document.getElementById('trades-tbody').addEventListener('click', e => {
             if (!isMasterUser) return;
-            const target = e.target;
-            const tradeId = target.dataset.id;
-            if (!tradeId) return;
-            if (target.classList.contains('delete-btn')) {
-                if (confirm('Are you sure you want to permanently delete this live trade?')) {
-                    database.ref('trades/' + tradeId).remove();
-                }
-            } else if (target.classList.contains('win-btn')) {
-                completeTrade(tradeId, 'win');
-            } else if (target.classList.contains('loss-btn')) {
-                completeTrade(tradeId, 'loss');
-            }
+            const { classList, dataset } = e.target;
+            if (!dataset.id) return;
+            if (classList.contains('delete-btn')) if (confirm('Delete this live trade?')) tradesRef.child(dataset.id).remove();
+            if (classList.contains('win-btn')) completeTrade(dataset.id, 'win');
+            if (classList.contains('loss-btn')) completeTrade(dataset.id, 'loss');
         });
 
-        completedTradesTbody.addEventListener('click', function (e) {
+        document.getElementById('completed-trades-tbody').addEventListener('click', e => {
             if (!isMasterUser || !e.target.classList.contains('delete-btn-completed')) return;
-            const tradeId = e.target.dataset.id;
-            if (!tradeId) return;
-            if (confirm('Are you sure you want to delete this completed trade? This cannot be undone.')) {
-                completedTradesRef.child(tradeId).remove();
-            }
+            if (confirm('Delete this completed trade? This CANNOT be undone.')) completedTradesRef.child(e.target.dataset.id).remove();
         });
 
-        // Backup/Restore Event Listeners
-        document.getElementById('save-live-btn')?.addEventListener('click', () => saveToJSON(tradesRef, 'live_trades_backup'));
-        document.getElementById('load-live-input')?.addEventListener('change', (e) => loadFromJSON(e, tradesRef, 'Live'));
-        document.getElementById('save-completed-btn')?.addEventListener('click', () => saveToJSON(completedTradesRef, 'completed_trades_backup'));
-        document.getElementById('load-completed-input')?.addEventListener('change', (e) => loadFromJSON(e, completedTradesRef, 'Completed'));
+        // Backup/Restore Listeners
+        document.getElementById('save-live-btn').addEventListener('click', () => saveToJSON(tradesRef, 'live_trades_backup'));
+        document.getElementById('load-live-input').addEventListener('change', e => loadFromJSON(e, tradesRef, 'Live'));
+        document.getElementById('save-completed-btn').addEventListener('click', () => saveToJSON(completedTradesRef, 'completed_trades_backup'));
+        document.getElementById('load-completed-input').addEventListener('change', e => loadFromJSON(e, completedTradesRef, 'Completed'));
     });
 </script>
 
