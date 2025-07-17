@@ -192,138 +192,145 @@
             </table>
         </div>
     </div>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-    <!-- Firebase Libraries -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
+        authDomain: "journal-a003f.firebaseapp.com",
+        databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "journal-a003f",
+        storageBucket: "journal-a003f.appspot.com",
+        messagingSenderId: "1038636626553",
+        appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
+    };
 
-    <script>
-        const firebaseConfig = {
-          apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
-          authDomain: "journal-a003f.firebaseapp.com",
-          databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
-          projectId: "journal-a003f",
-          storageBucket: "journal-a003f.appspot.com",
-          messagingSenderId: "1038636626553",
-          appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
-        };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const tradesRef = database.ref('trades');
 
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const tradesRef = database.ref('trades');
+    document.addEventListener('DOMContentLoaded', function () {
+        let isMasterUser = false;
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const addForm = document.getElementById('add-trade-form');
-            const tradesTbody = document.getElementById('trades-tbody');
-            let isMasterUser = false;
-
-            function checkMasterMode() {
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('master') === 'true') {
-                    isMasterUser = true;
-                    document.querySelectorAll('.master-only').forEach(el => {
-                        el.style.display = 'block';
-                    });
-                    const loadingCell = document.getElementById('loading-state');
-                    if (loadingCell) loadingCell.firstElementChild?.setAttribute("colspan", "9");
-                } else {
-                    const loadingCell = document.getElementById('loading-state');
-                    if (loadingCell) loadingCell.firstElementChild?.setAttribute("colspan", "8");
-                }
-            }
-
-            function renderTable(tradesData) {
-                tradesTbody.innerHTML = '';
-
-                if (!tradesData) {
-                    const colspan = isMasterUser ? 9 : 8;
-                    tradesTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; white-space:normal;">No trades recorded. Add one to get started!</td></tr>`;
-                    return;
-                }
-
-                const tradeIds = Object.keys(tradesData);
-                tradeIds.forEach(tradeId => {
-                    const trade = tradesData[tradeId];
-                    const row = document.createElement('tr');
-                    row.setAttribute('data-id', tradeId);
-
-                    const masterColumn = isMasterUser 
-                        ? `<td><button class="delete-btn" data-id="${tradeId}">Delete</button></td>` 
-                        : '';
-
-                    row.innerHTML = `
-                        <td>${trade.date}</td>
-                        <td>${trade.type}</td>
-                        <td>${parseFloat(trade.entry).toFixed(4)}</td>
-                        <td>${parseFloat(trade.stoploss).toFixed(4)}</td>
-                        <td>${parseFloat(trade.target).toFixed(4)}</td>
-                        <td>${parseFloat(trade.size).toFixed(2)}</td>
-                        <td>${parseFloat(trade.expected_profit).toFixed(2)}</td>
-                        <td>${parseFloat(trade.expected_loss).toFixed(2)}</td>
-                        ${masterColumn}
-                    `;
-                    tradesTbody.appendChild(row);
+        function checkMasterMode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('master') === 'true') {
+                isMasterUser = true;
+                document.querySelectorAll('.master-only').forEach(el => {
+                    el.style.display = 'block';
                 });
+
+                const loadingCell = document.getElementById('loading-state');
+                if (loadingCell) loadingCell.firstElementChild?.setAttribute("colspan", "9");
+            } else {
+                const loadingCell = document.getElementById('loading-state');
+                if (loadingCell) loadingCell.firstElementChild?.setAttribute("colspan", "8");
             }
 
-            function calculateMetrics(trade) {
-                const entry = parseFloat(trade.entry);
-                const stoploss = parseFloat(trade.stoploss);
-                const target = parseFloat(trade.target);
-                const pos_value = parseFloat(trade.size);
+            const roleLabel = document.getElementById('debug-role-label');
+            if (roleLabel) {
+                roleLabel.textContent = isMasterUser ? "👑 Master Mode Enabled" : "Viewer Mode";
+            }
+        }
 
-                if (isNaN(entry) || entry <= 0 || isNaN(stoploss) || isNaN(target) || isNaN(pos_value)) {
-                    return { expected_profit: 0, expected_loss: 0 };
-                }
+        checkMasterMode();
 
-                let expected_profit, expected_loss;
-                if (trade.type === "Long") {
-                    expected_profit = (target - entry) * (pos_value / entry);
-                    expected_loss = (entry - stoploss) * (pos_value / entry);
-                } else {
-                    expected_profit = (entry - target) * (pos_value / entry);
-                    expected_loss = (stoploss - entry) * (pos_value / entry);
-                }
-                return { expected_profit, expected_loss };
+        const addForm = document.getElementById('add-trade-form');
+        const tradesTbody = document.getElementById('trades-tbody');
+
+        function renderTable(tradesData) {
+            tradesTbody.innerHTML = '';
+
+            if (!tradesData) {
+                const colspan = isMasterUser ? 9 : 8;
+                tradesTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; white-space:normal;">No trades recorded. Add one to get started!</td></tr>`;
+                return;
             }
 
-            tradesRef.on('value', (snapshot) => {
-                const tradesData = snapshot.val();
-                renderTable(tradesData);
+            const tradeIds = Object.keys(tradesData);
+            tradeIds.forEach(tradeId => {
+                const trade = tradesData[tradeId];
+                const row = document.createElement('tr');
+                row.setAttribute('data-id', tradeId);
+
+                const masterColumn = isMasterUser
+                    ? `<td><button class="delete-btn" data-id="${tradeId}">Delete</button></td>`
+                    : '';
+
+                row.innerHTML = `
+                    <td>${trade.date}</td>
+                    <td>${trade.type}</td>
+                    <td>${parseFloat(trade.entry).toFixed(4)}</td>
+                    <td>${parseFloat(trade.stoploss).toFixed(4)}</td>
+                    <td>${parseFloat(trade.target).toFixed(4)}</td>
+                    <td>${parseFloat(trade.size).toFixed(2)}</td>
+                    <td>${parseFloat(trade.expected_profit).toFixed(2)}</td>
+                    <td>${parseFloat(trade.expected_loss).toFixed(2)}</td>
+                    ${masterColumn}
+                `;
+                tradesTbody.appendChild(row);
             });
+        }
 
-            addForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                if (!isMasterUser) return;
+        function calculateMetrics(trade) {
+            const entry = parseFloat(trade.entry);
+            const stoploss = parseFloat(trade.stoploss);
+            const target = parseFloat(trade.target);
+            const pos_value = parseFloat(trade.size);
 
-                const newTrade = {
-                    date: new Date().toLocaleString(),
-                    type: document.getElementById('trade-type').value,
-                    entry: document.getElementById('entry-price').value,
-                    stoploss: document.getElementById('stop-loss').value,
-                    target: document.getElementById('target').value,
-                    size: document.getElementById('position-value').value
-                };
+            if (isNaN(entry) || entry <= 0 || isNaN(stoploss) || isNaN(target) || isNaN(pos_value)) {
+                return { expected_profit: 0, expected_loss: 0 };
+            }
 
-                const { expected_profit, expected_loss } = calculateMetrics(newTrade);
-                newTrade.expected_profit = isNaN(expected_profit) ? 0 : expected_profit;
-                newTrade.expected_loss = isNaN(expected_loss) ? 0 : expected_loss;
+            let expected_profit, expected_loss;
+            if (trade.type === "Long") {
+                expected_profit = (target - entry) * (pos_value / entry);
+                expected_loss = (entry - stoploss) * (pos_value / entry);
+            } else {
+                expected_profit = (entry - target) * (pos_value / entry);
+                expected_loss = (stoploss - entry) * (pos_value / entry);
+            }
 
-                tradesRef.push(newTrade);
-                addForm.reset();
-            });
+            return { expected_profit, expected_loss };
+        }
 
-            tradesTbody.addEventListener('click', function(e) {
-                if (isMasterUser && e.target.classList.contains('delete-btn')) {
-                    const tradeId = e.target.dataset.id;
-                    if (confirm('Are you sure you want to delete this trade permanently?')) {
-                        database.ref('trades/' + tradeId).remove();
-                    }
-                }
-            });
-
-            checkMasterMode();
+        tradesRef.on('value', (snapshot) => {
+            const tradesData = snapshot.val();
+            renderTable(tradesData);
         });
-    </script>
+
+        addForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (!isMasterUser) return;
+
+            const newTrade = {
+                date: new Date().toLocaleString(),
+                type: document.getElementById('trade-type').value,
+                entry: document.getElementById('entry-price').value,
+                stoploss: document.getElementById('stop-loss').value,
+                target: document.getElementById('target').value,
+                size: document.getElementById('position-value').value
+            };
+
+            const { expected_profit, expected_loss } = calculateMetrics(newTrade);
+            newTrade.expected_profit = isNaN(expected_profit) ? 0 : expected_profit;
+            newTrade.expected_loss = isNaN(expected_loss) ? 0 : expected_loss;
+
+            tradesRef.push(newTrade);
+            addForm.reset();
+        });
+
+        tradesTbody.addEventListener('click', function (e) {
+            if (isMasterUser && e.target.classList.contains('delete-btn')) {
+                const tradeId = e.target.dataset.id;
+                if (confirm('Are you sure you want to delete this trade permanently?')) {
+                    database.ref('trades/' + tradeId).remove();
+                }
+            }
+        });
+    });
+</script>
+
 </body>
 </html>
