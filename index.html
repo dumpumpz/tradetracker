@@ -32,18 +32,18 @@
             color: #666;
         }
 
-        /* MODIFICATION: Removed !important to allow JavaScript to override display property */
         .master-only {
             display: none;
         }
 
+        /* MODIFICATION: Removed 'display: grid;' from this rule */
         #add-trade-form {
             margin-bottom: 20px;
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 5px;
             background-color: #fafafa;
-            display: grid;
+            /* The 'display: grid' is now set by JavaScript for master users only */
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
             align-items: end;
@@ -213,7 +213,6 @@
     document.addEventListener('DOMContentLoaded', function () {
         let isMasterUser = false;
 
-        // MODIFICATION: This function now applies the correct display styles
         function checkMasterMode() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('master') === 'true') {
@@ -225,20 +224,16 @@
                     form.style.display = 'grid';
                 }
 
-                // Specifically target all master-only table headers and cells
-                document.querySelectorAll('th.master-only, td.master-only-cell').forEach(el => {
-                    el.style.display = 'table-cell';
-                });
-                
+                // Specifically target the master-only table header
                 const masterHeader = document.querySelector('th.master-only');
-                if(masterHeader){
+                if (masterHeader) {
                     masterHeader.style.display = 'table-cell';
                 }
-
 
                 const loadingCell = document.getElementById('loading-state');
                 if (loadingCell) loadingCell.firstElementChild?.setAttribute("colspan", "9");
             } else {
+                // For viewers, ensure master-only elements are hidden (relies on CSS)
                 const loadingCell = document.getElementById('loading-state');
                 if (loadingCell) loadingCell.firstElementChild?.setAttribute("colspan", "8");
             }
@@ -258,16 +253,17 @@
                 return;
             }
 
-            const tradeIds = Object.keys(tradesData);
+            const tradeIds = Object.keys(tradesData).sort((a, b) => new Date(tradesData[b].date) - new Date(tradesData[a].date));
             tradeIds.forEach(tradeId => {
                 const trade = tradesData[tradeId];
                 const row = document.createElement('tr');
                 row.setAttribute('data-id', tradeId);
 
-                // Add a specific class to the master-only cell for easier selection
-                const masterColumn = isMasterUser
-                    ? `<td class="master-only-cell" style="display: table-cell;"><button class="delete-btn" data-id="${tradeId}">Delete</button></td>`
-                    : '';
+                // Conditionally render the delete button column
+                let masterColumn = '';
+                if (isMasterUser) {
+                    masterColumn = `<td style="display: table-cell;"><button class="delete-btn" data-id="${tradeId}">Delete</button></td>`;
+                }
 
                 row.innerHTML = `
                     <td>${trade.date}</td>
