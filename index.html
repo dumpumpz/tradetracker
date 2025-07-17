@@ -124,7 +124,7 @@
             transition: background-color 0.3s;
             margin-top: 5px;
         }
-        button.delete-btn, button.delete-btn-completed { background-color: #dc3545; }
+        button.delete-btn, button.delete-btn-completed, button.delete-journal-image { background-color: #dc3545; }
         button.win-btn { background-color: #28a745; }
         button.loss-btn { background-color: #ffc107; color: #333; }
 
@@ -146,26 +146,19 @@
         #loading-state, #loading-state-completed { text-align: center; padding: 40px; font-size: 18px; color: #777; }
         
         /* --- Journal Styles --- */
-        #journal-controls {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            max-width: 500px;
-            margin: 20px auto;
-        }
-        #journal-entry {
-            width: 100%;
-            height: 60vh;
-            resize: vertical;
-            line-height: 1.6;
-            margin-top: 10px;
-        }
-        #journal-entry:read-only {
-            background-color: #f8f9fa;
-            cursor: not-allowed;
-            color: #555;
-        }
-
+        #journal-controls { display: flex; align-items: center; gap: 15px; max-width: 500px; margin: 20px auto; }
+        #journal-entry { width: 100%; height: 40vh; resize: vertical; line-height: 1.6; }
+        #journal-entry:read-only { background-color: #f8f9fa; cursor: not-allowed; color: #555; }
+        
+        /* --- Journal Image Styles --- */
+        #image-upload-section { margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 20px; }
+        .image-upload-label { background-color: #28a745; color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; text-align: center; display: inline-block; }
+        #journal-image-upload { display: none; }
+        #upload-progress { margin-top: 10px; font-style: italic; color: #007bff; }
+        #journal-images-container { margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .journal-image-wrapper { position: relative; max-width: 80%; border: 1px solid #ddd; padding: 5px; background: #fafafa; border-radius: 4px; }
+        .journal-image-wrapper img { max-width: 100%; height: auto; display: block; }
+        .delete-journal-image { position: absolute; top: 10px; right: 10px; padding: 4px 8px; font-size: 12px; z-index: 10; }
 
         @media (max-width: 768px) {
             body { padding: 5px; }
@@ -175,6 +168,7 @@
             table, th, td { font-size: 12px; padding: 6px; }
             .section-header { flex-direction: column; }
             .backup-controls { position: static; margin-top: 10px; }
+            .journal-image-wrapper { max-width: 100%; }
         }
         @media (max-width: 480px) { table, th, td { font-size: 11px; padding: 4px; } }
     </style>
@@ -192,10 +186,10 @@
         
         <!-- Tab 1: Trade Tracker -->
         <div id="tracker-tab" class="tab-content active">
+             <!-- ... existing trade tracker content ... -->
             <div id="bank-balance-container">
                 Current Balance: <span id="bank-balance-value">$0.00</span>
             </div>
-
             <form id="add-trade-form" class="master-only">
                  <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTCUSDT">BTCUSDT</option><option value="ETHUSDT">ETHUSDT</option></select></div>
                  <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
@@ -205,41 +199,23 @@
                  <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
                  <div><button type="submit">Add Trade</button></div>
             </form>
-
             <div class="section-header">
                 <h2>Live Trades</h2>
-                <div class="backup-controls master-only">
-                    <button id="save-live-btn">Save JSON</button>
-                    <label for="load-live-input">Load JSON</label>
-                    <input type="file" id="load-live-input" accept=".json">
-                </div>
+                <div class="backup-controls master-only"><button id="save-live-btn">Save JSON</button><label for="load-live-input">Load JSON</label><input type="file" id="load-live-input" accept=".json"></div>
             </div>
             <div class="table-wrapper">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Symbol</th><th>Type</th><th>Entry Price</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th class="master-only">Actions</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th class="master-only">Actions</th></tr></thead>
                     <tbody id="trades-tbody"><tr id="loading-state"><td colspan="9">Connecting to database...</td></tr></tbody>
                 </table>
             </div>
-
             <div class="section-header">
                 <h2>Completed Trades</h2>
-                <div class="backup-controls master-only">
-                    <button id="save-completed-btn">Save JSON</button>
-                    <label for="load-completed-input">Load JSON</label>
-                    <input type="file" id="load-completed-input" accept=".json">
-                </div>
+                <div class="backup-controls master-only"><button id="save-completed-btn">Save JSON</button><label for="load-completed-input">Load JSON</label><input type="file" id="load-completed-input" accept=".json"></div>
             </div>
             <div class="table-wrapper">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Symbol</th><th>Type</th><th>Entry Price</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th class="master-only">Actions</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th class="master-only">Actions</th></tr></thead>
                     <tbody id="completed-trades-tbody"><tr id="loading-state-completed"><td colspan="8">Loading completed trades...</td></tr></tbody>
                 </table>
             </div>
@@ -247,7 +223,7 @@
 
         <!-- Tab 2: Journal -->
         <div id="journal-tab" class="tab-content">
-            <h2>Text Journal</h2>
+            <h2>Text & Image Journal</h2>
             <div id="journal-controls">
                 <label for="journal-timeframe">Select Entry:</label>
                 <select id="journal-timeframe">
@@ -261,11 +237,23 @@
             </div>
             <textarea id="journal-entry" placeholder="Select a timeframe and start typing your journal entry... (View only for non-master users)"></textarea>
             <p id="save-status" style="text-align:center; font-style:italic; color:#666; height: 1em;"></p>
+            
+            <div id="image-upload-section" class="master-only">
+                <label for="journal-image-upload" class="image-upload-label">Add Picture to this Timeframe</label>
+                <input type="file" id="journal-image-upload" accept="image/*">
+                <div id="upload-progress" style="display: none;"></div>
+            </div>
+
+            <div id="journal-images-container">
+                <!-- Dynamically loaded images will appear here -->
+            </div>
         </div>
     </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script> <!-- ADDED FIREBASE STORAGE SCRIPT -->
+
 
 <script>
     const firebaseConfig = {
@@ -280,21 +268,28 @@
 
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
+    const storage = firebase.storage(); // Initialize Firebase Storage
     const tradesRef = database.ref('trades');
     const completedTradesRef = database.ref('completed_trades');
     const bankRef = database.ref('bank');
-    const journalRef = database.ref('journal'); // New reference for the journal
+    const journalRef = database.ref('journal_text'); // Renamed for clarity
+    const journalImagesRef = database.ref('journal_images'); // New reference for image metadata
     const FEE_RATE = 0.00075;
     const STARTING_BALANCE = 4000;
 
     document.addEventListener('DOMContentLoaded', function () {
         let isMasterUser = false;
-        let allJournalEntries = {}; // To cache journal data
+        let allJournalEntries = {}; 
+        let allJournalImages = {};
         
+        // Element references
         const bankValueEl = document.getElementById('bank-balance-value');
         const journalTimeframeEl = document.getElementById('journal-timeframe');
         const journalEntryEl = document.getElementById('journal-entry');
         const saveStatusEl = document.getElementById('save-status');
+        const journalImageUploadEl = document.getElementById('journal-image-upload');
+        const uploadProgressEl = document.getElementById('upload-progress');
+        const journalImagesContainer = document.getElementById('journal-images-container');
 
 
         function checkMasterMode() {
@@ -302,17 +297,19 @@
             if (urlParams.get('master') === 'true') {
                 isMasterUser = true;
                 document.querySelectorAll('.master-only').forEach(el => {
+                    // This logic handles various display types (grid, flex, table-cell, block)
                     if (el.id === 'add-trade-form') el.style.display = 'grid';
                     else if (el.tagName === 'TH' || el.tagName === 'TD') el.style.display = 'table-cell';
-                    else el.style.display = 'flex';
+                    else if (el.classList.contains('backup-controls')) el.style.display = 'flex';
+                    else el.style.display = 'block'; // For image upload section
                 });
                 document.getElementById('loading-state')?.firstElementChild?.setAttribute("colspan", "10");
                 document.getElementById('loading-state-completed')?.firstElementChild?.setAttribute("colspan", "9");
-                journalEntryEl.readOnly = false; // Allow editing for master
+                journalEntryEl.readOnly = false;
             } else {
                 document.getElementById('loading-state')?.firstElementChild?.setAttribute("colspan", "9");
                 document.getElementById('loading-state-completed')?.firstElementChild?.setAttribute("colspan", "8");
-                journalEntryEl.readOnly = true; // Make read-only for viewers
+                journalEntryEl.readOnly = true;
             }
         }
         
@@ -342,178 +339,153 @@
         function updateJournalView() {
             const selectedTimeframe = journalTimeframeEl.value;
             journalEntryEl.value = allJournalEntries[selectedTimeframe] || '';
+            renderJournalImages(selectedTimeframe); // Also render images for this timeframe
         }
 
         const saveJournalEntry = debounce(() => {
             if (!isMasterUser) return;
             const selectedTimeframe = journalTimeframeEl.value;
             const newText = journalEntryEl.value;
-            saveStatusEl.textContent = 'Saving...';
+            saveStatusEl.textContent = 'Saving text...';
             journalRef.child(selectedTimeframe).set(newText)
                 .then(() => {
-                    setTimeout(() => saveStatusEl.textContent = 'Saved.', 200);
+                    setTimeout(() => saveStatusEl.textContent = 'Text saved.', 200);
                     setTimeout(() => saveStatusEl.textContent = '', 2000);
                 })
                 .catch(err => saveStatusEl.textContent = `Error: ${err.message}`);
-        }, 750); // Save 750ms after user stops typing
+        }, 750);
 
+        function renderJournalImages(timeframe) {
+            journalImagesContainer.innerHTML = '';
+            const imagesForTimeframe = allJournalImages[timeframe];
+            if (!imagesForTimeframe) return;
+
+            // Sort images by timestamp to show in upload order
+            const sortedImageIds = Object.keys(imagesForTimeframe).sort((a, b) => {
+                return imagesForTimeframe[a].timestamp - imagesForTimeframe[b].timestamp;
+            });
+
+            sortedImageIds.forEach(imageId => {
+                const image = imagesForTimeframe[imageId];
+                const wrapper = document.createElement('div');
+                wrapper.className = 'journal-image-wrapper';
+                
+                let deleteButton = '';
+                if (isMasterUser) {
+                    deleteButton = `<button class="delete-journal-image" data-timeframe="${timeframe}" data-id="${imageId}" data-filename="${image.fileName}">Delete</button>`;
+                }
+                
+                wrapper.innerHTML = `${deleteButton}<img src="${image.url}" alt="Journal Image">`;
+                journalImagesContainer.appendChild(wrapper);
+            });
+        }
+
+        // --- Journal Event Listeners ---
         journalTimeframeEl.addEventListener('change', updateJournalView);
         journalEntryEl.addEventListener('input', saveJournalEntry);
-        
+
         journalRef.on('value', (snapshot) => {
             allJournalEntries = snapshot.val() || {};
-            // If the journal tab is active, update the view immediately
             if (document.getElementById('journal-tab').classList.contains('active')) {
                 updateJournalView();
             }
         });
 
-        // --- Render functions (unchanged) ---
-        function renderLiveTable(tradesData) {
-            const tradesTbody = document.getElementById('trades-tbody');
-            tradesTbody.innerHTML = '';
-            const colspan = isMasterUser ? 10 : 9;
-            if (!tradesData) {
-                tradesTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No live trades.</td></tr>`;
-                return;
+        journalImagesRef.on('value', (snapshot) => {
+            allJournalImages = snapshot.val() || {};
+             if (document.getElementById('journal-tab').classList.contains('active')) {
+                renderJournalImages(journalTimeframeEl.value);
             }
-            const tradeIds = Object.keys(tradesData).sort((a, b) => new Date(tradesData[b].date) - new Date(tradesData[a].date));
-            tradeIds.forEach(tradeId => {
-                const trade = tradesData[tradeId];
-                const row = document.createElement('tr');
-                let masterColumn = isMasterUser ? `<td class="action-buttons"><button class="win-btn" data-id="${tradeId}">Win</button><button class="loss-btn" data-id="${tradeId}">Loss</button><button class="delete-btn" data-id="${tradeId}">Delete</button></td>` : '';
-                row.innerHTML = `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(2)}</td><td>${parseFloat(trade.stoploss).toFixed(2)}</td><td>${parseFloat(trade.target).toFixed(2)}</td><td>${parseFloat(trade.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(trade.expected_profit).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(trade.expected_loss).toFixed(2)}</td><td>${trade.date}</td>${masterColumn}`;
-                tradesTbody.appendChild(row);
-            });
-        }
-        
-        function renderCompletedTable(tradesData) {
-            const completedTbody = document.getElementById('completed-trades-tbody');
-            completedTbody.innerHTML = '';
-            const colspan = isMasterUser ? 9 : 8;
-            if (!tradesData) {
-                completedTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No completed trades yet.</td></tr>`;
-                return;
-            }
-            const tradeIds = Object.keys(tradesData).sort((a, b) => new Date(tradesData[b].closed_date) - new Date(tradesData[a].closed_date));
-            tradeIds.forEach(tradeId => {
-                const trade = tradesData[tradeId];
-                const row = document.createElement('tr');
-                const resultColor = trade.net_result >= 0 ? '#28a745' : '#dc3545';
-                let masterColumn = isMasterUser ? `<td class="action-buttons"><button class="delete-btn-completed" data-id="${tradeId}">Delete</button></td>` : '';
-                const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
-                row.innerHTML = `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(2)}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color: ${resultColor}; font-weight: bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date}</td><td>${trade.closed_date}</td>${masterColumn}`;
-                completedTbody.appendChild(row);
-            });
-        }
-        
-        // --- Calculation and Firebase interaction functions (unchanged) ---
-        function calculateNetResult(trade, exitPrice) {
-            const entry = parseFloat(trade.entry), posValue = parseFloat(trade.size), exit = parseFloat(exitPrice);
-            if (isNaN(entry) || isNaN(posValue) || isNaN(exit)) return { net_result: 0, entry_fee: 0, exit_fee: 0 };
-            const entryFee = posValue * FEE_RATE, exitPosValue = (exit / entry) * posValue, exitFee = exitPosValue * FEE_RATE;
-            const grossResult = trade.type === "Long" ? (exit - entry) * (posValue / entry) : (entry - exit) * (posValue / entry);
-            return { net_result: grossResult - entryFee - exitFee, entry_fee: entryFee, exit_fee: exitFee };
-        }
-
-        function completeTrade(tradeId, outcome) {
-            database.ref('trades/' + tradeId).once('value', snapshot => {
-                const trade = snapshot.val();
-                if (!trade) return;
-                const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
-                const exitPriceStr = prompt(`Enter the exact exit price:`, defaultExit);
-                if (exitPriceStr === null) return;
-                const exitPrice = parseFloat(exitPriceStr);
-                if (isNaN(exitPrice)) return alert("Invalid exit price. Action cancelled.");
-                const { net_result, entry_fee, exit_fee } = calculateNetResult(trade, exitPrice);
-                const completedTrade = { ...trade, closed_date: new Date().toLocaleString(), exit_price: exitPrice, net_result, entry_fee, exit_fee };
-                delete completedTrade.expected_profit;
-                delete completedTrade.expected_loss;
-                completedTradesRef.push(completedTrade).then(() => tradesRef.child(tradeId).remove());
-            });
-        }
-        
-        function saveToJSON(ref, fileNamePrefix) {
-            ref.once('value', snapshot => {
-                const data = snapshot.val();
-                if (!data) return alert("No data available to save.");
-                const dataStr = JSON.stringify(data, null, 2);
-                const blob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${fileNamePrefix}_${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                a.remove();
-            });
-        }
-
-        function loadFromJSON(event, ref, sectionName) {
-            const file = event.target.files[0];
-            if (!file) return;
-            if (!confirm(`Are you sure you want to restore ${sectionName} trades? This will OVERWRITE all current ${sectionName} data.`)) {
-                event.target.value = ''; return;
-            }
-            const reader = new FileReader();
-            reader.onload = e => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    ref.set(data).then(() => alert(`${sectionName} trades restored.`)).catch(err => alert(`Error: ${err.message}`));
-                } catch (err) { alert(`Error parsing JSON: ${err.message}`); }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
-
-        // --- EVENT LISTENERS (unchanged part) ---
-        completedTradesRef.on('value', snapshot => {
-            const completedData = snapshot.val();
-            renderCompletedTable(completedData);
-            let totalNetProfitLoss = 0;
-            if (completedData) {
-                totalNetProfitLoss = Object.values(completedData).reduce((sum, trade) => sum + (trade.net_result || 0), 0);
-            }
-            const newBalance = STARTING_BALANCE + totalNetProfitLoss;
-            bankRef.set({ currentBalance: newBalance });
         });
 
-        bankRef.on('value', snapshot => {
-            let currentBalance = STARTING_BALANCE;
-            if (snapshot.exists() && snapshot.val().currentBalance !== null) {
-                currentBalance = snapshot.val().currentBalance;
-            }
-            bankValueEl.textContent = `$${parseFloat(currentBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            bankValueEl.style.color = currentBalance >= STARTING_BALANCE ? '#28a745' : '#dc3545';
-        });
-        
-        tradesRef.on('value', snapshot => renderLiveTable(snapshot.val()));
-
-        document.getElementById('add-trade-form').addEventListener('submit', e => {
-            e.preventDefault(); if (!isMasterUser) return;
-            const newTrade = { symbol: document.getElementById('trade-symbol').value, date: new Date().toLocaleString(), type: document.getElementById('trade-type').value, entry: document.getElementById('entry-price').value, stoploss: document.getElementById('stop-loss').value, target: document.getElementById('target').value, size: document.getElementById('position-value').value };
-            const profitCalc = calculateNetResult(newTrade, newTrade.target);
-            const lossCalc = calculateNetResult(newTrade, newTrade.stoploss);
-            newTrade.expected_profit = profitCalc.net_result;
-            newTrade.expected_loss = lossCalc.net_result;
-            tradesRef.push(newTrade);
-            e.target.reset();
-        });
-
-        document.getElementById('trades-tbody').addEventListener('click', e => {
+        journalImageUploadEl.addEventListener('change', (e) => {
             if (!isMasterUser) return;
-            const { classList, dataset } = e.target;
-            if (!dataset.id) return;
-            if (classList.contains('delete-btn')) if (confirm('Delete this live trade?')) tradesRef.child(dataset.id).remove();
-            if (classList.contains('win-btn')) completeTrade(dataset.id, 'win');
-            if (classList.contains('loss-btn')) completeTrade(dataset.id, 'loss');
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const selectedTimeframe = journalTimeframeEl.value;
+            const fileName = `${Date.now()}_${file.name}`;
+            const filePath = `journal_images/${selectedTimeframe}/${fileName}`;
+            const fileRef = storage.ref(filePath);
+            const uploadTask = fileRef.put(file);
+
+            uploadProgressEl.style.display = 'block';
+
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    uploadProgressEl.textContent = `Uploading... ${Math.round(progress)}%`;
+                }, 
+                (error) => {
+                    console.error("Upload error:", error);
+                    uploadProgressEl.textContent = `Upload failed: ${error.code}`;
+                }, 
+                () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                        const imageData = {
+                            url: downloadURL,
+                            fileName: fileName,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        };
+                        journalImagesRef.child(selectedTimeframe).push(imageData);
+                        uploadProgressEl.textContent = 'Upload complete!';
+                        setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000);
+                    });
+                }
+            );
+            e.target.value = ''; // Reset input
         });
 
-        document.getElementById('completed-trades-tbody').addEventListener('click', e => {
-            if (!isMasterUser || !e.target.classList.contains('delete-btn-completed')) return;
-            if (confirm('Delete this completed trade? This CANNOT be undone.')) completedTradesRef.child(e.target.dataset.id).remove();
+        journalImagesContainer.addEventListener('click', (e) => {
+            if (!isMasterUser || !e.target.classList.contains('delete-journal-image')) return;
+
+            const button = e.target;
+            const { timeframe, id, filename } = button.dataset;
+
+            if (!confirm('Are you sure you want to permanently delete this image?')) return;
+            
+            // 1. Delete the file from Firebase Storage
+            const fileRef = storage.ref(`journal_images/${timeframe}/${filename}`);
+            fileRef.delete().then(() => {
+                // 2. On success, delete the metadata from Realtime Database
+                journalImagesRef.child(timeframe).child(id).remove();
+            }).catch((error) => {
+                console.error("Error deleting image:", error);
+                alert(`Could not delete image. It might have been already removed. Error: ${error.code}`);
+                // If the file doesn't exist in storage, but the DB entry is there, remove the DB entry anyway.
+                if (error.code === 'storage/object-not-found') {
+                    journalImagesRef.child(timeframe).child(id).remove();
+                }
+            });
         });
 
+        // --- TRADING LOGIC (functions below are mostly unchanged) ---
+        function renderLiveTable(tradesData) {
+            const tradesTbody = document.getElementById('trades-tbody'); tradesTbody.innerHTML = ''; const colspan = isMasterUser ? 10 : 9; if (!tradesData) { tradesTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No live trades.</td></tr>`; return; }
+            const tradeIds = Object.keys(tradesData).sort((a, b) => new Date(tradesData[b].date) - new Date(tradesData[a].date));
+            tradeIds.forEach(tradeId => { const trade = tradesData[tradeId]; const row = document.createElement('tr'); let masterColumn = isMasterUser ? `<td class="action-buttons"><button class="win-btn" data-id="${tradeId}">Win</button><button class="loss-btn" data-id="${tradeId}">Loss</button><button class="delete-btn" data-id="${tradeId}">Delete</button></td>` : ''; row.innerHTML = `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(2)}</td><td>${parseFloat(trade.stoploss).toFixed(2)}</td><td>${parseFloat(trade.target).toFixed(2)}</td><td>${parseFloat(trade.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(trade.expected_profit).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(trade.expected_loss).toFixed(2)}</td><td>${trade.date}</td>${masterColumn}`; tradesTbody.appendChild(row); });
+        }
+        function renderCompletedTable(tradesData) {
+            const completedTbody = document.getElementById('completed-trades-tbody'); completedTbody.innerHTML = ''; const colspan = isMasterUser ? 9 : 8; if (!tradesData) { completedTbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No completed trades yet.</td></tr>`; return; }
+            const tradeIds = Object.keys(tradesData).sort((a, b) => new Date(tradesData[b].closed_date) - new Date(tradesData[a].closed_date));
+            tradeIds.forEach(tradeId => { const trade = tradesData[tradeId]; const row = document.createElement('tr'); const resultColor = trade.net_result >= 0 ? '#28a745' : '#dc3545'; let masterColumn = isMasterUser ? `<td class="action-buttons"><button class="delete-btn-completed" data-id="${tradeId}">Delete</button></td>` : ''; const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0); row.innerHTML = `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(2)}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color: ${resultColor}; font-weight: bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date}</td><td>${trade.closed_date}</td>${masterColumn}`; completedTbody.appendChild(row); });
+        }
+        function calculateNetResult(trade, exitPrice) {
+            const entry = parseFloat(trade.entry), posValue = parseFloat(trade.size), exit = parseFloat(exitPrice); if (isNaN(entry) || isNaN(posValue) || isNaN(exit)) return { net_result: 0, entry_fee: 0, exit_fee: 0 }; const entryFee = posValue * FEE_RATE, exitPosValue = (exit / entry) * posValue, exitFee = exitPosValue * FEE_RATE; const grossResult = trade.type === "Long" ? (exit - entry) * (posValue / entry) : (entry - exit) * (posValue / entry); return { net_result: grossResult - entryFee - exitFee, entry_fee: entryFee, exit_fee: exitFee };
+        }
+        function completeTrade(tradeId, outcome) {
+            database.ref('trades/' + tradeId).once('value', snapshot => { const trade = snapshot.val(); if (!trade) return; const defaultExit = outcome === 'win' ? trade.target : trade.stoploss; const exitPriceStr = prompt(`Enter the exact exit price:`, defaultExit); if (exitPriceStr === null) return; const exitPrice = parseFloat(exitPriceStr); if (isNaN(exitPrice)) return alert("Invalid exit price. Action cancelled."); const { net_result, entry_fee, exit_fee } = calculateNetResult(trade, exitPrice); const completedTrade = { ...trade, closed_date: new Date().toLocaleString(), exit_price: exitPrice, net_result, entry_fee, exit_fee }; delete completedTrade.expected_profit; delete completedTrade.expected_loss; completedTradesRef.push(completedTrade).then(() => tradesRef.child(tradeId).remove()); });
+        }
+        function saveToJSON(ref, fileNamePrefix) { ref.once('value', snapshot => { const data = snapshot.val(); if (!data) return alert("No data available to save."); const dataStr = JSON.stringify(data, null, 2); const blob = new Blob([dataStr], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${fileNamePrefix}_${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(url); a.remove(); }); }
+        function loadFromJSON(event, ref, sectionName) { const file = event.target.files[0]; if (!file) return; if (!confirm(`Are you sure you want to restore ${sectionName} trades? This will OVERWRITE all current ${sectionName} data.`)) { event.target.value = ''; return; } const reader = new FileReader(); reader.onload = e => { try { const data = JSON.parse(e.target.result); ref.set(data).then(() => alert(`${sectionName} trades restored.`)).catch(err => alert(`Error: ${err.message}`)); } catch (err) { alert(`Error parsing JSON: ${err.message}`); } }; reader.readAsText(file); event.target.value = ''; }
+        
+        // --- Trading Event Listeners ---
+        completedTradesRef.on('value', snapshot => { const completedData = snapshot.val(); renderCompletedTable(completedData); let totalNetProfitLoss = 0; if (completedData) { totalNetProfitLoss = Object.values(completedData).reduce((sum, trade) => sum + (trade.net_result || 0), 0); } const newBalance = STARTING_BALANCE + totalNetProfitLoss; bankRef.set({ currentBalance: newBalance }); });
+        bankRef.on('value', snapshot => { let currentBalance = STARTING_BALANCE; if (snapshot.exists() && snapshot.val().currentBalance !== null) { currentBalance = snapshot.val().currentBalance; } bankValueEl.textContent = `$${parseFloat(currentBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; bankValueEl.style.color = currentBalance >= STARTING_BALANCE ? '#28a745' : '#dc3545'; });
+        tradesRef.on('value', snapshot => renderLiveTable(snapshot.val()));
+        document.getElementById('add-trade-form').addEventListener('submit', e => { e.preventDefault(); if (!isMasterUser) return; const newTrade = { symbol: document.getElementById('trade-symbol').value, date: new Date().toLocaleString(), type: document.getElementById('trade-type').value, entry: document.getElementById('entry-price').value, stoploss: document.getElementById('stop-loss').value, target: document.getElementById('target').value, size: document.getElementById('position-value').value }; const profitCalc = calculateNetResult(newTrade, newTrade.target); const lossCalc = calculateNetResult(newTrade, newTrade.stoploss); newTrade.expected_profit = profitCalc.net_result; newTrade.expected_loss = lossCalc.net_result; tradesRef.push(newTrade); e.target.reset(); });
+        document.getElementById('trades-tbody').addEventListener('click', e => { if (!isMasterUser) return; const { classList, dataset } = e.target; if (!dataset.id) return; if (classList.contains('delete-btn')) if (confirm('Delete this live trade?')) tradesRef.child(dataset.id).remove(); if (classList.contains('win-btn')) completeTrade(dataset.id, 'win'); if (classList.contains('loss-btn')) completeTrade(dataset.id, 'loss'); });
+        document.getElementById('completed-trades-tbody').addEventListener('click', e => { if (!isMasterUser || !e.target.classList.contains('delete-btn-completed')) return; if (confirm('Delete this completed trade? This CANNOT be undone.')) completedTradesRef.child(e.target.dataset.id).remove(); });
         document.getElementById('save-live-btn').addEventListener('click', () => saveToJSON(tradesRef, 'live_trades_backup'));
         document.getElementById('load-live-input').addEventListener('change', e => loadFromJSON(e, tradesRef, 'Live'));
         document.getElementById('save-completed-btn').addEventListener('click', () => saveToJSON(completedTradesRef, 'completed_trades_backup'));
