@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Trade & Journal Tracker</title>
     
-    <!-- THIS IS THE CRITICAL LINE. IT MUST BE IN THE <HEAD> -->
-    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    <!-- THE SCRIPT TAG IS NO LONGER HERE. WE MOVED IT TO THE BOTTOM. -->
     
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 10px; background-color: #f4f7f6; color: #333; }
@@ -83,11 +82,14 @@
         <div id="journal-tab" class="tab-content"><div id="journal-controls"><div><label for="journal-symbol">Symbol:</label><select id="journal-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div><div><label for="journal-timeframe">Timeframe:</label><select id="journal-timeframe"><option value="15min">15min</option><option value="30min">30min</option><option value="1hour">1hour</option><option value="2hour">2hour</option><option value="4hour">4hour</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div></div><textarea id="journal-entry" placeholder="Select a symbol and timeframe to view entry. Master access required to edit."></textarea><p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p><div id="image-upload-section" class="master-only"><label for="journal-image-upload" class="image-upload-label">Add Picture</label><input type="file" id="journal-image-upload" accept="image/*"><div id="upload-progress" style="display:none"></div></div><div id="journal-images-container"></div></div>
     </div>
     
-    <!-- ADDING ?v=2 TO THE END OF THESE URLs HELPS PREVENT CACHING ISSUES -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js?v=2"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js?v=2"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js?v=2"></script>
+    <!-- SCRIPT LOADING ORDER FIX: Load all external libraries BEFORE our main script runs. -->
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    
     <script>
+        // All of your application logic goes here, now guaranteed to run AFTER the libraries are loaded.
         const firebaseConfig = {
             apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
             authDomain: "journal-a003f.firebaseapp.com",
@@ -179,7 +181,6 @@
                 };
 
                 try {
-                    // This is the line that was failing. It requires the script in the <head>.
                     const compressedFile = await browserImageCompression(file, options);
                     console.log(`Original/Compressed size: ${(file.size / 1024 / 1024).toFixed(2)}MB / ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
 
@@ -264,7 +265,7 @@
                 const button = e.target.closest('.delete-journal-image');
                 if (!isMasterUser || !masterPassword || !button) return;
 
-                const { safeSymbol, timeframe, id, filename }.dataset;
+                const { safeSymbol, timeframe, id, filename } = button.dataset;
                 console.log("Delete button clicked with data:", { safeSymbol, timeframe, id, filename });
                 
                 if (confirm(`Are you sure you want to delete this image?\n\n${filename}`)) {
