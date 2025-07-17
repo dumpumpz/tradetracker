@@ -32,8 +32,9 @@
             color: #666;
         }
 
+        /* MODIFICATION: Removed !important to allow JavaScript to override display property */
         .master-only {
-            display: none !important;
+            display: none;
         }
 
         #add-trade-form {
@@ -122,18 +123,17 @@
             }
         }
         @media (max-width: 768px) {
-    table, th, td {
-        font-size: 12px;
-        padding: 6px;
-    }
-}@media (max-width: 480px) {
-    table, th, td {
-        font-size: 11px;
-        padding: 4px;
-    }
-}
-
-
+            table, th, td {
+                font-size: 12px;
+                padding: 6px;
+            }
+        }
+        @media (max-width: 480px) {
+            table, th, td {
+                font-size: 11px;
+                padding: 4px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -213,24 +213,34 @@
     document.addEventListener('DOMContentLoaded', function () {
         let isMasterUser = false;
 
+        // MODIFICATION: This function now applies the correct display styles
         function checkMasterMode() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('master') === 'true') {
                 isMasterUser = true;
-                document.querySelectorAll('.master-only').forEach(el => {
-                    el.style.display = 'block';
+
+                // Specifically target the form and set its display to 'grid'
+                const form = document.getElementById('add-trade-form');
+                if (form) {
+                    form.style.display = 'grid';
+                }
+
+                // Specifically target all master-only table headers and cells
+                document.querySelectorAll('th.master-only, td.master-only-cell').forEach(el => {
+                    el.style.display = 'table-cell';
                 });
+                
+                const masterHeader = document.querySelector('th.master-only');
+                if(masterHeader){
+                    masterHeader.style.display = 'table-cell';
+                }
+
 
                 const loadingCell = document.getElementById('loading-state');
                 if (loadingCell) loadingCell.firstElementChild?.setAttribute("colspan", "9");
             } else {
                 const loadingCell = document.getElementById('loading-state');
                 if (loadingCell) loadingCell.firstElementChild?.setAttribute("colspan", "8");
-            }
-
-            const roleLabel = document.getElementById('debug-role-label');
-            if (roleLabel) {
-                roleLabel.textContent = isMasterUser ? "👑 Master Mode Enabled" : "Viewer Mode";
             }
         }
 
@@ -254,16 +264,17 @@
                 const row = document.createElement('tr');
                 row.setAttribute('data-id', tradeId);
 
+                // Add a specific class to the master-only cell for easier selection
                 const masterColumn = isMasterUser
-                    ? `<td><button class="delete-btn" data-id="${tradeId}">Delete</button></td>`
+                    ? `<td class="master-only-cell" style="display: table-cell;"><button class="delete-btn" data-id="${tradeId}">Delete</button></td>`
                     : '';
 
                 row.innerHTML = `
                     <td>${trade.date}</td>
                     <td>${trade.type}</td>
-                    <td>${parseFloat(trade.entry).toFixed(4)}</td>
-                    <td>${parseFloat(trade.stoploss).toFixed(4)}</td>
-                    <td>${parseFloat(trade.target).toFixed(4)}</td>
+                    <td>${parseFloat(trade.entry).toFixed(0)}</td>
+                    <td>${parseFloat(trade.stoploss).toFixed(0)}</td>
+                    <td>${parseFloat(trade.target).toFixed(0)}</td>
                     <td>${parseFloat(trade.size).toFixed(2)}</td>
                     <td>${parseFloat(trade.expected_profit).toFixed(2)}</td>
                     <td>${parseFloat(trade.expected_loss).toFixed(2)}</td>
