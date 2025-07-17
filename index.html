@@ -327,7 +327,20 @@ function handleFileUpload(file) {
                     handleFileUpload(e.target.files[0]);
                 }
             });
-            document.querySelector('.tabs').addEventListener('click', (e) => { if (e.target.matches('.tab-link')) { document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active')); e.target.classList.add('active'); document.getElementById(e.target.dataset.tab + '-tab').classList.add('active'); } });
+            // Updated tab click listener
+document.querySelector('.tabs').addEventListener('click', (e) => { 
+    if (e.target.matches('.tab-link')) { 
+        document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active')); 
+        e.target.classList.add('active'); 
+        const activeTabId = e.target.dataset.tab + '-tab';
+        document.getElementById(activeTabId).classList.add('active'); 
+
+        // FIX: If the newly active tab is the journal tab, resize the textarea now that it's visible.
+        if (e.target.dataset.tab === 'journal') {
+            autoResizeTextarea(journalEntryEl);
+        }
+    } 
+});
             function calculateNetResult(trade, exitPrice) { const entry=parseFloat(trade.entry),posValue=parseFloat(trade.size),exit=parseFloat(exitPrice);if(isNaN(entry)||isNaN(posValue)||isNaN(exit))return{net_result:0,entry_fee:0,exit_fee:0};const entryFee=posValue*FEE_RATE,exitPosValue=(exit/entry)*posValue,exitFee=exitPosValue*FEE_RATE;const grossResult=trade.type==="Long"?(exit-entry)*(posValue/entry):(entry-exit)*(posValue/entry);return{net_result:grossResult-entryFee-exitFee,entry_fee:entryFee,exit_fee:exitFee};}
             function completeTrade(tradeId,outcome){database.ref('trades/'+tradeId).once('value',s=>{const t=s.val();if(!t)return;const d=outcome==='win'?t.target:t.stoploss;const p=prompt(`Enter exact exit price:`,d);if(p===null)return;const e=parseFloat(p);if(isNaN(e))return alert("Invalid exit price.");const{net_result,entry_fee,exit_fee}=calculateNetResult(t,e);const c={...t,closed_date:new Date().toLocaleString(),exit_price:e,net_result,entry_fee,exit_fee};delete c.expected_profit;delete c.expected_loss;completedTradesRef.push(c).then(()=>tradesRef.child(tradeId).remove());});}
             function renderLiveTable(d){const t=document.getElementById('trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.stoploss).toFixed(2)}</td><td>${parseFloat(a.target).toFixed(2)}</td><td>${parseFloat(a.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(a.expected_profit).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(a.expected_loss).toFixed(2)}</td><td>${a.date}</td>${isMasterUser?`<td class="action-buttons"><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="delete-btn" data-id="${id}">Delete</button></td>`:''}`;t.appendChild(r);});}
