@@ -147,19 +147,27 @@
 
             // --- THIS IS THE CORRECTED FUNCTION ---
             function renderJournalImages(symbol, timeframe, imagesForSymbol) {
-                journalImagesContainer.innerHTML = '';
-                const imagesForTimeframe = imagesForSymbol[timeframe] || {};
-                Object.keys(imagesForTimeframe)
-                    .sort((a,b) => imagesForTimeframe[a].timestamp - imagesForTimeframe[b].timestamp)
-                    .forEach(id => {
-                        const img = imagesForTimeframe[id];
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'journal-image-wrapper';
-                        const deleteButton = (isMasterUser && masterPassword) ? `<button class="delete-journal-image" title="Delete Image" data-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${img.fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` : '';
-                        wrapper.innerHTML = `${deleteButton}<img src="${img.url}" alt="Journal Image">`;
-                        journalImagesContainer.appendChild(wrapper);
-                    });
-            }
+    journalImagesContainer.innerHTML = '';
+
+    // CORRECT: 'imagesForSymbol' already holds the data for the selected symbol.
+    // We just need to get the object for the selected timeframe from it.
+    const imagesForTimeframe = imagesForSymbol[timeframe] || {};
+
+    Object.keys(imagesForTimeframe)
+        .sort((a, b) => imagesForTimeframe[a].timestamp - imagesForTimeframe[b].timestamp)
+        .forEach(id => {
+            const img = imagesForTimeframe[id];
+            const wrapper = document.createElement('div');
+            wrapper.className = 'journal-image-wrapper';
+            
+            const deleteButton = (isMasterUser && masterPassword) 
+                ? `<button class="delete-journal-image" title="Delete Image" data-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${img.fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` 
+                : '';
+
+            wrapper.innerHTML = `${deleteButton}<img src="${img.url}" alt="Journal Image">`;
+            journalImagesContainer.appendChild(wrapper);
+        });
+}
             
             toggleBalanceBtn.addEventListener('click', () => { bankBalanceContainer.classList.toggle('balance-minimized'); balanceTextEl.textContent = bankBalanceContainer.classList.contains('balance-minimized') ? 'Balance Hidden' : 'Current Balance: '; });
             const saveJournalEntry = (() => { let t; return () => { clearTimeout(t); t = setTimeout(() => { if (!isMasterUser || !masterPassword) return; const safeSymbol = getSafeSymbol(journalSymbolEl.value); const timeframe = journalTimeframeEl.value; document.getElementById('save-status').textContent = 'Saving...'; journalRef.child(safeSymbol).child(timeframe).set(journalEntryEl.value).then(() => { document.getElementById('save-status').textContent = 'Saved.'; setTimeout(() => document.getElementById('save-status').textContent = '', 2000); }).catch(e => document.getElementById('save-status').textContent = `Error: ${e.message}`); }, 750); }; })();
