@@ -14,7 +14,7 @@
         .backup-controls button, .backup-controls label { font-size: 12px; padding: 6px 12px; cursor: pointer; background-color: #6c757d; border: none; color: white; border-radius: 4px; }
         .backup-controls input[type="file"] { display: none; }
         p.subtitle { text-align: center; font-style: italic; margin-top: 0; color: #666; }
-        .tabs { display: flex; border-bottom: 2px solid #ddd; margin-bottom: 20px; }
+        .tabs { display: flex; flex-wrap: wrap; border-bottom: 2px solid #ddd; margin-bottom: 20px; }
         .tab-link { padding: 10px 20px; cursor: pointer; border: none; background-color: transparent; font-size: 16px; font-weight: 500; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; }
         .tab-link.active { color: #007bff; border-bottom-color: #007bff; }
         .tab-content { display: none; }
@@ -33,7 +33,7 @@
         th { background-color: #e9ecef; font-weight: bold; }
         .action-buttons button { padding: 5px 10px; font-size: 12px; }
 
-        #journal-tab, #snapshot-tab { position: relative; }
+        #journal-tab, #snapshot-tab, #sr-levels-tab { position: relative; }
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
         .controls-container > div { display: flex; align-items: center; gap: 8px; }
         
@@ -84,6 +84,19 @@
         .snapshot-image-item h4 { text-align: center; margin-bottom: 8px; font-size: 18px; color: #555; text-transform: capitalize; }
         .snapshot-image-item .journal-image-wrapper { max-width: 100%; margin: auto; }
 
+        #sr-levels-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px; }
+        .sr-column h3 { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid; }
+        .sr-column.support h3 { color: #28a745; border-color: #28a745; }
+        .sr-column.resistance h3 { color: #dc3545; border-color: #dc3545; }
+        .sr-level-card { border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 15px; background-color: #fafafa; }
+        .sr-level-header { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e9ecef; }
+        .sr-level-price-range { font-size: 18px; font-weight: bold; font-family: 'Courier New', Courier, monospace; }
+        .sr-level-strength { font-size: 14px; font-weight: 500; color: #fff; padding: 4px 10px; border-radius: 12px; }
+        .sr-column.support .sr-level-strength { background-color: #28a745; }
+        .sr-column.resistance .sr-level-strength { background-color: #dc3545; }
+        .sr-level-pivots { padding: 15px; font-size: 13px; color: #555; }
+        .sr-level-pivots span { font-weight: 600; color: #333; }
+
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -95,6 +108,7 @@
             #stats-panel-container { bottom: 10px; left: 10px; }
             #stats-fab { width: 50px; height: 50px; }
             #stats-panel { width: calc(100vw - 40px); }
+            #sr-levels-container { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -137,6 +151,7 @@
             <button class="tab-link active" data-tab="tracker">Trade Tracker</button>
             <button class="tab-link" data-tab="journal">Journal</button>
             <button class="tab-link" data-tab="snapshot">Snapshot</button>
+            <button class="tab-link" data-tab="sr-levels">S/R Levels</button>
         </div>
         
         <div id="tracker-tab" class="tab-content active">
@@ -188,6 +203,23 @@
             </div>
             <div id="snapshot-images-container"></div>
         </div>
+
+        <div id="sr-levels-tab" class="tab-content">
+            <div class="controls-container">
+                <div><label for="sr-symbol">Symbol:</label><select id="sr-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
+            </div>
+            <p class="ema-last-updated">Last Updated: <span id="sr-last-updated-time">--</span></p>
+            <div id="sr-levels-container">
+                <div class="sr-column support">
+                    <h3>Top Support Zones</h3>
+                    <div id="support-levels-container"></div>
+                </div>
+                <div class="sr-column resistance">
+                    <h3>Top Resistance Zones</h3>
+                    <div id="resistance-levels-container"></div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -213,11 +245,12 @@
         const journalRef = database.ref('journal_text'); 
         const journalImagesRef = database.ref('journal_images'); 
         const emaValuesRef = database.ref('ema_values');
+        const srLevelsRef = database.ref('sr_levels');
         const FEE_RATE = 0.00075;
         const STARTING_BALANCE = 4000;
 
         document.addEventListener('DOMContentLoaded', function () {
-            let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {};
+            let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {};
             
             const statsFab = document.getElementById('stats-fab');
             const statsPanel = document.getElementById('stats-panel');
@@ -231,6 +264,7 @@
             const journalTab = document.getElementById('journal-tab');
             const snapshotSymbolEl = document.getElementById('snapshot-symbol');
             const snapshotImagesContainer = document.getElementById('snapshot-images-container');
+            const srSymbolEl = document.getElementById('sr-symbol');
 
             function autoResizeTextarea(element) { element.style.height = 'auto'; element.style.height = (element.scrollHeight) + 'px'; }
             function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); }
@@ -245,38 +279,60 @@
                 renderJournalImages(selectedSymbol, selectedTimeframe, symbolImageData); 
                 renderEmaData();
             }
-            
+
             function renderSnapshotView() {
                 const selectedSymbol = getSafeSymbol(snapshotSymbolEl.value);
                 const symbolImageData = allJournalImages[selectedSymbol] || {};
                 snapshotImagesContainer.innerHTML = '';
-
                 const timeframesOrder = ['15min', '30min', '1hour', '2hour', '4hour', 'daily', 'weekly', 'monthly'];
-
                 timeframesOrder.forEach(tf => {
                     const imagesForTimeframe = symbolImageData[tf];
-                    if (!imagesForTimeframe || Object.keys(imagesForTimeframe).length === 0) {
-                        return;
-                    }
-
+                    if (!imagesForTimeframe || Object.keys(imagesForTimeframe).length === 0) return;
                     const latestImage = Object.values(imagesForTimeframe).sort((a, b) => b.timestamp - a.timestamp)[0];
-
                     if (latestImage) {
                         const itemContainer = document.createElement('div');
                         itemContainer.className = 'snapshot-image-item';
-                        
                         const heading = document.createElement('h4');
-                        heading.textContent = tf.replace('min', 'm').replace('hour', 'H'); // Shorten name
-                        
+                        heading.textContent = tf.replace('min', 'm').replace('hour', 'H');
                         const wrapper = document.createElement('div');
                         wrapper.className = 'journal-image-wrapper';
                         wrapper.innerHTML = `<img src="${latestImage.url}" alt="Latest image for ${tf}">`;
-                        
                         itemContainer.appendChild(heading);
                         itemContainer.appendChild(wrapper);
                         snapshotImagesContainer.appendChild(itemContainer);
                     }
                 });
+            }
+
+            function renderSrLevels() {
+                const selectedSymbol = getSafeSymbol(srSymbolEl.value);
+                const symbolSrData = (allSrData.data || {})[selectedSymbol] || {};
+                const lastUpdated = allSrData.last_updated ? new Date(allSrData.last_updated).toLocaleString() : '--';
+                
+                document.getElementById('sr-last-updated-time').textContent = lastUpdated;
+
+                const supportContainer = document.getElementById('support-levels-container');
+                const resistanceContainer = document.getElementById('resistance-levels-container');
+                supportContainer.innerHTML = '';
+                resistanceContainer.innerHTML = '';
+
+                const buildLevelCard = (level) => {
+                    const priceStart = level['Price Start'].toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                    const priceEnd = level['Price End'].toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                    return `
+                        <div class="sr-level-card">
+                            <div class="sr-level-header">
+                                <span class="sr-level-price-range">$${priceStart} - $${priceEnd}</span>
+                                <span class="sr-level-strength">Score: ${level['Strength Score']}</span>
+                            </div>
+                            <div class="sr-level-pivots">
+                                Based on <span>${level['Pivot Count']}</span> pivots.
+                            </div>
+                        </div>`;
+                };
+
+                (symbolSrData.support || []).forEach(level => { supportContainer.innerHTML += buildLevelCard(level); });
+                (symbolSrData.resistance || []).forEach(level => { resistanceContainer.innerHTML += buildLevelCard(level); });
             }
 
             function renderJournalImages(symbol, timeframe, imagesForSymbol) {
@@ -406,6 +462,7 @@
             completedTradesTbody.addEventListener('click', e => { if (!isMasterUser || !masterPassword) return; const button = e.target.closest('.delete-btn-completed'); if (button && confirm('Delete completed trade?')) { completedTradesRef.child(button.dataset.id).remove(); } });
             
             snapshotSymbolEl.addEventListener('change', renderSnapshotView);
+            srSymbolEl.addEventListener('change', renderSrLevels);
             journalSymbolEl.addEventListener('change', updateJournalView);
             journalTimeframeEl.addEventListener('change', updateJournalView);
             document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
@@ -416,11 +473,9 @@
                 e.target.classList.add('active'); 
                 const activeTabId = e.target.dataset.tab + '-tab';
                 document.getElementById(activeTabId).classList.add('active'); 
-                if (e.target.dataset.tab === 'journal') {
-                    updateJournalView();
-                } else if (e.target.dataset.tab === 'snapshot') {
-                    renderSnapshotView();
-                }
+                if (e.target.dataset.tab === 'journal') { updateJournalView(); } 
+                else if (e.target.dataset.tab === 'snapshot') { renderSnapshotView(); }
+                else if (e.target.dataset.tab === 'sr-levels') { renderSrLevels(); }
             });
             
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }));
@@ -473,6 +528,14 @@
                 updateJournalView();
                 if (document.getElementById('snapshot-tab').classList.contains('active')) {
                     renderSnapshotView();
+                }
+            });
+            srLevelsRef.on('value', (s) => {
+                if(s.exists()){
+                    allSrData = s.val();
+                    if(document.getElementById('sr-levels-tab').classList.contains('active')){
+                        renderSrLevels();
+                    }
                 }
             });
         });
