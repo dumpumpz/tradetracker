@@ -193,16 +193,23 @@
             function autoResizeTextarea(element) { element.style.height = 'auto'; element.style.height = (element.scrollHeight) + 'px'; }
             function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); }
             
-            function updateJournalView() { 
-                const selectedSymbol = getSafeSymbol(journalSymbolEl.value); 
-                const selectedTimeframe = journalTimeframeEl.value; 
-                const symbolTextData = allJournalText[selectedSymbol] || {}; 
-                journalEntryEl.value = symbolTextData[selectedTimeframe] || ''; 
-                autoResizeTextarea(journalEntryEl); 
-                const symbolImageData = allJournalImages[selectedSymbol] || {}; 
-                renderJournalImages(selectedSymbol, selectedTimeframe, symbolImageData); 
-            }
-            
+// THIS IS THE CORRECTED FUNCTION
+function updateJournalView() { 
+    const selectedSymbol = getSafeSymbol(journalSymbolEl.value); 
+    const selectedTimeframe = journalTimeframeEl.value; 
+    
+    // Update journal text
+    const symbolTextData = allJournalText[selectedSymbol] || {}; 
+    journalEntryEl.value = symbolTextData[selectedTimeframe] || ''; 
+    autoResizeTextarea(journalEntryEl); 
+    
+    // Update journal images
+    const symbolImageData = allJournalImages[selectedSymbol] || {}; 
+    renderJournalImages(selectedSymbol, selectedTimeframe, symbolImageData); 
+
+    // AND ALSO UPDATE THE EMA DATA
+    renderEmaData(); // <<< ADD THIS LINE
+}
             function checkMasterMode() { 
                 const urlParams = new URLSearchParams(window.location.search); 
                 if (urlParams.get('master') === 'true') { 
