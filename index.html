@@ -338,17 +338,22 @@
 
             document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
             
-            document.querySelector('.tabs').addEventListener('click', (e) => { 
-                if (e.target.matches('.tab-link')) { 
-                    document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active')); 
-                    e.target.classList.add('active'); 
-                    const activeTabId = e.target.dataset.tab + '-tab';
-                    document.getElementById(activeTabId).classList.add('active'); 
-                    if (e.target.dataset.tab === 'journal') {
-                        autoResizeTextarea(journalEntryEl);
-                    }
-                } 
-            });
+// THIS IS THE CORRECTED CODE
+document.querySelector('.tabs').addEventListener('click', (e) => { 
+    if (e.target.matches('.tab-link')) { 
+        document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active')); 
+        e.target.classList.add('active'); 
+        const activeTabId = e.target.dataset.tab + '-tab';
+        document.getElementById(activeTabId).classList.add('active'); 
+        
+        // If the Journal tab was just clicked...
+        if (e.target.dataset.tab === 'journal') {
+            // ...resize the textarea AND render the EMA data now that it's visible.
+            autoResizeTextarea(journalEntryEl);
+            renderEmaData(); // <<< ADD THIS LINE
+        }
+    } 
+});
             
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }));
             ['dragenter', 'dragover'].forEach(eventName => journalTab.addEventListener(eventName, () => { if (isMasterUser) journalTab.classList.add('drag-over'); }));
