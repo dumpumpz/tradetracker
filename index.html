@@ -68,8 +68,7 @@
         .stat-item { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; }
         .stat-label { font-size: 14px; color: #555; }
         .stat-value { font-size: 16px; font-weight: 600; color: #333; }
-        
-/* NEW STYLES FOR THE EMA TABLE */
+   /* NEW REFINED STYLES FOR THE EMA TABLE */
 #ema-data-section { 
     margin-top: 40px; 
     padding-top: 20px; 
@@ -80,6 +79,16 @@
     border-top: none; 
     text-align: center; 
 }
+.current-price-display {
+    text-align: center;
+    font-size: 18px;
+    margin-bottom: 5px;
+    color: #333;
+}
+.price-value {
+    font-weight: bold;
+    font-family: inherit; /* Use the standard app font */
+}
 .ema-last-updated { 
     text-align: center; 
     font-style: italic; 
@@ -89,24 +98,23 @@
 }
 #ema-table {
     text-align: right; /* Right-align all numbers */
+    width: 100%; /* Ensure table takes full width */
 }
 #ema-table th, #ema-table td {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: inherit; /* Use the standard app font */
     font-size: 14px;
     padding: 10px 8px;
 }
 #ema-table th {
     font-weight: bold;
     background-color: #f8f9fa;
+    color: #555;
 }
-#ema-table td:first-child {
+#ema-table td:first-child { /* The Timeframe column */
     font-weight: bold;
-    text-align: left; /* Left-align the timeframe column */
+    text-align: left;
     color: #007bff;
-}
-.price-cell {
-    font-weight: bold;
-    color: #333;
+    padding-left: 15px; /* Add some padding */
 }
 
         @media (max-width: 768px) { 
@@ -170,16 +178,22 @@
             <div id="image-upload-section" class="master-only"><label for="journal-image-upload" class="image-upload-label">Add Picture</label><input type="file" id="journal-image-upload" accept="image/*"><div id="upload-progress" style="display:none"></div></div>
             <div id="journal-images-container"></div>
             
-<!-- THIS IS THE NEW TABLE STRUCTURE -->
+<!-- THIS IS THE NEW, CLEANER STRUCTURE -->
 <div id="ema-data-section">
     <h2>Market Snapshot</h2>
+    
+    <!-- NEW: Current Price Display -->
+    <div class="current-price-display">
+        Current Price (15m): <span id="ema-current-price" class="price-value">--</span>
+    </div>
+    
     <p class="ema-last-updated">Last Updated: <span id="ema-last-updated-time">--</span></p>
+
     <div class="table-wrapper">
         <table id="ema-table">
             <thead>
                 <tr>
-                    <th>Timeframe</th>
-                    <th>Price</th>
+                    <th>TF</th> <!-- Shortened Header -->
                     <th>EMA 13</th>
                     <th>SMA 13</th>
                     <th>EMA 49</th>
@@ -340,8 +354,7 @@ function updateJournalView() {
                         journalImagesContainer.appendChild(wrapper);
                     });
             }
-            
-// NEW FUNCTION TO BUILD THE EMA TABLE
+// NEW FINAL VERSION OF renderEmaData
 function renderEmaData() {
     const selectedSymbol = getSafeSymbol(journalSymbolEl.value);
     const symbolEmaData = (allEmaData.data || {})[selectedSymbol] || {};
@@ -349,37 +362,48 @@ function renderEmaData() {
     
     document.getElementById('ema-last-updated-time').textContent = lastUpdated;
     
+    // Update the separate price display
+    const priceDisplay = document.getElementById('ema-current-price');
+    const dataFor15m = symbolEmaData['15min'];
+    if (dataFor15m && dataFor15m.price !== undefined) {
+        priceDisplay.textContent = `$${dataFor15m.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    } else {
+        priceDisplay.textContent = '...';
+    }
+
     const emaTbody = document.getElementById('ema-tbody');
     emaTbody.innerHTML = ''; // Clear previous table rows
 
     const timeframesToDisplay = ['15min', '30min', '1hour', '2hour', '4hour', 'daily'];
-    const periodsToDisplay = [13, 49, 100, 200]; // Add more if needed, e.g., 500, 1000
+    const periodsToDisplay = [13, 49, 100, 200];
+
+    // Map long names to short names
+    const tfShortNames = {
+        '15min': '15m',
+        '30min': '30m',
+        '1hour': '1H',
+        '2hour': '2H',
+        '4hour': '4H',
+        'daily': '1D'
+    };
 
     timeframesToDisplay.forEach(tf => {
         const tfData = symbolEmaData[tf];
-        
-        // Create a new row
         const row = emaTbody.insertRow();
         
-        // Cell 1: Timeframe
+        // Cell 1: Timeframe (shortened)
         const tfCell = row.insertCell();
-        tfCell.textContent = tf;
+        tfCell.textContent = tfShortNames[tf] || tf;
         
-        // Cell 2: Price (assuming price is in the data, otherwise get it from another source or omit)
-        const priceCell = row.insertCell();
-        priceCell.className = 'price-cell';
-        // Note: Your Python script isn't sending the price. If you add it, it will show here.
-        // For now, we'll leave it blank or show a placeholder.
-        priceCell.textContent = tfData ? (tfData.price || 'N/A') : '...';
-
-        // Cells for EMAs and SMAs
+        // Cells for EMAs and SMAs (NO PRICE CELL)
         periodsToDisplay.forEach(period => {
             const emaCell = row.insertCell();
             const smaCell = row.insertCell();
 
             if (tfData) {
-                emaCell.textContent = tfData[`EMA_${period}`] !== undefined ? tfData[`EMA_${period}`].toFixed(2) : '...';
-                smaCell.textContent = tfData[`SMA_${period}`] !== undefined ? tfData[`SMA_${period}`].toFixed(2) : '...';
+                // Use Math.round() to remove decimals
+                emaCell.textContent = tfData[`EMA_${period}`] !== undefined ? Math.round(tfData[`EMA_${period}`]).toLocaleString() : '...';
+                smaCell.textContent = tfData[`SMA_${period}`] !== undefined ? Math.round(tfData[`SMA_${period}`]).toLocaleString() : '...';
             } else {
                 emaCell.textContent = '...';
                 smaCell.textContent = '...';
