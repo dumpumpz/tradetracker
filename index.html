@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Trade & Journal Tracker</title>
-    
-    <!-- NO EXTERNAL LIBRARIES HERE, TO KEEP IT SIMPLE -->
-    
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 10px; background-color: #f4f7f6; color: #333; }
         .container { max-width: 1200px; margin: auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -23,18 +20,6 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
-        #bank-balance-container { position: relative; text-align: center; margin: 10px auto 25px auto; font-size: 24px; font-weight: bold; color: #333; padding: 10px; background-color: #e9ecef; border-radius: 8px; max-width: 400px; transition: all 0.2s ease-in-out; }
-        #toggle-balance-btn { position: absolute; top: 50%; right: 15px; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 5px; opacity: 0.6; margin: 0; }
-        #toggle-balance-btn:hover { opacity: 1; }
-        #toggle-balance-btn svg { width: 24px; height: 24px; }
-        #bank-balance-container .icon-show { display: block; }
-        #bank-balance-container .icon-hide { display: none; }
-        #bank-balance-container.balance-minimized { font-size: 16px; padding: 5px 10px; max-width: 180px; background-color: #f8f9fa; }
-        #bank-balance-container.balance-minimized #bank-balance-value { display: none; }
-        #bank-balance-container.balance-minimized .icon-show { display: none; }
-        #bank-balance-container.balance-minimized .icon-hide { display: block; }
-        #bank-balance-value { font-weight: bolder; }
-
         .master-only { display: none; }
         #add-trade-form { max-width: 950px; margin: 20px auto; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #fafafa; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end; }
         label { margin-bottom: 5px; font-weight: bold; font-size: 14px; }
@@ -70,16 +55,158 @@
         #journal-tab.drag-over { border: 3px dashed #007bff; background-color: rgba(0, 123, 255, 0.05); }
         #journal-tab.drag-over::before { content: "Drop Image Here"; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #007bff; z-index: 999; pointer-events: none; }
         
-        @media (max-width: 768px) { .container { padding: 10px; } #add-trade-form { grid-template-columns: 1fr; } .section-header { flex-direction: column; } .backup-controls { position: static; margin-top: 10px; } .journal-image-wrapper { max-width: 100%; } th, td { font-size: 12px; padding: 6px; } .action-buttons button { font-size: 11px; padding: 4px 8px; } }
+        /* START: NEW STATS PANEL STYLES */
+        #stats-panel-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+        #stats-fab {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        #stats-fab:hover {
+            transform: scale(1.1);
+        }
+        #stats-fab svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+        }
+        #stats-panel {
+            position: absolute;
+            bottom: 80px; /* Position above the FAB */
+            left: 0;
+            width: 300px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            padding: 15px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none; /* Hide until active */
+        }
+        #stats-panel.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .stats-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+        #close-stats-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            font-weight: bold;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0 5px;
+            line-height: 1;
+            margin: 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 5px 0;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #555;
+        }
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        /* END: NEW STATS PANEL STYLES */
+
+        @media (max-width: 768px) { 
+            .container { padding: 10px; } 
+            #add-trade-form { grid-template-columns: 1fr; } 
+            .section-header { flex-direction: column; } 
+            .backup-controls { position: static; margin-top: 10px; } 
+            .journal-image-wrapper { max-width: 100%; } 
+            th, td { font-size: 12px; padding: 6px; } 
+            .action-buttons button { font-size: 11px; padding: 4px 8px; } 
+            #stats-panel-container { bottom: 10px; left: 10px; }
+            #stats-fab { width: 50px; height: 50px; }
+            #stats-panel { width: calc(100vw - 40px); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- All your HTML body content here... -->
+        
+        <!-- START: NEW HTML BLOCK FOR STATS -->
+        <div id="stats-panel-container">
+            <div id="stats-panel">
+                <div class="stats-header">
+                    <h3>Performance Stats</h3>
+                    <button id="close-stats-btn" title="Close Panel">×</button>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Current Balance</span>
+                        <span id="stat-balance" class="stat-value">$0.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total P/L</span>
+                        <span id="stat-total-pl" class="stat-value">$0.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Completed Trades</span>
+                        <span id="stat-completed-trades" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Open Trades</span>
+                        <span id="stat-open-trades" class="stat-value">0</span>
+                    </div>
+                </div>
+            </div>
+            <button id="stats-fab" title="Show Stats">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M32 32c17.7 0 32 14.3 32 32V400c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V64C32 46.3 46.3 32 64 32H160c17.7 0 32 14.3 32 32s-14.3 32-32 32H96v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96H64V64zM256 224c0-17.7-14.3-32-32-32H160c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32V224zM352 288c-17.7 0-32 14.3-32 32v64H256c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32zM480 32c17.7 0 32 14.3 32 32s-14.3 32-32 32H416v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96h-1.5c-16.3 0-30.8-12.4-32-28.5c-.2-2.1-.2-4.2-.2-6.4V64c0-17.7 14.3-32 32-32H480z"/></svg>
+            </button>
+        </div>
+        <!-- END: NEW HTML BLOCK -->
+
         <h1>Live Trade & Journal Tracker</h1>
         <p class="subtitle">Data updates in real-time for all viewers.</p>
         <div class="tabs"><button class="tab-link active" data-tab="tracker">Trade Tracker</button><button class="tab-link" data-tab="journal">Journal</button></div>
-        <div id="tracker-tab" class="tab-content active"><div id="bank-balance-container"><span id="balance-text">Current Balance: </span><span id="bank-balance-value">$0.00</span><button id="toggle-balance-btn" title="Toggle Balance Visibility"><svg class="icon-show" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 158.8 0 223.8 0 288s48.6 129.2 95.4 175.4C142.5 407.2 207.2 444 288 444s145.5-36.8 192.6-80.6C527.4 317.2 576 252.2 576 288s-48.6-129.2-95.4-175.4C433.5 68.8 368.8 32 288 32zm0 368c-59.3 0-107.4-48.1-107.4-107.4S228.7 185.2 288 185.2s107.4 48.1 107.4 107.4S347.3 400 288 400zm0-164.6c-31.5 0-57.1 25.6-57.1 57.1s25.6 57.1 57.1 57.1 57.1-25.6 57.1-57.1-25.6-57.1-57.1-57.1z"/></svg><svg class="icon-hide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path d="M320 400c-75.9 0-137.7-61.8-137.7-137.7 0-6.5 1-12.8 2.5-18.8L46.8 64.8C17.7 96 0 137.7 0 184.2 0 288.5 119.2 384 268.8 384h5.1c32.3 0 63.3-8.1 90.3-22.5l-69.5-69.5c-6 .6-12 1-18.1 1zm313.2-28.8l-72-72c15.3-25.1 24.8-53.9 24.8-85.5 0-104.3-119.2-200-268.8-200-30.6 0-60.2 6-87.8 16.8L593.2 371.2c2.4-3.8 4.7-7.6 6.8-11.6C624.9 323.8 640 282.2 640 235.8c0-29.3-6.8-57.1-18.8-82.9zM320 236c-18.1 0-33.8 7.3-45.5 18.1l-92.4-92.4C207.2 135.2 249.2 128 294.4 128h5.1C403.8 128 504.2 192.4 544 260.2l-56.1 56.1c-3.2-1.9-6.5-3.8-9.9-5.4-14.2-6.5-29.8-10-46.1-10.2-1.9 0-3.8 0-5.7.1z"/></svg></button></div><form id="add-trade-form" class="master-only"><div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div><div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div><div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div><div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div><div><label for="target">Target:</label><input type="number" id="target" step="any" required></div><div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div><div><button type="submit">Add Trade</button></div></form><div class="section-header"><h2>Live Trades</h2><div class="backup-controls master-only"><button id="save-live-btn">Save JSON</button><label for="load-live-input">Load JSON</label><input type="file" id="load-live-input" accept=".json"></div></div><div class="table-wrapper"><table><thead><tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th class="master-only">Actions</th></tr></thead><tbody id="trades-tbody"></tbody></table></div><div class="section-header"><h2>Completed Trades</h2><div class="backup-controls master-only"><button id="save-completed-btn">Save JSON</button><label for="load-completed-input">Load JSON</label><input type="file" id="load-completed-input" accept=".json"></div></div><div class="table-wrapper"><table><thead><tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th class="master-only">Actions</th></tr></thead><tbody id="completed-trades-tbody"></tbody></table></div></div>
+        
+        <div id="tracker-tab" class="tab-content active">
+            <!-- The old bank balance div was here and is now removed -->
+            <form id="add-trade-form" class="master-only"><div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div><div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div><div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div><div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div><div><label for="target">Target:</label><input type="number" id="target" step="any" required></div><div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div><div><button type="submit">Add Trade</button></div></form><div class="section-header"><h2>Live Trades</h2><div class="backup-controls master-only"><button id="save-live-btn">Save JSON</button><label for="load-live-input">Load JSON</label><input type="file" id="load-live-input" accept=".json"></div></div><div class="table-wrapper"><table><thead><tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th class="master-only">Actions</th></tr></thead><tbody id="trades-tbody"></tbody></table></div><div class="section-header"><h2>Completed Trades</h2><div class="backup-controls master-only"><button id="save-completed-btn">Save JSON</button><label for="load-completed-input">Load JSON</label><input type="file" id="load-completed-input" accept=".json"></div></div><div class="table-wrapper"><table><thead><tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th class="master-only">Actions</th></tr></thead><tbody id="completed-trades-tbody"></tbody></table></div>
+        </div>
+
         <div id="journal-tab" class="tab-content"><div id="journal-controls"><div><label for="journal-symbol">Symbol:</label><select id="journal-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div><div><label for="journal-timeframe">Timeframe:</label><select id="journal-timeframe"><option value="15min">15min</option><option value="30min">30min</option><option value="1hour">1hour</option><option value="2hour">2hour</option><option value="4hour">4hour</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div></div><textarea id="journal-entry" placeholder="Select a symbol and timeframe to view entry. Master access required to edit."></textarea><p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p><div id="image-upload-section" class="master-only"><label for="journal-image-upload" class="image-upload-label">Add Picture</label><input type="file" id="journal-image-upload" accept="image/*"><div id="upload-progress" style="display:none"></div></div><div id="journal-images-container"></div></div>
     </div>
     
@@ -111,13 +238,14 @@
         document.addEventListener('DOMContentLoaded', function () {
             let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {};
             
+            const statsFab = document.getElementById('stats-fab');
+            const statsPanel = document.getElementById('stats-panel');
+            const closeStatsBtn = document.getElementById('close-stats-btn');
+            
             const journalSymbolEl = document.getElementById('journal-symbol');
             const journalTimeframeEl = document.getElementById('journal-timeframe');
             const journalEntryEl = document.getElementById('journal-entry');
             const journalImagesContainer = document.getElementById('journal-images-container');
-            const bankBalanceContainer = document.getElementById('bank-balance-container');
-            const toggleBalanceBtn = document.getElementById('toggle-balance-btn');
-            const balanceTextEl = document.getElementById('balance-text');
             const tradesTbody = document.getElementById('trades-tbody');
             const completedTradesTbody = document.getElementById('completed-trades-tbody');
             const journalTab = document.getElementById('journal-tab');
@@ -125,33 +253,15 @@
             function autoResizeTextarea(element) { element.style.height = 'auto'; element.style.height = (element.scrollHeight) + 'px'; }
             function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); }
             
-            // =========================================================================
-// ==  REPLACE your old updateJournalView function with this new one      ==
-// =========================================================================
-function updateJournalView() { 
-    // --- START DEBUG LOGGING ---
-    console.log("%c--- Running updateJournalView() ---", "background-color: #eee; color: #000;");
-    
-    // Log the raw data we have available
-    console.log("Current full dataset for allJournalImages:", allJournalImages);
-
-    const rawSymbol = journalSymbolEl.value;
-    const selectedSymbol = getSafeSymbol(rawSymbol); 
-    const selectedTimeframe = journalTimeframeEl.value; 
-
-    console.log(`Dropdown value is "${rawSymbol}", which becomes safe symbol "${selectedSymbol}".`);
-
-    // This is the most important step: Let's see what data we find for our symbol.
-    const symbolImageData = allJournalImages[selectedSymbol] || {}; 
-    console.log(`For symbol "${selectedSymbol}", we found this image data:`, symbolImageData);
-    // --- END DEBUG LOGGING ---
-
-    // The rest of the original function remains the same
-    const symbolTextData = allJournalText[selectedSymbol] || {}; 
-    journalEntryEl.value = symbolTextData[selectedTimeframe] || ''; 
-    autoResizeTextarea(journalEntryEl); 
-    renderJournalImages(selectedSymbol, selectedTimeframe, symbolImageData); 
-}
+            function updateJournalView() { 
+                const selectedSymbol = getSafeSymbol(journalSymbolEl.value); 
+                const selectedTimeframe = journalTimeframeEl.value; 
+                const symbolTextData = allJournalText[selectedSymbol] || {}; 
+                journalEntryEl.value = symbolTextData[selectedTimeframe] || ''; 
+                autoResizeTextarea(journalEntryEl); 
+                const symbolImageData = allJournalImages[selectedSymbol] || {}; 
+                renderJournalImages(selectedSymbol, selectedTimeframe, symbolImageData); 
+            }
             
             function checkMasterMode() { 
                 const urlParams = new URLSearchParams(window.location.search); 
@@ -175,100 +285,58 @@ function updateJournalView() {
             }
             checkMasterMode();
 
-            // =========================================================================
-// ==  REPLACE your old handleFileUpload function with this new one       ==
-// =========================================================================
-function handleFileUpload(file) {
-    console.log("--- Starting SIMPLE Image Upload ---");
-    if (!isMasterUser || !masterPassword) {
-        console.error("Upload stopped: Not in master mode or no password.");
-        return;
-    }
-    if (!file || !file.type.startsWith('image/')) {
-        console.error("Upload stopped: No file or not an image.");
-        return;
-    }
-    
-    const uploadProgressEl = document.getElementById('upload-progress');
-    uploadProgressEl.style.display = 'block';
-
-    const safeSymbol = getSafeSymbol(journalSymbolEl.value);
-    const timeframe = journalTimeframeEl.value;
-    const fileName = `${Date.now()}_${file.name}`;
-    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
-    
-    console.log(`%cAttempting to upload to STORAGE path: "${storagePath}"`, 'color: blue; font-weight: bold;');
-    
-    const fileRef = storage.ref(storagePath);
-    const metadata = { customMetadata: { 'password': masterPassword } };
-    const uploadTask = fileRef.put(file, metadata);
-
-    uploadTask.on('state_changed', 
-        (s) => { 
-            uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; 
-        }, 
-        (storageError) => { 
-            console.error("!!! STORAGE UPLOAD FAILED !!!", storageError);
-            uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; 
-        }, 
-        () => {
-            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                console.log("Storage upload successful. Saving metadata to DB...");
-                const imageData = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
+            function handleFileUpload(file) {
+                if (!isMasterUser || !masterPassword) return;
+                if (!file || !file.type.startsWith('image/')) return;
                 
-                // Use .push() which returns a "thenable" reference with the new key
-                journalImagesRef.child(safeSymbol).child(timeframe).push(imageData)
-                    .then((newRef) => { 
-                        console.log("%cSUCCESS: Metadata saved to Realtime Database.", 'color: green; font-weight: bold;');
-                        uploadProgressEl.textContent = 'Upload Complete!'; 
-                        setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
-                        
-                        // --- START OF THE NEW, MANUAL REFRESH LOGIC ---
-                        console.log("Bypassing listener and manually refreshing view...");
+                const uploadProgressEl = document.getElementById('upload-progress');
+                uploadProgressEl.style.display = 'block';
 
-                        // 1. Create the nested objects if they don't exist in our local data
-                        if (!allJournalImages[safeSymbol]) {
-                            allJournalImages[safeSymbol] = {};
-                        }
-                        if (!allJournalImages[safeSymbol][timeframe]) {
-                            allJournalImages[safeSymbol][timeframe] = {};
-                        }
+                const safeSymbol = getSafeSymbol(journalSymbolEl.value);
+                const timeframe = journalTimeframeEl.value;
+                const fileName = `${Date.now()}_${file.name}`;
+                const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
+                
+                const fileRef = storage.ref(storagePath);
+                const metadata = { customMetadata: { 'password': masterPassword } };
+                const uploadTask = fileRef.put(file, metadata);
 
-                        // 2. Add the new image data to our local object
-                        const newImageId = newRef.key;
-                        allJournalImages[safeSymbol][timeframe][newImageId] = imageData;
-
-                        // 3. Force the view to re-render with the new data
-                        updateJournalView();
-                        // --- END OF THE NEW, MANUAL REFRESH LOGIC ---
-
-                    })
-                    .catch((dbError) => { 
-                        console.error("!!! DATABASE SAVE FAILED !!!", dbError);
-                        uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; 
-                        fileRef.delete(); 
+                uploadTask.on('state_changed', (s) => { 
+                    uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; 
+                }, (storageError) => { 
+                    console.error("STORAGE UPLOAD FAILED:", storageError);
+                    uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; 
+                }, () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                        const imageData = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
+                        const newRef = journalImagesRef.child(safeSymbol).child(timeframe).push(imageData);
+                        newRef.then(() => { 
+                            uploadProgressEl.textContent = 'Upload Complete!'; 
+                            setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
+                            if (!allJournalImages[safeSymbol]) allJournalImages[safeSymbol] = {};
+                            if (!allJournalImages[safeSymbol][timeframe]) allJournalImages[safeSymbol][timeframe] = {};
+                            allJournalImages[safeSymbol][timeframe][newRef.key] = imageData;
+                            updateJournalView();
+                        }).catch((dbError) => { 
+                            console.error("DATABASE SAVE FAILED:", dbError);
+                            uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; 
+                            fileRef.delete(); 
+                        });
                     });
-            });
-        }
-    );
-}
+                });
+            }
             
             function renderJournalImages(symbol, timeframe, imagesForSymbol) {
-                console.log(`%cRendering images for Symbol: "${symbol}", Timeframe: "${timeframe}"`, 'color: orange; font-weight: bold;');
                 journalImagesContainer.innerHTML = '';
                 const imagesForTimeframe = imagesForSymbol[timeframe] || {};
                 const imageKeys = Object.keys(imagesForTimeframe);
-                console.log(`Found ${imageKeys.length} image(s) to render.`);
 
                 if (imageKeys.length === 0) return;
 
                 imageKeys.sort((a, b) => imagesForTimeframe[a].timestamp - imagesForTimeframe[b].timestamp)
                     .forEach(id => {
                         const imgData = imagesForTimeframe[id];
-                        if (!imgData || !imgData.url || !imgData.fileName) {
-                            console.warn("Skipping invalid image data object:", id, imgData);
-                            return;
-                        }
+                        if (!imgData || !imgData.url || !imgData.fileName) return;
                         const wrapper = document.createElement('div');
                         wrapper.className = 'journal-image-wrapper';
                         const deleteButton = (isMasterUser && masterPassword) ? `<button class="delete-journal-image" title="Delete Image" data-safe-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${imgData.fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` : '';
@@ -291,30 +359,6 @@ function handleFileUpload(file) {
                 }
             });
 
-            // --- DRAG AND DROP LOGIC (FIXED AND CONSOLIDATED) ---
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                journalTab.addEventListener(eventName, e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                });
-            });
-            ['dragenter', 'dragover'].forEach(eventName => {
-                journalTab.addEventListener(eventName, () => {
-                    if (isMasterUser) journalTab.classList.add('drag-over');
-                });
-            });
-            journalTab.addEventListener('dragleave', () => {
-                journalTab.classList.remove('drag-over');
-            });
-            journalTab.addEventListener('drop', (e) => {
-                journalTab.classList.remove('drag-over');
-                if (isMasterUser && e.dataTransfer && e.dataTransfer.files.length > 0) {
-                    handleFileUpload(e.dataTransfer.files[0]);
-                }
-            });
-            // --- END DRAG AND DROP LOGIC ---
-
-            toggleBalanceBtn.addEventListener('click', () => { bankBalanceContainer.classList.toggle('balance-minimized'); balanceTextEl.textContent = bankBalanceContainer.classList.contains('balance-minimized') ? 'Balance Hidden' : 'Current Balance: '; });
             const saveJournalEntry = (() => { let t; return () => { clearTimeout(t); t = setTimeout(() => { if (!isMasterUser || !masterPassword) return; const safeSymbol = getSafeSymbol(journalSymbolEl.value); const timeframe = journalTimeframeEl.value; document.getElementById('save-status').textContent = 'Saving...'; journalRef.child(safeSymbol).child(timeframe).set(journalEntryEl.value).then(() => { document.getElementById('save-status').textContent = 'Saved.'; setTimeout(() => document.getElementById('save-status').textContent = '', 2000); }).catch(e => document.getElementById('save-status').textContent = `Error: ${e.message}`); }, 750); }; })();
             journalEntryEl.addEventListener('input', () => autoResizeTextarea(journalEntryEl));
             journalEntryEl.addEventListener('input', saveJournalEntry);
@@ -322,33 +366,69 @@ function handleFileUpload(file) {
             completedTradesTbody.addEventListener('click', e => { if (!isMasterUser || !masterPassword) return; const button = e.target.closest('.delete-btn-completed'); if (button && confirm('Delete completed trade?')) { completedTradesRef.child(button.dataset.id).remove(); } });
             journalSymbolEl.addEventListener('change', updateJournalView);
             journalTimeframeEl.addEventListener('change', updateJournalView);
-            document.getElementById('journal-image-upload').addEventListener('change', (e) => {
-                if(e.target.files && e.target.files.length > 0) {
-                    handleFileUpload(e.target.files[0]);
+            document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
+            
+            document.querySelector('.tabs').addEventListener('click', (e) => { 
+                if (e.target.matches('.tab-link')) { 
+                    document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active')); 
+                    e.target.classList.add('active'); 
+                    const activeTabId = e.target.dataset.tab + '-tab';
+                    document.getElementById(activeTabId).classList.add('active'); 
+                    if (e.target.dataset.tab === 'journal') {
+                        autoResizeTextarea(journalEntryEl);
+                    }
+                } 
+            });
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }));
+            ['dragenter', 'dragover'].forEach(eventName => journalTab.addEventListener(eventName, () => { if (isMasterUser) journalTab.classList.add('drag-over'); }));
+            journalTab.addEventListener('dragleave', () => journalTab.classList.remove('drag-over'));
+            journalTab.addEventListener('drop', (e) => {
+                journalTab.classList.remove('drag-over');
+                if (isMasterUser && e.dataTransfer && e.dataTransfer.files.length > 0) {
+                    handleFileUpload(e.dataTransfer.files[0]);
                 }
             });
-            // Updated tab click listener
-document.querySelector('.tabs').addEventListener('click', (e) => { 
-    if (e.target.matches('.tab-link')) { 
-        document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active')); 
-        e.target.classList.add('active'); 
-        const activeTabId = e.target.dataset.tab + '-tab';
-        document.getElementById(activeTabId).classList.add('active'); 
 
-        // FIX: If the newly active tab is the journal tab, resize the textarea now that it's visible.
-        if (e.target.dataset.tab === 'journal') {
-            autoResizeTextarea(journalEntryEl);
-        }
-    } 
-});
+            statsFab.addEventListener('click', () => statsPanel.classList.toggle('active'));
+            closeStatsBtn.addEventListener('click', () => statsPanel.classList.remove('active'));
+            document.addEventListener('click', (e) => {
+                if (!statsPanel.contains(e.target) && !statsFab.contains(e.target) && statsPanel.classList.contains('active')) {
+                    statsPanel.classList.remove('active');
+                }
+            });
+
             function calculateNetResult(trade, exitPrice) { const entry=parseFloat(trade.entry),posValue=parseFloat(trade.size),exit=parseFloat(exitPrice);if(isNaN(entry)||isNaN(posValue)||isNaN(exit))return{net_result:0,entry_fee:0,exit_fee:0};const entryFee=posValue*FEE_RATE,exitPosValue=(exit/entry)*posValue,exitFee=exitPosValue*FEE_RATE;const grossResult=trade.type==="Long"?(exit-entry)*(posValue/entry):(entry-exit)*(posValue/entry);return{net_result:grossResult-entryFee-exitFee,entry_fee:entryFee,exit_fee:exitFee};}
             function completeTrade(tradeId,outcome){database.ref('trades/'+tradeId).once('value',s=>{const t=s.val();if(!t)return;const d=outcome==='win'?t.target:t.stoploss;const p=prompt(`Enter exact exit price:`,d);if(p===null)return;const e=parseFloat(p);if(isNaN(e))return alert("Invalid exit price.");const{net_result,entry_fee,exit_fee}=calculateNetResult(t,e);const c={...t,closed_date:new Date().toLocaleString(),exit_price:e,net_result,entry_fee,exit_fee};delete c.expected_profit;delete c.expected_loss;completedTradesRef.push(c).then(()=>tradesRef.child(tradeId).remove());});}
             function renderLiveTable(d){const t=document.getElementById('trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.stoploss).toFixed(2)}</td><td>${parseFloat(a.target).toFixed(2)}</td><td>${parseFloat(a.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(a.expected_profit).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(a.expected_loss).toFixed(2)}</td><td>${a.date}</td>${isMasterUser?`<td class="action-buttons"><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="delete-btn" data-id="${id}">Delete</button></td>`:''}`;t.appendChild(r);});}
             function renderCompletedTable(d){const t=document.getElementById('completed-trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].closed_date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const c=a.net_result>=0?'#28a745':'#dc3545',e=(a.entry_fee||0)+(a.exit_fee||0);r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.exit_price).toFixed(2)}</td><td>${e.toFixed(2)}</td><td style="color:${c};font-weight:bold;">${parseFloat(a.net_result).toFixed(2)}</td><td>${a.date}</td><td>${a.closed_date}</td>${isMasterUser?`<td class="action-buttons"><button class="delete-btn-completed" data-id="${id}">Delete</button></td>`:''}`;t.appendChild(r);});}
             
-            tradesRef.on('value',snapshot=>renderLiveTable(snapshot.val()));
-            completedTradesRef.on('value',snapshot=>{const d=snapshot.val();renderCompletedTable(d);let t=0;if(d)t=Object.values(d).reduce((s,a)=>s+(a.net_result||0),0);bankRef.set({currentBalance:STARTING_BALANCE+t});});
-            bankRef.on('value',s=>{let b=STARTING_BALANCE;if(s.exists()&&s.val().currentBalance!==null)b=s.val().currentBalance;document.getElementById('bank-balance-value').textContent=`$${parseFloat(b).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;document.getElementById('bank-balance-value').style.color=b>=STARTING_BALANCE?'#28a745':'#dc3545';});
+            tradesRef.on('value',snapshot=>{
+                const liveTrades = snapshot.val() || {};
+                renderLiveTable(liveTrades);
+                document.getElementById('stat-open-trades').textContent = Object.keys(liveTrades).length;
+            });
+
+            completedTradesRef.on('value',snapshot=>{
+                const completedData = snapshot.val() || {};
+                renderCompletedTable(completedData);
+
+                const totalProfitLoss = Object.values(completedData).reduce((sum, trade) => sum + (trade.net_result || 0), 0);
+                const newBalance = STARTING_BALANCE + totalProfitLoss;
+
+                const plElement = document.getElementById('stat-total-pl');
+                plElement.textContent = `${totalProfitLoss >= 0 ? '+' : ''}$${totalProfitLoss.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                plElement.style.color = totalProfitLoss >= 0 ? '#28a745' : '#dc3545';
+                
+                const balanceElement = document.getElementById('stat-balance');
+                balanceElement.textContent = `$${newBalance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                balanceElement.style.color = newBalance >= STARTING_BALANCE ? '#28a745' : '#dc3545';
+                
+                document.getElementById('stat-completed-trades').textContent = Object.keys(completedData).length;
+
+                bankRef.set({ currentBalance: newBalance });
+            });
+            
             journalRef.on('value', (s) => { allJournalText = s.val() || {}; updateJournalView(); });
             journalImagesRef.on('value', (s) => { allJournalImages = s.val() || {}; updateJournalView(); });
         });
