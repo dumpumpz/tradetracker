@@ -84,6 +84,11 @@
         .snapshot-image-item h4 { text-align: center; margin-bottom: 8px; font-size: 18px; color: #555; text-transform: capitalize; }
         .snapshot-image-item .journal-image-wrapper { max-width: 100%; margin: auto; }
 
+        #sr-metadata-container { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; padding: 15px; margin-bottom: 25px; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; text-align: center; }
+        .metadata-item { font-size: 14px; }
+        .metadata-label { font-weight: bold; color: #555; display: block; margin-bottom: 4px; }
+        .metadata-value { font-family: 'Courier New', Courier, monospace; color: #333; }
+        
         #sr-levels-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px; }
         .sr-column h3 { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid; }
         .sr-column.support h3 { color: #28a745; border-color: #28a745; }
@@ -109,6 +114,7 @@
             #stats-fab { width: 50px; height: 50px; }
             #stats-panel { width: calc(100vw - 40px); }
             #sr-levels-container { grid-template-columns: 1fr; }
+            #sr-metadata-container { flex-direction: column; }
         }
     </style>
 </head>
@@ -209,6 +215,22 @@
                 <div><label for="sr-symbol">Symbol:</label><select id="sr-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
             </div>
             <p class="ema-last-updated">Last Updated: <span id="sr-last-updated-time">--</span></p>
+
+            <div id="sr-metadata-container">
+                <div class="metadata-item">
+                    <span class="metadata-label">Lookback Period</span>
+                    <span id="sr-metadata-dates" class="metadata-value">--</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">Timeframes Analyzed</span>
+                    <span id="sr-metadata-timeframes" class="metadata-value">--</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">Pivot Windows</span>
+                    <span id="sr-metadata-windows" class="metadata-value">--</span>
+                </div>
+            </div>
+            
             <div id="sr-levels-container">
                 <div class="sr-column support">
                     <h3>Top Support Zones</h3>
@@ -307,9 +329,24 @@
             function renderSrLevels() {
                 const selectedSymbol = getSafeSymbol(srSymbolEl.value);
                 const symbolSrData = (allSrData.data || {})[selectedSymbol] || {};
+                const analysisParams = (allSrData.analysis_params || {})[selectedSymbol] || {};
                 const lastUpdated = allSrData.last_updated ? new Date(allSrData.last_updated).toLocaleString() : '--';
                 
                 document.getElementById('sr-last-updated-time').textContent = lastUpdated;
+
+                const timeframesEl = document.getElementById('sr-metadata-timeframes');
+                const windowsEl = document.getElementById('sr-metadata-windows');
+                const datesEl = document.getElementById('sr-metadata-dates');
+
+                if (Object.keys(analysisParams).length > 0) {
+                    timeframesEl.textContent = analysisParams.timeframes_analyzed.join(', ');
+                    windowsEl.textContent = analysisParams.pivot_windows.join(', ');
+                    datesEl.textContent = `${analysisParams.oldest_pivot_date} to ${analysisParams.newest_pivot_date}`;
+                } else {
+                    timeframesEl.textContent = '--';
+                    windowsEl.textContent = '--';
+                    datesEl.textContent = '--';
+                }
 
                 const supportContainer = document.getElementById('support-levels-container');
                 const resistanceContainer = document.getElementById('resistance-levels-container');
