@@ -301,47 +301,68 @@ function updateJournalView() {
             }
             checkMasterMode();
 
-            function handleFileUpload(file) {
-                if (!isMasterUser || !masterPassword) return;
-                if (!file || !file.type.startsWith('image/')) return;
-                
-                const uploadProgressEl = document.getElementById('upload-progress');
-                uploadProgressEl.style.display = 'block';
+function handleFileUpload(file) {
+    if (!isMasterUser || !masterPassword) return;
+    if (!file || !file.type.startsWith('image/')) return;
+    
+    const uploadProgressEl = document.getElementById('upload-progress');
+    uploadProgressEl.style.display = 'block';
 
-                const safeSymbol = getSafeSymbol(journalSymbolEl.value);
-                const timeframe = journalTimeframeEl.value;
-                const fileName = `${Date.now()}_${file.name}`;
-                const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
-                
-                const fileRef = storage.ref(storagePath);
-                const metadata = { customMetadata: { 'password': masterPassword } };
-                const uploadTask = fileRef.put(file, metadata);
+    const safeSymbol = getSafeSymbol(journalSymbolEl.value);
+    const timeframe = journalTimeframeEl.value;
+    const fileName = `${Date.now()}_${file.name}`;
+    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
+    
+    const fileRef = storage.ref(storagePath);
+    const metadata = { customMetadata: { 'password': masterPassword } };
+    const uploadTask = fileRef.put(file, metadata);
 
-                uploadTask.on('state_changed', (s) => { 
-                    uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; 
-                }, (storageError) => { 
-                    console.error("STORAGE UPLOAD FAILED:", storageError);
-                    uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; 
-                }, () => {
-                    uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                        const imageData = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
-                        const newRef = journalImagesRef.child(safeSymbol).child(timeframe).push(imageData);
-                        newRef.then(() => { 
-                            uploadProgressEl.textContent = 'Upload Complete!'; 
-                            setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
-                            if (!allJournalImages[safeSymbol]) allJournalImages[safeSymbol] = {};
-                            if (!allJournalImages[safeSymbol][timeframe]) allJournalImages[safeSymbol][timeframe] = {};
-                            allJournalImages[safeSymbol][timeframe][newRef.key] = imageData;
-                            updateJournalView();
-                        }).catch((dbError) => { 
-                            console.error("DATABASE SAVE FAILED:", dbError);
-                            uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; 
-                            fileRef.delete(); 
-                        });
-                    });
-                });
-            }
+    uploadTask.on('state_changed', (s) => { 
+        uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; 
+    }, (storageError) => { 
+        console.error("STORAGE UPLOAD FAILED:", storageError);
+        uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; 
+    }, () => {
+        uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+            // This is the object we send to Firebase, using its perfect server timestamp.
+            const imageDataForFirebase = { 
+                url: downloadURL, 
+                fileName: fileName, 
+                timestamp: firebase.database.ServerValue.TIMESTAMP 
+            };
             
+            // Push the data to Firebase.
+            const newRef = journalImagesRef.child(safeSymbol).child(timeframe).push(imageDataForFirebase);
+
+            newRef.then(() => { 
+                uploadProgressEl.textContent = 'Upload Complete!'; 
+                setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
+                
+                // --- THIS IS THE FIX ---
+                // Create a separate object for our LOCAL, INSTANT update.
+                // Use a real number for the timestamp so the sort works immediately.
+                const imageDataForLocalCache = {
+                    url: downloadURL,
+                    fileName: fileName,
+                    timestamp: Date.now() // Use a real, numeric timestamp
+                };
+
+                // Add the LOCAL version to our in-memory data.
+                if (!allJournalImages[safeSymbol]) allJournalImages[safeSymbol] = {};
+                if (!allJournalImages[safeSymbol][timeframe]) allJournalImages[safeSymbol][timeframe] = {};
+                allJournalImages[safeSymbol][timeframe][newRef.key] = imageDataForLocalCache;
+                
+                // Now, when we re-render, the sort will work correctly.
+                updateJournalView();
+                // --- END OF FIX ---
+            }).catch((dbError) => { 
+                console.error("DATABASE SAVE FAILED:", dbError);
+                uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; 
+                fileRef.delete(); 
+            });
+        });
+    });
+}
 function renderJournalImages(symbol, timeframe, imagesForSymbol) {
     journalImagesContainer.innerHTML = '';
     const imagesForTimeframe = imagesForSymbol[timeframe] || {};
