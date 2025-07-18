@@ -342,23 +342,25 @@ function updateJournalView() {
                 });
             }
             
-            function renderJournalImages(symbol, timeframe, imagesForSymbol) {
-                journalImagesContainer.innerHTML = '';
-                const imagesForTimeframe = imagesForSymbol[timeframe] || {};
-                const imageKeys = Object.keys(imagesForTimeframe);
-                if (imageKeys.length === 0) return;
+function renderJournalImages(symbol, timeframe, imagesForSymbol) {
+    journalImagesContainer.innerHTML = '';
+    const imagesForTimeframe = imagesForSymbol[timeframe] || {};
+    const imageKeys = Object.keys(imagesForTimeframe);
+    if (imageKeys.length === 0) return;
 
-                imageKeys.sort((a, b) => imagesForTimeframe[a].timestamp - imagesForTimeframe[b].timestamp)
-                    .forEach(id => {
-                        const imgData = imagesForTimeframe[id];
-                        if (!imgData || !imgData.url || !imgData.fileName) return;
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'journal-image-wrapper';
-                        const deleteButton = (isMasterUser && masterPassword) ? `<button class="delete-journal-image" title="Delete Image" data-safe-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${imgData.fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` : '';
-                        wrapper.innerHTML = `${deleteButton}<img src="${imgData.url}" alt="Journal Image for ${imgData.fileName}">`;
-                        journalImagesContainer.appendChild(wrapper);
-                    });
-            }
+    // --- THIS IS THE ONLY LINE THAT CHANGED ---
+    // By switching to b - a, we sort the newest timestamps to the top.
+    imageKeys.sort((a, b) => imagesForTimeframe[b].timestamp - imagesForTimeframe[a].timestamp)
+        .forEach(id => {
+            const imgData = imagesForTimeframe[id];
+            if (!imgData || !imgData.url || !imgData.fileName) return;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'journal-image-wrapper';
+            const deleteButton = (isMasterUser && masterPassword) ? `<button class="delete-journal-image" title="Delete Image" data-safe-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${imgData.fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` : '';
+            wrapper.innerHTML = `${deleteButton}<img src="${imgData.url}" alt="Journal Image for ${imgData.fileName}">`;
+            journalImagesContainer.appendChild(wrapper);
+        });
+}
 // NEW FINAL VERSION OF renderEmaData
 function renderEmaData() {
     const selectedSymbol = getSafeSymbol(journalSymbolEl.value);
