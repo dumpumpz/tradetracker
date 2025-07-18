@@ -55,99 +55,29 @@
         #journal-tab.drag-over { border: 3px dashed #007bff; background-color: rgba(0, 123, 255, 0.05); }
         #journal-tab.drag-over::before { content: "Drop Image Here"; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #007bff; z-index: 999; pointer-events: none; }
         
-        /* START: NEW STATS PANEL STYLES */
-        #stats-panel-container {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            z-index: 1000;
-        }
-        #stats-fab {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: transform 0.2s ease-in-out;
-        }
-        #stats-fab:hover {
-            transform: scale(1.1);
-        }
-        #stats-fab svg {
-            width: 28px;
-            height: 28px;
-            fill: white;
-        }
-        #stats-panel {
-            position: absolute;
-            bottom: 80px; /* Position above the FAB */
-            left: 0;
-            width: 300px;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-            padding: 15px;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            pointer-events: none; /* Hide until active */
-        }
-        #stats-panel.active {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
-        }
-        .stats-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #e9ecef;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        .stats-header h3 {
-            margin: 0;
-            font-size: 18px;
-            color: #2c3e50;
-        }
-        #close-stats-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            font-weight: bold;
-            color: #6c757d;
-            cursor: pointer;
-            padding: 0 5px;
-            line-height: 1;
-            margin: 0;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            padding: 5px 0;
-        }
-        .stat-label {
-            font-size: 14px;
-            color: #555;
-        }
-        .stat-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-        }
-        /* END: NEW STATS PANEL STYLES */
+        #stats-panel-container { position: fixed; bottom: 20px; left: 20px; z-index: 1000; }
+        #stats-fab { width: 60px; height: 60px; border-radius: 50%; background-color: #007bff; color: white; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease-in-out; }
+        #stats-fab:hover { transform: scale(1.1); }
+        #stats-fab svg { width: 28px; height: 28px; fill: white; }
+        #stats-panel { position: absolute; bottom: 80px; left: 0; width: 300px; background: #fff; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); padding: 15px; opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; pointer-events: none; }
+        #stats-panel.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .stats-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e9ecef; padding-bottom: 10px; margin-bottom: 15px; }
+        .stats-header h3 { margin: 0; font-size: 18px; color: #2c3e50; }
+        #close-stats-btn { background: none; border: none; font-size: 24px; font-weight: bold; color: #6c757d; cursor: pointer; padding: 0 5px; line-height: 1; margin: 0; }
+        .stats-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .stat-item { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; }
+        .stat-label { font-size: 14px; color: #555; }
+        .stat-value { font-size: 16px; font-weight: 600; color: #333; }
+        
+        #ema-data-section { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; }
+        #ema-data-section h2 { margin-top: 0; border-top: none; text-align: center; }
+        .ema-last-updated { text-align: center; font-style: italic; color: #666; font-size: 14px; margin-bottom: 20px; }
+        #ema-data-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+        .ema-timeframe-card { background-color: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; width: 200px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .ema-timeframe-card h4 { margin: 0 0 10px 0; text-align: center; color: #007bff; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .ema-value-row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; }
+        .ema-label { color: #555; }
+        .ema-value { font-weight: 600; font-family: 'Courier New', Courier, monospace; }
 
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
@@ -166,7 +96,6 @@
 <body>
     <div class="container">
         
-        <!-- START: NEW HTML BLOCK FOR STATS -->
         <div id="stats-panel-container">
             <div id="stats-panel">
                 <div class="stats-header">
@@ -196,17 +125,28 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M32 32c17.7 0 32 14.3 32 32V400c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V64C32 46.3 46.3 32 64 32H160c17.7 0 32 14.3 32 32s-14.3 32-32 32H96v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96H64V64zM256 224c0-17.7-14.3-32-32-32H160c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32V224zM352 288c-17.7 0-32 14.3-32 32v64H256c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32zM480 32c17.7 0 32 14.3 32 32s-14.3 32-32 32H416v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96h-1.5c-16.3 0-30.8-12.4-32-28.5c-.2-2.1-.2-4.2-.2-6.4V64c0-17.7 14.3-32 32-32H480z"/></svg>
             </button>
         </div>
-        <!-- END: NEW HTML BLOCK -->
 
-
+        <h1>Live Trade & Journal Tracker</h1>
+        <p class="subtitle">Data updates in real-time for all viewers.</p>
         <div class="tabs"><button class="tab-link active" data-tab="tracker">Trade Tracker</button><button class="tab-link" data-tab="journal">Journal</button></div>
         
         <div id="tracker-tab" class="tab-content active">
-            <!-- The old bank balance div was here and is now removed -->
             <form id="add-trade-form" class="master-only"><div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div><div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div><div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div><div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div><div><label for="target">Target:</label><input type="number" id="target" step="any" required></div><div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div><div><button type="submit">Add Trade</button></div></form><div class="section-header"><h2>Live Trades</h2><div class="backup-controls master-only"><button id="save-live-btn">Save JSON</button><label for="load-live-input">Load JSON</label><input type="file" id="load-live-input" accept=".json"></div></div><div class="table-wrapper"><table><thead><tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th class="master-only">Actions</th></tr></thead><tbody id="trades-tbody"></tbody></table></div><div class="section-header"><h2>Completed Trades</h2><div class="backup-controls master-only"><button id="save-completed-btn">Save JSON</button><label for="load-completed-input">Load JSON</label><input type="file" id="load-completed-input" accept=".json"></div></div><div class="table-wrapper"><table><thead><tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th class="master-only">Actions</th></tr></thead><tbody id="completed-trades-tbody"></tbody></table></div>
         </div>
 
-        <div id="journal-tab" class="tab-content"><div id="journal-controls"><div><label for="journal-symbol">Symbol:</label><select id="journal-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div><div><label for="journal-timeframe">Timeframe:</label><select id="journal-timeframe"><option value="15min">15min</option><option value="30min">30min</option><option value="1hour">1hour</option><option value="2hour">2hour</option><option value="4hour">4hour</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div></div><textarea id="journal-entry" placeholder="Select a symbol and timeframe to view entry. Master access required to edit."></textarea><p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p><div id="image-upload-section" class="master-only"><label for="journal-image-upload" class="image-upload-label">Add Picture</label><input type="file" id="journal-image-upload" accept="image/*"><div id="upload-progress" style="display:none"></div></div><div id="journal-images-container"></div></div>
+        <div id="journal-tab" class="tab-content">
+            <div id="journal-controls"><div><label for="journal-symbol">Symbol:</label><select id="journal-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div><div><label for="journal-timeframe">Timeframe:</label><select id="journal-timeframe"><option value="15min">15min</option><option value="30min">30min</option><option value="1hour">1hour</option><option value="2hour">2hour</option><option value="4hour">4hour</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div></div>
+            <textarea id="journal-entry" placeholder="Select a symbol and timeframe to view entry. Master access required to edit."></textarea>
+            <p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p>
+            <div id="image-upload-section" class="master-only"><label for="journal-image-upload" class="image-upload-label">Add Picture</label><input type="file" id="journal-image-upload" accept="image/*"><div id="upload-progress" style="display:none"></div></div>
+            <div id="journal-images-container"></div>
+            
+            <div id="ema-data-section">
+                <h2>EMA Values</h2>
+                <p class="ema-last-updated">Last Updated: <span id="ema-last-updated-time">--</span></p>
+                <div id="ema-data-container"></div>
+            </div>
+        </div>
     </div>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -231,11 +171,12 @@
         const bankRef = database.ref('bank');
         const journalRef = database.ref('journal_text'); 
         const journalImagesRef = database.ref('journal_images'); 
+        const emaValuesRef = database.ref('ema_values');
         const FEE_RATE = 0.00075;
         const STARTING_BALANCE = 4000;
 
         document.addEventListener('DOMContentLoaded', function () {
-            let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {};
+            let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {};
             
             const statsFab = document.getElementById('stats-fab');
             const statsPanel = document.getElementById('stats-panel');
@@ -329,7 +270,6 @@
                 journalImagesContainer.innerHTML = '';
                 const imagesForTimeframe = imagesForSymbol[timeframe] || {};
                 const imageKeys = Object.keys(imagesForTimeframe);
-
                 if (imageKeys.length === 0) return;
 
                 imageKeys.sort((a, b) => imagesForTimeframe[a].timestamp - imagesForTimeframe[b].timestamp)
@@ -344,6 +284,32 @@
                     });
             }
             
+            function renderEmaData() {
+                const selectedSymbol = getSafeSymbol(journalSymbolEl.value);
+                const symbolEmaData = (allEmaData.data || {})[selectedSymbol] || {};
+                const lastUpdated = allEmaData.last_updated ? new Date(allEmaData.last_updated).toLocaleString() : '--';
+                
+                document.getElementById('ema-last-updated-time').textContent = lastUpdated;
+                
+                const emaContainer = document.getElementById('ema-data-container');
+                emaContainer.innerHTML = '';
+
+                const displayOrder = ['15min', '30min', '1hour', '2hour', '4hour', 'daily'];
+
+                displayOrder.forEach(tf => {
+                    const tfData = symbolEmaData[tf];
+                    if (!tfData) return;
+                    const card = document.createElement('div');
+                    card.className = 'ema-timeframe-card';
+                    let cardHTML = `<h4>${tf}</h4>`;
+                    Object.keys(tfData).sort((a,b) => parseInt(a.split('_')[1]) - parseInt(b.split('_')[1])).forEach(emaKey => {
+                        cardHTML += `<div class="ema-value-row"><span class="ema-label">EMA ${emaKey.split('_')[1]}</span><span class="ema-value">${tfData[emaKey]}</span></div>`;
+                    });
+                    card.innerHTML = cardHTML;
+                    emaContainer.appendChild(card);
+                });
+            }
+
             journalImagesContainer.addEventListener('click', (e) => {
                 const button = e.target.closest('.delete-journal-image');
                 if (!isMasterUser || !masterPassword || !button) return;
@@ -363,8 +329,13 @@
             journalEntryEl.addEventListener('input', saveJournalEntry);
             tradesTbody.addEventListener('click', e => { if (!isMasterUser || !masterPassword) return; const button = e.target.closest('button'); if (!button) return; const { id } = button.dataset; if (button.classList.contains('delete-btn')) { if (confirm('Delete live trade?')) tradesRef.child(id).remove(); } else if (button.classList.contains('win-btn')) { completeTrade(id, 'win'); } else if (button.classList.contains('loss-btn')) { completeTrade(id, 'loss'); } });
             completedTradesTbody.addEventListener('click', e => { if (!isMasterUser || !masterPassword) return; const button = e.target.closest('.delete-btn-completed'); if (button && confirm('Delete completed trade?')) { completedTradesRef.child(button.dataset.id).remove(); } });
-            journalSymbolEl.addEventListener('change', updateJournalView);
+            
+            journalSymbolEl.addEventListener('change', () => {
+                updateJournalView();
+                renderEmaData();
+            });
             journalTimeframeEl.addEventListener('change', updateJournalView);
+
             document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
             
             document.querySelector('.tabs').addEventListener('click', (e) => { 
@@ -407,27 +378,26 @@
                 renderLiveTable(liveTrades);
                 document.getElementById('stat-open-trades').textContent = Object.keys(liveTrades).length;
             });
-
             completedTradesRef.on('value',snapshot=>{
                 const completedData = snapshot.val() || {};
                 renderCompletedTable(completedData);
-
                 const totalProfitLoss = Object.values(completedData).reduce((sum, trade) => sum + (trade.net_result || 0), 0);
                 const newBalance = STARTING_BALANCE + totalProfitLoss;
-
                 const plElement = document.getElementById('stat-total-pl');
                 plElement.textContent = `${totalProfitLoss >= 0 ? '+' : ''}$${totalProfitLoss.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
                 plElement.style.color = totalProfitLoss >= 0 ? '#28a745' : '#dc3545';
-                
                 const balanceElement = document.getElementById('stat-balance');
                 balanceElement.textContent = `$${newBalance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
                 balanceElement.style.color = newBalance >= STARTING_BALANCE ? '#28a745' : '#dc3545';
-                
                 document.getElementById('stat-completed-trades').textContent = Object.keys(completedData).length;
-
                 bankRef.set({ currentBalance: newBalance });
             });
             
+            emaValuesRef.on('value', (snapshot) => {
+                if (!snapshot.exists()) return;
+                allEmaData = snapshot.val();
+                renderEmaData();
+            });
             journalRef.on('value', (s) => { allJournalText = s.val() || {}; updateJournalView(); });
             journalImagesRef.on('value', (s) => { allJournalImages = s.val() || {}; updateJournalView(); });
         });
