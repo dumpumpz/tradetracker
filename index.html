@@ -99,6 +99,7 @@
         .stat-item { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; }
         .stat-label { font-size: 14px; color: var(--subtle-text); }
         .stat-value { font-size: 16px; font-weight: 600; color: var(--text-color); }
+        #stat-balance-aud { font-size: 14px; color: var(--subtle-text); }
         
         #ema-data-section { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color); }
         #ema-data-section h2 { margin-top: 0; border-top: none; text-align: center; }
@@ -161,12 +162,6 @@
             #sr-metadata-container { flex-direction: column; }
             .theme-switch-wrapper { top: 8px; right: 10px; }
         }
-
-        /* Add this style to your CSS block */
-#stat-balance-aud {
-    font-size: 14px; /* A bit smaller */
-    color: var(--subtle-text);
-}
     </style>
 </head>
 <body>
@@ -184,10 +179,7 @@
                 <div class="stats-header"><h3>Performance Stats</h3><button id="close-stats-btn" title="Close Panel">×</button></div>
                 <div class="stats-grid">
                     <div class="stat-item"><span class="stat-label">Current Balance</span><span id="stat-balance" class="stat-value">$0.00</span></div>
-                     <div class="stat-item">
-        <span class="stat-label">AUD Value (est.)</span>
-        <span id="stat-balance-aud" class="stat-value">--</span>
-    </div>
+                    <div class="stat-item"><span class="stat-label">AUD Value (est.)</span><span id="stat-balance-aud" class="stat-value">--</span></div>
                     <div class="stat-item"><span class="stat-label">Total P/L</span><span id="stat-total-pl" class="stat-value">$0.00</span></div>
                     <div class="stat-item"><span class="stat-label">Completed Trades</span><span id="stat-completed-trades" class="stat-value">0</span></div>
                     <div class="stat-item"><span class="stat-label">Open Trades</span><span id="stat-open-trades" class="stat-value">0</span></div>
@@ -254,7 +246,7 @@
                 <div class="metadata-item"><span class="metadata-label">Lookback Period</span><span id="sr-metadata-dates" class="metadata-value">--</span></div>
                 <div class="metadata-item"><span class="metadata-label">Timeframes Analyzed</span><span id="sr-metadata-timeframes" class="metadata-value">--</span></div>
                 <div class="metadata-item"><span class="metadata-label">Pivot Windows</span><span id="sr-metadata-windows" class="metadata-value">--</span></div>
-                <div class="metadata-item"><span class="metadata-label">Pivot Sources</span><span class="metadata-value">Wick High, Wick Low</span></div>
+                <div class="metadata-item"><span class="metadata-label">Pivot Sources</span><span class="metadata-value">Wick High, Wick Low, Close High, Close Low</span></div>
             </div>
             <div id="sr-levels-container">
                 <div class="sr-column support"><h3>Top Support Zones</h3><div id="support-levels-container"></div></div>
@@ -266,366 +258,374 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    
     <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
-        authDomain: "journal-a003f.firebaseapp.com",
-        databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "journal-a003f",
-        storageBucket: "journal-a003f.firebasestorage.app",
-        messagingSenderId: "1038636626553",
-        appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    const storage = firebase.storage();
-    const tradesRef = database.ref('trades');
-    const completedTradesRef = database.ref('completed_trades');
-    const bankRef = database.ref('bank');
-    const journalRef = database.ref('journal_text'); 
-    const journalImagesRef = database.ref('journal_images'); 
-    const emaValuesRef = database.ref('ema_values');
-    const srLevelsRef = database.ref('sr_levels_lookback');
-    const FEE_RATE = 0.00075;
-    const STARTING_BALANCE = 4000;
-    // --- NEW: Static exchange rate ---
-    const USD_TO_AUD_RATE = 1.53;
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
+            authDomain: "journal-a003f.firebaseapp.com",
+            databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "journal-a003f",
+            storageBucket: "journal-a003f.firebasestorage.app",
+            messagingSenderId: "1038636626553",
+            appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const storage = firebase.storage();
+        const tradesRef = database.ref('trades');
+        const completedTradesRef = database.ref('completed_trades');
+        const bankRef = database.ref('bank');
+        const journalRef = database.ref('journal_text'); 
+        const journalImagesRef = database.ref('journal_images'); 
+        const emaValuesRef = database.ref('ema_values');
+        const srLevelsRef = database.ref('sr_levels_lookback');
+        const FEE_RATE = 0.00075;
+        const STARTING_BALANCE = 4000;
+        const USD_TO_AUD_RATE = 1.53;
 
-    document.addEventListener('DOMContentLoaded', function () {
-        let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, currentPrice = 0;
-        
-        // --- MODIFIED: completedTradesRef listener now includes AUD calculation ---
-        completedTradesRef.on('value',snapshot=>{
-            const completedData = snapshot.val() || {};
-            renderCompletedTable(completedData);
+        document.addEventListener('DOMContentLoaded', function () {
+            let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, currentPrice = 0;
             
-            const totalProfitLoss = Object.values(completedData).reduce((sum, trade) => sum + (trade.net_result || 0), 0);
-            const newBalance = STARTING_BALANCE + totalProfitLoss;
+            const addTradeForm = document.getElementById('add-trade-form');
+            const statsFab = document.getElementById('stats-fab');
+            const statsPanel = document.getElementById('stats-panel');
+            const closeStatsBtn = document.getElementById('close-stats-btn');
+            const journalSymbolEl = document.getElementById('journal-symbol');
+            const journalTimeframeEl = document.getElementById('journal-timeframe');
+            const journalEntryEl = document.getElementById('journal-entry');
+            const journalImagesContainer = document.getElementById('journal-images-container');
+            const tradesTbody = document.getElementById('trades-tbody');
+            const completedTradesTbody = document.getElementById('completed-trades-tbody');
+            const journalTab = document.getElementById('journal-tab');
+            const snapshotSymbolEl = document.getElementById('snapshot-symbol');
+            const snapshotImagesContainer = document.getElementById('snapshot-images-container');
+            const srSymbolEl = document.getElementById('sr-symbol');
+            const srLookbackEl = document.getElementById('sr-lookback');
+            const themeToggle = document.getElementById('theme-checkbox');
 
-            // --- Update Stats Panel ---
-            // USD Balance
-            const balanceElement = document.getElementById('stat-balance');
-            balanceElement.textContent = `$${newBalance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-            balanceElement.style.color = newBalance >= STARTING_BALANCE ? '#28a745' : '#dc3545';
+            function autoResizeTextarea(element) { element.style.height = 'auto'; element.style.height = (element.scrollHeight) + 'px'; }
+            function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); }
             
-            // AUD Balance
-            const audBalance = newBalance * USD_TO_AUD_RATE;
-            document.getElementById('stat-balance-aud').textContent = `A$${audBalance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+            function updateJournalView() { 
+                const selectedSymbol = getSafeSymbol(journalSymbolEl.value); 
+                const selectedTimeframe = journalTimeframeEl.value; 
+                const symbolTextData = allJournalText[selectedSymbol] || {}; 
+                journalEntryEl.value = symbolTextData[selectedTimeframe] || ''; 
+                autoResizeTextarea(journalEntryEl); 
+                const symbolImageData = allJournalImages[selectedSymbol] || {}; 
+                renderJournalImages(selectedSymbol, selectedTimeframe, symbolImageData); 
+                renderEmaData();
+            }
 
-            // P/L
-            const plElement = document.getElementById('stat-total-pl');
-            plElement.textContent = `${totalProfitLoss >= 0 ? '+' : ''}$${totalProfitLoss.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-            plElement.style.color = totalProfitLoss >= 0 ? '#28a745' : '#dc3545';
-            
-            // Completed Trades Count
-            document.getElementById('stat-completed-trades').textContent = Object.keys(completedData).length;
-
-            bankRef.set({ currentBalance: newBalance });
-        });
-
-        // ... ALL OTHER FUNCTIONS AND LISTENERS FROM YOUR PREVIOUS FILE GO HERE ...
-        // (autoResizeTextarea, getSafeSymbol, updateJournalView, renderSnapshotView, etc.)
-        // I will include them all below for a complete file.
-
-        const statsFab = document.getElementById('stats-fab');
-        const statsPanel = document.getElementById('stats-panel');
-        const closeStatsBtn = document.getElementById('close-stats-btn');
-        const journalSymbolEl = document.getElementById('journal-symbol');
-        const journalTimeframeEl = document.getElementById('journal-timeframe');
-        const journalEntryEl = document.getElementById('journal-entry');
-        const journalImagesContainer = document.getElementById('journal-images-container');
-        const tradesTbody = document.getElementById('trades-tbody');
-        const completedTradesTbody = document.getElementById('completed-trades-tbody');
-        const journalTab = document.getElementById('journal-tab');
-        const snapshotSymbolEl = document.getElementById('snapshot-symbol');
-        const snapshotImagesContainer = document.getElementById('snapshot-images-container');
-        const srSymbolEl = document.getElementById('sr-symbol');
-        const srLookbackEl = document.getElementById('sr-lookback');
-        const themeToggle = document.getElementById('theme-checkbox');
-
-        function autoResizeTextarea(element) { element.style.height = 'auto'; element.style.height = (element.scrollHeight) + 'px'; }
-        function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); }
-        
-        function updateJournalView() { 
-            const selectedSymbol = getSafeSymbol(journalSymbolEl.value); 
-            const selectedTimeframe = journalTimeframeEl.value; 
-            const symbolTextData = allJournalText[selectedSymbol] || {}; 
-            journalEntryEl.value = symbolTextData[selectedTimeframe] || ''; 
-            autoResizeTextarea(journalEntryEl); 
-            const symbolImageData = allJournalImages[selectedSymbol] || {}; 
-            renderJournalImages(selectedSymbol, selectedTimeframe, symbolImageData); 
-            renderEmaData();
-        }
-
-        function renderSnapshotView() {
-            const selectedSymbol = getSafeSymbol(snapshotSymbolEl.value);
-            const symbolImageData = allJournalImages[selectedSymbol] || {};
-            snapshotImagesContainer.innerHTML = '';
-            const timeframesOrder = ['15min', '30min', '1hour', '2hour', '4hour', 'daily', 'weekly', 'monthly'];
-            timeframesOrder.forEach(tf => {
-                const imagesForTimeframe = symbolImageData[tf];
-                if (!imagesForTimeframe || Object.keys(imagesForTimeframe).length === 0) return;
-                const latestImage = Object.values(imagesForTimeframe).sort((a, b) => b.timestamp - a.timestamp)[0];
-                if (latestImage) {
-                    const itemContainer = document.createElement('div');
-                    itemContainer.className = 'snapshot-image-item';
-                    const heading = document.createElement('h4');
-                    heading.textContent = tf.replace('min', 'm').replace('hour', 'H');
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'journal-image-wrapper';
-                    wrapper.innerHTML = `<img src="${latestImage.url}" alt="Latest image for ${tf}">`;
-                    itemContainer.appendChild(heading);
-                    itemContainer.appendChild(wrapper);
-                    snapshotImagesContainer.appendChild(itemContainer);
-                }
-            });
-        }
-
-        function renderSrLevels() {
-            const selectedSymbol = getSafeSymbol(srSymbolEl.value);
-            const selectedLookback = srLookbackEl.value;
-            const symbolSrData = (allSrData.data || {})[selectedSymbol] || {};
-            const lookbackData = symbolSrData[selectedLookback] || {};
-            const analysisParams = lookbackData.analysis_params || {};
-            const lastUpdated = allSrData.last_updated ? new Date(allSrData.last_updated).toLocaleString() : '--';
-            
-            document.getElementById('sr-last-updated-time').textContent = lastUpdated;
-            document.getElementById('sr-metadata-timeframes').textContent = (analysisParams.timeframes_analyzed || []).join(', ') || '--';
-            document.getElementById('sr-metadata-windows').textContent = (analysisParams.pivot_windows || []).join(', ') || '--';
-            document.getElementById('sr-metadata-dates').textContent = (analysisParams.oldest_pivot_date && analysisParams.newest_pivot_date) ? `${analysisParams.oldest_pivot_date} to ${analysisParams.newest_pivot_date}` : '--';
-
-            const supportContainer = document.getElementById('support-levels-container');
-            const resistanceContainer = document.getElementById('resistance-levels-container');
-            supportContainer.innerHTML = '';
-            resistanceContainer.innerHTML = '';
-
-            const buildLevelCard = (level) => {
-                const priceStart = level['Price Start'].toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                const priceEnd = level['Price End'].toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                return `<div class="sr-level-card"><div class="sr-level-header"><span class="sr-level-price-range">$${priceStart} - $${priceEnd}</span><span class="sr-level-strength">Score: ${level['Strength Score']}</span></div><div class="sr-level-pivots">Based on <span>${level['Pivot Count']}</span> pivots.</div></div>`;
-            };
-
-            (lookbackData.support || []).forEach(level => { supportContainer.innerHTML += buildLevelCard(level); });
-            (lookbackData.resistance || []).forEach(level => { resistanceContainer.innerHTML += buildLevelCard(level); });
-        }
-
-        function renderJournalImages(symbol, timeframe, imagesForSymbol) {
-            journalImagesContainer.innerHTML = '';
-            const imagesForTimeframe = imagesForSymbol[timeframe] || {};
-            const imageKeys = Object.keys(imagesForTimeframe);
-            if (imageKeys.length === 0) return;
-            imageKeys.sort((a, b) => imagesForTimeframe[b].timestamp - imagesForTimeframe[a].timestamp)
-                .forEach(id => {
-                    const imgData = imagesForTimeframe[id];
-                    if (!imgData || !imgData.url || !imgData.fileName) return;
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'journal-image-wrapper';
-                    const deleteButton = (isMasterUser && masterPassword) ? `<button class="delete-journal-image" title="Delete Image" data-safe-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${imgData.fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` : '';
-                    wrapper.innerHTML = `${deleteButton}<img src="${imgData.url}" alt="Journal Image for ${imgData.fileName}">`;
-                    journalImagesContainer.appendChild(wrapper);
+            function renderSnapshotView() {
+                const selectedSymbol = getSafeSymbol(snapshotSymbolEl.value);
+                const symbolImageData = allJournalImages[selectedSymbol] || {};
+                snapshotImagesContainer.innerHTML = '';
+                const timeframesOrder = ['15min', '30min', '1hour', '2hour', '4hour', 'daily', 'weekly', 'monthly'];
+                timeframesOrder.forEach(tf => {
+                    const imagesForTimeframe = symbolImageData[tf];
+                    if (!imagesForTimeframe || Object.keys(imagesForTimeframe).length === 0) return;
+                    const latestImage = Object.values(imagesForTimeframe).sort((a, b) => b.timestamp - a.timestamp)[0];
+                    if (latestImage) {
+                        const itemContainer = document.createElement('div');
+                        itemContainer.className = 'snapshot-image-item';
+                        const heading = document.createElement('h4');
+                        heading.textContent = tf.replace('min', 'm').replace('hour', 'H');
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'journal-image-wrapper';
+                        wrapper.innerHTML = `<img src="${latestImage.url}" alt="Latest image for ${tf}">`;
+                        itemContainer.appendChild(heading);
+                        itemContainer.appendChild(wrapper);
+                        snapshotImagesContainer.appendChild(itemContainer);
+                    }
                 });
-        }
-        
-        function renderEmaData() {
-            const selectedSymbol = getSafeSymbol(journalSymbolEl.value);
-            const symbolEmaData = (allEmaData.data || {})[selectedSymbol] || {};
-            const lastUpdated = allEmaData.last_updated ? new Date(allEmaData.last_updated).toLocaleString() : '--';
-            document.getElementById('ema-last-updated-time').textContent = lastUpdated;
-            const priceDisplay = document.getElementById('ema-current-price');
-            const dataFor15m = symbolEmaData['15min'];
-            if (dataFor15m && dataFor15m.price !== undefined) {
-                currentPrice = dataFor15m.price;
-                priceDisplay.textContent = `$${currentPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            } else { currentPrice = 0; priceDisplay.textContent = '...'; }
-            const emaTbody = document.getElementById('ema-tbody');
-            emaTbody.innerHTML = '';
-            const timeframesToDisplay = ['15min', '30min', '1hour', '2hour', '4hour', 'daily'];
-            const periodsToDisplay = [13, 49, 100, 200, 500, 1000];
-            const tfShortNames = {'15min': '15m','30min': '30m','1hour': '1H','2hour': '2H','4hour': '4H','daily': '1D'};
-            timeframesToDisplay.forEach(tf => {
-                const tfData = symbolEmaData[tf];
-                const row = emaTbody.insertRow();
-                row.insertCell().textContent = tfShortNames[tf] || tf;
-                periodsToDisplay.forEach(period => {
-                    ['EMA', 'SMA'].forEach(type => {
-                        const cell = row.insertCell();
-                        if (tfData && tfData[`${type}_${period}`] !== undefined) {
-                            const val = tfData[`${type}_${period}`];
-                            cell.textContent = Math.round(val).toLocaleString();
-                            if (currentPrice > 0) {
-                                cell.className = val > currentPrice ? 'price-above' : 'price-below';
-                            }
-                        } else { cell.textContent = '...'; }
+            }
+
+            function renderSrLevels() {
+                const selectedSymbol = getSafeSymbol(srSymbolEl.value);
+                const selectedLookback = srLookbackEl.value;
+                const symbolSrData = (allSrData.data || {})[selectedSymbol] || {};
+                const lookbackData = symbolSrData[selectedLookback] || {};
+                const analysisParams = lookbackData.analysis_params || {};
+                const lastUpdated = allSrData.last_updated ? new Date(allSrData.last_updated).toLocaleString() : '--';
+                
+                document.getElementById('sr-last-updated-time').textContent = lastUpdated;
+                document.getElementById('sr-metadata-timeframes').textContent = (analysisParams.timeframes_analyzed || []).join(', ') || '--';
+                document.getElementById('sr-metadata-windows').textContent = (analysisParams.pivot_windows || []).join(', ') || '--';
+                document.getElementById('sr-metadata-dates').textContent = (analysisParams.oldest_pivot_date && analysisParams.newest_pivot_date) ? `${analysisParams.oldest_pivot_date} to ${analysisParams.newest_pivot_date}` : '--';
+
+                const supportContainer = document.getElementById('support-levels-container');
+                const resistanceContainer = document.getElementById('resistance-levels-container');
+                supportContainer.innerHTML = '';
+                resistanceContainer.innerHTML = '';
+
+                const buildLevelCard = (level) => {
+                    const priceStart = level['Price Start'].toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                    const priceEnd = level['Price End'].toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                    return `<div class="sr-level-card"><div class="sr-level-header"><span class="sr-level-price-range">$${priceStart} - $${priceEnd}</span><span class="sr-level-strength">Score: ${level['Strength Score']}</span></div><div class="sr-level-pivots">Based on <span>${level['Pivot Count']}</span> pivots.</div></div>`;
+                };
+
+                (lookbackData.support || []).forEach(level => { supportContainer.innerHTML += buildLevelCard(level); });
+                (lookbackData.resistance || []).forEach(level => { resistanceContainer.innerHTML += buildLevelCard(level); });
+            }
+
+            function renderJournalImages(symbol, timeframe, imagesForSymbol) {
+                journalImagesContainer.innerHTML = '';
+                const imagesForTimeframe = imagesForSymbol[timeframe] || {};
+                const imageKeys = Object.keys(imagesForTimeframe);
+                if (imageKeys.length === 0) return;
+                imageKeys.sort((a, b) => imagesForTimeframe[b].timestamp - imagesForTimeframe[a].timestamp)
+                    .forEach(id => {
+                        const imgData = imagesForTimeframe[id];
+                        if (!imgData || !imgData.url || !imgData.fileName) return;
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'journal-image-wrapper';
+                        const deleteButton = (isMasterUser && masterPassword) ? `<button class="delete-journal-image" title="Delete Image" data-safe-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${imgData.fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` : '';
+                        wrapper.innerHTML = `${deleteButton}<img src="${imgData.url}" alt="Journal Image for ${imgData.fileName}">`;
+                        journalImagesContainer.appendChild(wrapper);
+                    });
+            }
+            
+            function renderEmaData() {
+                const selectedSymbol = getSafeSymbol(journalSymbolEl.value);
+                const symbolEmaData = (allEmaData.data || {})[selectedSymbol] || {};
+                const lastUpdated = allEmaData.last_updated ? new Date(allEmaData.last_updated).toLocaleString() : '--';
+                document.getElementById('ema-last-updated-time').textContent = lastUpdated;
+                
+                const priceDisplay = document.getElementById('ema-current-price');
+                const dataFor15m = symbolEmaData['15min'];
+                if (dataFor15m && dataFor15m.price !== undefined) {
+                    currentPrice = dataFor15m.price;
+                    priceDisplay.textContent = `$${currentPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                } else { currentPrice = 0; priceDisplay.textContent = '...'; }
+
+                const emaTbody = document.getElementById('ema-tbody');
+                emaTbody.innerHTML = '';
+                const timeframesToDisplay = ['15min', '30min', '1hour', '2hour', '4hour', 'daily'];
+                const periodsToDisplay = [13, 49, 100, 200, 500, 1000];
+                const tfShortNames = {'15min': '15m','30min': '30m','1hour': '1H','2hour': '2H','4hour': '4H','daily': '1D'};
+                timeframesToDisplay.forEach(tf => {
+                    const tfData = symbolEmaData[tf];
+                    const row = emaTbody.insertRow();
+                    row.insertCell().textContent = tfShortNames[tf] || tf;
+                    periodsToDisplay.forEach(period => {
+                        ['EMA', 'SMA'].forEach(type => {
+                            const cell = row.insertCell();
+                            if (tfData && tfData[`${type}_${period}`] !== undefined) {
+                                const val = tfData[`${type}_${period}`];
+                                cell.textContent = Math.round(val).toLocaleString();
+                                if (currentPrice > 0) {
+                                    cell.className = val > currentPrice ? 'price-above' : 'price-below';
+                                }
+                            } else { cell.textContent = '...'; }
+                        });
                     });
                 });
-            });
-        }
+            }
 
-        function checkMasterMode() { 
-            const urlParams = new URLSearchParams(window.location.search); 
-            if (urlParams.get('master') === 'true') { 
-                const password = prompt("Please enter master password:"); 
-                if (password) { 
-                    isMasterUser = true; masterPassword = password; 
-                    document.querySelectorAll('.master-only').forEach(el => { 
-                        if (el.id === 'add-trade-form') el.style.display = 'grid'; 
-                        else if (el.tagName === 'TH' || el.tagName === 'TD') el.style.display = 'table-cell'; 
-                        else if (el.classList.contains('backup-controls')) el.style.display = 'flex'; 
-                        else el.style.display = 'block'; 
-                    }); 
-                    journalEntryEl.readOnly = false; 
+            function checkMasterMode() { 
+                const urlParams = new URLSearchParams(window.location.search); 
+                if (urlParams.get('master') === 'true') { 
+                    const password = prompt("Please enter master password:"); 
+                    if (password) { 
+                        isMasterUser = true; masterPassword = password; 
+                        document.querySelectorAll('.master-only').forEach(el => { 
+                            if (el.id === 'add-trade-form') el.style.display = 'grid'; 
+                            else if (el.tagName === 'TH' || el.tagName === 'TD') el.style.display = 'table-cell'; 
+                            else if (el.classList.contains('backup-controls')) el.style.display = 'flex'; 
+                            else el.style.display = 'block'; 
+                        }); 
+                        journalEntryEl.readOnly = false; 
+                    } 
                 } 
-            } 
-            if (!isMasterUser) { journalEntryEl.readOnly = true; } 
-        }
-        checkMasterMode();
+                if (!isMasterUser) { journalEntryEl.readOnly = true; } 
+            }
+            checkMasterMode();
 
-        function handleFileUpload(file) {
-            if (!isMasterUser || !masterPassword || !file || !file.type.startsWith('image/')) return;
-            const uploadProgressEl = document.getElementById('upload-progress');
-            uploadProgressEl.style.display = 'block';
-            const safeSymbol = getSafeSymbol(journalSymbolEl.value);
-            const timeframe = journalTimeframeEl.value;
-            const fileName = `${Date.now()}_${file.name}`;
-            const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
-            const fileRef = storage.ref(storagePath);
-            const metadata = { customMetadata: { 'password': masterPassword } };
-            const uploadTask = fileRef.put(file, metadata);
-            uploadTask.on('state_changed', (s) => { uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; },
-            (storageError) => { console.error("STORAGE UPLOAD FAILED:", storageError); uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; },
-            () => {
-                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                    const imageDataForFirebase = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
-                    const newRef = journalImagesRef.child(safeSymbol).child(timeframe).push(imageDataForFirebase);
-                    newRef.then(() => { 
-                        uploadProgressEl.textContent = 'Upload Complete!'; 
-                        setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
-                        const imageDataForLocalCache = { url: downloadURL, fileName: fileName, timestamp: Date.now() };
-                        if (!allJournalImages[safeSymbol]) allJournalImages[safeSymbol] = {};
-                        if (!allJournalImages[safeSymbol][timeframe]) allJournalImages[safeSymbol][timeframe] = {};
-                        allJournalImages[safeSymbol][timeframe][newRef.key] = imageDataForLocalCache;
-                        updateJournalView();
-                    }).catch((dbError) => { console.error("DATABASE SAVE FAILED:", dbError); uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; fileRef.delete(); });
+            function handleFileUpload(file) {
+                if (!isMasterUser || !masterPassword || !file || !file.type.startsWith('image/')) return;
+                const uploadProgressEl = document.getElementById('upload-progress');
+                uploadProgressEl.style.display = 'block';
+                const safeSymbol = getSafeSymbol(journalSymbolEl.value);
+                const timeframe = journalTimeframeEl.value;
+                const fileName = `${Date.now()}_${file.name}`;
+                const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
+                const fileRef = storage.ref(storagePath);
+                const metadata = { customMetadata: { 'password': masterPassword } };
+                const uploadTask = fileRef.put(file, metadata);
+                uploadTask.on('state_changed', (s) => { uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; },
+                (storageError) => { console.error("STORAGE UPLOAD FAILED:", storageError); uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; },
+                () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                        const imageDataForFirebase = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
+                        const newRef = journalImagesRef.child(safeSymbol).child(timeframe).push(imageDataForFirebase);
+                        newRef.then(() => { 
+                            uploadProgressEl.textContent = 'Upload Complete!'; 
+                            setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
+                            const imageDataForLocalCache = { url: downloadURL, fileName: fileName, timestamp: Date.now() };
+                            if (!allJournalImages[safeSymbol]) allJournalImages[safeSymbol] = {};
+                            if (!allJournalImages[safeSymbol][timeframe]) allJournalImages[safeSymbol][timeframe] = {};
+                            allJournalImages[safeSymbol][timeframe][newRef.key] = imageDataForLocalCache;
+                            updateJournalView();
+                        }).catch((dbError) => { console.error("DATABASE SAVE FAILED:", dbError); uploadProgressEl.textContent = 'DB save failed: ' + dbError.message; fileRef.delete(); });
+                    });
+                });
+            }
+            
+            journalImagesContainer.addEventListener('click', (e) => {
+                const button = e.target.closest('.delete-journal-image');
+                if (!isMasterUser || !masterPassword || !button) return;
+                const { safeSymbol, timeframe, id, filename } = button.dataset;
+                if (confirm(`Are you sure you want to delete this image?\n\n${filename}`)) {
+                    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${filename}`;
+                    const dbPath = `journal_images/${safeSymbol}/${timeframe}/${id}`;
+                    storage.ref(storagePath).delete().then(() => { database.ref(dbPath).remove(); })
+                        .catch((err) => {
+                            if (err.code === 'storage/object-not-found') { database.ref(dbPath).remove(); }
+                        });
+                }
+            });
+
+            const saveJournalEntry = (() => { let t; return () => { clearTimeout(t); t = setTimeout(() => { if (!isMasterUser || !masterPassword) return; const safeSymbol = getSafeSymbol(journalSymbolEl.value); const timeframe = journalTimeframeEl.value; document.getElementById('save-status').textContent = 'Saving...'; journalRef.child(safeSymbol).child(timeframe).set(journalEntryEl.value).then(() => { document.getElementById('save-status').textContent = 'Saved.'; setTimeout(() => document.getElementById('save-status').textContent = '', 2000); }).catch(e => document.getElementById('save-status').textContent = `Error: ${e.message}`); }, 750); }; })();
+            journalEntryEl.addEventListener('input', () => autoResizeTextarea(journalEntryEl));
+            journalEntryEl.addEventListener('input', saveJournalEntry);
+            
+            addTradeForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (!isMasterUser) return alert('You do not have permission to add trades.');
+
+                const trade = {
+                    symbol: document.getElementById('trade-symbol').value,
+                    type: document.getElementById('trade-type').value,
+                    entry: parseFloat(document.getElementById('entry-price').value),
+                    stoploss: parseFloat(document.getElementById('stop-loss').value),
+                    target: parseFloat(document.getElementById('target').value),
+                    size: parseFloat(document.getElementById('position-value').value),
+                    date: new Date().toLocaleString()
+                };
+                
+                if (isNaN(trade.entry) || isNaN(trade.stoploss) || isNaN(trade.target) || isNaN(trade.size)) {
+                    return alert('Please ensure all numeric fields are filled correctly.');
+                }
+                
+                tradesRef.push(trade).then(() => { addTradeForm.reset(); }).catch((error) => {
+                    console.error('Error adding trade:', error);
+                    alert('There was an error adding the trade.');
                 });
             });
-        }
-        
-        journalImagesContainer.addEventListener('click', (e) => {
-            const button = e.target.closest('.delete-journal-image');
-            if (!isMasterUser || !masterPassword || !button) return;
-            const { safeSymbol, timeframe, id, filename } = button.dataset;
-            if (confirm(`Are you sure you want to delete this image?\n\n${filename}`)) {
-                const storagePath = `journal_images/${safeSymbol}/${timeframe}/${filename}`;
-                const dbPath = `journal_images/${safeSymbol}/${timeframe}/${id}`;
-                storage.ref(storagePath).delete().then(() => { database.ref(dbPath).remove(); })
-                    .catch((err) => {
-                        if (err.code === 'storage/object-not-found') { database.ref(dbPath).remove(); }
+            
+            tradesTbody.addEventListener('click', e => {
+                if (!isMasterUser) return;
+                const button = e.target.closest('button');
+                if (!button) return;
+                const { id } = button.dataset;
+                
+                if (button.classList.contains('note-btn')) {
+                    tradesRef.child(id).child('note').once('value', snapshot => {
+                        const currentNote = snapshot.val() || "";
+                        const newNote = prompt("Enter a note for this trade:", currentNote);
+                        if (newNote !== null) { tradesRef.child(id).update({ note: newNote }); }
                     });
-            }
-        });
-
-        const saveJournalEntry = (() => { let t; return () => { clearTimeout(t); t = setTimeout(() => { if (!isMasterUser || !masterPassword) return; const safeSymbol = getSafeSymbol(journalSymbolEl.value); const timeframe = journalTimeframeEl.value; document.getElementById('save-status').textContent = 'Saving...'; journalRef.child(safeSymbol).child(timeframe).set(journalEntryEl.value).then(() => { document.getElementById('save-status').textContent = 'Saved.'; setTimeout(() => document.getElementById('save-status').textContent = '', 2000); }).catch(e => document.getElementById('save-status').textContent = `Error: ${e.message}`); }, 750); }; })();
-        journalEntryEl.addEventListener('input', () => autoResizeTextarea(journalEntryEl));
-        journalEntryEl.addEventListener('input', saveJournalEntry);
-        
-        tradesTbody.addEventListener('click', e => {
-            if (!isMasterUser) return;
-            const button = e.target.closest('button');
-            if (!button) return;
-            const { id } = button.dataset;
-            if (button.classList.contains('note-btn')) {
-                tradesRef.child(id).child('note').once('value', snapshot => {
-                    const currentNote = snapshot.val() || "";
-                    const newNote = prompt("Enter a note for this trade:", currentNote);
-                    if (newNote !== null) { tradesRef.child(id).update({ note: newNote }); }
-                });
-            } else if (button.classList.contains('delete-btn')) { 
-                if (confirm('Delete live trade?')) tradesRef.child(id).remove(); 
-            } else if (button.classList.contains('win-btn')) { 
-                completeTrade(id, 'win'); 
-            } else if (button.classList.contains('loss-btn')) { 
-                completeTrade(id, 'loss'); 
-            }
-        });
-
-        completedTradesTbody.addEventListener('click', e => { if (!isMasterUser || !masterPassword) return; const button = e.target.closest('.delete-btn-completed'); if (button && confirm('Delete completed trade?')) { completedTradesRef.child(button.dataset.id).remove(); } });
-        
-        snapshotSymbolEl.addEventListener('change', renderSnapshotView);
-        srSymbolEl.addEventListener('change', renderSrLevels);
-        srLookbackEl.addEventListener('change', renderSrLevels);
-        journalSymbolEl.addEventListener('change', updateJournalView);
-        journalTimeframeEl.addEventListener('change', updateJournalView);
-        document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
-        
-        document.querySelector('.tabs').addEventListener('click', (e) => { 
-            if (!e.target.matches('.tab-link')) return;
-            document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active')); 
-            e.target.classList.add('active'); 
-            const activeTabId = e.target.dataset.tab + '-tab';
-            document.getElementById(activeTabId).classList.add('active'); 
-            if (e.target.dataset.tab === 'journal') { updateJournalView(); } 
-            else if (e.target.dataset.tab === 'snapshot') { renderSnapshotView(); }
-            else if (e.target.dataset.tab === 'sr-levels') { renderSrLevels(); }
-        });
-        
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }));
-        ['dragenter', 'dragover'].forEach(eventName => journalTab.addEventListener(eventName, () => { if (isMasterUser) journalTab.classList.add('drag-over'); }));
-        journalTab.addEventListener('dragleave', () => journalTab.classList.remove('drag-over'));
-        journalTab.addEventListener('drop', (e) => {
-            journalTab.classList.remove('drag-over');
-            if (isMasterUser && e.dataTransfer && e.dataTransfer.files.length > 0) {
-                handleFileUpload(e.dataTransfer.files[0]);
-            }
-        });
-
-        statsFab.addEventListener('click', () => statsPanel.classList.toggle('active'));
-        closeStatsBtn.addEventListener('click', () => statsPanel.classList.remove('active'));
-        document.addEventListener('click', (e) => {
-            if (!statsPanel.contains(e.target) && !statsFab.contains(e.target) && statsPanel.classList.contains('active')) {
-                statsPanel.classList.remove('active');
-            }
-        });
-
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            document.documentElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') themeToggle.checked = true;
-        }
-        themeToggle.addEventListener('change', (e) => {
-            const theme = e.target.checked ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-        });
-
-        function calculateNetResult(trade, exitPrice) { const entry=parseFloat(trade.entry),posValue=parseFloat(trade.size),exit=parseFloat(exitPrice);if(isNaN(entry)||isNaN(posValue)||isNaN(exit))return{net_result:0,entry_fee:0,exit_fee:0};const entryFee=posValue*FEE_RATE,exitPosValue=(exit/entry)*posValue,exitFee=exitPosValue*FEE_RATE;const grossResult=trade.type==="Long"?(exit-entry)*(posValue/entry):(entry-exit)*(posValue/entry);return{net_result:grossResult-entryFee-exitFee,entry_fee:entryFee,exit_fee:exitFee};}
-        function completeTrade(tradeId,outcome){database.ref('trades/'+tradeId).once('value',s=>{const t=s.val();if(!t)return;const d=outcome==='win'?t.target:t.stoploss;const p=prompt(`Enter exact exit price:`,d);if(p===null)return;const e=parseFloat(p);if(isNaN(e))return alert("Invalid exit price.");const{net_result,entry_fee,exit_fee}=calculateNetResult(t,e);const c={...t,closed_date:new Date().toLocaleString(),exit_price:e,net_result,entry_fee,exit_fee};delete c.expected_profit;delete c.expected_loss;completedTradesRef.push(c).then(()=>tradesRef.child(tradeId).remove());});}
-        function renderLiveTable(d){const t=document.getElementById('trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const noteText=a.note||'';const noteCell=`<td title="${noteText}">${noteText.substring(0,20)}${noteText.length>20?'...':''}</td>`;const masterButtons=isMasterUser?`<td class="action-buttons"><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Note</button><button class="delete-btn" data-id="${id}">Delete</button></td>`:'';r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.stoploss).toFixed(2)}</td><td>${parseFloat(a.target).toFixed(2)}</td><td>${parseFloat(a.size).toFixed(2)}</td>${noteCell}${masterButtons}`;t.appendChild(r);});}
-        function renderCompletedTable(d){const t=document.getElementById('completed-trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].closed_date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const c=a.net_result>=0?'#28a745':'#dc3545',e=(a.entry_fee||0)+(a.exit_fee||0);r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.exit_price).toFixed(2)}</td><td>${e.toFixed(2)}</td><td style="color:${c};font-weight:bold;">${parseFloat(a.net_result).toFixed(2)}</td><td>${a.date}</td><td>${a.closed_date}</td>${isMasterUser?`<td class="action-buttons"><button class="delete-btn-completed" data-id="${id}">Delete</button></td>`:''}`;t.appendChild(r);});}
-        
-        tradesRef.on('value',snapshot=>{
-            const liveTrades = snapshot.val() || {};
-            renderLiveTable(liveTrades);
-            document.getElementById('stat-open-trades').textContent = Object.keys(liveTrades).length;
-        });
-        
-        emaValuesRef.on('value', (s) => { if (s.exists()) { allEmaData = s.val(); updateJournalView(); } });
-        journalRef.on('value', (s) => { allJournalText = s.val() || {}; updateJournalView(); });
-        journalImagesRef.on('value', (s) => {
-            allJournalImages = s.val() || {};
-            updateJournalView();
-            if (document.getElementById('snapshot-tab').classList.contains('active')) {
-                renderSnapshotView();
-            }
-        });
-        srLevelsRef.on('value', (s) => {
-            if(s.exists()){
-                allSrData = s.val();
-                if(document.getElementById('sr-levels-tab').classList.contains('active')){
-                    renderSrLevels();
+                } else if (button.classList.contains('delete-btn')) { 
+                    if (confirm('Delete live trade?')) tradesRef.child(id).remove(); 
+                } else if (button.classList.contains('win-btn')) { 
+                    completeTrade(id, 'win'); 
+                } else if (button.classList.contains('loss-btn')) { 
+                    completeTrade(id, 'loss'); 
                 }
+            });
+
+            completedTradesTbody.addEventListener('click', e => { if (!isMasterUser || !masterPassword) return; const button = e.target.closest('.delete-btn-completed'); if (button && confirm('Delete completed trade?')) { completedTradesRef.child(button.dataset.id).remove(); } });
+            
+            snapshotSymbolEl.addEventListener('change', renderSnapshotView);
+            srSymbolEl.addEventListener('change', renderSrLevels);
+            srLookbackEl.addEventListener('change', renderSrLevels);
+            journalSymbolEl.addEventListener('change', updateJournalView);
+            journalTimeframeEl.addEventListener('change', updateJournalView);
+            document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
+            
+            document.querySelector('.tabs').addEventListener('click', (e) => { 
+                if (!e.target.matches('.tab-link')) return;
+                document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active')); 
+                e.target.classList.add('active'); 
+                const activeTabId = e.target.dataset.tab + '-tab';
+                document.getElementById(activeTabId).classList.add('active'); 
+                if (e.target.dataset.tab === 'journal') { updateJournalView(); } 
+                else if (e.target.dataset.tab === 'snapshot') { renderSnapshotView(); }
+                else if (e.target.dataset.tab === 'sr-levels') { renderSrLevels(); }
+            });
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }));
+            ['dragenter', 'dragover'].forEach(eventName => journalTab.addEventListener(eventName, () => { if (isMasterUser) journalTab.classList.add('drag-over'); }));
+            journalTab.addEventListener('dragleave', () => journalTab.classList.remove('drag-over'));
+            journalTab.addEventListener('drop', (e) => {
+                journalTab.classList.remove('drag-over');
+                if (isMasterUser && e.dataTransfer && e.dataTransfer.files.length > 0) {
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
+            });
+
+            statsFab.addEventListener('click', () => statsPanel.classList.toggle('active'));
+            closeStatsBtn.addEventListener('click', () => statsPanel.classList.remove('active'));
+            document.addEventListener('click', (e) => {
+                if (!statsPanel.contains(e.target) && !statsFab.contains(e.target) && statsPanel.classList.contains('active')) {
+                    statsPanel.classList.remove('active');
+                }
+            });
+
+            const currentTheme = localStorage.getItem('theme');
+            if (currentTheme) {
+                document.documentElement.setAttribute('data-theme', currentTheme);
+                if (currentTheme === 'dark') themeToggle.checked = true;
             }
+            themeToggle.addEventListener('change', (e) => {
+                const theme = e.target.checked ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+            });
+
+            function calculateNetResult(trade, exitPrice) { const entry=parseFloat(trade.entry),posValue=parseFloat(trade.size),exit=parseFloat(exitPrice);if(isNaN(entry)||isNaN(posValue)||isNaN(exit))return{net_result:0,entry_fee:0,exit_fee:0};const entryFee=posValue*FEE_RATE,exitPosValue=(exit/entry)*posValue,exitFee=exitPosValue*FEE_RATE;const grossResult=trade.type==="Long"?(exit-entry)*(posValue/entry):(entry-exit)*(posValue/entry);return{net_result:grossResult-entryFee-exitFee,entry_fee:entryFee,exit_fee:exitFee};}
+            function completeTrade(tradeId,outcome){database.ref('trades/'+tradeId).once('value',s=>{const t=s.val();if(!t)return;const d=outcome==='win'?t.target:t.stoploss;const p=prompt(`Enter exact exit price:`,d);if(p===null)return;const e=parseFloat(p);if(isNaN(e))return alert("Invalid exit price.");const{net_result,entry_fee,exit_fee}=calculateNetResult(t,e);const c={...t,closed_date:new Date().toLocaleString(),exit_price:e,net_result,entry_fee,exit_fee};delete c.expected_profit;delete c.expected_loss;completedTradesRef.push(c).then(()=>tradesRef.child(tradeId).remove());});}
+            function renderLiveTable(d){const t=document.getElementById('trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const noteText=a.note||'';const noteCell=`<td title="${noteText}">${noteText.substring(0,20)}${noteText.length>20?'...':''}</td>`;const masterButtons=isMasterUser?`<td class="action-buttons"><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Note</button><button class="delete-btn" data-id="${id}">Delete</button></td>`:'';r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.stoploss).toFixed(2)}</td><td>${parseFloat(a.target).toFixed(2)}</td><td>${parseFloat(a.size).toFixed(2)}</td>${noteCell}${masterButtons}`;t.appendChild(r);});}
+            function renderCompletedTable(d){const t=document.getElementById('completed-trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].closed_date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const c=a.net_result>=0?'#28a745':'#dc3545',e=(a.entry_fee||0)+(a.exit_fee||0);r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.exit_price).toFixed(2)}</td><td>${e.toFixed(2)}</td><td style="color:${c};font-weight:bold;">${parseFloat(a.net_result).toFixed(2)}</td><td>${a.date}</td><td>${a.closed_date}</td>${isMasterUser?`<td class="action-buttons"><button class="delete-btn-completed" data-id="${id}">Delete</button></td>`:''}`;t.appendChild(r);});}
+            
+            tradesRef.on('value',snapshot=>{
+                const liveTrades = snapshot.val() || {};
+                renderLiveTable(liveTrades);
+                document.getElementById('stat-open-trades').textContent = Object.keys(liveTrades).length;
+            });
+            completedTradesRef.on('value',snapshot=>{
+                const completedData = snapshot.val() || {};
+                renderCompletedTable(completedData);
+                const totalProfitLoss = Object.values(completedData).reduce((sum, trade) => sum + (trade.net_result || 0), 0);
+                const newBalance = STARTING_BALANCE + totalProfitLoss;
+                document.getElementById('stat-balance').textContent = `$${newBalance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                document.getElementById('stat-balance-aud').textContent = `A$${(newBalance * USD_TO_AUD_RATE).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                const plElement = document.getElementById('stat-total-pl');
+                plElement.textContent = `${totalProfitLoss >= 0 ? '+' : ''}$${totalProfitLoss.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                plElement.style.color = totalProfitLoss >= 0 ? '#28a745' : '#dc3545';
+                document.getElementById('stat-completed-trades').textContent = Object.keys(completedData).length;
+                bankRef.set({ currentBalance: newBalance });
+            });
+            
+            emaValuesRef.on('value', (s) => { if (s.exists()) { allEmaData = s.val(); updateJournalView(); } });
+            journalRef.on('value', (s) => { allJournalText = s.val() || {}; updateJournalView(); });
+            journalImagesRef.on('value', (s) => {
+                allJournalImages = s.val() || {};
+                updateJournalView();
+                if (document.getElementById('snapshot-tab').classList.contains('active')) {
+                    renderSnapshotView();
+                }
+            });
+            srLevelsRef.on('value', (s) => {
+                if(s.exists()){
+                    allSrData = s.val();
+                    if(document.getElementById('sr-levels-tab').classList.contains('active')){
+                        renderSrLevels();
+                    }
+                }
+            });
         });
-    });
-</script>
+    </script>
 </body>
 </html>
