@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -87,7 +87,7 @@
         #journal-entry { width: 100%; min-height: 25vh; resize: vertical; line-height: 1.6; margin-top: 5px; overflow-y: hidden; }
         #journal-entry:read-only { background-color: var(--card-bg); cursor: not-allowed; }
         
-        #image-upload-section { margin-top: 20px; border-top: 1px dashed var(--border-color); padding-top: 20px; text-align: center; }
+        #image-upload-section { margin-top: 20px; border-top: 1px dashed var(--border-color); padding-top: 20px; }
         .image-upload-label { background-color: #28a745; color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; text-align: center; display: inline-block; }
         #journal-image-upload { display: none; }
         #upload-progress { margin-top: 10px; font-style: italic; color: var(--link-color); }
@@ -260,8 +260,8 @@
             <textarea id="journal-entry" placeholder="Select a symbol, timeframe, and date to view or add a journal entry."></textarea>
             <p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p>
             
-            <!-- FIX: This image upload section is now always visible. It will prompt for a password if needed. -->
-            <div id="image-upload-section">
+            <!-- FIX: Added the image upload section which allows adding pictures via button or drag-and-drop in master mode -->
+            <div id="image-upload-section" class="master-only">
                 <label for="journal-image-upload" class="image-upload-label">Add Picture</label>
                 <input type="file" id="journal-image-upload" accept="image/*">
                 <div id="upload-progress"></div>
@@ -550,8 +550,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!imgData || !imgData.url || !imgData.fileName) return;
                 const wrapper = document.createElement('div');
                 wrapper.className = 'journal-image-wrapper';
-                // FIX: The delete button is now always rendered. The click handler will manage permissions.
-                const deleteButton = `<button class="delete-journal-image" title="Delete Image" data-safe-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${imgData.fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>`;
+                const deleteButton = (isMasterUser && masterPassword) ? `<button class="delete-journal-image" title="Delete Image" data-safe-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${imgData.fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` : '';
                 wrapper.innerHTML = `${deleteButton}<img src="${imgData.url}" alt="Journal Image for ${imgData.fileName}">`;
                 journalImagesContainer.appendChild(wrapper);
             });
@@ -611,21 +610,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     
     function handleFileUpload(file) {
-        if (!file || !file.type.startsWith('image/')) return;
-
-        // FIX: This function will now prompt for a password if not in master mode.
-        let passwordToUse = masterPassword;
-        if (!isMasterUser) {
-            const promptedPassword = prompt("Please enter master password to upload image:");
-            if (!promptedPassword) return; // User cancelled or entered nothing
-            passwordToUse = promptedPassword;
-        }
-
-        if (!passwordToUse) {
-            alert("A password is required for uploading. Try enabling Master Mode again.");
-            return;
-        }
-        
+        if (!isMasterUser || !masterPassword || !file || !file.type.startsWith('image/')) return;
         const uploadProgressEl = document.getElementById('upload-progress');
         uploadProgressEl.style.display = 'block';
         const safeSymbol = getSafeSymbol(journalSymbolEl.value);
@@ -633,17 +618,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const fileName = `${Date.now()}_${file.name}`;
         const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
         const fileRef = storage.ref(storagePath);
-        const metadata = { customMetadata: { 'password': passwordToUse } };
+        const metadata = { customMetadata: { 'password': masterPassword } };
         const uploadTask = fileRef.put(file, metadata);
-
         uploadTask.on('state_changed', (s) => { uploadProgressEl.textContent = `Uploading... ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; },
-        (storageError) => { 
-            console.error("STORAGE UPLOAD FAILED:", storageError); 
-            uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; 
-            if (storageError.code === 'storage/unauthorized') {
-                alert("Upload failed. The password may be incorrect or you don't have permission.");
-            }
-        },
+        (storageError) => { console.error("STORAGE UPLOAD FAILED:", storageError); uploadProgressEl.textContent = `Upload Failed: ${storageError.code}`; },
         () => {
             uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                 const imageDataForFirebase = { url: downloadURL, fileName: fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
@@ -672,39 +650,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     journalImagesContainer.addEventListener('click', (e) => {
         const button = e.target.closest('.delete-journal-image');
-        if (!button) return;
-
-        // FIX: Prompt for password to delete if not in master mode.
-        let canDelete = isMasterUser && masterPassword;
-        if (!canDelete) {
-            const promptedPassword = prompt("Please enter master password to delete image:");
-            if (promptedPassword) { // We can't verify the password here, but we can proceed
-                canDelete = true;
-            }
-        }
-
-        if (!canDelete) {
-            alert("A password is required to delete images.");
-            return;
-        }
-
+        if (!isMasterUser || !masterPassword || !button) return;
         const { safeSymbol, timeframe, id, filename } = button.dataset;
         if (confirm(`Are you sure you want to delete this image?\n\n${filename}`)) {
             const storagePath = `journal_images/${safeSymbol}/${timeframe}/${filename}`;
             const dbPath = `journal_images/${safeSymbol}/${timeframe}/${id}`;
-            // The Firebase rules must be set to allow deletion, potentially by checking an auth token
-            // or if the rules are public. This client-side code will attempt the deletion.
-            storage.ref(storagePath).delete().then(() => { 
-                database.ref(dbPath).remove(); 
-            }).catch((err) => {
-                console.error("Storage delete error:", err);
-                // If file doesn't exist in storage but does in DB, still remove from DB
-                if (err.code === 'storage/object-not-found') { 
-                    database.ref(dbPath).remove(); 
-                } else if (err.code === 'storage/unauthorized') {
-                    alert("Delete failed. You do not have permission.");
-                }
-            });
+            storage.ref(storagePath).delete().then(() => { database.ref(dbPath).remove(); })
+                .catch((err) => {
+                    if (err.code === 'storage/object-not-found') { database.ref(dbPath).remove(); }
+                });
         }
     });
 
@@ -804,13 +758,12 @@ document.addEventListener('DOMContentLoaded', function () {
         else if (e.target.dataset.tab === 'trade-ideas') { renderTradeIdeas(); }
     });
     
-    // FIX: Drag and drop is now always enabled for the journal tab.
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }));
-    ['dragenter', 'dragover'].forEach(eventName => journalTab.addEventListener(eventName, () => journalTab.classList.add('drag-over')));
+    ['dragenter', 'dragover'].forEach(eventName => journalTab.addEventListener(eventName, () => { if (isMasterUser) journalTab.classList.add('drag-over'); }));
     journalTab.addEventListener('dragleave', () => journalTab.classList.remove('drag-over'));
     journalTab.addEventListener('drop', (e) => {
         journalTab.classList.remove('drag-over');
-        if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+        if (isMasterUser && e.dataTransfer && e.dataTransfer.files.length > 0) {
             handleFileUpload(e.dataTransfer.files[0]);
         }
     });
