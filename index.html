@@ -85,6 +85,13 @@
         .journal-image-wrapper:hover .delete-journal-image { opacity: 1; transform: scale(1.1); }
         .delete-journal-image svg { width: 16px; height: 16px; fill: white; }
 
+        #ema-key-container { margin: 25px auto; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--card-bg); max-width: 80%; }
+        #ema-key-container h4 { text-align: center; margin-top: 0; margin-bottom: 15px; color: var(--subtle-text); }
+        .ema-key-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px 25px; }
+        .key-item { display: flex; align-items: center; }
+        .key-color-swatch { width: 16px; height: 16px; border-radius: 50%; margin-right: 8px; border: 1px solid var(--border-color); }
+        .key-label { font-size: 14px; }
+
         #journal-tab.drag-over { border: 3px dashed var(--link-color); background-color: rgba(0, 123, 255, 0.05); }
         #journal-tab.drag-over::before { content: "Drop Image Here"; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: var(--link-color); z-index: 999; pointer-events: none; }
         
@@ -224,6 +231,19 @@
             <textarea id="journal-entry" placeholder="Select a symbol, timeframe, and date to view or add a journal entry."></textarea>
             <p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p>
             <div id="image-upload-section" class="master-only"><label for="journal-image-upload" class="image-upload-label">Add Picture</label><input type="file" id="journal-image-upload" accept="image/*"><div id="upload-progress" style="display:none"></div></div>
+            
+            <div id="ema-key-container">
+                <h4>Chart Key</h4>
+                <div class="ema-key-list">
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #FFFFFF;"></span><span class="key-label">13 EMA/SMA</span></div>
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #000000;"></span><span class="key-label">49 EMA/SMA</span></div>
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #FF0000;"></span><span class="key-label">100 EMA/SMA</span></div>
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #008000;"></span><span class="key-label">200 EMA</span></div>
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #800080;"></span><span class="key-label">500 EMA</span></div>
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #0000FF;"></span><span class="key-label">1000 EMA</span></div>
+                </div>
+            </div>
+
             <div id="journal-images-container"></div>
             <div id="ema-data-section">
                 <h2>Market Snapshot</h2>
@@ -347,12 +367,10 @@
                 const safeSymbol = getSafeSymbol(journalSymbolEl.value); 
                 const yyyymmdd = getYYYYMMDD(selectedDate);
                 const timeframe = journalTimeframeEl.value; 
-                
                 const symbolTextData = allJournalText[safeSymbol] || {};
                 const dateData = symbolTextData[yyyymmdd] || {};
                 journalEntryEl.value = dateData[timeframe] || ''; 
                 autoResizeTextarea(journalEntryEl); 
-
                 const symbolImageData = allJournalImages[safeSymbol] || {}; 
                 renderJournalImages(safeSymbol, timeframe, symbolImageData); 
                 renderEmaData();
@@ -378,7 +396,7 @@
                     }, 750); 
                 }; 
             })();
-
+            
             function renderSnapshotView() {
                 const selectedSymbol = getSafeSymbol(snapshotSymbolEl.value);
                 const symbolImageData = allJournalImages[selectedSymbol] || {};
@@ -612,12 +630,12 @@
             
             dateButtonsContainer.addEventListener('click', (e) => {
                 if (e.target.matches('.date-nav-btn')) {
-                    const dateStr = e.target.dataset.date; // e.g., "2025-07-20"
-const parts = dateStr.split('-');
-const year = parseInt(parts[0], 10);
-const month = parseInt(parts[1], 10) - 1; // JS months are 0-11
-const day = parseInt(parts[2], 10);
-selectedDate = new Date(Date.UTC(year, month, day));
+                    const dateStr = e.target.dataset.date;
+                    const parts = dateStr.split('-');
+                    const year = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1;
+                    const day = parseInt(parts[2], 10);
+                    selectedDate = new Date(Date.UTC(year, month, day));
                     renderDateNavigation();
                     updateJournalView();
                 }
