@@ -87,10 +87,10 @@
         #journal-entry { width: 100%; min-height: 25vh; resize: vertical; line-height: 1.6; margin-top: 5px; overflow-y: hidden; }
         #journal-entry:read-only { background-color: var(--card-bg); cursor: not-allowed; }
         
-        #image-upload-section { margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 20px; }
+        #image-upload-section { margin-top: 20px; border-top: 1px dashed var(--border-color); padding-top: 20px; }
         .image-upload-label { background-color: #28a745; color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; text-align: center; display: inline-block; }
         #journal-image-upload { display: none; }
-        #upload-progress { margin-top: 10px; font-style: italic; color: #007bff; }
+        #upload-progress { margin-top: 10px; font-style: italic; color: var(--link-color); }
         #journal-images-container { margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
         .journal-image-wrapper { position: relative; max-width: 80%; border: 1px solid var(--border-color); padding: 5px; background: var(--card-bg); border-radius: 4px; }
         .journal-image-wrapper img { max-width: 100%; height: auto; display: block; border-radius: 2px; }
@@ -273,7 +273,16 @@
             </div>
             <textarea id="journal-entry" placeholder="Select a symbol, timeframe, and date to view or add a journal entry."></textarea>
             <p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p>
-            <div id="image-upload-section" class="master-only"><label for="journal-image-upload" class="image-upload-label">Add Picture</label><input type="file" id="journal-image-upload" accept="image/*"><div id="upload-progress" style="display:none"></div></div>
+            
+            <!-- FIX: Added the image upload section which allows adding pictures via button or drag-and-drop in master mode -->
+            <div id="image-upload-section" class="master-only">
+                <label for="journal-image-upload" class="image-upload-label">Add Picture</label>
+                <input type="file" id="journal-image-upload" accept="image/*">
+                <div id="upload-progress"></div>
+            </div>
+            
+            <div id="journal-images-container"></div>
+
             <div id="ema-key-container">
                 <h4>Chart Key</h4>
                 <div class="ema-key-list">
@@ -285,7 +294,7 @@
                     <div class="key-item"><span class="key-color-swatch" style="background-color: #0000FF;"></span><span class="key-label">1000 EMA</span></div>
                 </div>
             </div>
-            <div id="journal-images-container"></div>
+            
             <div id="ema-data-section">
                 <h2>Market Snapshot</h2>
                 <div class="current-price-display">Current Price (15m): <span id="ema-current-price" class="price-value">--</span></div>
@@ -664,7 +673,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const newRef = journalImagesRef.child(safeSymbol).child(timeframe).push(imageDataForFirebase);
                 newRef.then(() => { 
                     uploadProgressEl.textContent = 'Upload Complete!'; 
-                    setTimeout(() => { uploadProgressEl.style.display = 'none'; }, 2000); 
+                    setTimeout(() => { uploadProgressEl.style.display = 'none'; uploadProgressEl.textContent = ''; }, 2000); 
                     const imageDataForLocalCache = { url: downloadURL, fileName: fileName, timestamp: Date.now() };
                     if (!allJournalImages[safeSymbol]) allJournalImages[safeSymbol] = {};
                     if (!allJournalImages[safeSymbol][timeframe]) allJournalImages[safeSymbol][timeframe] = {};
@@ -844,11 +853,13 @@ document.addEventListener('DOMContentLoaded', function () {
         bankRef.set({ currentBalance: newBalance });
     });
     
-    emaValuesRef.on('value', (s) => { if (s.exists()) { allEmaData = s.val(); updateJournalView(); } });
-    journalRef.on('value', (s) => { allJournalText = s.val() || {}; updateJournalView(); });
+    emaValuesRef.on('value', (s) => { if (s.exists()) { allEmaData = s.val(); if(document.getElementById('journal-tab').classList.contains('active')) updateJournalView(); } });
+    journalRef.on('value', (s) => { allJournalText = s.val() || {}; if(document.getElementById('journal-tab').classList.contains('active')) updateJournalView(); });
     journalImagesRef.on('value', (s) => {
         allJournalImages = s.val() || {};
-        updateJournalView();
+        if (document.getElementById('journal-tab').classList.contains('active')) {
+            updateJournalView();
+        }
         if (document.getElementById('snapshot-tab').classList.contains('active')) {
             renderSnapshotView();
         }
