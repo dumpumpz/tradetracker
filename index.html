@@ -181,8 +181,8 @@
 
         .idea-timeframe-row { margin-bottom: 25px; }
         .idea-timeframe-heading { padding-bottom: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); color: var(--text-color); font-size: 20px; }
-        .idea-cards-container { display: flex; flex-wrap: wrap; gap: 15px; }
-        .idea-card { border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; min-width: 220px; flex-grow: 1; transition: all 0.3s ease; }
+        .idea-cards-container { display: flex; flex-wrap: nowrap; gap: 15px; }
+        .idea-card { border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; min-width: 220px; flex-shrink: 0; /* Prevents cards from shrinking */ transition: all 0.3s ease; }
         .idea-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
         .idea-card-tf { font-weight: bold; font-size: 16px; color: var(--link-color); }
         .idea-card-direction { font-weight: bold; font-size: 14px; }
@@ -428,20 +428,24 @@
                     tradeIdeasContainer.innerHTML = '<p style="color: red; text-align: center;">Error: trade_ideas.json is not in the correct format (should be an array).</p>';
                     return;
                 }
-
                 allTradeIdeasData.forEach(timeframeGroup => {
-                    if (!timeframeGroup.sections || timeframeGroup.sections.length === 0) {
-                        return;
-                    }
+                    if (!timeframeGroup.sections || timeframeGroup.sections.length === 0) return;
+                    
                     const timeframeRow = document.createElement('div');
                     timeframeRow.className = 'idea-timeframe-row';
                     const tfName = timeframeGroup.sections[0].timeframe_name;
+                    
                     const heading = document.createElement('h3');
                     heading.className = 'idea-timeframe-heading';
                     heading.textContent = tfName;
                     timeframeRow.appendChild(heading);
+
+                    const wrapperDiv = document.createElement('div');
+                    wrapperDiv.className = 'table-wrapper';
+
                     const cardsContainer = document.createElement('div');
                     cardsContainer.className = 'idea-cards-container';
+                    
                     timeframeGroup.sections.forEach((sectionData, index) => {
                         if (sectionData.type !== 'section') return;
                         const cardDiv = document.createElement('div');
@@ -461,7 +465,8 @@
                             </div>`;
                         cardsContainer.appendChild(cardDiv);
                     });
-                    timeframeRow.appendChild(cardsContainer);
+                    wrapperDiv.appendChild(cardsContainer);
+                    timeframeRow.appendChild(wrapperDiv);
                     tradeIdeasContainer.appendChild(timeframeRow);
                 });
             }
