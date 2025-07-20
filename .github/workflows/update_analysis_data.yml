@@ -1,0 +1,51 @@
+name: Update Analysis Data Files
+
+# Controls when the action will run
+on:
+  # Runs on a schedule (this is set to run at the top of every hour)
+  schedule:
+    - cron: "0 * * * *"
+
+  # Allows you to run this workflow manually from the Actions tab on GitHub
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "update-data"
+  update-data:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # 1. Checks out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Sets up Python on the runner
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # You can change this to your preferred version
+
+      # 3. Installs the dependencies from your requirements.txt file
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. Runs your Python scripts to generate the JSON files
+      - name: Run Python scripts to generate JSON
+        run: |
+          python sr_levels_analysis.py
+          python ma_analysis.py
+
+      # 5. Commits the new/updated JSON files to the repository
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add sr_levels_analysis.json ma_analysis.json
+          # Commit only if there are changes
+          git diff --quiet && git diff --staged --quiet || git commit -m "Automated analysis data update"
+          git push
