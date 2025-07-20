@@ -1,9 +1,9 @@
 name: Update Analysis Data Files
 
 on:
-  # Runs on a schedule (this is set to run at the top of every hour)
+  # Runs on a schedule every 15 minutes (at :00, :15, :30, :45 past the hour)
   schedule:
-    - cron: "0 * * * *"
+    - cron: "*/15 * * * *"
 
   # Allows you to run this workflow manually from the Actions tab on GitHub
   workflow_dispatch:
@@ -12,12 +12,12 @@ jobs:
   update-data:
     runs-on: ubuntu-latest
 
-    # IMPORTANT: Grant permissions for the GITHUB_TOKEN to be able to push to the repository.
+    # Grant permissions for the GITHUB_TOKEN to be able to push to the repository.
     permissions:
-      contents: write # This is the key change to allow committing
+      contents: write
 
     steps:
-      # 1. Checks out your repository under $GITHUB_WORKSPACE
+      # 1. Checks out your repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -39,18 +39,9 @@ jobs:
           python sr_levels_analysis.py
           python ma_analysis.py
 
-      # 5. BEST PRACTICE: Use a dedicated action to commit and push changes
-      # This action automatically handles checking for changes, configuring git,
-      # committing, and pushing.
+      # 5. Use a dedicated action to commit and push changes
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          # The message for the commit
           commit_message: "Automated analysis data update"
-          
-          # The files to add. You can use wildcards.
-          # This pattern tells it to only look for these two specific files.
           file_pattern: sr_levels_analysis.json ma_analysis.json
-          
-          # Optional: The branch to push to. Defaults to the current branch.
-          # branch: main
