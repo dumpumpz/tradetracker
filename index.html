@@ -147,39 +147,9 @@
         .snapshot-image-item h4 { text-align: center; margin-bottom: 8px; font-size: 18px; color: var(--subtle-text); text-transform: capitalize; }
         .snapshot-image-item .journal-image-wrapper { max-width: 100%; margin: auto; }
 
-        /* <<< MODIFICATION: Remove styling from old metadata container >>> */
-        #sr-metadata-container {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 20px;
-            padding: 0; /* Removed padding */
-            margin-bottom: 20px; /* Add margin to separate from controls */
-            background-color: transparent; /* Removed background */
-            border: none; /* Removed border */
-            text-align: center;
-        }
-        .metadata-item { font-size: 14px; }
-        .metadata-label { font-weight: bold; color: var(--subtle-text); display: block; margin-bottom: 4px; }
-        .metadata-value { font-family: 'Courier New', Courier, monospace; color: var(--text-color); }
-        .rating-explanation { text-align: left; margin-top: 5px; font-size: 13px; line-height: 1.5; }
-        
-        #sr-levels-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px; }
-        .sr-column h3 { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid; }
-        .sr-column.support h3 { color: #28a745; border-color: #28a745; }
-        .sr-column.resistance h3 { color: #dc3545; border-color: #dc3545; }
-        .sr-level-card { border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; background-color: var(--card-bg); }
-        .sr-level-header { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--header-bg); }
-        .sr-level-price-range { font-size: 18px; font-weight: bold; font-family: 'Courier New', Courier, monospace; }
-        .sr-level-strength { font-size: 14px; font-weight: 500; color: #fff; padding: 4px 10px; border-radius: 12px; }
-        .sr-column.support .sr-level-strength { background-color: #28a745; }
-        .sr-column.resistance .sr-level-strength { background-color: #dc3545; }
-        .sr-level-pivots { padding: 15px; font-size: 13px; color: var(--subtle-text); }
-        .sr-level-pivots span { font-weight: 600; color: var(--text-color); }
-
-        /* <<< NEW: Styles for the collapsible S/R legend >>> */
+        /* <<< MODIFICATION: S/R Tab Layout Styles >>> */
         #sr-legend-container {
-            margin: 0 auto 25px auto;
+            margin: 0 auto 10px auto; /* Reduced bottom margin */
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -225,14 +195,44 @@
         }
         #sr-legend-content {
             padding: 15px;
-            display: block; /* Default state */
+            display: block;
+        }
+        #sr-metadata-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 0;
+            margin: 0;
+            background-color: transparent;
+            border: none;
+            text-align: center;
         }
         #sr-levels-tab .controls-container {
-            margin: 0 auto;
-            padding-top: 15px;
-            border-top: 1px dashed var(--border-color);
-            justify-content: space-around;
+            margin-bottom: 25px; /* Add margin below the controls */
+            padding: 10px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
         }
+
+        .metadata-item { font-size: 14px; }
+        .metadata-label { font-weight: bold; color: var(--subtle-text); display: block; margin-bottom: 4px; }
+        .metadata-value { font-family: 'Courier New', Courier, monospace; color: var(--text-color); }
+        .rating-explanation { text-align: left; margin-top: 5px; font-size: 13px; line-height: 1.5; }
+        
+        #sr-levels-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px; }
+        .sr-column h3 { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid; }
+        .sr-column.support h3 { color: #28a745; border-color: #28a745; }
+        .sr-column.resistance h3 { color: #dc3545; border-color: #dc3545; }
+        .sr-level-card { border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; background-color: var(--card-bg); }
+        .sr-level-header { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--header-bg); }
+        .sr-level-price-range { font-size: 18px; font-weight: bold; font-family: 'Courier New', Courier, monospace; }
+        .sr-level-strength { font-size: 14px; font-weight: 500; color: #fff; padding: 4px 10px; border-radius: 12px; }
+        .sr-column.support .sr-level-strength { background-color: #28a745; }
+        .sr-column.resistance .sr-level-strength { background-color: #dc3545; }
+        .sr-level-pivots { padding: 15px; font-size: 13px; color: var(--subtle-text); }
+        .sr-level-pivots span { font-weight: 600; color: var(--text-color); }
 
         #trade-ideas-container { display: flex; flex-direction: column; gap: 15px; }
         .idea-row { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; }
@@ -375,10 +375,10 @@
         </div>
 
         <div id="sr-levels-tab" class="tab-content">
-            <!-- <<< MODIFICATION: New collapsible container for legend and controls >>> -->
+            <!-- <<< MODIFICATION: Collapsible container for LEGEND ONLY >>> -->
             <div id="sr-legend-container">
                 <div id="sr-legend-header">
-                    <h4>S/R Levels Key & Controls</h4>
+                    <h4>S/R Levels Key</h4>
                     <button id="sr-legend-toggle-btn" title="Toggle Details">−</button>
                 </div>
                 <div id="sr-legend-content">
@@ -391,14 +391,18 @@
             '30m': 1.2,
             '1h': 1.5,
             '2h': 2.0,
-            '4h': 2.5</span></div></div>
-                    </div>
-                    <div class="controls-container">
-                        <div><label for="sr-symbol">Symbol:</label><select id="sr-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
-                        <div><label for="sr-lookback">Lookback:</label><select id="sr-lookback"><option value="60d">60 Days</option><option value="30d">30 Days</option><option value="21d">21 Days</option><option value="14d">14 Days</option><option value="7d">7 Days</option>  <option value="3d">3 Days</option>
-            <option value="2d">2 Days</option></select></div>
+            '4h': 2.5</span></div>
+                                                <div class="metadata-item"><span class="metadata-label">Source Weights</span><span class="metadata-value">Wick (1.0), Clsoe (1.5)</span></div>
+</div>
                     </div>
                 </div>
+            </div>
+
+            <!-- <<< MODIFICATION: Controls are now OUTSIDE the collapsible section >>> -->
+            <div class="controls-container">
+                <div><label for="sr-symbol">Symbol:</label><select id="sr-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
+                <div><label for="sr-lookback">Lookback:</label><select id="sr-lookback"><option value="60d">60 Days</option><option value="30d">30 Days</option><option value="21d">21 Days</option><option value="14d">14 Days</option><option value="7d">7 Days</option>  <option value="3d">3 Days</option>
+    <option value="2d">2 Days</option></select></div>
             </div>
 
             <p class="ema-last-updated">Last Updated: <span id="sr-last-updated-time">--</span></p>
