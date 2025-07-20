@@ -147,7 +147,18 @@
         .snapshot-image-item h4 { text-align: center; margin-bottom: 8px; font-size: 18px; color: var(--subtle-text); text-transform: capitalize; }
         .snapshot-image-item .journal-image-wrapper { max-width: 100%; margin: auto; }
 
-        #sr-metadata-container { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; padding: 15px; margin-bottom: 25px; background-color: var(--card-bg); border: 1px solid var(--header-bg); border-radius: 8px; text-align: center; }
+        /* <<< MODIFICATION: Remove styling from old metadata container >>> */
+        #sr-metadata-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 0; /* Removed padding */
+            margin-bottom: 20px; /* Add margin to separate from controls */
+            background-color: transparent; /* Removed background */
+            border: none; /* Removed border */
+            text-align: center;
+        }
         .metadata-item { font-size: 14px; }
         .metadata-label { font-weight: bold; color: var(--subtle-text); display: block; margin-bottom: 4px; }
         .metadata-value { font-family: 'Courier New', Courier, monospace; color: var(--text-color); }
@@ -165,6 +176,63 @@
         .sr-column.resistance .sr-level-strength { background-color: #dc3545; }
         .sr-level-pivots { padding: 15px; font-size: 13px; color: var(--subtle-text); }
         .sr-level-pivots span { font-weight: 600; color: var(--text-color); }
+
+        /* <<< NEW: Styles for the collapsible S/R legend >>> */
+        #sr-legend-container {
+            margin: 0 auto 25px auto;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #sr-legend-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: border-color 0.3s ease;
+        }
+        #sr-legend-header.collapsed {
+            border-bottom-color: transparent;
+        }
+        #sr-legend-header h4 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+        #sr-legend-toggle-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--subtle-text);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 20px;
+            line-height: 20px;
+            text-align: center;
+            cursor: pointer;
+            padding: 0;
+            font-weight: bold;
+            margin: 0;
+            transition: transform 0.3s ease, color 0.2s, border-color 0.2s;
+        }
+        #sr-legend-header:hover #sr-legend-toggle-btn {
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
+        #sr-legend-content {
+            padding: 15px;
+            display: block; /* Default state */
+        }
+        #sr-levels-tab .controls-container {
+            margin: 0 auto;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border-color);
+            justify-content: space-around;
+        }
 
         #trade-ideas-container { display: flex; flex-direction: column; gap: 15px; }
         .idea-row { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; }
@@ -307,23 +375,34 @@
         </div>
 
         <div id="sr-levels-tab" class="tab-content">
-            <div class="controls-container">
-                <div><label for="sr-symbol">Symbol:</label><select id="sr-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
-                <div><label for="sr-lookback">Lookback:</label><select id="sr-lookback"><option value="60d">60 Days</option><option value="30d">30 Days</option><option value="21d">21 Days</option><option value="14d">14 Days</option><option value="7d">7 Days</option>  <option value="3d">3 Days</option>
-    <option value="2d">2 Days</option></select></div>
+            <!-- <<< MODIFICATION: New collapsible container for legend and controls >>> -->
+            <div id="sr-legend-container">
+                <div id="sr-legend-header">
+                    <h4>S/R Levels Key & Controls</h4>
+                    <button id="sr-legend-toggle-btn" title="Toggle Details">−</button>
+                </div>
+                <div id="sr-legend-content">
+                    <div id="sr-metadata-container">
+                        <div class="metadata-item"><span class="metadata-label">Lookback Period</span><span id="sr-metadata-dates" class="metadata-value">--</span></div>
+                        <div class="metadata-item"><span class="metadata-label">Timeframes Analyzed</span><span id="sr-metadata-timeframes" class="metadata-value">--</span></div>
+                        <div class="metadata-item"><span class="metadata-label">Pivot Windows</span><span id="sr-metadata-windows" class="metadata-value">--</span></div>
+                        <div class="metadata-item"><span class="metadata-label">Pivot Sources</span><span class="metadata-value">Wick High, Wick Low</span></div>
+                        <div class="metadata-item"><span class="metadata-label">Strength Score</span><div class="rating-explanation"><span class="metadata-value">    '15m': 1.0,
+            '30m': 1.2,
+            '1h': 1.5,
+            '2h': 2.0,
+            '4h': 2.5</span></div></div>
+                    </div>
+                    <div class="controls-container">
+                        <div><label for="sr-symbol">Symbol:</label><select id="sr-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
+                        <div><label for="sr-lookback">Lookback:</label><select id="sr-lookback"><option value="60d">60 Days</option><option value="30d">30 Days</option><option value="21d">21 Days</option><option value="14d">14 Days</option><option value="7d">7 Days</option>  <option value="3d">3 Days</option>
+            <option value="2d">2 Days</option></select></div>
+                    </div>
+                </div>
             </div>
+
             <p class="ema-last-updated">Last Updated: <span id="sr-last-updated-time">--</span></p>
-            <div id="sr-metadata-container">
-                <div class="metadata-item"><span class="metadata-label">Lookback Period</span><span id="sr-metadata-dates" class="metadata-value">--</span></div>
-                <div class="metadata-item"><span class="metadata-label">Timeframes Analyzed</span><span id="sr-metadata-timeframes" class="metadata-value">--</span></div>
-                <div class="metadata-item"><span class="metadata-label">Pivot Windows</span><span id="sr-metadata-windows" class="metadata-value">--</span></div>
-                <div class="metadata-item"><span class="metadata-label">Pivot Sources</span><span class="metadata-value">Wick High, Wick Low</span></div>
-                <div class="metadata-item"><span class="metadata-label">Strength Score</span><div class="rating-explanation"><span class="metadata-value">    '15m': 1.0,
-    '30m': 1.2,
-    '1h': 1.5,
-    '2h': 2.0,
-    '4h': 2.5</span></div></div>
-            </div>
+
             <div id="sr-levels-container">
                 <div class="sr-column support"><h3>Top Support Zones</h3><div id="support-levels-container"></div></div>
                 <div class="sr-column resistance"><h3>Top Resistance Zones</h3><div id="resistance-levels-container"></div></div>
@@ -361,10 +440,6 @@ const bankRef = database.ref('bank');
 const journalRef = database.ref('journal_text'); 
 const journalImagesRef = database.ref('journal_images'); 
 
-// <<< MODIFICATION: REMOVED FIREBASE REFS FOR EMA AND S/R LEVELS >>>
-// const emaValuesRef = database.ref('ema_values');
-// const srLevelsRef = database.ref('sr_levels_lookback');
-
 const FEE_RATE = 0.00075;
 const STARTING_BALANCE = 4000;
 const USD_TO_AUD_RATE = 1.53;
@@ -395,6 +470,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const dateNextBtn = document.getElementById('date-next');
     const tradeIdeasContainer = document.getElementById('trade-ideas-container');
 
+    // <<< NEW: Elements for the S/R Legend toggle >>>
+    const srLegendHeader = document.getElementById('sr-legend-header');
+    const srLegendContent = document.getElementById('sr-legend-content');
+    const srLegendToggleBtn = document.getElementById('sr-legend-toggle-btn');
+
     function getYYYYMMDD(date) { return date.toISOString().split('T')[0]; }
     function autoResizeTextarea(element) { element.style.height = 'auto'; element.style.height = (element.scrollHeight) + 'px'; }
     function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); }
@@ -414,16 +494,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
     
-    // <<< NEW FUNCTION: Fetch EMA/SMA data from local JSON file >>>
     async function fetchEmaData() {
         try {
-            // Add a cache-busting query parameter to ensure the latest file is fetched
             const response = await fetch('ma_analysis.json?cache_bust=' + new Date().getTime());
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             allEmaData = await response.json();
-            // Render if the journal tab is already active
             if (document.getElementById('journal-tab').classList.contains('active')) {
-                updateJournalView(); // This function calls renderEmaData
+                updateJournalView(); 
             }
         } catch (error) {
             console.error("Could not fetch ma_analysis.json:", error);
@@ -431,14 +508,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // <<< NEW FUNCTION: Fetch S/R Level data from local JSON file >>>
     async function fetchSrData() {
         try {
-            // Add a cache-busting query parameter
             const response = await fetch('sr_levels_analysis.json?cache_bust=' + new Date().getTime());
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             allSrData = await response.json();
-            // Render if the S/R tab is already active
             if (document.getElementById('sr-levels-tab').classList.contains('active')) {
                 renderSrLevels();
             }
@@ -496,7 +570,7 @@ document.addEventListener('DOMContentLoaded', function () {
         autoResizeTextarea(journalEntryEl); 
         const symbolImageData = allJournalImages[safeSymbol] || {}; 
         renderJournalImages(safeSymbol, timeframe, symbolImageData); 
-        renderEmaData(); // This function relies on allEmaData
+        renderEmaData();
     }
 
     const saveJournalEntry = (() => { 
@@ -677,12 +751,31 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderLiveTable(d){const t=document.getElementById('trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const noteText=a.note||'';const noteCell=`<td class="note-cell" title="${noteText}">${noteText}</td>`;const masterButtons=isMasterUser?`<td class="action-buttons"><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>`:'';r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.stoploss).toFixed(2)}</td><td>${parseFloat(a.target).toFixed(2)}</td><td>${parseFloat(a.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(a.expected_profit||0).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(a.expected_loss||0).toFixed(2)}</td><td>${a.date}</td>${noteCell}${masterButtons}`;t.appendChild(r);});}
     function renderCompletedTable(d){const t=document.getElementById('completed-trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].closed_date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const c=a.net_result>=0?'#28a745':'#dc3545',e=(a.entry_fee||0)+(a.exit_fee||0);const noteText=a.note||'';const noteCell=`<td class="note-cell" title="${noteText}">${noteText}</td>`;const masterButtons=isMasterUser?`<td class="action-buttons"><button class="note-btn-completed" data-id="${id}">Edit</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>`:'';r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.exit_price).toFixed(2)}</td><td>${e.toFixed(2)}</td><td style="color:${c};font-weight:bold;">${parseFloat(a.net_result).toFixed(2)}</td><td>${a.date}</td><td>${a.closed_date}</td>${noteCell}${masterButtons}`;t.appendChild(r);});}
     
-    // <<< MODIFICATION: CALL THE NEW FETCH FUNCTIONS ON PAGE LOAD >>>
     checkMasterMode();
     renderDateNavigation();
     fetchTradeIdeas();
     fetchEmaData();
     fetchSrData();
+
+    // <<< NEW: Event listener for the S/R Legend toggle >>>
+    if (srLegendHeader) {
+        srLegendHeader.addEventListener('click', () => {
+            const isCollapsed = srLegendContent.style.display === 'none';
+            if (isCollapsed) {
+                srLegendContent.style.display = 'block';
+                srLegendHeader.classList.remove('collapsed');
+                srLegendToggleBtn.textContent = '−'; // Minus sign
+                srLegendToggleBtn.style.transform = 'rotate(0deg)';
+            } else {
+                srLegendContent.style.display = 'none';
+                srLegendHeader.classList.add('collapsed');
+                srLegendToggleBtn.textContent = '+';
+                srLegendToggleBtn.style.transform = 'rotate(180deg)';
+            }
+        });
+        // Set initial state text content (minus sign)
+        srLegendToggleBtn.textContent = '−';
+    }
 
     journalImagesContainer.addEventListener('click', (e) => {
         const button = e.target.closest('.delete-journal-image');
@@ -842,10 +935,6 @@ document.addEventListener('DOMContentLoaded', function () {
         bankRef.set({ currentBalance: newBalance });
     });
     
-    // <<< MODIFICATION: REMOVED FIREBASE LISTENERS >>>
-    // emaValuesRef.on('value', (s) => { ... });
-    // srLevelsRef.on('value', (s) => { ... });
-
     journalRef.on('value', (s) => { allJournalText = s.val() || {}; if(document.getElementById('journal-tab').classList.contains('active')) updateJournalView(); });
     journalImagesRef.on('value', (s) => {
         allJournalImages = s.val() || {};
