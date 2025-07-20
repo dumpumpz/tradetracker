@@ -59,6 +59,7 @@ def get_minutes_from_timeframe(tf_string):
         return num * 60 * 24
     return 0
 
+
 def fetch_ohlcv_paginated(symbol, interval, lookback_days):
     """
     Fetches historical kline data from Binance, handling pagination to
@@ -79,13 +80,14 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days):
         f"{total_candles_needed} candles for {lookback_days} days.")
 
     while len(all_data) < total_candles_needed:
-        url = f'https://api.binance.com/api/v3/klines?symbol=' \
-              f'{symbol}&interval={interval}&limit={limit_per_req}'
+        # In function fetch_ohlcv_paginated:
+url = f'https://api.binance.us/api/v3/klines?symbol=' \
+      f'{symbol}&interval={interval}&limit={limit_per_req}'
         if end_time_ms:
             url += f'&endTime={end_time_ms}'
 
         try:
-            response = requests.get(url, timeout=20) # Added timeout
+            response = requests.get(url)
             response.raise_for_status()
             data_chunk = response.json()
 
@@ -104,14 +106,10 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days):
             time.sleep(0.2)
 
         except requests.exceptions.RequestException as e:
-            # <<< THIS IS THE IMPORTANT NEW PART >>>
             logging.error(
-                f"Could not fetch paginated data for {symbol} on {interval}: {e}")
-            # Log the detailed response if available
-            if e.response is not None:
-                logging.error(f"API Error Details: Status Code = {e.response.status_code}, Response = {e.response.text}")
+                f"Could not fetch paginated data for {symbol} on {interval}: "
+                f"{e}")
             return None
-            # <<< END OF NEW PART >>>
 
     if not all_data:
         return None
