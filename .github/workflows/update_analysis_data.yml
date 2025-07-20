@@ -1,6 +1,5 @@
 name: Update Analysis Data Files
 
-# Controls when the action will run
 on:
   # Runs on a schedule (this is set to run at the top of every hour)
   schedule:
@@ -9,30 +8,30 @@ on:
   # Allows you to run this workflow manually from the Actions tab on GitHub
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "update-data"
   update-data:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    # IMPORTANT: Grant permissions for the GITHUB_TOKEN to be able to push to the repository.
+    permissions:
+      contents: write # This is the key change to allow committing
+
     steps:
-      # 1. Checks out your repository under $GITHUB_WORKSPACE, so your job can access it
+      # 1. Checks out your repository under $GITHUB_WORKSPACE
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Sets up Python on the runner
+      # 2. Sets up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # You can change this to your preferred version
+          python-version: '3.11'
 
-      # 3. Installs the dependencies from your requirements.txt file
+      # 3. Installs dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       # 4. Runs your Python scripts to generate the JSON files
       - name: Run Python scripts to generate JSON
@@ -40,12 +39,18 @@ jobs:
           python sr_levels_analysis.py
           python ma_analysis.py
 
-      # 5. Commits the new/updated JSON files to the repository
+      # 5. BEST PRACTICE: Use a dedicated action to commit and push changes
+      # This action automatically handles checking for changes, configuring git,
+      # committing, and pushing.
       - name: Commit and push changes
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add sr_levels_analysis.json ma_analysis.json
-          # Commit only if there are changes
-          git diff --quiet && git diff --staged --quiet || git commit -m "Automated analysis data update"
-          git push
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          # The message for the commit
+          commit_message: "Automated analysis data update"
+          
+          # The files to add. You can use wildcards.
+          # This pattern tells it to only look for these two specific files.
+          file_pattern: sr_levels_analysis.json ma_analysis.json
+          
+          # Optional: The branch to push to. Defaults to the current branch.
+          # branch: main
