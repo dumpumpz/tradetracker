@@ -75,12 +75,12 @@
         .table-wrapper { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; font-size: 14px; white-space: nowrap; vertical-align: top; }
-        th { background-color: var(--header-bg); font-weight: bold; }
+        th { background-color: var(--header-bg); font-weight: bold; vertical-align: middle; text-align: center; }
         .action-buttons button { padding: 5px 8px; font-size: 12px; margin-right: 4px; }
 
         .note-cell { white-space: normal; max-width: 300px; min-width: 150px; font-size: 12px; line-height: 1.4; }
 
-        #journal-tab, #snapshot-tab, #sr-levels-tab { position: relative; }
+        #journal-tab, #snapshot-tab, #sr-levels-tab, #current-setups-tab { position: relative; }
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
         .controls-container > div { display: flex; align-items: center; gap: 8px; }
         
@@ -317,6 +317,14 @@
             color: var(--text-color);
         }
 
+        #current-setups-table th:first-child { text-align: left; padding-left: 15px; color: var(--link-color); }
+        #current-setups-table td { text-align: center; }
+        #current-setups-table td[contenteditable="true"]:focus {
+            background-color: var(--header-bg);
+            outline: 2px solid var(--link-color);
+            box-shadow: 0 0 5px var(--shadow-color);
+        }
+
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -364,6 +372,7 @@
             <button class="tab-link" data-tab="journal">Journal</button>
             <button class="tab-link" data-tab="snapshot">Snapshot</button>
             <button class="tab-link" data-tab="sr-levels">S/R Levels</button>
+            <button class="tab-link" data-tab="current-setups">Current Setups</button>
         </div>
         
         <div id="tracker-tab" class="tab-content active">
@@ -493,6 +502,45 @@
                 </div>
             </div>
         </div>
+        
+        <div id="current-setups-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Current Setups</h2>
+                <button id="save-setups-btn" class="master-only" style="margin-left: 20px;">Save Setups</button>
+            </div>
+            <p id="setups-save-status" style="text-align:center;font-style:italic;color:var(--subtle-text);height:1em"></p>
+            <div class="table-wrapper">
+                <table id="current-setups-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Timeframe</th>
+                            <th colspan="3">0-Candle</th>
+                            <th colspan="3">4-Candle</th>
+                        </tr>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Target</th>
+                            <th>Stoploss</th>
+                            <th>Entry</th>
+                            <th>Target</th>
+                            <th>Stoploss</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                        <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                        <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                        <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                        <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                        <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                        <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                        <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                        <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
 
     </div>
     
@@ -520,13 +568,14 @@ const bankRef = database.ref('bank');
 const journalRef = database.ref('journal_text'); 
 const journalImagesRef = database.ref('journal_images'); 
 const favouritesRef = database.ref('journal_favourites');
+const setupsRef = database.ref('current_setups'); // New reference for setups table
 
 const FEE_RATE = 0.00075;
 const STARTING_BALANCE = 3881;
 const USD_TO_AUD_RATE = 1.53;
 
 document.addEventListener('DOMContentLoaded', function () {
-    let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, currentPrice = 0, allFavouriteEntries = {};
+    let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, currentPrice = 0, allFavouriteEntries = {}, allSetupsData = {};
     let selectedDate = new Date();
     let centerDate = new Date();
     
@@ -558,6 +607,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const srLegendHeader = document.getElementById('sr-legend-header');
     const srLegendContent = document.getElementById('sr-legend-content');
     const srLegendToggleBtn = document.getElementById('sr-legend-toggle-btn');
+
+    // New elements for the Setups tab
+    const saveSetupsBtn = document.getElementById('save-setups-btn');
+    const setupsTable = document.getElementById('current-setups-table');
 
     function getYYYYMMDD(date) { return date.toISOString().split('T')[0]; }
     function autoResizeTextarea(element) { element.style.height = 'auto'; element.style.height = (element.scrollHeight) + 'px'; }
@@ -808,6 +861,61 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // --- NEW FUNCTIONS FOR SETUPS TAB ---
+    function renderSetupsTable(data) {
+        if (!data) return;
+        allSetupsData = data;
+        const tbody = setupsTable.querySelector('tbody');
+        tbody.querySelectorAll('tr').forEach(row => {
+            const timeframe = row.firstElementChild.textContent.trim();
+            if (allSetupsData[timeframe]) {
+                const rowData = allSetupsData[timeframe];
+                const cells = row.querySelectorAll('td');
+                cells[0].textContent = rowData.zero_entry || '';
+                cells[1].textContent = rowData.zero_target || '';
+                cells[2].textContent = rowData.zero_stoploss || '';
+                cells[3].textContent = rowData.four_entry || '';
+                cells[4].textContent = rowData.four_target || '';
+                cells[5].textContent = rowData.four_stoploss || '';
+            } else {
+                // Clear cells if no data for this timeframe
+                row.querySelectorAll('td').forEach(cell => cell.textContent = '');
+            }
+        });
+    }
+
+    function saveSetupsTable() {
+        if (!isMasterUser) return;
+        const dataToSave = {};
+        const tbody = setupsTable.querySelector('tbody');
+
+        tbody.querySelectorAll('tr').forEach(row => {
+            const timeframe = row.firstElementChild.textContent.trim();
+            const cells = row.querySelectorAll('td');
+            dataToSave[timeframe] = {
+                zero_entry: cells[0].textContent,
+                zero_target: cells[1].textContent,
+                zero_stoploss: cells[2].textContent,
+                four_entry: cells[3].textContent,
+                four_target: cells[4].textContent,
+                four_stoploss: cells[5].textContent,
+            };
+        });
+
+        const statusEl = document.getElementById('setups-save-status');
+        statusEl.textContent = 'Saving...';
+        setupsRef.set(dataToSave)
+            .then(() => {
+                statusEl.textContent = 'Saved.';
+                setTimeout(() => statusEl.textContent = '', 2000);
+            })
+            .catch(e => {
+                statusEl.textContent = `Error: ${e.message}`;
+                console.error("Error saving setups table:", e);
+            });
+    }
+    // --- END OF NEW FUNCTIONS ---
+
     function checkMasterMode() { 
         const urlParams = new URLSearchParams(window.location.search); 
         if (urlParams.get('master') === 'true') { 
@@ -819,9 +927,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     else if (el.tagName === 'TH' || el.tagName === 'TD') el.style.display = 'table-cell'; 
                     else if (el.classList.contains('backup-controls')) el.style.display = 'flex'; 
                     else if (el.id === 'favourite-btn') el.style.display = 'block';
+                    else if (el.id === 'save-setups-btn') el.style.display = 'inline-block';
                     else el.style.display = 'block'; 
                 }); 
                 journalEntryEl.readOnly = false; 
+                
+                // Make setups table editable
+                setupsTable.querySelectorAll('td').forEach(cell => {
+                    cell.setAttribute('contenteditable', 'true');
+                });
             } 
         } 
         if (!isMasterUser) { journalEntryEl.readOnly = true; } 
@@ -1045,6 +1159,7 @@ document.addEventListener('DOMContentLoaded', function () {
     journalTimeframeEl.addEventListener('change', updateJournalView);
     journalImageFilterEl.addEventListener('change', updateJournalView);
     document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
+    saveSetupsBtn.addEventListener('click', saveSetupsTable); // New listener for save button
     
     document.querySelector('.tabs').addEventListener('click', (e) => { 
         if (!e.target.matches('.tab-link')) return;
@@ -1121,6 +1236,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (document.getElementById('journal-tab').classList.contains('active')) {
             updateJournalView();
         }
+    });
+
+    // New Firebase listener for the Setups Table
+    setupsRef.on('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        renderSetupsTable(data);
     });
 
 });
