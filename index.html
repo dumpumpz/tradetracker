@@ -80,7 +80,7 @@
 
         .note-cell { white-space: normal; max-width: 300px; min-width: 150px; font-size: 12px; line-height: 1.4; }
 
-        #journal-tab, #snapshot-tab, #sr-levels-tab, #trade-ideas-tab { position: relative; }
+        #journal-tab, #snapshot-tab, #sr-levels-tab { position: relative; }
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
         .controls-container > div { display: flex; align-items: center; gap: 8px; }
         
@@ -234,19 +234,6 @@
         .sr-level-pivots { padding: 15px; font-size: 13px; color: var(--subtle-text); }
         .sr-level-pivots span { font-weight: 600; color: var(--text-color); }
 
-        #trade-ideas-container { display: flex; flex-direction: column; gap: 15px; }
-        .idea-row { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; }
-        .idea-card { border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; min-width: 200px; transition: all 0.3s ease; }
-        .idea-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
-        .idea-card-tf { font-weight: bold; font-size: 16px; color: var(--link-color); }
-        .idea-card-direction { font-weight: bold; font-size: 14px; }
-        .idea-card-direction.Long { color: #28a745; }
-        .idea-card-direction.Short { color: #dc3545; }
-        .idea-card.color-purple { background-color: var(--purple-bg); }
-        .idea-row .is-master { border: 2px solid var(--link-color); box-shadow: 0 0 10px var(--link-color); }
-        .idea-card-details { font-size: 13px; line-height: 1.6; }
-        .idea-card-details span { font-family: 'Courier New', Courier, monospace; font-weight: 600; float: right; }
-
         .price-above { color: #dc3545 !important; }
         .price-below { color: #28a745 !important; }
 
@@ -308,7 +295,6 @@
             <button class="tab-link" data-tab="journal">Journal</button>
             <button class="tab-link" data-tab="snapshot">Snapshot</button>
             <button class="tab-link" data-tab="sr-levels">S/R Levels</button>
-            <button class="tab-link" data-tab="trade-ideas">Trade Ideas</button>
         </div>
         
         <div id="tracker-tab" class="tab-content active">
@@ -413,11 +399,6 @@
             </div>
         </div>
 
-        <div id="trade-ideas-tab" class="tab-content">
-            <h2>BTC/USDT Trade Ideas</h2>
-            <p class="ema-last-updated">Displaying static data from <code>trade_ideas.json</code></p>
-            <div id="trade-ideas-container"></div>
-        </div>
     </div>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -449,7 +430,7 @@ const STARTING_BALANCE = 4000;
 const USD_TO_AUD_RATE = 1.53;
 
 document.addEventListener('DOMContentLoaded', function () {
-    let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, allTradeIdeasData = [], currentPrice = 0;
+    let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, currentPrice = 0;
     let selectedDate = new Date();
     let centerDate = new Date();
     
@@ -472,7 +453,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const dateButtonsContainer = document.getElementById('date-buttons-container');
     const datePrevBtn = document.getElementById('date-prev');
     const dateNextBtn = document.getElementById('date-next');
-    const tradeIdeasContainer = document.getElementById('trade-ideas-container');
 
     // <<< NEW: Elements for the S/R Legend toggle >>>
     const srLegendHeader = document.getElementById('sr-legend-header');
@@ -482,21 +462,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function getYYYYMMDD(date) { return date.toISOString().split('T')[0]; }
     function autoResizeTextarea(element) { element.style.height = 'auto'; element.style.height = (element.scrollHeight) + 'px'; }
     function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); }
-    
-    async function fetchTradeIdeas() {
-        tradeIdeasContainer.innerHTML = 'Loading trade ideas...';
-        try {
-            const response = await fetch('trade_ideas.json?cache_bust=' + new Date().getTime());
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            allTradeIdeasData = await response.json();
-            if (document.getElementById('trade-ideas-tab').classList.contains('active')) {
-                renderTradeIdeas();
-            }
-        } catch (error) {
-            console.error("Could not fetch trade_ideas.json:", error);
-            tradeIdeasContainer.innerHTML = '<p style="color: red; text-align: center;">Error: Could not load trade ideas. Make sure trade_ideas.json is in the correct folder.</p>';
-        }
-    }
     
     async function fetchEmaData() {
         try {
@@ -524,28 +489,6 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error("Could not fetch sr_levels_analysis.json:", error);
             document.getElementById('sr-levels-container').innerHTML = '<p style="color: red; text-align: center;">Error: Could not load S/R levels data. Make sure sr_levels_analysis.json is in the correct folder.</p>';
         }
-    }
-
-    function renderTradeIdeas() {
-        tradeIdeasContainer.innerHTML = '';
-        if (!allTradeIdeasData || !Array.isArray(allTradeIdeasData)) {
-             tradeIdeasContainer.innerHTML = '<p style="color: red; text-align: center;">Error: trade_ideas.json is not in the correct format (should be an array).</p>';
-             return;
-        }
-        allTradeIdeasData.forEach(rowData => {
-            const rowDiv = document.createElement('div');
-            rowDiv.className = 'idea-row';
-            rowData.sections.forEach((sectionData, index) => {
-                if (sectionData.type !== 'section') return;
-                const cardDiv = document.createElement('div');
-                cardDiv.className = 'idea-card';
-                if (index === rowData.master_section_index) cardDiv.classList.add('is-master');
-                if (sectionData.color_state_index === 3) cardDiv.classList.add('color-purple');
-                cardDiv.innerHTML = `<div class="idea-card-header"><span class="idea-card-tf">${sectionData.timeframe_name}</span><span class="idea-card-direction ${sectionData.direction}">${sectionData.direction}</span></div><div class="idea-card-details">Entry: <span>$${parseFloat(sectionData.entry).toLocaleString()}</span><br>Resistance: <span>$${parseFloat(sectionData.resistance).toLocaleString()}</span><br>Stoploss: <span>$${parseFloat(sectionData.stoploss).toLocaleString()}</span><br>Date: <span>${sectionData.entry_date}</span></div>`;
-                rowDiv.appendChild(cardDiv);
-            });
-            tradeIdeasContainer.appendChild(rowDiv);
-        });
     }
 
     function renderDateNavigation() {
@@ -757,7 +700,6 @@ document.addEventListener('DOMContentLoaded', function () {
     
     checkMasterMode();
     renderDateNavigation();
-    fetchTradeIdeas();
     fetchEmaData();
     fetchSrData();
 
@@ -888,7 +830,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.target.dataset.tab === 'journal') { updateJournalView(); } 
         else if (e.target.dataset.tab === 'snapshot') { renderSnapshotView(); }
         else if (e.target.dataset.tab === 'sr-levels') { renderSrLevels(); }
-        else if (e.target.dataset.tab === 'trade-ideas') { renderTradeIdeas(); }
     });
     
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }));
