@@ -343,8 +343,6 @@
             background-color: var(--card-bg);
         }
         #analysis-tab .clickable-cell {
-            cursor: pointer;
-            user-select: none;
             font-weight: 500;
             border: 2px outset;
             border-color: #ccc #888 #888 #ccc;
@@ -353,6 +351,13 @@
             padding: 8px;
             transition: background-color 0.2s, color 0.2s;
         }
+        
+        /* --- MODIFIED: Add cursor style for master user --- */
+        #analysis-tab table.interactive .clickable-cell {
+            cursor: pointer;
+            user-select: none;
+        }
+
         [data-theme="dark"] #analysis-tab .clickable-cell {
             border-color: #555 #111 #111 #555;
         }
@@ -411,8 +416,7 @@
             <button class="tab-link" data-tab="journal">Journal</button>
             <button class="tab-link" data-tab="snapshot">Snapshot</button>
             <button class="tab-link" data-tab="sr-levels">S/R Levels</button>
-            <!-- NEW TAB BUTTON -->
-            <button class="tab-link" data-tab="analysis">Analysis Table</button>
+            <button class="tab-link" data-tab="analysis">Current Setups</button>
         </div>
         
         <div id="tracker-tab" class="tab-content active">
@@ -543,7 +547,6 @@
             </div>
         </div>
         
-        <!-- NEW TAB CONTENT -->
         <div id="analysis-tab" class="tab-content">
             <!-- The interactive table will be generated here by JavaScript -->
         </div>
@@ -916,32 +919,27 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderLiveTable(d){const t=document.getElementById('trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const noteText=a.note||'';const noteCell=`<td class="note-cell" title="${noteText}">${noteText}</td>`;const masterButtons=isMasterUser?`<td class="action-buttons"><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>`:'';r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.stoploss).toFixed(2)}</td><td>${parseFloat(a.target).toFixed(2)}</td><td>${parseFloat(a.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(a.expected_profit||0).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(a.expected_loss||0).toFixed(2)}</td><td>${a.date}</td>${noteCell}${masterButtons}`;t.appendChild(r);});}
     function renderCompletedTable(d){const t=document.getElementById('completed-trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].closed_date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const c=a.net_result>=0?'#28a745':'#dc3545',e=(a.entry_fee||0)+(a.exit_fee||0);const noteText=a.note||'';const noteCell=`<td class="note-cell" title="${noteText}">${noteText}</td>`;const masterButtons=isMasterUser?`<td class="action-buttons"><button class="note-btn-completed" data-id="${id}">Edit</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>`:'';r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.exit_price).toFixed(2)}</td><td>${e.toFixed(2)}</td><td style="color:${c};font-weight:bold;">${parseFloat(a.net_result).toFixed(2)}</td><td>${a.date}</td><td>${a.closed_date}</td>${noteCell}${masterButtons}`;t.appendChild(r);});}
 
-    // --- NEW FUNCTION TO BUILD THE ANALYSIS TABLE ---
+    // --- MODIFIED ANALYSIS TABLE FUNCTION ---
     function initializeAnalysisTable() {
         const container = document.getElementById('analysis-tab');
         if (!container) return;
 
-        // Data Configuration from Python script
-        const timeframes = [
-            "15min", "30min", "1hour", "2hour",
-            "4hour", "daily", "weekly", "monthly"
-        ];
-        const headers = [
-            "Timeframe", "0candle", "4candle", "current cross", "target"
-        ];
+        const timeframes = ["15min", "30min", "1hour", "2hour", "4hour", "daily", "weekly", "monthly"];
+        const headers = ["Timeframe", "0candle", "4candle", "current cross", "target"];
         const colors = ["red", "green", "yellow", "grey"];
-
-        // State Management
         const cellStates = {};
         const initialColor = "grey";
         const initialColorIndex = colors.indexOf(initialColor);
 
-        // Create Table
         const table = document.createElement('table');
         const thead = document.createElement('thead');
         const tbody = document.createElement('tbody');
         
-        // 1. Create Table Header
+        // MODIFICATION: Add a class to the table if the user is a master
+        if (isMasterUser) {
+            table.classList.add('interactive');
+        }
+        
         const headerRow = document.createElement('tr');
         headers.forEach(headerText => {
             const th = document.createElement('th');
@@ -950,54 +948,50 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         thead.appendChild(headerRow);
 
-        // 2. Create Table Body
         timeframes.forEach((tfText, rowIndex) => {
             const row = document.createElement('tr');
 
-            // Column 0: Timeframe Label
             const tfCell = document.createElement('td');
             tfCell.textContent = tfText;
             tfCell.className = 'timeframe-cell';
             row.appendChild(tfCell);
 
-            // Columns 1, 2, 3: Clickable Cells
             for (let colIndex = 1; colIndex < 4; colIndex++) {
                 const cell = document.createElement('td');
                 cell.className = 'clickable-cell';
                 cell.textContent = headers[colIndex];
                 cell.style.backgroundColor = initialColor;
                 cell.style.color = 'black';
-                
                 cell.dataset.row = rowIndex;
                 cell.dataset.col = colIndex;
-                
                 cellStates[`${rowIndex}-${colIndex}`] = initialColorIndex;
                 row.appendChild(cell);
             }
             
-            // Column 4: Target Text Entry
             const entryCell = document.createElement('td');
             const input = document.createElement('input');
             input.type = 'text';
+            // MODIFICATION: Disable input field for non-master users
+            input.disabled = !isMasterUser; 
             entryCell.appendChild(input);
             row.appendChild(entryCell);
 
             tbody.appendChild(row);
         });
 
-        // 3. Assemble and Append Table
         table.appendChild(thead);
         table.appendChild(tbody);
         container.appendChild(table);
 
-        // 4. Add Event Listener (using delegation)
         tbody.addEventListener('click', (event) => {
+            // MODIFICATION: Add a guard to prevent clicks if not a master user
+            if (!isMasterUser) return;
+
             const clickedCell = event.target.closest('.clickable-cell');
             if (!clickedCell) return;
 
             const { row, col } = clickedCell.dataset;
             const stateKey = `${row}-${col}`;
-
             const currentColorIndex = cellStates[stateKey];
             const nextColorIndex = (currentColorIndex + 1) % colors.length;
             cellStates[stateKey] = nextColorIndex;
@@ -1010,11 +1004,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     
+    // Call checkMasterMode() *before* initializing the tables that depend on it.
     checkMasterMode();
+    
+    // Initialize everything else
     renderDateNavigation();
     fetchEmaData();
     fetchSrData();
-    initializeAnalysisTable(); // Initialize the new table on page load
+    initializeAnalysisTable(); // Now this function can correctly use isMasterUser
 
     if (srLegendHeader) {
         srLegendHeader.addEventListener('click', () => {
@@ -1050,7 +1047,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     journalEntryEl.addEventListener('input', () => {
         autoResizeTextarea(journalEntryEl);
-        // Also check star status on input
         const safeSymbol = getSafeSymbol(journalSymbolEl.value);
         const timeframe = journalTimeframeEl.value;
         const favouriteText = (allFavouriteEntries[safeSymbol] || {})[timeframe];
@@ -1068,7 +1064,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const safeSymbol = getSafeSymbol(journalSymbolEl.value);
         const timeframe = journalTimeframeEl.value;
         const currentText = journalEntryEl.value.trim();
-        
         const currentTextIsThePin = favouriteBtn.classList.contains('active');
 
         if (currentTextIsThePin) {
