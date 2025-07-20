@@ -1,221 +1,275 @@
 import pandas as pd
-import os
+import numpy as np
+import requests
+import json
+from datetime import datetime, timezone
+import re
+import time
 import logging
 import sys
-import requests
-import time
-import json
-import math # <<< NEW: Required for ceiling function
-from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Any, Dict
 
-# --- Configuration ---
-SYMBOLS = ["BTC/USDT", "ETH/USDT"]
-TIMEFRAME_CONFIG = {
-    '15m': {'name': '15min', 'minutes': 15},
-    '30m': {'name': '30min', 'minutes': 30},
-    '1h': {'name': '1hour', 'minutes': 60},
-    '2h': {'name': '2hour', 'minutes': 120},
-    '4h': {'name': '4hour', 'minutes': 240},
-    '1d': {'name': 'daily', 'minutes': 1440}
+# --- Unified Configuration ---
+SYMBOLS = ['BTCUSDT', 'ETHUSDT']
+TIMEFRAMES_TO_ANALYZE = ['15m', '30m', '1h', '2h', '4h']
+LOOKBACK_PERIODS_DAYS = [60, 30, 21, 14, 7, 3, 2]
+PIVOT_WINDOWS = [1, 2, 3, 5, 8, 10, 13, 21]
+CLUSTER_THRESHOLD_PERCENT = 0.5
+TOP_N_CLUSTERS_TO_SEND = 10
+OUTPUT_FILENAME = "sr_levels_analysis.json"
+
+# --- Timeframe Weighting System ---
+TIMEFRAME_WEIGHTS = {
+    '15m': 1.0,
+    '30m': 1.2,
+    '1h': 1.5,
+    '2h': 2.0,
+    '4h': 2.5
 }
-MA_PERIODS = [13, 49, 100, 200, 500, 1000]
-OUTPUT_FILENAME = "ma_analysis.json"
 
-# <<< MODIFIED: Replaced static lookback with dynamic calculation settings >>>
-# This multiplier determines how many candles to fetch for warming up the longest MA.
-# A value of 3 means for a 1000-period MA, we'll fetch at least 3 * 1000 = 3000 candles.
-# TradingView uses all available history, so a higher number leads to more accuracy.
-WARMUP_MULTIPLIER = 3
-# An extra flat buffer in days to account for potential gaps in API data or non-trading days.
-LOOKBACK_BUFFER_DAYS = 15
-
-
-# --- API Configuration ---
-API_RETRY_ATTEMPTS = 3
-API_RETRY_DELAY = 5
-HISTORICAL_DATA_CHUNK_LIMIT = 1000
+# --- PIVOT SOURCE WEIGHTING SYSTEM ---
+PIVOT_SOURCE_WEIGHTS = {
+    'Wick': 1.0,
+    'Close': 1.5
+}
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
-logging.getLogger("requests").setLevel(logging.WARNING)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
 def get_safe_symbol(symbol):
-    """Converts 'BTC/USDT' to 'BTC-USDT' for JSON keys."""
-    return symbol.replace('/', '-')
+    return symbol.replace('USDT', '-USDT') if 'USDT' in symbol else symbol
 
 
-# --- API Class ---
-class BinanceAPI:
-    # Using the international API for better data availability, can be switched back to .us if needed
-    BASE_URL = "https://api.binance.us/api/v3"
+def get_minutes_from_timeframe(tf_string):
+    num = int(re.findall(r'\d+', tf_string)[0])
+    unit = re.findall(r'[a-zA-Z]', tf_string)[0].lower()
+    if unit == 'm':
+        return num
+    elif unit == 'h':
+        return num * 60
+    elif unit == 'd':
+        return num * 60 * 24
+    return 0
 
-    @staticmethod
-    def _make_request(url: str, params: Dict) -> Optional[List[Any]]:
-        for attempt in range(API_RETRY_ATTEMPTS):
-            try:
-                response = requests.get(url, params=params, timeout=20)
-                response.raise_for_status()
-                return response.json()
-            except requests.exceptions.RequestException as e:
-                logging.warning(
-                    f"API request failed (attempt {attempt + 1}/"
-                    f"{API_RETRY_ATTEMPTS}): {e}")
-                if e.response is not None:
-                    logging.warning(f"API Error Details: Status Code = {e.response.status_code}, Response = {e.response.text}")
-                time.sleep(API_RETRY_DELAY)
-        logging.error(
-            f"API request failed after {API_RETRY_ATTEMPTS} attempts.")
+
+def fetch_ohlcv_paginated(symbol, interval, lookback_days):
+    minutes_per_tf = get_minutes_from_timeframe(interval)
+    if minutes_per_tf == 0:
+        logging.error(f"Invalid timeframe provided: {interval}")
         return None
 
-    @staticmethod
-    def fetch_new_data(symbol: str, interval: str, start_dt: pd.Timestamp) -> Optional[pd.DataFrame]:
-        api_symbol = symbol.replace('/', '').upper()
-        all_klines_list = []
-        current_start_ms = int(start_dt.timestamp() * 1000)
-        logging.info(
-            f"[{symbol}/{interval}] Fetching data from API for "
-            f"{api_symbol} starting from {start_dt.strftime('%Y-%m-%d %H:%M:%S UTC')}...")
+    total_candles_needed = (lookback_days * 1440) // minutes_per_tf
+    all_data = []
+    end_time_ms = None
+    limit_per_req = 1000
 
-        while True:
-            params = {"symbol": api_symbol, "interval": interval,
-                      "limit": HISTORICAL_DATA_CHUNK_LIMIT,
-                      "startTime": current_start_ms}
-            klines_chunk_raw = BinanceAPI._make_request(
-                f"{BinanceAPI.BASE_URL}/klines", params)
+    logging.info(
+        f"Fetching data for {symbol} on {interval}. Need ~"
+        f"{total_candles_needed} candles for {lookback_days} days.")
 
-            if klines_chunk_raw is None:
-                return None
-            if not klines_chunk_raw:
+    while len(all_data) < total_candles_needed:
+        url = f'https://api.binance.us/api/v3/klines?symbol=' \
+              f'{symbol}&interval={interval}&limit={limit_per_req}'
+        if end_time_ms:
+            url += f'&endTime={end_time_ms}'
+
+        try:
+            response = requests.get(url, timeout=20)
+            response.raise_for_status()
+            data_chunk = response.json()
+
+            if not data_chunk:
+                logging.info(f"No more historical data for {symbol}, stopping pagination.")
                 break
 
-            all_klines_list.extend(klines_chunk_raw)
-            last_candle_open_time_ms = int(klines_chunk_raw[-1][0])
-            # Set the start for the next chunk to be the time of the last candle + 1ms
-            current_start_ms = last_candle_open_time_ms + 1
-            if len(klines_chunk_raw) < HISTORICAL_DATA_CHUNK_LIMIT:
+            all_data = data_chunk + all_data
+            end_time_ms = data_chunk[0][0] - 1
+
+            if len(data_chunk) < limit_per_req:
                 break
+            time.sleep(0.2)
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Could not fetch paginated data for {symbol} on {interval}: {e}")
+            if e.response is not None:
+                logging.error(f"API Error Details: Status Code = {e.response.status_code}, Response = {e.response.text}")
+            return None
 
-        if not all_klines_list:
-            logging.warning(f"[{symbol}/{interval}] No data found on API for the requested period.")
-            return pd.DataFrame()
+    if not all_data:
+        return None
 
-        columns = ['open_time', 'open', 'high', 'low', 'close', 'volume',
-                   'close_time', 'quote_asset_volume', 'number_of_trades',
-                   'taker_buy_base_asset_volume',
-                   'taker_buy_quote_asset_volume', 'ignore']
-        df = pd.DataFrame(all_klines_list, columns=columns)
-        numeric_cols = ['open', 'high', 'low', 'close', 'volume']
-        for col in numeric_cols:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+    df = pd.DataFrame(all_data,
+                      columns=['Open time', 'Open', 'High', 'Low', 'Close',
+                               'Volume', 'Close time', 'Quote asset volume',
+                               'Number of trades',
+                               'Taker buy base asset volume',
+                               'Taker buy quote asset volume', 'Ignore'])
+    df['Date'] = pd.to_datetime(df['Open time'], unit='ms')
+    df.set_index('Date', inplace=True)
+    df.drop_duplicates(inplace=True)
 
-        df['open_time'] = pd.to_datetime(df['open_time'], unit='ms', utc=True)
-        # Ensure no duplicate timestamps, keeping the last one
-        df = df.drop_duplicates(subset=['open_time'], keep='last')
-        df = df.set_index('open_time')
-        df = df[['open', 'high', 'low', 'close', 'volume']].dropna()
-        logging.info(
-            f"[{symbol}/{interval}] Fetched {len(df)} unique candles from API.")
-        return df
+    final_df = df.tail(total_candles_needed)
+    logging.info(
+        f"SUCCESS: Fetched a total of {len(final_df)} candles for {symbol} "
+        f"on {interval}.")
+    return final_df[['Open', 'High', 'Low', 'Close', 'Volume']].astype(float)
 
 
-# --- Calculation Function ---
-def add_indicators(df: pd.DataFrame, periods: list[int]) -> pd.DataFrame:
-    """Calculates SMAs and EMAs for the given periods."""
-    if df.empty:
-        return df
-    df_res = df.copy()
-    for period in periods:
-        if len(df_res) >= period:
-            df_res[f'SMA_{period}'] = df_res['close'].rolling(window=period).mean()
-            # adjust=False is crucial for matching TradingView's standard EMA calculation
-            df_res[f'EMA_{period}'] = df_res['close'].ewm(span=period, adjust=False).mean()
+def find_pivots_from_series(data_series, window, is_high):
+    if window == 0 or len(data_series) <= 2 * window: return []
+    pivots = []
+    for i in range(window, len(data_series) - window):
+        window_slice = data_series.iloc[i - window: i + window + 1]
+        current_candle_price = data_series.iloc[i]
+        is_pivot = (is_high and current_candle_price >= window_slice.max()) \
+                   or \
+                   (not is_high and current_candle_price <= window_slice.min())
+        if is_pivot and (not pivots or pivots[-1][1] != current_candle_price):
+            pivots.append((data_series.index[i], current_candle_price))
+    return pivots
+
+
+def generate_pivots_for_timeframe(symbol, timeframe, lookback_days):
+    df_ohlcv = fetch_ohlcv_paginated(symbol, timeframe, lookback_days)
+    if df_ohlcv is None or df_ohlcv.empty: return pd.DataFrame()
+
+    all_pivots_list = []
+    pivot_definitions = {
+        'High_Wick': (df_ohlcv['High'], True, 'Resistance', 'Wick'),
+        'Low_Wick': (df_ohlcv['Low'], False, 'Support', 'Wick'),
+        'Close_High': (df_ohlcv['Close'], True, 'Resistance', 'Close'),
+        'Close_Low': (df_ohlcv['Close'], False, 'Support', 'Close')
+    }
+
+    timeframe_weight = TIMEFRAME_WEIGHTS.get(timeframe, 1.0)
+
+    for window in PIVOT_WINDOWS:
+        for pivot_name, (series, is_high, type_str, source) in pivot_definitions.items():
+            source_weight = PIVOT_SOURCE_WEIGHTS.get(source, 1.0)
+            for timestamp, price in find_pivots_from_series(series, window, is_high):
+                weighted_strength = window * timeframe_weight * source_weight
+                all_pivots_list.append({
+                    'Timestamp': timestamp,
+                    'Price': price,
+                    'Strength': weighted_strength,
+                    'Type': type_str,
+                    'Source': source,
+                    'Timeframe': timeframe
+                })
+    return pd.DataFrame(all_pivots_list)
+
+
+def find_clusters(pivots_df, threshold_percent):
+    if pivots_df.empty: return []
+    clusters, current_cluster_pivots = [], []
+    pivots_df.sort_values(by='Price', inplace=True)
+    for _, pivot in pivots_df.iterrows():
+        if not current_cluster_pivots:
+            current_cluster_pivots.append(pivot)
+            continue
+        cluster_start_price = current_cluster_pivots[0]['Price']
+        price_diff_percent = (pivot['Price'] - cluster_start_price) / cluster_start_price * 100
+        if abs(price_diff_percent) <= threshold_percent:
+            current_cluster_pivots.append(pivot)
         else:
-            # If not enough data for the period, fill with None (or NaN)
-            df_res[f'SMA_{period}'] = None
-            df_res[f'EMA_{period}'] = None
-    return df_res
+            if current_cluster_pivots:
+                cluster_df = pd.DataFrame(current_cluster_pivots)
+                # <<< MODIFIED: Ensure all numeric types are standard Python types >>>
+                cluster_data = {
+                    'Type': str(cluster_df['Type'].iloc[0]),
+                    'Price Start': float(cluster_df['Price'].min()),
+                    'Price End': float(cluster_df['Price'].max()),
+                    'Strength Score': int(cluster_df['Strength'].sum()),
+                    'Pivot Count': int(len(cluster_df))
+                }
+                clusters.append(cluster_data)
+                # <<< END MODIFICATION >>>
+            current_cluster_pivots = [pivot]
+    if current_cluster_pivots:
+        cluster_df = pd.DataFrame(current_cluster_pivots)
+        # <<< MODIFIED: Ensure all numeric types are standard Python types >>>
+        cluster_data = {
+            'Type': str(cluster_df['Type'].iloc[0]),
+            'Price Start': float(cluster_df['Price'].min()),
+            'Price End': float(cluster_df['Price'].max()),
+            'Strength Score': int(cluster_df['Strength'].sum()),
+            'Pivot Count': int(len(cluster_df))
+        }
+        clusters.append(cluster_data)
+        # <<< END MODIFICATION >>>
+    return clusters
 
 
-# --- Main Execution ---
-if __name__ == "__main__":
-    logging.info("--- Starting Market Snapshot Script ---")
+def run_analysis_for_lookback(symbol, lookback_days):
+    logging.info(
+        f"--- Running Analysis for {symbol} with {lookback_days}-Day "
+        f"Lookback ---")
+    all_pivots_dfs = []
+    for tf in TIMEFRAMES_TO_ANALYZE:
+        pivots_df = generate_pivots_for_timeframe(symbol, tf, lookback_days)
+        if not pivots_df.empty:
+            all_pivots_dfs.append(pivots_df)
+        time.sleep(0.5)
+
+    if not all_pivots_dfs:
+        logging.warning(f"No pivot data for {symbol} at {lookback_days} days.")
+        return None
+
+    pivots_data = pd.concat(all_pivots_dfs, ignore_index=True)
+
+    support_clusters = find_clusters(
+        pivots_data[pivots_data['Type'] == 'Support'],
+        CLUSTER_THRESHOLD_PERCENT)
+    resistance_clusters = find_clusters(
+        pivots_data[pivots_data['Type'] == 'Resistance'],
+        CLUSTER_THRESHOLD_PERCENT)
+    support_clusters.sort(key=lambda x: x['Strength Score'], reverse=True)
+    resistance_clusters.sort(key=lambda x: x['Strength Score'], reverse=True)
+
+    return {
+        'support': support_clusters[:TOP_N_CLUSTERS_TO_SEND],
+        'resistance': resistance_clusters[:TOP_N_CLUSTERS_TO_SEND],
+        'analysis_params': {
+            'timeframes_analyzed': TIMEFRAMES_TO_ANALYZE,
+            'pivot_windows': PIVOT_WINDOWS,
+            'lookback_days': lookback_days,
+            'oldest_pivot_date': pivots_data['Timestamp'].min().strftime(
+                '%Y-%m-%d'),
+            'newest_pivot_date': pivots_data['Timestamp'].max().strftime(
+                '%Y-%m-%d')
+        }
+    }
+
+
+def main():
     analysis_payload = {}
-
-    # Find the longest MA period needed, as it dictates the data requirement
-    longest_ma_period = max(MA_PERIODS) if MA_PERIODS else 0
-
     for symbol in SYMBOLS:
         safe_symbol = get_safe_symbol(symbol)
         analysis_payload[safe_symbol] = {}
+        for days in LOOKBACK_PERIODS_DAYS:
+            analysis_result = run_analysis_for_lookback(symbol, days)
+            if analysis_result:
+                analysis_payload[safe_symbol][f'{days}d'] = analysis_result
 
-        for tf_api, tf_config in TIMEFRAME_CONFIG.items():
-            print("-" * 50)
-            logging.info(f"Processing {symbol} on the {tf_api} timeframe")
-
-            # <<< MODIFIED: DYNAMIC LOOKBACK CALCULATION FOR PROPER WARMUP >>>
-            required_candles = longest_ma_period * WARMUP_MULTIPLIER
-
-            minutes_per_candle = tf_config['minutes']
-            candles_per_day = (24 * 60) / minutes_per_candle
-
-            # Calculate how many days of data are needed to satisfy the candle requirement
-            dynamic_lookback_days = math.ceil(required_candles / candles_per_day) + LOOKBACK_BUFFER_DAYS
-
-            logging.info(f"[{symbol}/{tf_api}] Longest MA: {longest_ma_period}, Warmup Multiplier: {WARMUP_MULTIPLIER}")
-            logging.info(f"[{symbol}/{tf_api}] Required candles for warmup: ~{required_candles}")
-            logging.info(f"[{symbol}/{tf_api}] Calculated lookback period: {dynamic_lookback_days} days")
-
-            # 1. Fetch all required historical data from the API
-            start_date = datetime.now(timezone.utc) - timedelta(days=dynamic_lookback_days)
-            df_full = BinanceAPI.fetch_new_data(symbol, tf_api, start_dt=start_date)
-
-            if df_full is None or df_full.empty:
-                logging.error(f"[{symbol}/{tf_api}] No data available from API. Skipping.")
-                continue
-
-            # 2. Calculate indicators on the full, properly warmed-up dataset
-            data_with_indicators = add_indicators(df_full, MA_PERIODS)
-
-            # 3. Get the latest row and prepare the payload
-            latest_row = data_with_indicators.iloc[-1]
-            indicator_values = {}
-
-            # Add the latest price
-            indicator_values['price'] = float(round(latest_row['close'], 4))
-
-            # Add EMAs and SMAs, ensuring they are standard Python floats for JSON serialization
-            for period in MA_PERIODS:
-                ema_val = latest_row.get(f'EMA_{period}')
-                sma_val = latest_row.get(f'SMA_{period}')
-
-                indicator_values[f'EMA_{period}'] = float(round(ema_val, 4)) if pd.notna(ema_val) else None
-                indicator_values[f'SMA_{period}'] = float(round(sma_val, 4)) if pd.notna(sma_val) else None
-
-            website_tf_name = tf_config['name']
-            analysis_payload[safe_symbol][website_tf_name] = indicator_values
-            logging.info(f"[{symbol}/{tf_api}] Prepared latest values: {indicator_values}")
-
-    # After processing all symbols and timeframes, save to JSON file
     if analysis_payload:
         full_payload = {
             'data': analysis_payload,
             'last_updated': datetime.now(timezone.utc).isoformat()
         }
-
-        logging.info(f"\nWriting final payload to {OUTPUT_FILENAME}...")
+        logging.info(f"\nWriting S/R level payload to {OUTPUT_FILENAME}...")
         try:
             with open(OUTPUT_FILENAME, 'w') as json_file:
                 json.dump(full_payload, json_file, indent=4)
-            logging.info(f"SUCCESS: Analysis data saved to {OUTPUT_FILENAME}.")
+            logging.info(f"SUCCESS: S/R level data has been saved to {OUTPUT_FILENAME}.")
         except IOError as e:
             logging.error(f"FATAL: Could not write to file {OUTPUT_FILENAME}. Error: {e}")
             sys.exit(1)
     else:
-        logging.warning("No data was processed, JSON file not created.")
+        logging.warning("No S/R data was generated to save.")
+    logging.info("\n--- All Analyses Complete ---")
 
-    print("-" * 80 + "\nScript finished.")
+
+if __name__ == "__main__":
+    main()
