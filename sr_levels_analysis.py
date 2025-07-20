@@ -16,7 +16,7 @@ LOOKBACK_PERIODS_DAYS = [60, 30, 21, 14, 7, 3, 2]
 PIVOT_WINDOWS = [1, 2, 3, 5, 8, 10, 13, 21]
 CLUSTER_THRESHOLD_PERCENT = 0.5
 TOP_N_CLUSTERS_TO_SEND = 10
-OUTPUT_FILENAME = "sr_levels_analysis.json"  # <<< NEW: Define output filename
+OUTPUT_FILENAME = "sr_levels_analysis.json"
 
 # --- Timeframe Weighting System ---
 TIMEFRAME_WEIGHTS = {
@@ -27,21 +27,16 @@ TIMEFRAME_WEIGHTS = {
     '4h': 2.5
 }
 
-# <<< NEW: PIVOT SOURCE WEIGHTING SYSTEM >>>
-# Assigns a multiplier based on whether the pivot is from a wick or a close.
-# A higher value gives more importance to pivots from that source.
+# --- PIVOT SOURCE WEIGHTING SYSTEM ---
 PIVOT_SOURCE_WEIGHTS = {
-    'Wick': 1.0,  # Baseline weight for High/Low wicks
-    'Close': 1.5  # Pivots from Closes are 50% more important
+    'Wick': 1.0,
+    'Close': 1.5
 }
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
-
-# --- Firebase Configuration Removed ---
-# The script will now save to a local JSON file instead of Firebase.
 
 
 def get_safe_symbol(symbol):
@@ -80,14 +75,14 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days):
         f"{total_candles_needed} candles for {lookback_days} days.")
 
     while len(all_data) < total_candles_needed:
-        # In function fetch_ohlcv_paginated:
-url = f'https://api.binance.us/api/v3/klines?symbol=' \
-      f'{symbol}&interval={interval}&limit={limit_per_req}'
+        # <<< MODIFIED: Using the binance.us API endpoint >>>
+        url = f'https://api.binance.us/api/v3/klines?symbol=' \
+              f'{symbol}&interval={interval}&limit={limit_per_req}'
         if end_time_ms:
             url += f'&endTime={end_time_ms}'
 
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=20)
             response.raise_for_status()
             data_chunk = response.json()
 
@@ -107,8 +102,9 @@ url = f'https://api.binance.us/api/v3/klines?symbol=' \
 
         except requests.exceptions.RequestException as e:
             logging.error(
-                f"Could not fetch paginated data for {symbol} on {interval}: "
-                f"{e}")
+                f"Could not fetch paginated data for {symbol} on {interval}: {e}")
+            if e.response is not None:
+                logging.error(f"API Error Details: Status Code = {e.response.status_code}, Response = {e.response.text}")
             return None
 
     if not all_data:
@@ -273,11 +269,9 @@ def main():
             'last_updated': datetime.now(timezone.utc).isoformat()
         }
 
-        # <<< MODIFIED: Write to JSON file instead of Firebase >>>
         logging.info(f"\nWriting S/R level payload to {OUTPUT_FILENAME}...")
         try:
             with open(OUTPUT_FILENAME, 'w') as json_file:
-                # Use indent=4 for a readable, pretty-printed JSON file
                 json.dump(full_payload, json_file, indent=4)
             logging.info(
                 f"SUCCESS: S/R level data has been saved to {OUTPUT_FILENAME}.")
@@ -285,7 +279,6 @@ def main():
             logging.error(f"FATAL: Could not write to file {OUTPUT_FILENAME}. "
                           f"Error: {e}")
             sys.exit(1)
-        # <<< END MODIFICATION >>>
 
     else:
         logging.warning("No S/R data was generated to save.")
