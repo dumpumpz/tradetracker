@@ -21,8 +21,6 @@ TIMEFRAME_CONFIG = {
 MA_PERIODS = [13, 49, 100, 200, 500, 1000]
 OUTPUT_FILENAME = "ma_analysis.json"
 
-# <<< MODIFIED: Set the number of candles to fetch for each timeframe >>>
-# 5000 is an excellent number for warming up even a 1000-period MA.
 CANDLES_TO_FETCH = 5000
 
 # --- API Configuration ---
@@ -48,7 +46,6 @@ class BinanceAPI:
 
     @staticmethod
     def _make_request(url: str, params: Dict) -> Optional[List[Any]]:
-        # ... (This function remains the same)
         for attempt in range(API_RETRY_ATTEMPTS):
             try:
                 response = requests.get(url, params=params, timeout=30)
@@ -62,7 +59,6 @@ class BinanceAPI:
         logging.error(f"API request failed after {API_RETRY_ATTEMPTS} attempts.")
         return None
 
-    # <<< REFACTORED: This function now fetches the last N candles by paginating backwards >>>
     @staticmethod
     def fetch_last_n_candles(symbol: str, interval: str, num_candles: int) -> Optional[pd.DataFrame]:
         api_symbol = symbol.replace('/', '').upper()
@@ -76,7 +72,7 @@ class BinanceAPI:
             params = {
                 "symbol": api_symbol,
                 "interval": interval,
-                "limit": min(HISTORICAL_DATA_CHUNK_LIMIT, num_candles - len(all_data))
+                "limit": min(HISTORICAL_DATA_CHUNK_LIMIT, num_candles - len(all_data) + 1) # +1 buffer
             }
             if end_time_ms:
                 params['endTime'] = end_time_ms
@@ -87,10 +83,7 @@ class BinanceAPI:
             if klines_chunk_raw is None: return None
             if not klines_chunk_raw: break
 
-            # Prepend the new data to maintain correct chronological order
             all_data = klines_chunk_raw + all_data
-            
-            # Set the end time for the next request to be 1ms before the first candle of this chunk
             end_time_ms = klines_chunk_raw[0][0] - 1
 
             if len(klines_chunk_raw) < HISTORICAL_DATA_CHUNK_LIMIT: break
@@ -100,9 +93,12 @@ class BinanceAPI:
             logging.warning(f"[{symbol}/{interval}] No data found on API.")
             return pd.DataFrame()
 
-        # Deduplicate and format the DataFrame
         df = pd.DataFrame(all_data, columns=['open_time', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
-        df = df.drop_duplicates(subset=[0], keep='first') # Use column index 0 for open_time
+        
+        # <<< THIS IS THE FIX >>>
+        # Use the actual column name 'open_time' for deduplication
+        df = df.drop_duplicates(subset=['open_time'], keep='first')
+        # <<< END OF FIX >>>
         
         numeric_cols = ['open', 'high', 'low', 'close', 'volume']
         for col in numeric_cols:
@@ -112,7 +108,6 @@ class BinanceAPI:
         df = df.set_index('open_time')
         df = df[['open', 'high', 'low', 'close', 'volume']].dropna()
         
-        # Ensure we only return the number of candles requested
         df = df.tail(num_candles)
 
         logging.info(
@@ -120,9 +115,7 @@ class BinanceAPI:
         return df
 
 
-# --- Calculation Function ---
 def add_indicators(df: pd.DataFrame, periods: list[int]) -> pd.DataFrame:
-    # ... (This function remains the same)
     if df.empty: return df
     df_res = df.copy()
     for period in periods:
@@ -131,7 +124,6 @@ def add_indicators(df: pd.DataFrame, periods: list[int]) -> pd.DataFrame:
     return df_res
 
 
-# --- Main Execution ---
 if __name__ == "__main__":
     logging.info(f"--- Starting Market Snapshot Script (Fetching {CANDLES_TO_FETCH} candles) ---")
     analysis_payload = {}
@@ -144,7 +136,6 @@ if __name__ == "__main__":
             print("-" * 50)
             logging.info(f"Processing {symbol} on the {tf_api} timeframe")
 
-            # <<< MODIFIED: Call the new function to fetch a fixed number of candles >>>
             df_full = BinanceAPI.fetch_last_n_candles(symbol, tf_api, num_candles=CANDLES_TO_FETCH)
 
             if df_full is None or df_full.empty:
