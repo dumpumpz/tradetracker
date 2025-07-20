@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -260,7 +260,6 @@
             <textarea id="journal-entry" placeholder="Select a symbol, timeframe, and date to view or add a journal entry."></textarea>
             <p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p>
             
-            <!-- FIX: Added the image upload section which allows adding pictures via button or drag-and-drop in master mode -->
             <div id="image-upload-section" class="master-only">
                 <label for="journal-image-upload" class="image-upload-label">Add Picture</label>
                 <input type="file" id="journal-image-upload" accept="image/*">
@@ -310,7 +309,7 @@
         <div id="sr-levels-tab" class="tab-content">
             <div class="controls-container">
                 <div><label for="sr-symbol">Symbol:</label><select id="sr-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
-                <div><label for="sr-lookback">Lookback:</label><select id="sr-lookback"><option value="60d">60 Days</option><option value="30d">30 Days</option><option value="21d">21 Days</option><option value="14d">14 Days</option><option value="7d">7 Days</option>  <option value="3d">3 Days</option> <!-- ADDED -->
+                <div><label for="sr-lookback">Lookback:</label><select id="sr-lookback"><option value="60d">60 Days</option><option value="30d">30 Days</option><option value="21d">21 Days</option><option value="14d">14 Days</option><option value="7d">7 Days</option>  <option value="3d">3 Days</option>
     <option value="2d">2 Days</option></select></div>
             </div>
             <p class="ema-last-updated">Last Updated: <span id="sr-last-updated-time">--</span></p>
@@ -342,13 +341,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
-
-
-
-
 <script>
 
-    const firebaseConfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
     authDomain: "journal-a003f.firebaseapp.com",
     databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -365,8 +360,11 @@ const completedTradesRef = database.ref('completed_trades');
 const bankRef = database.ref('bank');
 const journalRef = database.ref('journal_text'); 
 const journalImagesRef = database.ref('journal_images'); 
-const emaValuesRef = database.ref('ema_values');
-const srLevelsRef = database.ref('sr_levels_lookback');
+
+// <<< MODIFICATION: REMOVED FIREBASE REFS FOR EMA AND S/R LEVELS >>>
+// const emaValuesRef = database.ref('ema_values');
+// const srLevelsRef = database.ref('sr_levels_lookback');
+
 const FEE_RATE = 0.00075;
 const STARTING_BALANCE = 4000;
 const USD_TO_AUD_RATE = 1.53;
@@ -416,6 +414,40 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
     
+    // <<< NEW FUNCTION: Fetch EMA/SMA data from local JSON file >>>
+    async function fetchEmaData() {
+        try {
+            // Add a cache-busting query parameter to ensure the latest file is fetched
+            const response = await fetch('ma_analysis.json?cache_bust=' + new Date().getTime());
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            allEmaData = await response.json();
+            // Render if the journal tab is already active
+            if (document.getElementById('journal-tab').classList.contains('active')) {
+                updateJournalView(); // This function calls renderEmaData
+            }
+        } catch (error) {
+            console.error("Could not fetch ma_analysis.json:", error);
+            document.getElementById('ema-tbody').innerHTML = '<tr><td colspan="13" style="color: red; text-align: center;">Error loading EMA data. Make sure ma_analysis.json is in the correct folder.</td></tr>';
+        }
+    }
+
+    // <<< NEW FUNCTION: Fetch S/R Level data from local JSON file >>>
+    async function fetchSrData() {
+        try {
+            // Add a cache-busting query parameter
+            const response = await fetch('sr_levels_analysis.json?cache_bust=' + new Date().getTime());
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            allSrData = await response.json();
+            // Render if the S/R tab is already active
+            if (document.getElementById('sr-levels-tab').classList.contains('active')) {
+                renderSrLevels();
+            }
+        } catch (error) {
+            console.error("Could not fetch sr_levels_analysis.json:", error);
+            document.getElementById('sr-levels-container').innerHTML = '<p style="color: red; text-align: center;">Error: Could not load S/R levels data. Make sure sr_levels_analysis.json is in the correct folder.</p>';
+        }
+    }
+
     function renderTradeIdeas() {
         tradeIdeasContainer.innerHTML = '';
         if (!allTradeIdeasData || !Array.isArray(allTradeIdeasData)) {
@@ -464,7 +496,7 @@ document.addEventListener('DOMContentLoaded', function () {
         autoResizeTextarea(journalEntryEl); 
         const symbolImageData = allJournalImages[safeSymbol] || {}; 
         renderJournalImages(safeSymbol, timeframe, symbolImageData); 
-        renderEmaData();
+        renderEmaData(); // This function relies on allEmaData
     }
 
     const saveJournalEntry = (() => { 
@@ -645,9 +677,12 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderLiveTable(d){const t=document.getElementById('trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const noteText=a.note||'';const noteCell=`<td class="note-cell" title="${noteText}">${noteText}</td>`;const masterButtons=isMasterUser?`<td class="action-buttons"><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>`:'';r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.stoploss).toFixed(2)}</td><td>${parseFloat(a.target).toFixed(2)}</td><td>${parseFloat(a.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(a.expected_profit||0).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(a.expected_loss||0).toFixed(2)}</td><td>${a.date}</td>${noteCell}${masterButtons}`;t.appendChild(r);});}
     function renderCompletedTable(d){const t=document.getElementById('completed-trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].closed_date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const c=a.net_result>=0?'#28a745':'#dc3545',e=(a.entry_fee||0)+(a.exit_fee||0);const noteText=a.note||'';const noteCell=`<td class="note-cell" title="${noteText}">${noteText}</td>`;const masterButtons=isMasterUser?`<td class="action-buttons"><button class="note-btn-completed" data-id="${id}">Edit</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>`:'';r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.exit_price).toFixed(2)}</td><td>${e.toFixed(2)}</td><td style="color:${c};font-weight:bold;">${parseFloat(a.net_result).toFixed(2)}</td><td>${a.date}</td><td>${a.closed_date}</td>${noteCell}${masterButtons}`;t.appendChild(r);});}
     
+    // <<< MODIFICATION: CALL THE NEW FETCH FUNCTIONS ON PAGE LOAD >>>
     checkMasterMode();
     renderDateNavigation();
     fetchTradeIdeas();
+    fetchEmaData();
+    fetchSrData();
 
     journalImagesContainer.addEventListener('click', (e) => {
         const button = e.target.closest('.delete-journal-image');
@@ -807,7 +842,10 @@ document.addEventListener('DOMContentLoaded', function () {
         bankRef.set({ currentBalance: newBalance });
     });
     
-    emaValuesRef.on('value', (s) => { if (s.exists()) { allEmaData = s.val(); if(document.getElementById('journal-tab').classList.contains('active')) updateJournalView(); } });
+    // <<< MODIFICATION: REMOVED FIREBASE LISTENERS >>>
+    // emaValuesRef.on('value', (s) => { ... });
+    // srLevelsRef.on('value', (s) => { ... });
+
     journalRef.on('value', (s) => { allJournalText = s.val() || {}; if(document.getElementById('journal-tab').classList.contains('active')) updateJournalView(); });
     journalImagesRef.on('value', (s) => {
         allJournalImages = s.val() || {};
@@ -818,14 +856,7 @@ document.addEventListener('DOMContentLoaded', function () {
             renderSnapshotView();
         }
     });
-    srLevelsRef.on('value', (s) => {
-        if(s.exists()){
-            allSrData = s.val();
-            if(document.getElementById('sr-levels-tab').classList.contains('active')){
-                renderSrLevels();
-            }
-        }
-    });
+
 });
 </script>
 </body>
