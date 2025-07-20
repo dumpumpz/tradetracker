@@ -5,6 +5,7 @@ import sys
 import requests
 import time
 import json
+import math # <<< NEW: Required for ceiling function
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Any, Dict
 
@@ -20,8 +21,15 @@ TIMEFRAME_CONFIG = {
 }
 MA_PERIODS = [13, 49, 100, 200, 500, 1000]
 OUTPUT_FILENAME = "ma_analysis.json"
-# <<< NEW: Increased lookback for better MA warmup >>>
-DATA_LOOKBACK_DAYS = 200
+
+# <<< MODIFIED: Replaced static lookback with dynamic calculation settings >>>
+# This multiplier determines how many candles to fetch for warming up the longest MA.
+# A value of 3 means for a 1000-period MA, we'll fetch at least 3 * 1000 = 3000 candles.
+# TradingView uses all available history, so a higher number leads to more accuracy.
+WARMUP_MULTIPLIER = 3
+# An extra flat buffer in days to account for potential gaps in API data or non-trading days.
+LOOKBACK_BUFFER_DAYS = 15
+
 
 # --- API Configuration ---
 API_RETRY_ATTEMPTS = 3
@@ -43,8 +51,8 @@ def get_safe_symbol(symbol):
 
 # --- API Class ---
 class BinanceAPI:
-    # <<< MODIFIED: Using the binance.us API endpoint >>>
-    BASE_URL = "https://api.binance.us/api/v3"
+    # Using the international API for better data availability, can be switched back to .us if needed
+    BASE_URL = "https://api.binance.com/api/v3"
 
     @staticmethod
     def _make_request(url: str, params: Dict) -> Optional[List[Any]]:
@@ -70,54 +78,66 @@ class BinanceAPI:
         all_klines_list = []
         current_start_ms = int(start_dt.timestamp() * 1000)
         logging.info(
-            f"[{symbol}/{interval}] Fetching new data from API for "
-            f"{api_symbol} starting from {start_dt.strftime('%Y-%m-%d')}...")
-            
+            f"[{symbol}/{interval}] Fetching data from API for "
+            f"{api_symbol} starting from {start_dt.strftime('%Y-%m-%d %H:%M:%S UTC')}...")
+
         while True:
             params = {"symbol": api_symbol, "interval": interval,
                       "limit": HISTORICAL_DATA_CHUNK_LIMIT,
                       "startTime": current_start_ms}
             klines_chunk_raw = BinanceAPI._make_request(
                 f"{BinanceAPI.BASE_URL}/klines", params)
-                
-            if klines_chunk_raw is None: 
+
+            if klines_chunk_raw is None:
                 return None
-            if not klines_chunk_raw: 
+            if not klines_chunk_raw:
                 break
-                
+
             all_klines_list.extend(klines_chunk_raw)
             last_candle_open_time_ms = int(klines_chunk_raw[-1][0])
+            # Set the start for the next chunk to be the time of the last candle + 1ms
             current_start_ms = last_candle_open_time_ms + 1
-            if len(klines_chunk_raw) < HISTORICAL_DATA_CHUNK_LIMIT: 
+            if len(klines_chunk_raw) < HISTORICAL_DATA_CHUNK_LIMIT:
                 break
-                
+
         if not all_klines_list:
-            logging.info(f"[{symbol}/{interval}] No new data found on API.")
+            logging.warning(f"[{symbol}/{interval}] No data found on API for the requested period.")
             return pd.DataFrame()
-            
+
         columns = ['open_time', 'open', 'high', 'low', 'close', 'volume',
                    'close_time', 'quote_asset_volume', 'number_of_trades',
                    'taker_buy_base_asset_volume',
                    'taker_buy_quote_asset_volume', 'ignore']
         df = pd.DataFrame(all_klines_list, columns=columns)
         numeric_cols = ['open', 'high', 'low', 'close', 'volume']
-        for col in numeric_cols: 
+        for col in numeric_cols:
             df[col] = pd.to_numeric(df[col], errors='coerce')
-            
+
         df['open_time'] = pd.to_datetime(df['open_time'], unit='ms', utc=True)
+        # Ensure no duplicate timestamps, keeping the last one
+        df = df.drop_duplicates(subset=['open_time'], keep='last')
         df = df.set_index('open_time')
         df = df[['open', 'high', 'low', 'close', 'volume']].dropna()
         logging.info(
-            f"[{symbol}/{interval}] Fetched {len(df)} new candles from API.")
+            f"[{symbol}/{interval}] Fetched {len(df)} unique candles from API.")
         return df
 
 
 # --- Calculation Function ---
 def add_indicators(df: pd.DataFrame, periods: list[int]) -> pd.DataFrame:
+    """Calculates SMAs and EMAs for the given periods."""
+    if df.empty:
+        return df
     df_res = df.copy()
     for period in periods:
-        df_res[f'SMA_{period}'] = df_res['close'].rolling(window=period).mean()
-        df_res[f'EMA_{period}'] = df_res['close'].ewm(span=period, adjust=False).mean()
+        if len(df_res) >= period:
+            df_res[f'SMA_{period}'] = df_res['close'].rolling(window=period).mean()
+            # adjust=False is crucial for matching TradingView's standard EMA calculation
+            df_res[f'EMA_{period}'] = df_res['close'].ewm(span=period, adjust=False).mean()
+        else:
+            # If not enough data for the period, fill with None (or NaN)
+            df_res[f'SMA_{period}'] = None
+            df_res[f'EMA_{period}'] = None
     return df_res
 
 
@@ -126,6 +146,9 @@ if __name__ == "__main__":
     logging.info("--- Starting Market Snapshot Script ---")
     analysis_payload = {}
 
+    # Find the longest MA period needed, as it dictates the data requirement
+    longest_ma_period = max(MA_PERIODS) if MA_PERIODS else 0
+
     for symbol in SYMBOLS:
         safe_symbol = get_safe_symbol(symbol)
         analysis_payload[safe_symbol] = {}
@@ -133,31 +156,40 @@ if __name__ == "__main__":
         for tf_api, tf_config in TIMEFRAME_CONFIG.items():
             print("-" * 50)
             logging.info(f"Processing {symbol} on the {tf_api} timeframe")
-            
-            # <<< MODIFIED: Simplified data fetching logic >>>
+
+            # <<< MODIFIED: DYNAMIC LOOKBACK CALCULATION FOR PROPER WARMUP >>>
+            required_candles = longest_ma_period * WARMUP_MULTIPLIER
+
+            minutes_per_candle = tf_config['minutes']
+            candles_per_day = (24 * 60) / minutes_per_candle
+
+            # Calculate how many days of data are needed to satisfy the candle requirement
+            dynamic_lookback_days = math.ceil(required_candles / candles_per_day) + LOOKBACK_BUFFER_DAYS
+
+            logging.info(f"[{symbol}/{tf_api}] Longest MA: {longest_ma_period}, Warmup Multiplier: {WARMUP_MULTIPLIER}")
+            logging.info(f"[{symbol}/{tf_api}] Required candles for warmup: ~{required_candles}")
+            logging.info(f"[{symbol}/{tf_api}] Calculated lookback period: {dynamic_lookback_days} days")
+
             # 1. Fetch all required historical data from the API
-            start_date = datetime.now(timezone.utc) - timedelta(days=DATA_LOOKBACK_DAYS)
-            
+            start_date = datetime.now(timezone.utc) - timedelta(days=dynamic_lookback_days)
             df_full = BinanceAPI.fetch_new_data(symbol, tf_api, start_dt=start_date)
 
             if df_full is None or df_full.empty:
                 logging.error(f"[{symbol}/{tf_api}] No data available from API. Skipping.")
                 continue
 
-            # 2. Calculate indicators
+            # 2. Calculate indicators on the full, properly warmed-up dataset
             data_with_indicators = add_indicators(df_full, MA_PERIODS)
 
             # 3. Get the latest row and prepare the payload
             latest_row = data_with_indicators.iloc[-1]
             indicator_values = {}
 
-                        # Add the latest price
-            # Wrap in float() to convert from numpy type to standard python type
+            # Add the latest price
             indicator_values['price'] = float(round(latest_row['close'], 4))
 
-            # Add EMAs and SMAs
+            # Add EMAs and SMAs, ensuring they are standard Python floats for JSON serialization
             for period in MA_PERIODS:
-                # Wrap each value in float()
                 ema_val = latest_row.get(f'EMA_{period}')
                 sma_val = latest_row.get(f'SMA_{period}')
 
@@ -174,15 +206,14 @@ if __name__ == "__main__":
             'data': analysis_payload,
             'last_updated': datetime.now(timezone.utc).isoformat()
         }
-                        
+
         logging.info(f"\nWriting final payload to {OUTPUT_FILENAME}...")
         try:
             with open(OUTPUT_FILENAME, 'w') as json_file:
                 json.dump(full_payload, json_file, indent=4)
             logging.info(f"SUCCESS: Analysis data saved to {OUTPUT_FILENAME}.")
         except IOError as e:
-            logging.error(f"FATAL: Could not write to file {OUTPUT_FILENAME}. "
-                          f"Error: {e}")
+            logging.error(f"FATAL: Could not write to file {OUTPUT_FILENAME}. Error: {e}")
             sys.exit(1)
     else:
         logging.warning("No data was processed, JSON file not created.")
