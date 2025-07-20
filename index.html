@@ -304,6 +304,15 @@
             <div class="controls-container" id="journal-controls">
                 <div><label for="journal-symbol">Symbol:</label><select id="journal-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
                 <div><label for="journal-timeframe">Timeframe:</label><select id="journal-timeframe"><option value="15min">15min</option><option value="30min">30min</option><option value="1hour">1hour</option><option value="2hour">2hour</option><option value="4hour">4hour</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div>
+                <!-- <<< MODIFICATION START >>> -->
+                <div>
+                    <label for="journal-image-filter">Filter Images:</label>
+                    <select id="journal-image-filter">
+                        <option value="all" selected>All for Timeframe</option>
+                        <option value="today">Selected Day Only</option>
+                    </select>
+                </div>
+                <!-- <<< MODIFICATION END >>> -->
             </div>
             <div class="date-nav-container">
                 <button id="date-prev" class="date-nav-arrow"><</button>
@@ -452,8 +461,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const dateButtonsContainer = document.getElementById('date-buttons-container');
     const datePrevBtn = document.getElementById('date-prev');
     const dateNextBtn = document.getElementById('date-next');
+    // <<< MODIFICATION START >>>
+    const journalImageFilterEl = document.getElementById('journal-image-filter');
+    // <<< MODIFICATION END >>>
 
-    // <<< NEW: Elements for the S/R Legend toggle >>>
     const srLegendHeader = document.getElementById('sr-legend-header');
     const srLegendContent = document.getElementById('sr-legend-content');
     const srLegendToggleBtn = document.getElementById('sr-legend-toggle-btn');
@@ -515,7 +526,9 @@ document.addEventListener('DOMContentLoaded', function () {
         journalEntryEl.value = dateData[timeframe] || ''; 
         autoResizeTextarea(journalEntryEl); 
         const symbolImageData = allJournalImages[safeSymbol] || {}; 
-        renderJournalImages(safeSymbol, timeframe, symbolImageData); 
+        // <<< MODIFICATION START >>>
+        renderJournalImages(safeSymbol, timeframe, symbolImageData, yyyymmdd); 
+        // <<< MODIFICATION END >>>
         renderEmaData();
     }
 
@@ -592,11 +605,29 @@ document.addEventListener('DOMContentLoaded', function () {
         (lookbackData.resistance || []).forEach(level => { resistanceContainer.innerHTML += buildLevelCard(level); });
     }
 
-    function renderJournalImages(symbol, timeframe, imagesForSymbol) {
+    // <<< MODIFICATION START >>>
+    function renderJournalImages(symbol, timeframe, imagesForSymbol, selectedYMD) {
         journalImagesContainer.innerHTML = '';
         const imagesForTimeframe = imagesForSymbol[timeframe] || {};
-        const imageKeys = Object.keys(imagesForTimeframe);
+        const allImageKeys = Object.keys(imagesForTimeframe);
+        
+        const filterMode = journalImageFilterEl.value;
+        let imageKeys;
+
+        if (filterMode === 'today') {
+            imageKeys = allImageKeys.filter(key => {
+                const imgData = imagesForTimeframe[key];
+                if (!imgData || !imgData.timestamp) return false;
+                const imgDate = new Date(imgData.timestamp);
+                const imgYMD = getYYYYMMDD(imgDate); // Uses the global helper function
+                return imgYMD === selectedYMD;
+            });
+        } else { // 'all' mode
+            imageKeys = allImageKeys;
+        }
+
         if (imageKeys.length === 0) return;
+
         imageKeys.sort((a, b) => imagesForTimeframe[b].timestamp - imagesForTimeframe[a].timestamp)
             .forEach(id => {
                 const imgData = imagesForTimeframe[id];
@@ -608,6 +639,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 journalImagesContainer.appendChild(wrapper);
             });
     }
+    // <<< MODIFICATION END >>>
     
     function renderEmaData() {
         const selectedSymbol = getSafeSymbol(journalSymbolEl.value);
@@ -702,7 +734,6 @@ document.addEventListener('DOMContentLoaded', function () {
     fetchEmaData();
     fetchSrData();
 
-    // <<< NEW: Event listener for the S/R Legend toggle >>>
     if (srLegendHeader) {
         srLegendHeader.addEventListener('click', () => {
             const isCollapsed = srLegendContent.style.display === 'none';
@@ -718,7 +749,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 srLegendToggleBtn.style.transform = 'rotate(180deg)';
             }
         });
-        // Set initial state text content (minus sign)
         srLegendToggleBtn.textContent = '−';
     }
 
@@ -818,6 +848,9 @@ document.addEventListener('DOMContentLoaded', function () {
     srLookbackEl.addEventListener('change', renderSrLevels);
     journalSymbolEl.addEventListener('change', updateJournalView);
     journalTimeframeEl.addEventListener('change', updateJournalView);
+    // <<< MODIFICATION START >>>
+    journalImageFilterEl.addEventListener('change', updateJournalView);
+    // <<< MODIFICATION END >>>
     document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
     
     document.querySelector('.tabs').addEventListener('click', (e) => { 
