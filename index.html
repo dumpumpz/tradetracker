@@ -232,8 +232,6 @@
         .sr-column.resistance .sr-level-strength { background-color: #dc3545; }
         .sr-level-pivots { padding: 15px; font-size: 13px; color: var(--subtle-text); }
         .sr-level-pivots span { font-weight: 600; color: var(--text-color); }
-
-        /* <<< MODIFICATION START >>> */
         .sr-summary {
             margin-top: 15px;
             padding-top: 15px;
@@ -247,7 +245,6 @@
             color: var(--text-color);
             font-family: 'Courier New', Courier, monospace;
         }
-        /* <<< MODIFICATION END >>> */
 
         .price-above { color: #dc3545 !important; }
         .price-below { color: #28a745 !important; }
@@ -261,6 +258,66 @@
         input:checked + .slider:before { transform: translateX(26px); }
         .slider.round { border-radius: 34px; }
         .slider.round:before { border-radius: 50%; }
+
+        /* <<< MODIFICATION START >>> */
+        .journal-input-wrapper {
+            position: relative;
+        }
+        #favourite-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 20px;
+            padding: 0;
+            margin: 0;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: #ccc; 
+            cursor: pointer;
+            display: none; 
+            transition: all 0.2s ease;
+            z-index: 5;
+        }
+        #favourite-btn:hover {
+            border-color: #ffc107;
+            color: #ffc107;
+        }
+        #favourite-btn.active {
+            color: #ffc107;
+            border-color: #ffc107;
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+        }
+        #favourited-entry-container {
+            background-color: var(--purple-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .favourited-header {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .favourited-header .star-icon {
+            font-size: 18px;
+            margin-right: 8px;
+            color: #ffc107;
+        }
+        #favourited-entry-text {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-color);
+        }
+        /* <<< MODIFICATION END >>> */
 
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
@@ -332,7 +389,22 @@
                 <div id="date-buttons-container"></div>
                 <button id="date-next" class="date-nav-arrow">></button>
             </div>
-            <textarea id="journal-entry" placeholder="Select a symbol, timeframe, and date to view or add a journal entry."></textarea>
+            
+            <!-- <<< MODIFICATION START >>> -->
+            <div id="favourited-entry-container" style="display: none;">
+                <div class="favourited-header">
+                    <span class="star-icon">⭐</span>
+                    <span>Pinned Note for this Timeframe</span>
+                </div>
+                <div id="favourited-entry-text"></div>
+            </div>
+
+            <div class="journal-input-wrapper">
+                 <textarea id="journal-entry" placeholder="Select a symbol, timeframe, and date to view or add a journal entry."></textarea>
+                 <button id="favourite-btn" class="master-only" title="Pin this note for this timeframe on all days">⭐</button>
+            </div>
+            <!-- <<< MODIFICATION END >>> -->
+
             <p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p>
             
             <div id="image-upload-section" class="master-only">
@@ -413,7 +485,6 @@
             <p class="ema-last-updated">Last Updated: <span id="sr-last-updated-time">--</span></p>
 
             <div id="sr-levels-container">
-                <!-- <<< MODIFICATION START >>> -->
                 <div class="sr-column support">
                     <h3>Top Support Zones</h3>
                     <div id="support-levels-container"></div>
@@ -424,7 +495,6 @@
                     <div id="resistance-levels-container"></div>
                     <div id="resistance-summary" class="sr-summary"></div>
                 </div>
-                <!-- <<< MODIFICATION END >>> -->
             </div>
         </div>
 
@@ -435,7 +505,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <script>
-
+// <<< MODIFICATION START >>>
 const firebaseConfig = {
     apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
     authDomain: "journal-a003f.firebaseapp.com",
@@ -453,13 +523,17 @@ const completedTradesRef = database.ref('completed_trades');
 const bankRef = database.ref('bank');
 const journalRef = database.ref('journal_text'); 
 const journalImagesRef = database.ref('journal_images'); 
+const favouritesRef = database.ref('journal_favourites');
+// <<< MODIFICATION END >>>
 
 const FEE_RATE = 0.00075;
 const STARTING_BALANCE = 3881;
 const USD_TO_AUD_RATE = 1.53;
 
 document.addEventListener('DOMContentLoaded', function () {
-    let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, currentPrice = 0;
+    // <<< MODIFICATION START >>>
+    let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, currentPrice = 0, allFavouriteEntries = {};
+    // <<< MODIFICATION END >>>
     let selectedDate = new Date();
     let centerDate = new Date();
     
@@ -483,6 +557,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const datePrevBtn = document.getElementById('date-prev');
     const dateNextBtn = document.getElementById('date-next');
     const journalImageFilterEl = document.getElementById('journal-image-filter');
+
+    // <<< MODIFICATION START >>>
+    const favouriteBtn = document.getElementById('favourite-btn');
+    const favouritedEntryContainer = document.getElementById('favourited-entry-container');
+    const favouritedEntryText = document.getElementById('favourited-entry-text');
+    // <<< MODIFICATION END >>>
 
     const srLegendHeader = document.getElementById('sr-legend-header');
     const srLegendContent = document.getElementById('sr-legend-content');
@@ -535,19 +615,42 @@ document.addEventListener('DOMContentLoaded', function () {
             dateButtonsContainer.appendChild(btn);
         }
     }
-
+    
+    // <<< MODIFICATION START >>>
     function updateJournalView() { 
         const safeSymbol = getSafeSymbol(journalSymbolEl.value); 
         const yyyymmdd = getYYYYMMDD(selectedDate);
         const timeframe = journalTimeframeEl.value; 
+
+        // 1. Load and display the favourited entry for this symbol/timeframe
+        const favouriteText = (allFavouriteEntries[safeSymbol] || {})[timeframe];
+        if (favouriteText) {
+            favouritedEntryText.textContent = favouriteText;
+            favouritedEntryContainer.style.display = 'block';
+        } else {
+            favouritedEntryContainer.style.display = 'none';
+        }
+
+        // 2. Load the daily journal entry into the textarea
         const symbolTextData = allJournalText[safeSymbol] || {};
         const dateData = symbolTextData[yyyymmdd] || {};
-        journalEntryEl.value = dateData[timeframe] || ''; 
+        const dailyText = dateData[timeframe] || '';
+        journalEntryEl.value = dailyText; 
         autoResizeTextarea(journalEntryEl); 
+
+        // 3. Update the star button's active state
+        if (dailyText && dailyText === favouriteText) {
+            favouriteBtn.classList.add('active');
+        } else {
+            favouriteBtn.classList.remove('active');
+        }
+        
+        // 4. Load images and EMA data
         const symbolImageData = allJournalImages[safeSymbol] || {}; 
         renderJournalImages(safeSymbol, timeframe, symbolImageData, yyyymmdd); 
         renderEmaData();
     }
+    // <<< MODIFICATION END >>>
 
     const saveJournalEntry = (() => { 
         let t; 
@@ -563,6 +666,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 journalRef.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text)
                     .then(() => { 
                         document.getElementById('save-status').textContent = 'Saved.'; 
+                        // <<< MODIFICATION START >>>
+                        // After saving, check if this new text matches a favourite and update star
+                        const favouriteText = (allFavouriteEntries[safeSymbol] || {})[timeframe];
+                        if (text && text === favouriteText) {
+                            favouriteBtn.classList.add('active');
+                        } else {
+                            favouriteBtn.classList.remove('active');
+                        }
+                        // <<< MODIFICATION END >>>
                         setTimeout(() => document.getElementById('save-status').textContent = '', 2000); 
                     })
                     .catch(e => document.getElementById('save-status').textContent = `Error: ${e.message}`); 
@@ -594,7 +706,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // <<< MODIFICATION START >>>
     function renderSrLevels() {
         const selectedSymbol = getSafeSymbol(srSymbolEl.value);
         const selectedLookback = srLookbackEl.value;
@@ -642,7 +753,6 @@ document.addEventListener('DOMContentLoaded', function () {
             resistanceSummaryEl.innerHTML = `Full Range: <span>$${lowestResistance.toLocaleString('en-US', {maximumFractionDigits: 0})}</span> - <span>$${highestResistance.toLocaleString('en-US', {maximumFractionDigits: 0})}</span>`;
         }
     }
-    // <<< MODIFICATION END >>>
 
     function renderJournalImages(symbol, timeframe, imagesForSymbol, selectedYMD) {
         journalImagesContainer.innerHTML = '';
@@ -723,6 +833,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (el.id === 'add-trade-form') el.style.display = 'grid'; 
                     else if (el.tagName === 'TH' || el.tagName === 'TD') el.style.display = 'table-cell'; 
                     else if (el.classList.contains('backup-controls')) el.style.display = 'flex'; 
+                    // <<< MODIFICATION START >>>
+                    else if (el.id === 'favourite-btn') el.style.display = 'block';
+                    // <<< MODIFICATION END >>>
                     else el.style.display = 'block'; 
                 }); 
                 journalEntryEl.readOnly = false; 
@@ -806,6 +919,30 @@ document.addEventListener('DOMContentLoaded', function () {
     journalEntryEl.addEventListener('input', () => autoResizeTextarea(journalEntryEl));
     journalEntryEl.addEventListener('input', saveJournalEntry);
     
+    // <<< MODIFICATION START >>>
+    favouriteBtn.addEventListener('click', () => {
+        if (!isMasterUser) return;
+
+        const safeSymbol = getSafeSymbol(journalSymbolEl.value);
+        const timeframe = journalTimeframeEl.value;
+        const currentText = journalEntryEl.value.trim();
+
+        if (favouriteBtn.classList.contains('active')) {
+            // Currently active, so un-favourite it
+            favouritesRef.child(safeSymbol).child(timeframe).remove()
+                .catch(e => console.error("Error removing favourite:", e));
+        } else {
+            // Not active, so favourite it
+            if (!currentText) {
+                alert('Cannot pin an empty note.');
+                return;
+            }
+            favouritesRef.child(safeSymbol).child(timeframe).set(currentText)
+                .catch(e => console.error("Error setting favourite:", e));
+        }
+    });
+    // <<< MODIFICATION END >>>
+
     addTradeForm.addEventListener('submit', (e) => {
         e.preventDefault();
         if (!isMasterUser) return alert('You do not have permission to add trades.');
@@ -957,6 +1094,15 @@ document.addEventListener('DOMContentLoaded', function () {
             renderSnapshotView();
         }
     });
+
+    // <<< MODIFICATION START >>>
+    favouritesRef.on('value', (s) => {
+        allFavouriteEntries = s.val() || {};
+        if (document.getElementById('journal-tab').classList.contains('active')) {
+            updateJournalView();
+        }
+    });
+    // <<< MODIFICATION END >>>
 
 });
 </script>
