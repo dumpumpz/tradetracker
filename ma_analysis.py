@@ -104,7 +104,8 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days):
                                'Number of trades',
                                'Taker buy base asset volume',
                                'Taker buy quote asset volume', 'Ignore'])
-    df['Date'] = pd.to_datetime(df['Open time'], unit='ms')
+    # Make the index timezone-aware to match our start_date
+    df['Date'] = pd.to_datetime(df['Open time'], unit='ms', utc=True)
     df.set_index('Date', inplace=True)
     df.drop_duplicates(inplace=True)
 
