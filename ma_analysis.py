@@ -52,7 +52,7 @@ def get_safe_symbol(symbol):
 # --- API Class ---
 class BinanceAPI:
     # Using the international API for better data availability, can be switched back to .us if needed
-    BASE_URL = "https://api3.binance.com/api/v3"
+    BASE_URL = "https://api.binance.us/api/v3"
 
     @staticmethod
     def _make_request(url: str, params: Dict) -> Optional[List[Any]]:
