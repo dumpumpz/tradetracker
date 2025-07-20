@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import requests
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import re
 import time
 import logging
@@ -61,20 +61,18 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days):
         logging.error(f"Invalid timeframe provided: {interval}")
         return None
 
-    total_candles_needed = (lookback_days * 1440) // minutes_per_tf
+    # Calculate total candles needed based on the start date
+    start_time = datetime.now(timezone.utc) - timedelta(days=lookback_days)
     all_data = []
-    end_time_ms = None
+    current_start_ms = int(start_time.timestamp() * 1000)
     limit_per_req = 1000
 
     logging.info(
-        f"Fetching data for {symbol} on {interval}. Need ~"
-        f"{total_candles_needed} candles for {lookback_days} days.")
+        f"Fetching data for {symbol} on {interval} for {lookback_days} days, starting from {start_time.strftime('%Y-%m-%d')}.")
 
-    while len(all_data) < total_candles_needed:
+    while True:
         url = f'https://api.binance.us/api/v3/klines?symbol=' \
-              f'{symbol}&interval={interval}&limit={limit_per_req}'
-        if end_time_ms:
-            url += f'&endTime={end_time_ms}'
+              f'{symbol}&interval={interval}&limit={limit_per_req}&startTime={current_start_ms}'
 
         try:
             response = requests.get(url, timeout=20)
@@ -82,11 +80,10 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days):
             data_chunk = response.json()
 
             if not data_chunk:
-                logging.info(f"No more historical data for {symbol}, stopping pagination.")
-                break
+                break 
 
-            all_data = data_chunk + all_data
-            end_time_ms = data_chunk[0][0] - 1
+            all_data.extend(data_chunk)
+            current_start_ms = data_chunk[-1][0] + 1
 
             if len(data_chunk) < limit_per_req:
                 break
@@ -98,6 +95,7 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days):
             return None
 
     if not all_data:
+        logging.warning(f"No data fetched for {symbol} on {interval}.")
         return None
 
     df = pd.DataFrame(all_data,
@@ -110,11 +108,8 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days):
     df.set_index('Date', inplace=True)
     df.drop_duplicates(inplace=True)
 
-    final_df = df.tail(total_candles_needed)
-    logging.info(
-        f"SUCCESS: Fetched a total of {len(final_df)} candles for {symbol} "
-        f"on {interval}.")
-    return final_df[['Open', 'High', 'Low', 'Close', 'Volume']].astype(float)
+    logging.info(f"SUCCESS: Fetched a total of {len(df)} candles for {symbol} on {interval}.")
+    return df[['Open', 'High', 'Low', 'Close', 'Volume']].astype(float)
 
 
 def find_pivots_from_series(data_series, window, is_high):
@@ -131,8 +126,7 @@ def find_pivots_from_series(data_series, window, is_high):
     return pivots
 
 
-def generate_pivots_for_timeframe(symbol, timeframe, lookback_days):
-    df_ohlcv = fetch_ohlcv_paginated(symbol, timeframe, lookback_days)
+def generate_pivots_for_timeframe(df_ohlcv, timeframe):
     if df_ohlcv is None or df_ohlcv.empty: return pd.DataFrame()
 
     all_pivots_list = []
@@ -163,6 +157,8 @@ def generate_pivots_for_timeframe(symbol, timeframe, lookback_days):
 
 def find_clusters(pivots_df, threshold_percent):
     if pivots_df.empty: return []
+    # Using .copy() to avoid the SettingWithCopyWarning
+    pivots_df = pivots_df.copy()
     clusters, current_cluster_pivots = [], []
     pivots_df.sort_values(by='Price', inplace=True)
     for _, pivot in pivots_df.iterrows():
@@ -176,7 +172,6 @@ def find_clusters(pivots_df, threshold_percent):
         else:
             if current_cluster_pivots:
                 cluster_df = pd.DataFrame(current_cluster_pivots)
-                # <<< MODIFIED: Ensure all numeric types are standard Python types >>>
                 cluster_data = {
                     'Type': str(cluster_df['Type'].iloc[0]),
                     'Price Start': float(cluster_df['Price'].min()),
@@ -185,11 +180,9 @@ def find_clusters(pivots_df, threshold_percent):
                     'Pivot Count': int(len(cluster_df))
                 }
                 clusters.append(cluster_data)
-                # <<< END MODIFICATION >>>
             current_cluster_pivots = [pivot]
     if current_cluster_pivots:
         cluster_df = pd.DataFrame(current_cluster_pivots)
-        # <<< MODIFIED: Ensure all numeric types are standard Python types >>>
         cluster_data = {
             'Type': str(cluster_df['Type'].iloc[0]),
             'Price Start': float(cluster_df['Price'].min()),
@@ -198,33 +191,40 @@ def find_clusters(pivots_df, threshold_percent):
             'Pivot Count': int(len(cluster_df))
         }
         clusters.append(cluster_data)
-        # <<< END MODIFICATION >>>
     return clusters
 
-
-def run_analysis_for_lookback(symbol, lookback_days):
-    logging.info(
-        f"--- Running Analysis for {symbol} with {lookback_days}-Day "
-        f"Lookback ---")
+# <<< REFACTORED: This function now accepts the pre-fetched data >>>
+def run_analysis_for_lookback(lookback_days: int, full_data_cache: Dict[str, pd.DataFrame]):
     all_pivots_dfs = []
+    
+    # Calculate the start date for this specific lookback
+    start_date = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+
     for tf in TIMEFRAMES_TO_ANALYZE:
-        pivots_df = generate_pivots_for_timeframe(symbol, tf, lookback_days)
+        # Get the full dataset for this timeframe from the cache
+        df_full = full_data_cache.get(tf)
+        if df_full is None or df_full.empty:
+            continue
+        
+        # Slice the DataFrame to get the specific lookback window
+        df_slice = df_full[df_full.index >= start_date]
+        if df_slice.empty:
+            continue
+        
+        pivots_df = generate_pivots_for_timeframe(df_slice, tf)
         if not pivots_df.empty:
             all_pivots_dfs.append(pivots_df)
-        time.sleep(0.5)
 
     if not all_pivots_dfs:
-        logging.warning(f"No pivot data for {symbol} at {lookback_days} days.")
         return None
 
     pivots_data = pd.concat(all_pivots_dfs, ignore_index=True)
 
     support_clusters = find_clusters(
-        pivots_data[pivots_data['Type'] == 'Support'],
-        CLUSTER_THRESHOLD_PERCENT)
+        pivots_data[pivots_data['Type'] == 'Support'], CLUSTER_THRESHOLD_PERCENT)
     resistance_clusters = find_clusters(
-        pivots_data[pivots_data['Type'] == 'Resistance'],
-        CLUSTER_THRESHOLD_PERCENT)
+        pivots_data[pivots_data['Type'] == 'Resistance'], CLUSTER_THRESHOLD_PERCENT)
+    
     support_clusters.sort(key=lambda x: x['Strength Score'], reverse=True)
     resistance_clusters.sort(key=lambda x: x['Strength Score'], reverse=True)
 
@@ -235,21 +235,35 @@ def run_analysis_for_lookback(symbol, lookback_days):
             'timeframes_analyzed': TIMEFRAMES_TO_ANALYZE,
             'pivot_windows': PIVOT_WINDOWS,
             'lookback_days': lookback_days,
-            'oldest_pivot_date': pivots_data['Timestamp'].min().strftime(
-                '%Y-%m-%d'),
-            'newest_pivot_date': pivots_data['Timestamp'].max().strftime(
-                '%Y-%m-%d')
+            'oldest_pivot_date': pivots_data['Timestamp'].min().strftime('%Y-%m-%d'),
+            'newest_pivot_date': pivots_data['Timestamp'].max().strftime('%Y-%m-%d')
         }
     }
 
 
 def main():
     analysis_payload = {}
+    
+    # <<< REFACTORED: Main loop to fetch data once per symbol >>>
     for symbol in SYMBOLS:
         safe_symbol = get_safe_symbol(symbol)
         analysis_payload[safe_symbol] = {}
+        
+        logging.info(f"--- PRE-FETCHING ALL DATA FOR {symbol} ---")
+        
+        # Determine the longest lookback needed to fetch all data at once
+        longest_lookback = max(LOOKBACK_PERIODS_DAYS)
+        
+        # Cache to hold the full dataset for each timeframe
+        full_data_cache = {}
+        for tf in TIMEFRAMES_TO_ANALYZE:
+            full_data_cache[tf] = fetch_ohlcv_paginated(symbol, tf, longest_lookback)
+            time.sleep(0.5)
+
+        # Now, run analysis for each lookback period using the cached data
         for days in LOOKBACK_PERIODS_DAYS:
-            analysis_result = run_analysis_for_lookback(symbol, days)
+            logging.info(f"--- Running Analysis for {symbol} with {days}-Day Lookback (using cached data) ---")
+            analysis_result = run_analysis_for_lookback(days, full_data_cache)
             if analysis_result:
                 analysis_payload[safe_symbol][f'{days}d'] = analysis_result
 
