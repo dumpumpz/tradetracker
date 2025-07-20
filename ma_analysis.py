@@ -151,13 +151,18 @@ if __name__ == "__main__":
             latest_row = data_with_indicators.iloc[-1]
             indicator_values = {}
 
-            # Add the latest price
-            indicator_values['price'] = round(latest_row['close'], 4)
+                        # Add the latest price
+            # Wrap in float() to convert from numpy type to standard python type
+            indicator_values['price'] = float(round(latest_row['close'], 4))
 
             # Add EMAs and SMAs
             for period in MA_PERIODS:
-                indicator_values[f'EMA_{period}'] = round(latest_row.get(f'EMA_{period}', 0), 4)
-                indicator_values[f'SMA_{period}'] = round(latest_row.get(f'SMA_{period}', 0), 4)
+                # Wrap each value in float()
+                ema_val = latest_row.get(f'EMA_{period}')
+                sma_val = latest_row.get(f'SMA_{period}')
+
+                indicator_values[f'EMA_{period}'] = float(round(ema_val, 4)) if pd.notna(ema_val) else None
+                indicator_values[f'SMA_{period}'] = float(round(sma_val, 4)) if pd.notna(sma_val) else None
 
             website_tf_name = tf_config['name']
             analysis_payload[safe_symbol][website_tf_name] = indicator_values
