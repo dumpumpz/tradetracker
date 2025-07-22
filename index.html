@@ -162,11 +162,30 @@
         .ema-last-updated { text-align: center; font-style: italic; color: var(--subtle-text); font-size: 14px; margin-bottom: 20px; }
         .ema-table-container { margin-bottom: 30px; }
         .ema-table-container h4 { font-size: 18px; margin-bottom: 5px; text-align: center; }
-        .ema-table-container .current-price-display { text-align: center; font-size: 16px; margin-bottom: 10px; color: var(--text-color); }
+        .ema-table-container .current-price-display { text-align: center; font-size: 16px; color: var(--text-color); }
         .price-value { font-weight: bold; }
         .ema-table th, .ema-table td { font-family: inherit; font-size: 14px; padding: 10px 8px; }
         .ema-table th { font-weight: bold; background-color: var(--header-bg); color: var(--subtle-text); }
         .ema-table td:first-child { font-weight: bold; text-align: left; color: var(--link-color); padding-left: 15px; }
+
+        /* ADDED: Styles for the closest S/R EMA summary */
+        .ema-summary-container {
+            font-size: 13px;
+            padding: 8px 12px;
+            margin: 0 auto 15px auto;
+            max-width: 95%;
+            border-radius: 6px;
+            background-color: var(--bg-color);
+        }
+        .ema-level-summary {
+            line-height: 1.5;
+        }
+        .ema-level-summary strong {
+            font-weight: 600;
+        }
+        .ema-level-summary .support { color: var(--green-text); }
+        .ema-level-summary .resistance { color: var(--red-text); }
+        .ema-level-summary .value { font-family: 'Courier New', Courier, monospace; }
 
         #snapshot-images-container { display: flex; flex-direction: column; align-items: center; gap: 25px; margin-top: 20px; }
         .snapshot-image-item { width: 100%; max-width: 900px; }
@@ -431,9 +450,8 @@
 
         <div id="journal-tab" class="tab-content">
             
-            <!-- UPDATED: Two independent, identical setup tables -->
             <div class="setups-container">
-
+                <h2>Current Setups (Primary)</h2>
                 <div class="table-wrapper">
                     <table id="current-setups-table-1" class="setups-table">
                         <thead>
@@ -471,7 +489,7 @@
             </div>
 
             <div class="setups-container">
-        
+                <h2>Current Setups (Secondary)</h2>
                 <div class="table-wrapper">
                      <table id="current-setups-table-2" class="setups-table">
                         <thead>
@@ -650,7 +668,6 @@ const bankRef = database.ref('bank');
 const journalRef = database.ref('journal_text'); 
 const journalImagesRef = database.ref('journal_images'); 
 const favouritesRef = database.ref('journal_favourites');
-// UPDATED: Two separate Firebase refs for the two setup tables
 const setupsRef1 = database.ref('current_setups_1'); 
 const setupsRef2 = database.ref('current_setups_2');
 const persistentNotesRef = database.ref('persistent_notes');
@@ -661,7 +678,6 @@ const USD_TO_AUD_RATE = 1.53;
 
 document.addEventListener('DOMContentLoaded', function () {
     let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, allFavouriteEntries = {}, persistentNotesText = '';
-    // UPDATED: Separate data caches for each table
     let allSetupsData1 = {}, allSetupsData2 = {};
 
     let selectedDate = new Date();
@@ -697,7 +713,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const srLegendContent = document.getElementById('sr-legend-content');
     const srLegendToggleBtn = document.getElementById('sr-legend-toggle-btn');
     
-    // UPDATED: Element selectors for the new independent tables and controls
     const saveSetups1Btn = document.getElementById('save-setups-1-btn');
     const saveSetups2Btn = document.getElementById('save-setups-2-btn');
     const setupsTable1 = document.getElementById('current-setups-table-1');
@@ -930,6 +945,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
     
+    // UPDATED: Function now calculates and renders closest S/R EMAs for each symbol.
     function renderEmaData() {
         if (!allEmaData.data || !emaTablesContainer) return;
         
@@ -938,13 +954,15 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('ema-last-updated-time').textContent = lastUpdated;
 
         const symbolsToDisplay = ['BTC-USDT', 'ETH-USDT'];
-        
+        const timeframesToAnalyze = ['15min', '30min', '1hour', '2hour', '4hour', 'daily'];
+        const periodsToAnalyze = [13, 49, 100, 200, 500, 1000];
+        const tfShortNames = {'15min': '15m','30min': '30m','1hour': '1H','2hour': '2H','4hour': '4H','daily': '1D', 'weekly':'1W', 'monthly':'1M'};
+
         symbolsToDisplay.forEach(safeSymbol => {
             const symbolEmaData = allEmaData.data[safeSymbol] || {};
             let currentPrice = 0;
-            const dataFor15m = symbolEmaData['15min'];
-            if (dataFor15m && dataFor15m.price !== undefined) {
-                currentPrice = dataFor15m.price;
+            if (symbolEmaData['15min'] && symbolEmaData['15min'].price !== undefined) {
+                currentPrice = symbolEmaData['15min'].price;
             }
 
             const container = document.createElement('div');
@@ -959,20 +977,60 @@ document.addEventListener('DOMContentLoaded', function () {
             priceDisplay.innerHTML = `Current Price (15m): <span class="price-value">${currentPrice > 0 ? '$' + currentPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '--'}</span>`;
             container.appendChild(priceDisplay);
 
+            // --- Start of S/R EMA Calculation ---
+            const supports = [];
+            const resistances = [];
+
+            if (currentPrice > 0) {
+                timeframesToAnalyze.forEach(tf => {
+                    const tfData = symbolEmaData[tf];
+                    if (tfData) {
+                        periodsToAnalyze.forEach(period => {
+                            ['EMA', 'SMA'].forEach(type => {
+                                const key = `${type}_${period}`;
+                                if (tfData[key] !== undefined) {
+                                    const val = tfData[key];
+                                    const label = `${tfShortNames[tf]} ${type} ${period}`;
+                                    if (val < currentPrice) {
+                                        supports.push({ label, value: val, distance: currentPrice - val });
+                                    } else {
+                                        resistances.push({ label, value: val, distance: val - currentPrice });
+                                    }
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+
+            supports.sort((a, b) => a.distance - b.distance);
+            resistances.sort((a, b) => a.distance - b.distance);
+
+            const formatLevelText = (level) => `<span class="value">${level.label} (${Math.round(level.value).toLocaleString()})</span>`;
+            const supportText = supports.slice(0, 3).map(formatLevelText).join(' | ') || "None found nearby.";
+            const resistanceText = resistances.slice(0, 3).map(formatLevelText).join(' | ') || "None found nearby.";
+
+            const summaryContainer = document.createElement('div');
+            summaryContainer.className = 'ema-summary-container';
+            summaryContainer.innerHTML = `
+                <div class="ema-level-summary"><strong><span class="support">Support:</span></strong> ${supportText}</div>
+                <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong> ${resistanceText}</div>
+            `;
+            container.appendChild(summaryContainer);
+            // --- End of S/R EMA Calculation ---
+
+            const tableWrapper = document.createElement('div');
+            tableWrapper.className = 'table-wrapper';
             const table = document.createElement('table');
             table.className = 'ema-table';
             table.innerHTML = `<thead><tr><th>TF</th><th>EMA 13</th><th>SMA 13</th><th>EMA 49</th><th>SMA 49</th><th>EMA 100</th><th>SMA 100</th><th>EMA 200</th><th>SMA 200</th><th>EMA 500</th><th>SMA 500</th><th>EMA 1000</th><th>SMA 1000</th></tr></thead>`;
             const tbody = document.createElement('tbody');
 
-            const timeframesToDisplay = ['15min', '30min', '1hour', '2hour', '4hour', 'daily'];
-            const periodsToDisplay = [13, 49, 100, 200, 500, 1000];
-            const tfShortNames = {'15min': '15m','30min': '30m','1hour': '1H','2hour': '2H','4hour': '4H','daily': '1D'};
-
-            timeframesToDisplay.forEach(tf => {
+            timeframesToAnalyze.forEach(tf => {
                 const tfData = symbolEmaData[tf];
                 const row = tbody.insertRow();
                 row.insertCell().textContent = tfShortNames[tf] || tf;
-                periodsToDisplay.forEach(period => {
+                periodsToAnalyze.forEach(period => {
                     ['EMA', 'SMA'].forEach(type => {
                         const cell = row.insertCell();
                         if (tfData && tfData[`${type}_${period}`] !== undefined) {
@@ -987,12 +1045,12 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             table.appendChild(tbody);
-            container.appendChild(table);
+            tableWrapper.appendChild(table);
+            container.appendChild(tableWrapper);
             emaTablesContainer.appendChild(container);
         });
     }
 
-    // UPDATED: Reusable function to render a single setup table
     function renderSetupsTable(tableElement, data) {
         if (!tableElement || !data) return;
         const tbody = tableElement.querySelector('tbody');
@@ -1013,7 +1071,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // UPDATED: Reusable function to save a single setup table
     function saveSetupsTable(tableElement, dbRef, statusElement) {
         if (!isMasterUser || !tableElement) return;
         const dataToSave = {};
@@ -1342,7 +1399,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (document.getElementById('journal-tab').classList.contains('active')) { updateJournalView(); }
     });
 
-    // UPDATED: Listeners for the new separate setup tables
     setupsRef1.on('value', (snapshot) => {
         allSetupsData1 = snapshot.val() || {};
         renderSetupsTable(setupsTable1, allSetupsData1);
