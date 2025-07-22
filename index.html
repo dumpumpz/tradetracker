@@ -170,7 +170,7 @@
 
         /* ADDED: Styles for the closest S/R EMA summary */
         .ema-summary-container {
-            font-size: 11px;
+            font-size: 13px;
             padding: 8px 12px;
             margin: 0 auto 15px auto;
             max-width: 95%;
@@ -797,6 +797,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const dailyText = (allJournalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
         journalEntryEl.value = dailyText; 
         
+        // **FIX:** Set the content for the persistent scratchpad here as well,
+        // making this function the single source of truth for the display.
+        persistentNotesEl.value = persistentNotesText;
+
         // Use a small timeout to allow the browser to render the now-visible
         // textareas before we calculate their scrollHeight. This is crucial
         // for reliability, especially on mobile devices after a layout change.
@@ -1431,11 +1435,13 @@ document.addEventListener('DOMContentLoaded', function () {
         renderSetupsTable(setupsTable2, allSetupsData2);
     });
     
+    // **FIX:** This listener now ONLY updates the data variable.
+    // It calls updateJournalView() if the tab is active, ensuring the
+    // UI is refreshed consistently through the main update function.
     persistentNotesRef.on('value', (s) => {
         persistentNotesText = s.val() || '';
-        persistentNotesEl.value = persistentNotesText;
         if (document.getElementById('journal-tab').classList.contains('active')) {
-            autoResizeTextarea(persistentNotesEl);
+            updateJournalView();
         }
     });
 
