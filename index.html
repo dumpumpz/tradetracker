@@ -722,7 +722,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const emaTablesContainer = document.getElementById('ema-tables-container');
 
 
-    function getYYYYMMDD(date) { return date.toISOString().split('T')[0]; }
+    function getYYYYMMDD(date) { return date.toISOString().split('T'); }
     
     function autoResizeTextarea(element) { 
         if (!element) return;
@@ -761,7 +761,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderDateNavigation() {
         dateButtonsContainer.innerHTML = '';
         const safeSymbol = getSafeSymbol(journalSymbolEl.value);
-        const timeframe = journalTimeframeEl.value;
 
         for (let i = -2; i <= 2; i++) {
             const date = new Date(centerDate);
@@ -776,10 +775,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 btn.classList.add('active');
             }
 
-            const hasEntry = (allJournalText[safeSymbol]?.[yyyymmdd]?.[timeframe] || '').trim();
-            if (hasEntry) {
+            // --- FIX START ---
+            // Check if there's an entry for ANY timeframe on this day
+            const entriesForDay = allJournalText[safeSymbol]?.[yyyymmdd];
+            const hasAnyEntry = entriesForDay && Object.values(entriesForDay).some(text => text && text.trim() !== '');
+            
+            if (hasAnyEntry) {
                 btn.classList.add('has-entry');
             }
+            // --- FIX END ---
 
             dateButtonsContainer.appendChild(btn);
         }
@@ -830,6 +834,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 const timeframe = journalTimeframeEl.value; 
                 const text = journalEntryEl.value;
                 document.getElementById('save-status').textContent = 'Saving...'; 
+                
+                // When saving, also update the local cache immediately for a responsive UI
+                if (!allJournalText[safeSymbol]) allJournalText[safeSymbol] = {};
+                if (!allJournalText[safeSymbol][yyyymmdd]) allJournalText[safeSymbol][yyyymmdd] = {};
+                allJournalText[safeSymbol][yyyymmdd][timeframe] = text;
+
                 journalRef.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text)
                     .then(() => { 
                         document.getElementById('save-status').textContent = 'Saved.'; 
@@ -868,7 +878,7 @@ document.addEventListener('DOMContentLoaded', function () {
         timeframesOrder.forEach(tf => {
             const imagesForTimeframe = symbolImageData[tf];
             if (!imagesForTimeframe || Object.keys(imagesForTimeframe).length === 0) return;
-            const latestImage = Object.values(imagesForTimeframe).sort((a, b) => b.timestamp - a.timestamp)[0];
+            const latestImage = Object.values(imagesForTimeframe).sort((a, b) => b.timestamp - a.timestamp);
             if (latestImage) {
                 const itemContainer = document.createElement('div');
                 itemContainer.className = 'snapshot-image-item';
@@ -975,7 +985,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const symbolsToDisplay = ['BTC-USDT', 'ETH-USDT'];
         const timeframesToAnalyze = ['15min', '30min', '1hour', '2hour', '4hour', 'daily'];
-        const periodsToAnalyze = [13, 49, 100, 200, 500, 1000];
+        const periodsToAnalyze =;
         const tfShortNames = {'15min': '15m','30min': '30m','1hour': '1H','2hour': '2H','4hour': '4H','daily': '1D', 'weekly':'1W', 'monthly':'1M'};
 
         symbolsToDisplay.forEach(safeSymbol => {
@@ -1089,12 +1099,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const rowData = data[timeframe];
             const cells = row.querySelectorAll('td');
             if (rowData) {
-                cells[0].textContent = rowData.zero_entry || '';
-                cells[1].textContent = rowData.zero_target || '';
-                cells[2].textContent = rowData.zero_stoploss || '';
-                cells[3].textContent = rowData.four_entry || '';
-                cells[4].textContent = rowData.four_target || '';
-                cells[5].textContent = rowData.four_stoploss || '';
+                cells.textContent = rowData.zero_entry || '';
+                cells.textContent = rowData.zero_target || '';
+                cells.textContent = rowData.zero_stoploss || '';
+                cells.textContent = rowData.four_entry || '';
+                cells.textContent = rowData.four_target || '';
+                cells.textContent = rowData.four_stoploss || '';
             } else {
                  row.querySelectorAll('td').forEach(cell => cell.textContent = '');
             }
@@ -1110,12 +1120,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const timeframe = row.firstElementChild.textContent.trim();
             const cells = row.querySelectorAll('td');
             dataToSave[timeframe] = {
-                zero_entry: cells[0].textContent,
-                zero_target: cells[1].textContent,
-                zero_stoploss: cells[2].textContent,
-                four_entry: cells[3].textContent,
-                four_target: cells[4].textContent,
-                four_stoploss: cells[5].textContent,
+                zero_entry: cells.textContent,
+                zero_target: cells.textContent,
+                zero_stoploss: cells.textContent,
+                four_entry: cells.textContent,
+                four_target: cells.textContent,
+                four_stoploss: cells.textContent,
             };
         });
 
@@ -1331,7 +1341,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.target.matches('.date-nav-btn')) {
             const dateStr = e.target.dataset.date;
             const parts = dateStr.split('-');
-            selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2]));
+            selectedDate = new Date(Date.UTC(parts, parseInt(parts, 10) - 1, parts));
             centerDate = new Date(selectedDate); 
             renderDateNavigation();
             updateJournalView();
@@ -1347,7 +1357,7 @@ document.addEventListener('DOMContentLoaded', function () {
     journalSymbolEl.addEventListener('change', updateJournalView);
     journalTimeframeEl.addEventListener('change', updateJournalView);
     journalImageFilterEl.addEventListener('change', updateJournalView);
-    document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
+    document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files));
     
     if (saveSetups1Btn) saveSetups1Btn.addEventListener('click', () => saveSetupsTable(setupsTable1, setupsRef1, document.getElementById('setups-save-status-1')));
     if (saveSetups2Btn) saveSetups2Btn.addEventListener('click', () => saveSetupsTable(setupsTable2, setupsRef2, document.getElementById('setups-save-status-2')));
@@ -1372,7 +1382,7 @@ document.addEventListener('DOMContentLoaded', function () {
     journalTab.addEventListener('drop', (e) => {
         journalTab.classList.remove('drag-over');
         if (isMasterUser && e.dataTransfer && e.dataTransfer.files.length > 0) {
-            handleFileUpload(e.dataTransfer.files[0]);
+            handleFileUpload(e.dataTransfer.files);
         }
     });
 
