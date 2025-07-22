@@ -85,17 +85,13 @@
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
         .controls-container > div { display: flex; align-items: center; gap: 8px; }
         
-        /* The flex container has been removed, so this rule is no longer needed. */
-        /* .journal-dual-input-container { ... } */
-
         #journal-entry, #persistent-notes-entry {
-            form-sizing: content; /* Let the browser handle resizing based on content */
             width: 100%; 
             resize: vertical;
             line-height: 1.6;
             margin-top: 5px;
             overflow-y: hidden; /* Prevent scrollbar from ever appearing */
-            min-height: 100px; /* Set a reasonable minimum height */
+            min-height: 120px; /* A sensible minimum height for empty state */
         }
         
         #journal-entry:read-only, #persistent-notes-entry:read-only { 
@@ -408,8 +404,6 @@
             #sr-levels-container { grid-template-columns: 1fr; }
             #sr-metadata-container { flex-direction: column; }
             .theme-switch-wrapper { top: 8px; right: 10px; }
-            /* This rule is no longer needed as the container was removed */
-            /* .journal-dual-input-container { flex-direction: column; } */
         }
     </style>
 </head>
@@ -725,7 +719,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const setupsTable2 = document.getElementById('current-setups-table-2');
     const emaTablesContainer = document.getElementById('ema-tables-container');
 
+
     function getYYYYMMDD(date) { return date.toISOString().split('T')[0]; }
+    
+    // **FIX:** The reliable JavaScript auto-resize function is restored.
+    function autoResizeTextarea(element) { 
+        if (!element) return;
+        element.style.height = 'auto'; 
+        element.style.height = (element.scrollHeight) + 'px'; 
+    }
+    
     function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); }
     
     async function fetchEmaData() {
@@ -786,6 +789,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const dailyText = (allJournalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
         journalEntryEl.value = dailyText; 
         persistentNotesEl.value = persistentNotesText;
+
+        // **FIX:** Use setTimeout to ensure resizing happens AFTER the browser has
+        // rendered the new content. This solves the race condition.
+        setTimeout(() => {
+            autoResizeTextarea(journalEntryEl); 
+            autoResizeTextarea(persistentNotesEl);
+        }, 0);
 
         if (favouriteText && dailyText.trim() && favouriteText === dailyText.trim()) {
             favouriteBtn.classList.add('active');
@@ -1204,8 +1214,15 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    journalEntryEl.addEventListener('input', saveJournalEntry);
-    persistentNotesEl.addEventListener('input', savePersistentNotes);
+    // **FIX:** Add event listeners to resize on user input.
+    journalEntryEl.addEventListener('input', () => {
+        autoResizeTextarea(journalEntryEl);
+        saveJournalEntry();
+    });
+    persistentNotesEl.addEventListener('input', () => {
+        autoResizeTextarea(persistentNotesEl);
+        savePersistentNotes();
+    });
     
     favouriteBtn.addEventListener('click', () => {
         if (!isMasterUser) return;
