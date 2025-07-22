@@ -54,6 +54,7 @@
         .container { max-width: 1200px; margin: auto; background: var(--container-bg); padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-color); transition: background-color 0.3s; }
         h1 { text-align: center; color: var(--text-color); margin-bottom: 5px; }
         h2 { margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 20px; }
+        h3.setups-header { text-align:center; border-top: none; padding-top: 0; margin-top: 10px; }
         .section-header { display: flex; justify-content: center; align-items: center; position: relative; }
         .backup-controls { position: absolute; right: 0; display: flex; gap: 10px; }
         .backup-controls button, .backup-controls label { font-size: 12px; padding: 6px 12px; cursor: pointer; background-color: #6c757d; border: none; color: white; border-radius: 4px; }
@@ -84,7 +85,6 @@
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
         .controls-container > div { display: flex; align-items: center; gap: 8px; }
         
-        /* New styles for dual textboxes */
         .journal-dual-input-container {
             display: flex;
             gap: 15px;
@@ -92,7 +92,7 @@
         }
 
         #journal-entry, #persistent-notes-entry {
-            width: 100%; /* Overridden by flex-basis */
+            width: 100%; 
             min-height: 35vh;
             resize: vertical;
             line-height: 1.6;
@@ -343,13 +343,17 @@
             color: var(--text-color);
         }
 
-        /* UPDATED: Changed ID to a class to target both tables */
+        /* UPDATED: Changed ID to class to target both tables */
         .setups-table th:first-child { text-align: left; padding-left: 15px; color: var(--link-color); }
         .setups-table td { text-align: center; }
         .setups-table td[contenteditable="true"]:focus {
             background-color: var(--header-bg);
             outline: 2px solid var(--link-color);
             box-shadow: 0 0 5px var(--shadow-color);
+        }
+        
+        .setups-container {
+            margin-bottom: 25px; /* Add space between the two tables */
         }
 
         @media (max-width: 768px) { 
@@ -407,59 +411,78 @@
         </div>
 
         <div id="journal-tab" class="tab-content">
-            <!-- UPDATED: Two separate tables for setups -->
-            <h2 style="text-align:center; border-top: none; padding-top: 0; margin-top: 10px;">0-Candle Setups</h2>
-            <div class="table-wrapper">
-                <table id="zero-candle-setups-table" class="setups-table">
-                    <thead>
-                        <tr>
-                            <th>Timeframe</th>
-                            <th>Entry</th>
-                            <th>Target</th>
-                            <th>Stoploss</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><th>5min</th><td></td><td></td><td></td></tr>
-                        <tr><th>15min</th><td></td><td></td><td></td></tr>
-                        <tr><th>30min</th><td></td><td></td><td></td></tr>
-                        <tr><th>1hour</th><td></td><td></td><td></td></tr>
-                        <tr><th>2hour</th><td></td><td></td><td></td></tr>
-                        <tr><th>4hour</th><td></td><td></td><td></td></tr>
-                        <tr><th>daily</th><td></td><td></td><td></td></tr>
-                        <tr><th>weekly</th><td></td><td></td><td></td></tr>
-                        <tr><th>monthly</th><td></td><td></td><td></td></tr>
-                    </tbody>
-                </table>
+
+            <!-- UPDATED: Two identical tables -->
+            <div class="setups-container">
+                <h3 class="setups-header">Current Setups (Primary)</h3>
+                <div class="table-wrapper">
+                    <table id="current-setups-table-1" class="setups-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2">Timeframe</th>
+                                <th colspan="3">0-Candle</th>
+                                <th colspan="3">4-Candle</th>
+                            </tr>
+                            <tr>
+                                <th>Entry</th>
+                                <th>Target</th>
+                                <th>Stoploss</th>
+                                <th>Entry</th>
+                                <th>Target</th>
+                                <th>Stoploss</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <h2 style="text-align:center; border-top: none; padding-top: 10px; margin-top: 20px;">4-Candle Setups</h2>
-            <div class="table-wrapper">
-                <table id="four-candle-setups-table" class="setups-table">
-                    <thead>
-                        <tr>
-                            <th>Timeframe</th>
-                            <th>Entry</th>
-                            <th>Target</th>
-                            <th>Stoploss</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><th>5min</th><td></td><td></td><td></td></tr>
-                        <tr><th>15min</th><td></td><td></td><td></td></tr>
-                        <tr><th>30min</th><td></td><td></td><td></td></tr>
-                        <tr><th>1hour</th><td></td><td></td><td></td></tr>
-                        <tr><th>2hour</th><td></td><td></td><td></td></tr>
-                        <tr><th>4hour</th><td></td><td></td><td></td></tr>
-                        <tr><th>daily</th><td></td><td></td><td></td></tr>
-                        <tr><th>weekly</th><td></td><td></td><td></td></tr>
-                        <tr><th>monthly</th><td></td><td></td><td></td></tr>
-                    </tbody>
-                </table>
+            <div class="setups-container">
+                <h3 class="setups-header">Current Setups (Secondary)</h3>
+                <div class="table-wrapper">
+                     <table id="current-setups-table-2" class="setups-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2">Timeframe</th>
+                                <th colspan="3">0-Candle</th>
+                                <th colspan="3">4-Candle</th>
+                            </tr>
+                            <tr>
+                                <th>Entry</th>
+                                <th>Target</th>
+                                <th>Stoploss</th>
+                                <th>Entry</th>
+                                <th>Target</th>
+                                <th>Stoploss</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div style="text-align:center; margin-top:15px;">
-                 <button id="save-setups-btn" class="master-only">Save All Setups</button>
+            <div style="text-align:center; margin-top: 15px;">
+                <button id="save-setups-btn" class="master-only">Save Setups</button>
             </div>
             <p id="setups-save-status" style="text-align:center;font-style:italic;color:var(--subtle-text);height:1em"></p>
 
@@ -618,7 +641,7 @@ const journalRef = database.ref('journal_text');
 const journalImagesRef = database.ref('journal_images'); 
 const favouritesRef = database.ref('journal_favourites');
 const setupsRef = database.ref('current_setups');
-const persistentNotesRef = database.ref('persistent_notes'); // New ref for persistent notes
+const persistentNotesRef = database.ref('persistent_notes');
 
 const FEE_RATE = 0.00075;
 const STARTING_BALANCE = 3881;
@@ -636,7 +659,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const journalSymbolEl = document.getElementById('journal-symbol');
     const journalTimeframeEl = document.getElementById('journal-timeframe');
     const journalEntryEl = document.getElementById('journal-entry');
-    const persistentNotesEl = document.getElementById('persistent-notes-entry'); // New element
+    const persistentNotesEl = document.getElementById('persistent-notes-entry');
     const journalImagesContainer = document.getElementById('journal-images-container');
     const tradesTbody = document.getElementById('trades-tbody');
     const completedTradesTbody = document.getElementById('completed-trades-tbody');
@@ -659,11 +682,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const srLegendContent = document.getElementById('sr-legend-content');
     const srLegendToggleBtn = document.getElementById('sr-legend-toggle-btn');
 
-    // UPDATED: Get references to the two new tables
     const saveSetupsBtn = document.getElementById('save-setups-btn');
-    const zeroCandleSetupsTable = document.getElementById('zero-candle-setups-table');
-    const fourCandleSetupsTable = document.getElementById('four-candle-setups-table');
-
+    
     function getYYYYMMDD(date) { return date.toISOString().split('T')[0]; }
     function autoResizeTextarea(element) { 
         if (!element) return;
@@ -721,7 +741,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const yyyymmdd = getYYYYMMDD(selectedDate);
         const timeframe = journalTimeframeEl.value; 
 
-        // 1. Handle pinned note display
         const favouriteText = (allFavouriteEntries[safeSymbol] || {})[timeframe];
         if (favouriteText) {
             favouritedEntryText.textContent = favouriteText;
@@ -730,20 +749,17 @@ document.addEventListener('DOMContentLoaded', function () {
             favouritedEntryContainer.style.display = 'none';
         }
 
-        // 2. Load daily note
         const dailyText = (allJournalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
         journalEntryEl.value = dailyText; 
         autoResizeTextarea(journalEntryEl); 
         autoResizeTextarea(persistentNotesEl);
 
-        // 3. Set star state: star is active (yellow) if the current day's text IS the pinned text.
         if (favouriteText && dailyText.trim() && favouriteText === dailyText.trim()) {
             favouriteBtn.classList.add('active');
         } else {
             favouriteBtn.classList.remove('active');
         }
         
-        // 4. Load images and EMA data
         const symbolImageData = allJournalImages[safeSymbol] || {}; 
         renderJournalImages(safeSymbol, timeframe, symbolImageData, yyyymmdd); 
         renderEmaData();
@@ -776,7 +792,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }; 
     })();
 
-    // New save function for the persistent notes
     const savePersistentNotes = (() => {
         let t;
         return () => {
@@ -784,7 +799,6 @@ document.addEventListener('DOMContentLoaded', function () {
             t = setTimeout(() => {
                 if (!isMasterUser) return;
                 const text = persistentNotesEl.value;
-                // No save status for this one to keep UI clean
                 persistentNotesRef.set(text)
                     .catch(e => console.error("Error saving persistent notes:", e));
             }, 750);
@@ -932,70 +946,56 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // UPDATED: Renders data into two separate tables
+    // UPDATED: Renders data into both duplicated tables
     function renderSetupsTable(data) {
-        if (!data || !zeroCandleSetupsTable || !fourCandleSetupsTable) return;
+        if (!data) return;
         allSetupsData = data;
 
-        // Populate 0-candle table
-        const zeroTbody = zeroCandleSetupsTable.querySelector('tbody');
-        zeroTbody.querySelectorAll('tr').forEach(row => {
-            const timeframe = row.firstElementChild.textContent.trim();
-            const rowData = allSetupsData[timeframe];
-            const cells = row.querySelectorAll('td');
-            if (rowData) {
-                cells[0].textContent = rowData.zero_entry || '';
-                cells[1].textContent = rowData.zero_target || '';
-                cells[2].textContent = rowData.zero_stoploss || '';
-            } else {
-                cells.forEach(cell => cell.textContent = '');
-            }
-        });
-
-        // Populate 4-candle table
-        const fourTbody = fourCandleSetupsTable.querySelector('tbody');
-        fourTbody.querySelectorAll('tr').forEach(row => {
-            const timeframe = row.firstElementChild.textContent.trim();
-            const rowData = allSetupsData[timeframe];
-            const cells = row.querySelectorAll('td');
-            if (rowData) {
-                cells[0].textContent = rowData.four_entry || '';
-                cells[1].textContent = rowData.four_target || '';
-                cells[2].textContent = rowData.four_stoploss || '';
-            } else {
-                cells.forEach(cell => cell.textContent = '');
-            }
-        });
+        const populateTable = (tableElement) => {
+             const tbody = tableElement.querySelector('tbody');
+             tbody.querySelectorAll('tr').forEach(row => {
+                const timeframe = row.firstElementChild.textContent.trim();
+                if (allSetupsData[timeframe]) {
+                    const rowData = allSetupsData[timeframe];
+                    const cells = row.querySelectorAll('td');
+                    cells[0].textContent = rowData.zero_entry || '';
+                    cells[1].textContent = rowData.zero_target || '';
+                    cells[2].textContent = rowData.zero_stoploss || '';
+                    cells[3].textContent = rowData.four_entry || '';
+                    cells[4].textContent = rowData.four_target || '';
+                    cells[5].textContent = rowData.four_stoploss || '';
+                } else {
+                    row.querySelectorAll('td').forEach(cell => cell.textContent = '');
+                }
+            });
+        };
+        
+        const table1 = document.getElementById('current-setups-table-1');
+        const table2 = document.getElementById('current-setups-table-2');
+        if (table1) populateTable(table1);
+        if (table2) populateTable(table2);
     }
 
-    // UPDATED: Reads data from two tables and saves it
+    // UPDATED: Saves data from the first table only
     function saveSetupsTable() {
         if (!isMasterUser) return;
         const dataToSave = {};
+        const primaryTable = document.getElementById('current-setups-table-1');
+        if (!primaryTable) return;
+        
+        const tbody = primaryTable.querySelector('tbody');
 
-        // Read from 0-candle table
-        const zeroTbody = zeroCandleSetupsTable.querySelector('tbody');
-        zeroTbody.querySelectorAll('tr').forEach(row => {
+        tbody.querySelectorAll('tr').forEach(row => {
             const timeframe = row.firstElementChild.textContent.trim();
             const cells = row.querySelectorAll('td');
             dataToSave[timeframe] = {
                 zero_entry: cells[0].textContent,
                 zero_target: cells[1].textContent,
                 zero_stoploss: cells[2].textContent,
+                four_entry: cells[3].textContent,
+                four_target: cells[4].textContent,
+                four_stoploss: cells[5].textContent,
             };
-        });
-
-        // Read from 4-candle table and merge
-        const fourTbody = fourCandleSetupsTable.querySelector('tbody');
-        fourTbody.querySelectorAll('tr').forEach(row => {
-            const timeframe = row.firstElementChild.textContent.trim();
-            const cells = row.querySelectorAll('td');
-            if (!dataToSave[timeframe]) {
-                dataToSave[timeframe] = {}; // Ensure object exists
-            }
-            dataToSave[timeframe].four_entry = cells[0].textContent;
-            dataToSave[timeframe].four_target = cells[1].textContent;
-            dataToSave[timeframe].four_stoploss = cells[2].textContent;
         });
 
         const statusEl = document.getElementById('setups-save-status');
@@ -1028,17 +1028,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 journalEntryEl.readOnly = false; 
                 persistentNotesEl.readOnly = false;
                 
-                // UPDATED: Make cells in BOTH tables editable
-                if (zeroCandleSetupsTable) {
-                    zeroCandleSetupsTable.querySelectorAll('td').forEach(cell => {
-                        cell.setAttribute('contenteditable', 'true');
-                    });
-                }
-                if (fourCandleSetupsTable) {
-                    fourCandleSetupsTable.querySelectorAll('td').forEach(cell => {
-                        cell.setAttribute('contenteditable', 'true');
-                    });
-                }
+                // UPDATED: Makes cells in BOTH tables editable
+                document.querySelectorAll('.setups-table td').forEach(cell => {
+                    cell.setAttribute('contenteditable', 'true');
+                });
             } 
         } 
         if (!isMasterUser) { 
@@ -1328,7 +1321,6 @@ document.addEventListener('DOMContentLoaded', function () {
         renderSetupsTable(data);
     });
     
-    // New listener for persistent notes
     persistentNotesRef.on('value', (s) => {
         persistentNotesText = s.val() || '';
         persistentNotesEl.value = persistentNotesText;
