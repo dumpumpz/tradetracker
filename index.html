@@ -1428,7 +1428,11 @@ document.addEventListener('DOMContentLoaded', function () {
     persistentNotesRef.on('value', (s) => {
         persistentNotesText = s.val() || '';
         persistentNotesEl.value = persistentNotesText;
-        autoResizeTextarea(persistentNotesEl);
+        // Only attempt to resize if the element is visible.
+        // updateJournalView() handles resizing when the tab is switched to.
+        if (document.getElementById('journal-tab').classList.contains('active')) {
+            autoResizeTextarea(persistentNotesEl);
+        }
     });
 
 });
