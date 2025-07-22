@@ -141,6 +141,7 @@
         .date-nav-btn { padding: 8px 12px; font-size: 14px; background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--subtle-text); border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
         .date-nav-btn:hover { border-color: var(--link-color); color: var(--link-color); }
         .date-nav-btn.active { background-color: var(--link-color); color: white; border-color: var(--link-color); font-weight: bold; }
+        .date-nav-btn.has-entry { border: 2px solid var(--link-color); padding: 7px 11px; }
         .date-nav-arrow { background: none; border: none; font-size: 24px; font-weight: bold; color: var(--subtle-text); cursor: pointer; padding: 0 10px; }
         .date-nav-arrow:hover { color: var(--link-color); }
 
@@ -358,26 +359,72 @@
             color: var(--text-color);
         }
         
-        .setups-table th:first-child { text-align: left; padding-left: 15px; color: var(--link-color); }
-        .setups-table td { text-align: center; }
+        /* FIX: Cleaner Setups Table Styles */
+        .setups-container {
+            margin-bottom: 20px; 
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+            padding: 0; /* Padding moved to inner elements */
+        }
+        .setups-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        .setups-header h2 {
+            text-align: left;
+            margin: 0;
+            padding: 0;
+            border: none;
+            font-size: 18px;
+        }
+        .toggle-setups-btn {
+            padding: 4px 12px;
+            font-size: 12px;
+            background-color: var(--header-bg);
+            color: var(--subtle-text);
+            border: 1px solid var(--border-color);
+            margin: 0;
+            border-radius: 4px;
+        }
+        .setups-content {
+            padding: 15px;
+        }
+        .setups-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 0;
+        }
+        .setups-table th, .setups-table td {
+            border: none;
+            border-bottom: 1px solid var(--header-bg);
+            padding: 12px 10px;
+            text-align: center;
+        }
+        .setups-table thead th {
+            border-bottom: 2px solid var(--border-color);
+            color: var(--subtle-text);
+            font-size: 13px;
+            vertical-align: bottom;
+            padding-bottom: 8px;
+        }
+        .setups-table th:first-child { /* Timeframe column header */
+            text-align: left;
+            padding-left: 15px;
+            color: var(--link-color);
+            font-weight: 600;
+        }
+        .setups-table tbody tr:last-child td, .setups-table tbody tr:last-child th {
+             border-bottom: none;
+        }
         .setups-table td[contenteditable="true"]:focus {
             background-color: var(--header-bg);
             outline: 2px solid var(--link-color);
             box-shadow: 0 0 5px var(--shadow-color);
-        }
-        
-        .setups-container {
-            margin-bottom: 30px; 
-            border: 1px solid var(--border-color);
-            padding: 15px;
-            border-radius: 8px;
-            background-color: var(--card-bg);
-        }
-        .setups-container h2 {
-            text-align: center;
-            margin-top: 0;
-            padding-top: 0;
-            border-top: none;
         }
         .setups-controls {
             text-align: center;
@@ -388,6 +435,7 @@
             font-style:italic;
             color:var(--subtle-text);
             height:1em;
+            margin-top: 5px;
         }
 
         @media (max-width: 768px) { 
@@ -445,79 +493,99 @@
 
         <div id="journal-tab" class="tab-content">
             
+            <!-- FIX: Scratchpad Relocated -->
+            <h3 style="margin-bottom: 5px;">Scratchpad</h3>
+            <div style="margin-bottom: 25px;">
+                <textarea id="persistent-notes-entry" placeholder="Persistent scratchpad..."></textarea>
+            </div>
+
+            <!-- FIX: Collapsible Setups Table 1 -->
             <div class="setups-container">
-                <h2>Current Setups (Primary)</h2>
-                <div class="table-wrapper">
-                    <table id="current-setups-table-1" class="setups-table">
-                        <thead>
-                            <tr>
-                                <th rowspan="2">Timeframe</th>
-                                <th colspan="3">0-Candle</th>
-                                <th colspan="3">4-Candle</th>
-                            </tr>
-                            <tr>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                        </tbody>
-                    </table>
+                <div class="setups-header" data-target="setups-content-1">
+                    <h2>Current Setups (Primary)</h2>
+                    <button class="toggle-setups-btn" data-target="setups-content-1">Minimize</button>
                 </div>
-                <div class="setups-controls">
-                    <button id="save-setups-1-btn" class="master-only">Save Primary Setups</button>
-                    <p id="setups-save-status-1" class="setups-save-status"></p>
+                <div class="setups-content" id="setups-content-1">
+                    <div class="table-wrapper">
+                        <table id="current-setups-table-1" class="setups-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">Timeframe</th>
+                                    <th colspan="3">0-Candle</th>
+                                    <th colspan="3">4-Candle</th>
+                                </tr>
+                                <tr>
+                                    <th>Entry</th>
+                                    <th>Target</th>
+                                    <th>Stoploss</th>
+                                    <th>Entry</th>
+                                    <th>Target</th>
+                                    <th>Stoploss</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- FIX: Shortened Timeframe Titles -->
+                                <tr><th>5m</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>15m</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>30m</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>1H</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>2H</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>4H</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>D</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>W</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>M</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="setups-controls">
+                        <button id="save-setups-1-btn" class="master-only">Save Primary Setups</button>
+                        <p id="setups-save-status-1" class="setups-save-status"></p>
+                    </div>
                 </div>
             </div>
 
+            <!-- FIX: Collapsible Setups Table 2 -->
             <div class="setups-container">
-                <h2>Current Setups (Secondary)</h2>
-                <div class="table-wrapper">
-                     <table id="current-setups-table-2" class="setups-table">
-                        <thead>
-                            <tr>
-                                <th rowspan="2">Timeframe</th>
-                                <th colspan="3">0-Candle</th>
-                                <th colspan="3">4-Candle</th>
-                            </tr>
-                            <tr>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                        </tbody>
-                    </table>
+                 <div class="setups-header" data-target="setups-content-2">
+                    <h2>Current Setups (Secondary)</h2>
+                    <button class="toggle-setups-btn" data-target="setups-content-2">Minimize</button>
                 </div>
-                 <div class="setups-controls">
-                    <button id="save-setups-2-btn" class="master-only">Save Secondary Setups</button>
-                    <p id="setups-save-status-2" class="setups-save-status"></p>
+                <div class="setups-content" id="setups-content-2">
+                    <div class="table-wrapper">
+                         <table id="current-setups-table-2" class="setups-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">Timeframe</th>
+                                    <th colspan="3">0-Candle</th>
+                                    <th colspan="3">4-Candle</th>
+                                </tr>
+                                <tr>
+                                    <th>Entry</th>
+                                    <th>Target</th>
+                                    <th>Stoploss</th>
+                                    <th>Entry</th>
+                                    <th>Target</th>
+                                    <th>Stoploss</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- FIX: Shortened Timeframe Titles -->
+                                <tr><th>5m</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>15m</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>30m</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>1H</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>2H</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>4H</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>D</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>W</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>M</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                     <div class="setups-controls">
+                        <button id="save-setups-2-btn" class="master-only">Save Secondary Setups</button>
+                        <p id="setups-save-status-2" class="setups-save-status"></p>
+                    </div>
                 </div>
             </div>
 
@@ -548,18 +616,10 @@
                 <div id="favourited-entry-text"></div>
             </div>
 
-            <!-- START: HTML STRUCTURE CHANGE -->
             <div class="journal-input-wrapper">
                  <button id="favourite-btn" class="master-only" title="Pin this note for this timeframe on all days">⭐</button>
                  <textarea id="journal-entry" placeholder="Select a symbol, timeframe, and date to view or add a journal entry."></textarea>
             </div>
-
-            <h3>Scratchpad</h3>
-            <div>
-                <textarea id="persistent-notes-entry" placeholder="Persistent scratchpad..."></textarea>
-            </div>
-            <!-- END: HTML STRUCTURE CHANGE -->
-
 
             <p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p>
             
@@ -686,6 +746,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const addTradeForm = document.getElementById('add-trade-form');
     const statsFab = document.getElementById('stats-fab');
     const statsPanel = document.getElementById('stats-panel');
+    const statsPanelContainer = document.getElementById('stats-panel-container'); // FIX: Get the container
     const closeStatsBtn = document.getElementById('close-stats-btn');
     const journalSymbolEl = document.getElementById('journal-symbol');
     const journalTimeframeEl = document.getElementById('journal-timeframe');
@@ -722,7 +783,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function getYYYYMMDD(date) { return date.toISOString().split('T')[0]; }
     
-    // **FIX:** The reliable JavaScript auto-resize function is restored.
     function autoResizeTextarea(element) { 
         if (!element) return;
         element.style.height = 'auto'; 
@@ -759,16 +819,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderDateNavigation() {
         dateButtonsContainer.innerHTML = '';
-        for (let i = -2; i <= 2; i++) {
+        const safeSymbol = getSafeSymbol(journalSymbolEl.value);
+        const timeframe = journalTimeframeEl.value;
+
+        // FIX: Expanded Journal Navigation (7 days)
+        for (let i = -3; i <= 3; i++) {
             const date = new Date(centerDate);
             date.setDate(centerDate.getDate() + i);
             const btn = document.createElement('button');
             btn.className = 'date-nav-btn';
             btn.textContent = date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
-            btn.dataset.date = getYYYYMMDD(date);
-            if (getYYYYMMDD(date) === getYYYYMMDD(selectedDate)) {
+            const yyyymmdd = getYYYYMMDD(date);
+            btn.dataset.date = yyyymmdd;
+            
+            if (yyyymmdd === getYYYYMMDD(selectedDate)) {
                 btn.classList.add('active');
             }
+
+            // FIX: Highlighted Journal Days
+            const hasEntry = (allJournalText[safeSymbol]?.[yyyymmdd]?.[timeframe] || '').trim();
+            if (hasEntry) {
+                btn.classList.add('has-entry');
+            }
+
             dateButtonsContainer.appendChild(btn);
         }
     }
@@ -790,8 +863,6 @@ document.addEventListener('DOMContentLoaded', function () {
         journalEntryEl.value = dailyText; 
         persistentNotesEl.value = persistentNotesText;
 
-        // **FIX:** Use setTimeout to ensure resizing happens AFTER the browser has
-        // rendered the new content. This solves the race condition.
         setTimeout(() => {
             autoResizeTextarea(journalEntryEl); 
             autoResizeTextarea(persistentNotesEl);
@@ -806,6 +877,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const symbolImageData = allJournalImages[safeSymbol] || {}; 
         renderJournalImages(safeSymbol, timeframe, symbolImageData, yyyymmdd); 
         renderEmaData();
+        renderDateNavigation(); // Re-render to update highlights if timeframe/symbol changes
     }
 
     const saveJournalEntry = (() => { 
@@ -828,6 +900,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         } else {
                             favouriteBtn.classList.remove('active');
                         }
+                        renderDateNavigation(); // Update highlights on save
                         setTimeout(() => document.getElementById('save-status').textContent = '', 2000); 
                     })
                     .catch(e => document.getElementById('save-status').textContent = `Error: ${e.message}`); 
@@ -1067,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!tableElement || !data) return;
         const tbody = tableElement.querySelector('tbody');
         tbody.querySelectorAll('tr').forEach(row => {
-            const timeframe = row.firstElementChild.textContent.trim();
+            const timeframe = row.firstElementChild.dataset.tf; // Use data-tf for consistency
             const rowData = data[timeframe];
             const cells = row.querySelectorAll('td');
             if (rowData) {
@@ -1082,6 +1155,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+    
+    // Convert table TH text content to a consistent key
+    const tfMap = {'5m':'5min', '15m':'15min', '30m':'30min', '1H':'1hour', '2H':'2hour', '4H':'4hour', 'D':'daily', 'W':'weekly', 'M':'monthly'};
+    document.querySelectorAll('.setups-table th[rowspan="2"]').forEach(th => {
+        const key = th.textContent.trim();
+        if(tfMap[key]) th.dataset.tf = tfMap[key];
+    });
+
 
     function saveSetupsTable(tableElement, dbRef, statusElement) {
         if (!isMasterUser || !tableElement) return;
@@ -1089,9 +1170,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const tbody = tableElement.querySelector('tbody');
 
         tbody.querySelectorAll('tr').forEach(row => {
-            const timeframe = row.firstElementChild.textContent.trim();
+            const timeframeKey = tfMap[row.firstElementChild.textContent.trim()];
+            if(!timeframeKey) return; // Skip if key not found
+            
             const cells = row.querySelectorAll('td');
-            dataToSave[timeframe] = {
+            dataToSave[timeframeKey] = {
                 zero_entry: cells[0].textContent,
                 zero_target: cells[1].textContent,
                 zero_stoploss: cells[2].textContent,
@@ -1214,7 +1297,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // **FIX:** Add event listeners to resize on user input.
     journalEntryEl.addEventListener('input', () => {
         autoResizeTextarea(journalEntryEl);
         saveJournalEntry();
@@ -1315,12 +1397,15 @@ document.addEventListener('DOMContentLoaded', function () {
             const dateStr = e.target.dataset.date;
             const parts = dateStr.split('-');
             selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2]));
+            centerDate = new Date(selectedDate); // Re-center on click
             renderDateNavigation();
             updateJournalView();
         }
     });
-    datePrevBtn.addEventListener('click', () => { centerDate.setDate(centerDate.getDate() - 5); renderDateNavigation(); });
-    dateNextBtn.addEventListener('click', () => { centerDate.setDate(centerDate.getDate() + 5); renderDateNavigation(); });
+    // FIX: Expanded Journal Navigation (jump 7 days)
+    datePrevBtn.addEventListener('click', () => { centerDate.setDate(centerDate.getDate() - 7); renderDateNavigation(); });
+    dateNextBtn.addEventListener('click', () => { centerDate.setDate(centerDate.getDate() + 7); renderDateNavigation(); });
+
     snapshotSymbolEl.addEventListener('change', renderSnapshotView);
     srSymbolEl.addEventListener('change', renderSrLevels);
     srLookbackEl.addEventListener('change', renderSrLevels);
@@ -1332,12 +1417,34 @@ document.addEventListener('DOMContentLoaded', function () {
     if (saveSetups1Btn) saveSetups1Btn.addEventListener('click', () => saveSetupsTable(setupsTable1, setupsRef1, document.getElementById('setups-save-status-1')));
     if (saveSetups2Btn) saveSetups2Btn.addEventListener('click', () => saveSetupsTable(setupsTable2, setupsRef2, document.getElementById('setups-save-status-2')));
     
+    // FIX: Event listener for collapsible setups tables
+    journalTab.addEventListener('click', function(e) {
+        const header = e.target.closest('.setups-header');
+        if (header) {
+            const content = document.getElementById(header.dataset.target);
+            const button = header.querySelector('.toggle-setups-btn');
+            const isHidden = content.style.display === 'none';
+
+            if (isHidden) {
+                content.style.display = 'block';
+                button.textContent = 'Minimize';
+            } else {
+                content.style.display = 'none';
+                button.textContent = 'Expand';
+            }
+        }
+    });
+    
     document.querySelector('.tabs').addEventListener('click', (e) => { 
         if (!e.target.matches('.tab-link')) return;
         document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active')); 
         e.target.classList.add('active'); 
         const activeTabId = e.target.dataset.tab + '-tab';
         document.getElementById(activeTabId).classList.add('active'); 
+        
+        // FIX: Conditional "Performance Stats" Button
+        statsPanelContainer.style.display = e.target.dataset.tab === 'tracker' ? 'block' : 'none';
+
         if (e.target.dataset.tab === 'journal') { updateJournalView(); } 
         else if (e.target.dataset.tab === 'snapshot') { renderSnapshotView(); }
         else if (e.target.dataset.tab === 'sr-levels') { renderSrLevels(); }
@@ -1391,7 +1498,12 @@ document.addEventListener('DOMContentLoaded', function () {
         bankRef.set({ currentBalance: newBalance });
     });
     
-    journalRef.on('value', (s) => { allJournalText = s.val() || {}; if(document.getElementById('journal-tab').classList.contains('active')) updateJournalView(); });
+    journalRef.on('value', (s) => { 
+        allJournalText = s.val() || {}; 
+        if(document.getElementById('journal-tab').classList.contains('active')) {
+            updateJournalView(); 
+        }
+    });
     journalImagesRef.on('value', (s) => {
         allJournalImages = s.val() || {};
         if (document.getElementById('journal-tab').classList.contains('active')) { updateJournalView(); }
