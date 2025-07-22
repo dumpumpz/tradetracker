@@ -90,13 +90,15 @@
             align-items: stretch;
         }
 
+        /* --- CSS-ONLY RESIZING SOLUTION --- */
         #journal-entry, #persistent-notes-entry {
+            form-sizing: content; /* Let the browser handle resizing based on content */
             width: 100%; 
-            min-height: 35vh;
             resize: vertical;
             line-height: 1.6;
             margin-top: 5px;
-            overflow-y: hidden;
+            overflow-y: hidden; /* Prevent scrollbar from ever appearing */
+            min-height: 100px; /* Set a reasonable minimum height */
         }
         
         #journal-entry {
@@ -168,7 +170,6 @@
         .ema-table th { font-weight: bold; background-color: var(--header-bg); color: var(--subtle-text); }
         .ema-table td:first-child { font-weight: bold; text-align: left; color: var(--link-color); padding-left: 15px; }
 
-        /* ADDED: Styles for the closest S/R EMA summary */
         .ema-summary-container {
             font-size: 13px;
             padding: 8px 12px;
@@ -181,7 +182,6 @@
             line-height: 1.5;
         }
 
-                /* ADD THESE NEW RULES */
         .ema-level-summary ul {
             margin: 5px 0 0 0;
             padding-left: 20px;
@@ -196,7 +196,7 @@
         }
         .ema-level-summary .support { color: var(--green-text); }
         .ema-level-summary .resistance { color: var(--red-text); }
-
+        .ema-level-summary .value { font-family: 'Courier New', Courier, monospace; }
 
         #snapshot-images-container { display: flex; flex-direction: column; align-items: center; gap: 25px; margin-top: 20px; }
         .snapshot-image-item { width: 100%; max-width: 900px; }
@@ -732,11 +732,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     function getYYYYMMDD(date) { return date.toISOString().split('T')[0]; }
-    function autoResizeTextarea(element) { 
-        if (!element) return;
-        element.style.height = 'auto'; 
-        element.style.height = (element.scrollHeight) + 'px'; 
-    }
+    // The autoResizeTextarea function is no longer needed with the CSS approach.
     function getSafeSymbol(symbol) { return symbol.replace(/\//g, '-'); }
     
     async function fetchEmaData() {
@@ -796,18 +792,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const dailyText = (allJournalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
         journalEntryEl.value = dailyText; 
-        
-        // **FIX:** Set the content for the persistent scratchpad here as well,
-        // making this function the single source of truth for the display.
         persistentNotesEl.value = persistentNotesText;
 
-        // Use a small timeout to allow the browser to render the now-visible
-        // textareas before we calculate their scrollHeight. This is crucial
-        // for reliability, especially on mobile devices after a layout change.
-        setTimeout(() => {
-            autoResizeTextarea(journalEntryEl); 
-            autoResizeTextarea(persistentNotesEl);
-        }, 0);
+        // Resizing is now handled by CSS, no JS needed here.
 
         if (favouriteText && dailyText.trim() && favouriteText === dailyText.trim()) {
             favouriteBtn.classList.add('active');
@@ -966,7 +953,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
     
-    // UPDATED: Function now calculates and renders closest S/R EMAs for each symbol.
     function renderEmaData() {
         if (!allEmaData.data || !emaTablesContainer) return;
         
@@ -998,7 +984,6 @@ document.addEventListener('DOMContentLoaded', function () {
             priceDisplay.innerHTML = `Current Price (15m): <span class="price-value">${currentPrice > 0 ? '$' + currentPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '--'}</span>`;
             container.appendChild(priceDisplay);
 
-            // --- Start of S/R EMA Calculation ---
             const supports = [];
             const resistances = [];
 
@@ -1044,7 +1029,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             
             container.appendChild(summaryContainer);
-            // --- End of S/R EMA Calculation ---
 
             const tableWrapper = document.createElement('div');
             tableWrapper.className = 'table-wrapper';
@@ -1229,23 +1213,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    journalEntryEl.addEventListener('input', () => {
-        autoResizeTextarea(journalEntryEl);
-        const safeSymbol = getSafeSymbol(journalSymbolEl.value);
-        const timeframe = journalTimeframeEl.value;
-        const favouriteText = (allFavouriteEntries[safeSymbol] || {})[timeframe];
-        if (favouriteText && journalEntryEl.value.trim() === favouriteText) {
-            favouriteBtn.classList.add('active');
-        } else {
-            favouriteBtn.classList.remove('active');
-        }
-        saveJournalEntry();
-    });
-    
-    persistentNotesEl.addEventListener('input', () => {
-        autoResizeTextarea(persistentNotesEl);
-        savePersistentNotes();
-    });
+    journalEntryEl.addEventListener('input', saveJournalEntry);
+    persistentNotesEl.addEventListener('input', savePersistentNotes);
     
     favouriteBtn.addEventListener('click', () => {
         if (!isMasterUser) return;
@@ -1435,9 +1404,6 @@ document.addEventListener('DOMContentLoaded', function () {
         renderSetupsTable(setupsTable2, allSetupsData2);
     });
     
-    // **FIX:** This listener now ONLY updates the data variable.
-    // It calls updateJournalView() if the tab is active, ensuring the
-    // UI is refreshed consistently through the main update function.
     persistentNotesRef.on('value', (s) => {
         persistentNotesText = s.val() || '';
         if (document.getElementById('journal-tab').classList.contains('active')) {
