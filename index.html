@@ -678,8 +678,11 @@ document.addEventListener('DOMContentLoaded', function () {
     let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, allFavouriteEntries = {}, persistentNotesText = '';
     let allSetupsData1 = {}, allSetupsData2 = {};
 
-    let selectedDate = new Date();
-    let centerDate = new Date();
+    // FIX: Normalize initial dates to midnight UTC to prevent timezone bugs
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    let selectedDate = new Date(today);
+    let centerDate = new Date(today);
     
     const addTradeForm = document.getElementById('add-trade-form');
     const statsFab = document.getElementById('stats-fab');
@@ -760,7 +763,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const safeSymbol = getSafeSymbol(journalSymbolEl.value);
         const timeframe = journalTimeframeEl.value;
 
-        // REVERTED: Original 5-day navigation loop
         for (let i = -2; i <= 2; i++) {
             const date = new Date(centerDate);
             date.setDate(centerDate.getDate() + i);
@@ -774,7 +776,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 btn.classList.add('active');
             }
 
-            // KEPT: Highlighting for populated days
             const hasEntry = (allJournalText[safeSymbol]?.[yyyymmdd]?.[timeframe] || '').trim();
             if (hasEntry) {
                 btn.classList.add('has-entry');
@@ -1038,10 +1039,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="ema-level-summary"><strong><span class="support">Support:</span></strong>${supportHTML}</div>
                 <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong>${resistanceHTML}</div>
             `;
-
             
-            container.appendChild(summaryContainer);
-
             const tableWrapper = document.createElement('div');
             tableWrapper.className = 'table-wrapper';
             const table = document.createElement('table');
@@ -1069,7 +1067,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
             table.appendChild(tbody);
             tableWrapper.appendChild(table);
-            container.appendChild(tableWrapper);
+
+            // FIX: Reposition ETH summary
+            if (safeSymbol === 'ETH-USDT') {
+                container.appendChild(tableWrapper);
+                container.appendChild(summaryContainer);
+            } else {
+                container.appendChild(summaryContainer);
+                container.appendChild(tableWrapper);
+            }
+            
             emaTablesContainer.appendChild(container);
         });
     }
@@ -1331,7 +1338,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // REVERTED: Original 5-day jump for navigation arrows
     datePrevBtn.addEventListener('click', () => { centerDate.setDate(centerDate.getDate() - 5); renderDateNavigation(); });
     dateNextBtn.addEventListener('click', () => { centerDate.setDate(centerDate.getDate() + 5); renderDateNavigation(); });
 
