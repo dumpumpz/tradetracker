@@ -180,6 +180,17 @@
         .ema-level-summary {
             line-height: 1.5;
         }
+
+                /* ADD THESE NEW RULES */
+        .ema-level-summary ul {
+            margin: 5px 0 0 0;
+            padding-left: 20px;
+            list-style-type: disc;
+        }
+        .ema-level-summary li {
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
         .ema-level-summary strong {
             font-weight: 600;
         }
@@ -1007,15 +1018,21 @@ document.addEventListener('DOMContentLoaded', function () {
             resistances.sort((a, b) => a.distance - b.distance);
 
             const formatLevelText = (level) => `<span class="value">${level.label} (${Math.round(level.value).toLocaleString()})</span>`;
-            const supportText = supports.slice(0, 3).map(formatLevelText).join(' | ') || "None found nearby.";
-            const resistanceText = resistances.slice(0, 3).map(formatLevelText).join(' | ') || "None found nearby.";
+            
+            const supportItems = supports.slice(0, 3).map(level => `<li>${formatLevelText(level)}</li>`).join('');
+            const resistanceItems = resistances.slice(0, 3).map(level => `<li>${formatLevelText(level)}</li>`).join('');
+
+            const supportHTML = supportItems ? `<ul>${supportItems}</ul>` : ` None found nearby.`;
+            const resistanceHTML = resistanceItems ? `<ul>${resistanceItems}</ul>` : ` None found nearby.`;
 
             const summaryContainer = document.createElement('div');
             summaryContainer.className = 'ema-summary-container';
             summaryContainer.innerHTML = `
-                <div class="ema-level-summary"><strong><span class="support">Support:</span></strong> ${supportText}</div>
-                <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong> ${resistanceText}</div>
+                <div class="ema-level-summary"><strong><span class="support">Support:</span></strong>${supportHTML}</div>
+                <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong>${resistanceHTML}</div>
             `;
+
+            
             container.appendChild(summaryContainer);
             // --- End of S/R EMA Calculation ---
 
