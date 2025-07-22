@@ -155,32 +155,22 @@
         .ema-table th { font-weight: bold; background-color: var(--header-bg); color: var(--subtle-text); }
         .ema-table td:first-child { font-weight: bold; text-align: left; color: var(--link-color); padding-left: 15px; }
 
-        .ema-summary-container {
-            font-size: 13px;
+        /* START: EMA Summary Table Styles */
+        .ema-summary-table-wrapper {
             padding: 8px 12px;
             margin: 0 auto 15px auto;
             max-width: 95%;
             border-radius: 6px;
             background-color: var(--bg-color);
         }
-        .ema-level-summary {
-            line-height: 1.5;
-        }
-
-        .ema-level-summary ul {
-            margin: 5px 0 0 0;
-            padding-left: 20px;
-            list-style-type: disc;
-        }
-        .ema-level-summary li {
-            margin-bottom: 4px;
-            line-height: 1.4;
-        }
-        .ema-level-summary strong {
-            font-weight: 600;
-        }
-        .ema-level-summary .support { color: var(--green-text); }
-        .ema-level-summary .resistance { color: var(--red-text); }
+        .ema-summary-table { margin-top: 0; font-size: 13px; border-collapse: separate; border-spacing: 0; }
+        .ema-summary-table th, .ema-summary-table td { padding: 8px 12px; text-align: center; border: none; border-bottom: 1px solid var(--border-color); }
+        .ema-summary-table th { font-weight: 600; text-align: left; }
+        .ema-summary-table tr:last-child th, .ema-summary-table tr:last-child td { border-bottom: none; }
+        .ema-summary-table th.support { color: var(--green-text); }
+        .ema-summary-table th.resistance { color: var(--red-text); }
+        .ema-summary-table td { font-family: 'Courier New', Courier, monospace; }
+        /* END: EMA Summary Table Styles */
 
 
         #snapshot-images-container { display: flex; flex-direction: column; align-items: center; gap: 25px; margin-top: 20px; }
@@ -369,16 +359,46 @@
         .setups-container {
             margin-bottom: 30px; 
             border: 1px solid var(--border-color);
-            padding: 15px;
+            padding: 0;
             border-radius: 8px;
             background-color: var(--card-bg);
+            overflow: hidden;
         }
-        .setups-container h2 {
-            text-align: center;
-            margin-top: 0;
-            padding-top: 0;
-            border-top: none;
+        /* START: New Styles for Setups Header and Minimize Button */
+        .setups-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
         }
+        .setups-header h4 {
+            margin: 0;
+            font-weight: 500;
+        }
+        .minimize-setups-btn {
+            background-color: var(--subtle-text);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            margin:0;
+        }
+        .setups-container.minimized .setups-header {
+             border-bottom-color: transparent;
+        }
+        .setups-container.minimized .table-wrapper,
+        .setups-container.minimized .setups-controls {
+            display: none;
+        }
+        .setups-content {
+            padding: 15px;
+        }
+       /* END: New Styles for Setups Header and Minimize Button */
+
         .setups-controls {
             text-align: center;
             margin-top: 15px;
@@ -445,79 +465,96 @@
 
         <div id="journal-tab" class="tab-content">
             
+             <!-- START: SCRATCHPAD MOVED HERE -->
+            <h3>Scratchpad</h3>
+            <div>
+                <textarea id="persistent-notes-entry" placeholder="Persistent scratchpad..."></textarea>
+            </div>
+            <!-- END: SCRATCHPAD MOVED HERE -->
+
             <div class="setups-container">
-                <h2>Current Setups (Primary)</h2>
-                <div class="table-wrapper">
-                    <table id="current-setups-table-1" class="setups-table">
-                        <thead>
-                            <tr>
-                                <th rowspan="2">Timeframe</th>
-                                <th colspan="3">0-Candle</th>
-                                <th colspan="3">4-Candle</th>
-                            </tr>
-                            <tr>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                        </tbody>
-                    </table>
+                <div class="setups-header">
+                    <h4>Primary Setups</h4>
+                    <button class="minimize-setups-btn">Minimize</button>
                 </div>
-                <div class="setups-controls">
-                    <button id="save-setups-1-btn" class="master-only">Save Primary Setups</button>
-                    <p id="setups-save-status-1" class="setups-save-status"></p>
+                <div class="setups-content">
+                    <div class="table-wrapper">
+                        <table id="current-setups-table-1" class="setups-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">Timeframe</th>
+                                    <th colspan="3">0-Candle</th>
+                                    <th colspan="3">4-Candle</th>
+                                </tr>
+                                <tr>
+                                    <th>Entry</th>
+                                    <th>Target</th>
+                                    <th>Stoploss</th>
+                                    <th>Entry</th>
+                                    <th>Target</th>
+                                    <th>Stoploss</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="setups-controls">
+                        <button id="save-setups-1-btn" class="master-only">Save Primary Setups</button>
+                        <p id="setups-save-status-1" class="setups-save-status"></p>
+                    </div>
                 </div>
             </div>
 
             <div class="setups-container">
-                <h2>Current Setups (Secondary)</h2>
-                <div class="table-wrapper">
-                     <table id="current-setups-table-2" class="setups-table">
-                        <thead>
-                            <tr>
-                                <th rowspan="2">Timeframe</th>
-                                <th colspan="3">0-Candle</th>
-                                <th colspan="3">4-Candle</th>
-                            </tr>
-                            <tr>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                        </tbody>
-                    </table>
+                 <div class="setups-header">
+                    <h4>Secondary Setups</h4>
+                    <button class="minimize-setups-btn">Minimize</button>
                 </div>
-                 <div class="setups-controls">
-                    <button id="save-setups-2-btn" class="master-only">Save Secondary Setups</button>
-                    <p id="setups-save-status-2" class="setups-save-status"></p>
+                <div class="setups-content">
+                    <div class="table-wrapper">
+                         <table id="current-setups-table-2" class="setups-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">Timeframe</th>
+                                    <th colspan="3">0-Candle</th>
+                                    <th colspan="3">4-Candle</th>
+                                </tr>
+                                <tr>
+                                    <th>Entry</th>
+                                    <th>Target</th>
+                                    <th>Stoploss</th>
+                                    <th>Entry</th>
+                                    <th>Target</th>
+                                    <th>Stoploss</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                     <div class="setups-controls">
+                        <button id="save-setups-2-btn" class="master-only">Save Secondary Setups</button>
+                        <p id="setups-save-status-2" class="setups-save-status"></p>
+                    </div>
                 </div>
             </div>
 
@@ -548,18 +585,10 @@
                 <div id="favourited-entry-text"></div>
             </div>
 
-            <!-- START: HTML STRUCTURE CHANGE -->
             <div class="journal-input-wrapper">
                  <button id="favourite-btn" class="master-only" title="Pin this note for this timeframe on all days">⭐</button>
                  <textarea id="journal-entry" placeholder="Select a symbol, timeframe, and date to view or add a journal entry."></textarea>
             </div>
-
-            <h3>Scratchpad</h3>
-            <div>
-                <textarea id="persistent-notes-entry" placeholder="Persistent scratchpad..."></textarea>
-            </div>
-            <!-- END: HTML STRUCTURE CHANGE -->
-
 
             <p id="save-status" style="text-align:center;font-style:italic;color:#666;height:1em"></p>
             
@@ -722,7 +751,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function getYYYYMMDD(date) { return date.toISOString().split('T')[0]; }
     
-    // **FIX:** The reliable JavaScript auto-resize function is restored.
     function autoResizeTextarea(element) { 
         if (!element) return;
         element.style.height = 'auto'; 
@@ -790,8 +818,6 @@ document.addEventListener('DOMContentLoaded', function () {
         journalEntryEl.value = dailyText; 
         persistentNotesEl.value = persistentNotesText;
 
-        // **FIX:** Use setTimeout to ensure resizing happens AFTER the browser has
-        // rendered the new content. This solves the race condition.
         setTimeout(() => {
             autoResizeTextarea(journalEntryEl); 
             autoResizeTextarea(persistentNotesEl);
@@ -1012,35 +1038,55 @@ document.addEventListener('DOMContentLoaded', function () {
 
             supports.sort((a, b) => a.distance - b.distance);
             resistances.sort((a, b) => a.distance - b.distance);
-
-            const formatLevelText = (level) => `<span class="value">${level.label} (${Math.round(level.value).toLocaleString()})</span>`;
             
-            const supportItems = supports.slice(0, 3).map(level => `<li>${formatLevelText(level)}</li>`).join('');
-            const resistanceItems = resistances.slice(0, 3).map(level => `<li>${formatLevelText(level)}</li>`).join('');
-
-            const supportHTML = supportItems ? `<ul>${supportItems}</ul>` : ` None found nearby.`;
-            const resistanceHTML = resistanceItems ? `<ul>${resistanceItems}</ul>` : ` None found nearby.`;
-
-            const summaryContainer = document.createElement('div');
-            summaryContainer.className = 'ema-summary-container';
-            summaryContainer.innerHTML = `
-                <div class="ema-level-summary"><strong><span class="support">Support:</span></strong>${supportHTML}</div>
-                <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong>${resistanceHTML}</div>
-            `;
-
+            // START: EMA Summary Table generation
+            const summaryTableWrapper = document.createElement('div');
+            summaryTableWrapper.className = 'ema-summary-table-wrapper';
             
-            container.appendChild(summaryContainer);
+            const summaryTable = document.createElement('table');
+            summaryTable.className = 'ema-summary-table';
+            
+            const tbody = document.createElement('tbody');
+
+            const formatLevelText = (level) => `${level.label} (${Math.round(level.value).toLocaleString()})`;
+
+            // Support Row
+            const supportRow = tbody.insertRow();
+            const supportTh = document.createElement('th');
+            supportTh.className = 'support';
+            supportTh.textContent = 'Support';
+            supportRow.appendChild(supportTh);
+            for(let i=0; i<3; i++) {
+                const cell = supportRow.insertCell();
+                cell.textContent = supports[i] ? formatLevelText(supports[i]) : '-';
+            }
+
+            // Resistance Row
+            const resistanceRow = tbody.insertRow();
+            const resistanceTh = document.createElement('th');
+            resistanceTh.className = 'resistance';
+            resistanceTh.textContent = 'Resistance';
+            resistanceRow.appendChild(resistanceTh);
+            for(let i=0; i<3; i++) {
+                const cell = resistanceRow.insertCell();
+                cell.textContent = resistances[i] ? formatLevelText(resistances[i]) : '-';
+            }
+            
+            summaryTable.appendChild(tbody);
+            summaryTableWrapper.appendChild(summaryTable);
+            container.appendChild(summaryTableWrapper);
+            // END: EMA Summary Table generation
 
             const tableWrapper = document.createElement('div');
             tableWrapper.className = 'table-wrapper';
             const table = document.createElement('table');
             table.className = 'ema-table';
             table.innerHTML = `<thead><tr><th>TF</th><th>EMA 13</th><th>SMA 13</th><th>EMA 49</th><th>SMA 49</th><th>EMA 100</th><th>SMA 100</th><th>EMA 200</th><th>SMA 200</th><th>EMA 500</th><th>SMA 500</th><th>EMA 1000</th><th>SMA 1000</th></tr></thead>`;
-            const tbody = document.createElement('tbody');
+            const detailedTbody = document.createElement('tbody');
 
             timeframesToAnalyze.forEach(tf => {
                 const tfData = symbolEmaData[tf];
-                const row = tbody.insertRow();
+                const row = detailedTbody.insertRow();
                 row.insertCell().textContent = tfShortNames[tf] || tf;
                 periodsToAnalyze.forEach(period => {
                     ['EMA', 'SMA'].forEach(type => {
@@ -1056,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             });
 
-            table.appendChild(tbody);
+            table.appendChild(detailedTbody);
             tableWrapper.appendChild(table);
             container.appendChild(tableWrapper);
             emaTablesContainer.appendChild(container);
@@ -1200,6 +1246,20 @@ document.addEventListener('DOMContentLoaded', function () {
         srLegendToggleBtn.textContent = '−';
     }
 
+    // START: Add event listener for new minimize buttons
+    document.querySelectorAll('.minimize-setups-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const container = button.closest('.setups-container');
+            container.classList.toggle('minimized');
+            if (container.classList.contains('minimized')) {
+                button.textContent = 'Expand';
+            } else {
+                button.textContent = 'Minimize';
+            }
+        });
+    });
+    // END: Add event listener for new minimize buttons
+
     journalImagesContainer.addEventListener('click', (e) => {
         const button = e.target.closest('.delete-journal-image');
         if (!isMasterUser || !masterPassword || !button) return;
@@ -1214,7 +1274,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // **FIX:** Add event listeners to resize on user input.
     journalEntryEl.addEventListener('input', () => {
         autoResizeTextarea(journalEntryEl);
         saveJournalEntry();
