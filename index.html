@@ -138,10 +138,10 @@
         
         .date-nav-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 15px auto 20px auto; }
         #date-buttons-container { display: flex; gap: 8px; }
-        .date-nav-btn { padding: 8px 12px; font-size: 14px; background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--subtle-text); border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
+        .date-nav-btn { padding: 8px 12px; font-size: 14px; background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--subtle-text); border-radius: 6px; cursor: pointer; transition: all 0.2s ease; border-bottom: 3px solid transparent; }
         .date-nav-btn:hover { border-color: var(--link-color); color: var(--link-color); }
         .date-nav-btn.active { background-color: var(--link-color); color: white; border-color: var(--link-color); font-weight: bold; }
-        .date-nav-btn.has-entry { border: 2px solid var(--link-color); padding: 7px 11px; }
+        .date-nav-btn.has-entry { border-bottom: 3px solid var(--green-border); }
         .date-nav-arrow { background: none; border: none; font-size: 24px; font-weight: bold; color: var(--subtle-text); cursor: pointer; padding: 0 10px; }
         .date-nav-arrow:hover { color: var(--link-color); }
 
@@ -374,11 +374,38 @@
             border-radius: 8px;
             background-color: var(--card-bg);
         }
-        .setups-container h2 {
+        .setups-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            cursor: pointer;
+        }
+        .setups-header h2 {
+            margin: 0;
+            font-size: 18px;
+            padding: 0;
+            border: none;
+        }
+        .setups-toggle-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--subtle-text);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 20px;
+            line-height: 20px;
             text-align: center;
-            margin-top: 0;
-            padding-top: 0;
-            border-top: none;
+            cursor: pointer;
+            padding: 0;
+            font-weight: bold;
+            margin: 0;
+            transition: transform 0.3s ease, color 0.2s, border-color 0.2s;
+        }
+        .setups-header:hover .setups-toggle-btn {
+            border-color: var(--link-color);
+            color: var(--link-color);
         }
         .setups-controls {
             text-align: center;
@@ -478,8 +505,11 @@
             </div>
 
             <div class="setups-container">
-            
-                <div class="table-wrapper">
+                <div class="setups-header" data-target="#setups-table-wrapper-1">
+                    <h2>Primary Setups</h2>
+                    <button class="setups-toggle-btn">−</button>
+                </div>
+                <div class="table-wrapper" id="setups-table-wrapper-1">
                     <table id="current-setups-table-1" class="setups-table">
                         <thead>
                             <tr>
@@ -516,8 +546,11 @@
             </div>
 
             <div class="setups-container">
-            
-                <div class="table-wrapper">
+                <div class="setups-header" data-target="#setups-table-wrapper-2">
+                    <h2>Secondary Setups</h2>
+                    <button class="setups-toggle-btn">−</button>
+                </div>
+                <div class="table-wrapper" id="setups-table-wrapper-2">
                      <table id="current-setups-table-2" class="setups-table">
                         <thead>
                             <tr>
@@ -535,7 +568,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                    <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
                             <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
                             <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
                             <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
@@ -552,8 +585,6 @@
                     <p id="setups-save-status-2" class="setups-save-status"></p>
                 </div>
             </div>
-
-            
             
             <div class="controls-container" id="journal-controls">
                 <div><label for="journal-symbol">Symbol:</label><select id="journal-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
@@ -1505,9 +1536,23 @@
                     }
                 });
                 
-                // Setups Table Buttons
+                // Setups Table Buttons & Toggles
                 DOM.saveSetups1Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1));
                 DOM.saveSetups2Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2));
+                
+                DOM.journalTab.addEventListener('click', (e) => {
+                    const header = e.target.closest('.setups-header');
+                    if (header) {
+                        const targetWrapper = document.querySelector(header.dataset.target);
+                        const toggleBtn = header.querySelector('.setups-toggle-btn');
+                        if (targetWrapper && toggleBtn) {
+                            const isCollapsed = targetWrapper.style.display === 'none';
+                            targetWrapper.style.display = isCollapsed ? 'block' : 'none';
+                            toggleBtn.textContent = isCollapsed ? '−' : '+';
+                        }
+                    }
+                });
+
 
                 // Snapshot & S/R Level Controls
                 DOM.snapshotSymbolEl.addEventListener('change', renderSnapshotView);
