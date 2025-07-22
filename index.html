@@ -54,7 +54,6 @@
         .container { max-width: 1200px; margin: auto; background: var(--container-bg); padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-color); transition: background-color 0.3s; }
         h1 { text-align: center; color: var(--text-color); margin-bottom: 5px; }
         h2 { margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 20px; }
-        h3.setups-header { text-align:center; border-top: none; padding-top: 0; margin-top: 10px; }
         .section-header { display: flex; justify-content: center; align-items: center; position: relative; }
         .backup-controls { position: absolute; right: 0; display: flex; gap: 10px; }
         .backup-controls button, .backup-controls label { font-size: 12px; padding: 6px 12px; cursor: pointer; background-color: #6c757d; border: none; color: white; border-radius: 4px; }
@@ -74,7 +73,7 @@
         button:hover { opacity: 0.85; }
         
         .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; font-size: 14px; white-space: nowrap; vertical-align: top; }
         th { background-color: var(--header-bg); font-weight: bold; vertical-align: middle; text-align: center; }
         .action-buttons button { padding: 5px 8px; font-size: 12px; margin-right: 4px; }
@@ -160,13 +159,14 @@
 
         #ema-data-section { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color); }
         #ema-data-section h2 { margin-top: 0; border-top: none; text-align: center; }
-        .current-price-display { text-align: center; font-size: 18px; margin-bottom: 5px; color: var(--text-color); }
-        .price-value { font-weight: bold; font-family: inherit; }
         .ema-last-updated { text-align: center; font-style: italic; color: var(--subtle-text); font-size: 14px; margin-bottom: 20px; }
-        #ema-table { text-align: right; width: 100%; }
-        #ema-table th, #ema-table td { font-family: inherit; font-size: 14px; padding: 10px 8px; }
-        #ema-table th { font-weight: bold; background-color: var(--header-bg); color: var(--subtle-text); }
-        #ema-table td:first-child { font-weight: bold; text-align: left; color: var(--link-color); padding-left: 15px; }
+        .ema-table-container { margin-bottom: 30px; }
+        .ema-table-container h4 { font-size: 18px; margin-bottom: 5px; text-align: center; }
+        .ema-table-container .current-price-display { text-align: center; font-size: 16px; margin-bottom: 10px; color: var(--text-color); }
+        .price-value { font-weight: bold; }
+        .ema-table th, .ema-table td { font-family: inherit; font-size: 14px; padding: 10px 8px; }
+        .ema-table th { font-weight: bold; background-color: var(--header-bg); color: var(--subtle-text); }
+        .ema-table td:first-child { font-weight: bold; text-align: left; color: var(--link-color); padding-left: 15px; }
 
         #snapshot-images-container { display: flex; flex-direction: column; align-items: center; gap: 25px; margin-top: 20px; }
         .snapshot-image-item { width: 100%; max-width: 900px; }
@@ -342,8 +342,7 @@
             line-height: 1.6;
             color: var(--text-color);
         }
-
-        /* UPDATED: Changed ID to class to target both tables */
+        
         .setups-table th:first-child { text-align: left; padding-left: 15px; color: var(--link-color); }
         .setups-table td { text-align: center; }
         .setups-table td[contenteditable="true"]:focus {
@@ -353,7 +352,27 @@
         }
         
         .setups-container {
-            margin-bottom: 25px; /* Add space between the two tables */
+            margin-bottom: 30px; 
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 8px;
+            background-color: var(--card-bg);
+        }
+        .setups-container h2 {
+            text-align: center;
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+        .setups-controls {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .setups-save-status {
+            text-align:center;
+            font-style:italic;
+            color:var(--subtle-text);
+            height:1em;
         }
 
         @media (max-width: 768px) { 
@@ -411,80 +430,70 @@
         </div>
 
         <div id="journal-tab" class="tab-content">
-
-            <!-- UPDATED: Two identical tables -->
+            
+            <!-- UPDATED: Independent 0-Candle Table -->
             <div class="setups-container">
-                <h3 class="setups-header">Current Setups (Primary)</h3>
+                <h2>0-Candle Setups</h2>
                 <div class="table-wrapper">
-                    <table id="current-setups-table-1" class="setups-table">
+                    <table id="zero-candle-setups-table" class="setups-table">
                         <thead>
                             <tr>
-                                <th rowspan="2">Timeframe</th>
-                                <th colspan="3">0-Candle</th>
-                                <th colspan="3">4-Candle</th>
-                            </tr>
-                            <tr>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
+                                <th>Timeframe</th>
                                 <th>Entry</th>
                                 <th>Target</th>
                                 <th>Stoploss</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>5min</th><td></td><td></td><td></td></tr>
+                            <tr><th>15min</th><td></td><td></td><td></td></tr>
+                            <tr><th>30min</th><td></td><td></td><td></td></tr>
+                            <tr><th>1hour</th><td></td><td></td><td></td></tr>
+                            <tr><th>2hour</th><td></td><td></td><td></td></tr>
+                            <tr><th>4hour</th><td></td><td></td><td></td></tr>
+                            <tr><th>daily</th><td></td><td></td><td></td></tr>
+                            <tr><th>weekly</th><td></td><td></td><td></td></tr>
+                            <tr><th>monthly</th><td></td><td></td><td></td></tr>
                         </tbody>
                     </table>
                 </div>
+                <div class="setups-controls">
+                    <button id="save-setups-zero-btn" class="master-only">Save 0-Candle Setups</button>
+                    <p id="setups-save-status-zero" class="setups-save-status"></p>
+                </div>
             </div>
 
+            <!-- UPDATED: Independent 4-Candle Table -->
             <div class="setups-container">
-                <h3 class="setups-header">Current Setups (Secondary)</h3>
+                <h2>4-Candle Setups</h2>
                 <div class="table-wrapper">
-                     <table id="current-setups-table-2" class="setups-table">
-                        <thead>
+                    <table id="four-candle-setups-table" class="setups-table">
+                       <thead>
                             <tr>
-                                <th rowspan="2">Timeframe</th>
-                                <th colspan="3">0-Candle</th>
-                                <th colspan="3">4-Candle</th>
-                            </tr>
-                            <tr>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
+                                <th>Timeframe</th>
                                 <th>Entry</th>
                                 <th>Target</th>
                                 <th>Stoploss</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>5min</th><td></td><td></td><td></td></tr>
+                            <tr><th>15min</th><td></td><td></td><td></td></tr>
+                            <tr><th>30min</th><td></td><td></td><td></td></tr>
+                            <tr><th>1hour</th><td></td><td></td><td></td></tr>
+                            <tr><th>2hour</th><td></td><td></td><td></td></tr>
+                            <tr><th>4hour</th><td></td><td></td><td></td></tr>
+                            <tr><th>daily</th><td></td><td></td><td></td></tr>
+                            <tr><th>weekly</th><td></td><td></td><td></td></tr>
+                            <tr><th>monthly</th><td></td><td></td><td></td></tr>
                         </tbody>
                     </table>
                 </div>
+                 <div class="setups-controls">
+                    <button id="save-setups-four-btn" class="master-only">Save 4-Candle Setups</button>
+                    <p id="setups-save-status-four" class="setups-save-status"></p>
+                </div>
             </div>
-
-            <div style="text-align:center; margin-top: 15px;">
-                <button id="save-setups-btn" class="master-only">Save Setups</button>
-            </div>
-            <p id="setups-save-status" style="text-align:center;font-style:italic;color:var(--subtle-text);height:1em"></p>
 
             <h2 style="text-align:center;">Daily Journal</h2>
             
@@ -543,21 +552,12 @@
                 </div>
             </div>
             
+            <!-- UPDATED: EMA Section now has a container for multiple tables -->
             <div id="ema-data-section">
                 <h2>Market Snapshot</h2>
-                <div class="current-price-display">Current Price (15m): <span id="ema-current-price" class="price-value">--</span></div>
                 <p class="ema-last-updated">Last Updated: <span id="ema-last-updated-time">--</span></p>
-                <div class="table-wrapper">
-                    <table id="ema-table">
-                        <thead>
-                            <tr>
-                                <th>TF</th>
-                                <th>EMA 13</th><th>SMA 13</th><th>EMA 49</th><th>SMA 49</th><th>EMA 100</th><th>SMA 100</th>
-                                <th>EMA 200</th><th>SMA 200</th><th>EMA 500</th><th>SMA 500</th><th>EMA 1000</th><th>SMA 1000</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ema-tbody"></tbody>
-                    </table>
+                <div id="ema-tables-container">
+                    <!-- EMA tables for BTC and ETH will be dynamically inserted here by JavaScript -->
                 </div>
             </div>
         </div>
@@ -640,7 +640,9 @@ const bankRef = database.ref('bank');
 const journalRef = database.ref('journal_text'); 
 const journalImagesRef = database.ref('journal_images'); 
 const favouritesRef = database.ref('journal_favourites');
-const setupsRef = database.ref('current_setups');
+// UPDATED: Two separate Firebase refs for the two setup tables
+const setupsRefZero = database.ref('current_setups_0_candle'); 
+const setupsRefFour = database.ref('current_setups_4_candle');
 const persistentNotesRef = database.ref('persistent_notes');
 
 const FEE_RATE = 0.00075;
@@ -648,7 +650,10 @@ const STARTING_BALANCE = 3881;
 const USD_TO_AUD_RATE = 1.53;
 
 document.addEventListener('DOMContentLoaded', function () {
-    let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, currentPrice = 0, allFavouriteEntries = {}, allSetupsData = {}, persistentNotesText = '';
+    let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, allFavouriteEntries = {}, persistentNotesText = '';
+    // UPDATED: Separate data caches for each table
+    let allSetupsDataZero = {}, allSetupsDataFour = {};
+
     let selectedDate = new Date();
     let centerDate = new Date();
     
@@ -681,9 +686,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const srLegendHeader = document.getElementById('sr-legend-header');
     const srLegendContent = document.getElementById('sr-legend-content');
     const srLegendToggleBtn = document.getElementById('sr-legend-toggle-btn');
-
-    const saveSetupsBtn = document.getElementById('save-setups-btn');
     
+    // UPDATED: Element selectors for the new independent tables and controls
+    const saveSetupsZeroBtn = document.getElementById('save-setups-zero-btn');
+    const saveSetupsFourBtn = document.getElementById('save-setups-four-btn');
+    const zeroCandleSetupsTable = document.getElementById('zero-candle-setups-table');
+    const fourCandleSetupsTable = document.getElementById('four-candle-setups-table');
+    const emaTablesContainer = document.getElementById('ema-tables-container');
+
+
     function getYYYYMMDD(date) { return date.toISOString().split('T')[0]; }
     function autoResizeTextarea(element) { 
         if (!element) return;
@@ -697,12 +708,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const response = await fetch('ma_analysis.json?cache_bust=' + new Date().getTime());
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             allEmaData = await response.json();
-            if (document.getElementById('journal-tab').classList.contains('active')) {
-                updateJournalView(); 
-            }
+            // Call renderEmaData regardless of tab, as it's always visible on the journal tab.
+            renderEmaData();
         } catch (error) {
             console.error("Could not fetch ma_analysis.json:", error);
-            document.getElementById('ema-tbody').innerHTML = '<tr><td colspan="13" style="color: red; text-align: center;">Error loading EMA data. Make sure ma_analysis.json is in the correct folder.</td></tr>';
+            if(emaTablesContainer) emaTablesContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading EMA data. Make sure ma_analysis.json is in the correct folder.</p>';
         }
     }
 
@@ -911,102 +921,111 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
     
+    // UPDATED: Renders EMA data for both BTC and ETH at all times.
     function renderEmaData() {
-        const selectedSymbol = getSafeSymbol(journalSymbolEl.value);
-        const symbolEmaData = (allEmaData.data || {})[selectedSymbol] || {};
+        if (!allEmaData.data || !emaTablesContainer) return;
+        
+        emaTablesContainer.innerHTML = '';
         const lastUpdated = allEmaData.last_updated ? new Date(allEmaData.last_updated).toLocaleString() : '--';
         document.getElementById('ema-last-updated-time').textContent = lastUpdated;
-        const priceDisplay = document.getElementById('ema-current-price');
-        const dataFor15m = symbolEmaData['15min'];
-        if (dataFor15m && dataFor15m.price !== undefined) {
-            currentPrice = dataFor15m.price;
-            priceDisplay.textContent = `$${currentPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        } else { currentPrice = 0; priceDisplay.textContent = '...'; }
-        const emaTbody = document.getElementById('ema-tbody');
-        emaTbody.innerHTML = '';
-        const timeframesToDisplay = ['15min', '30min', '1hour', '2hour', '4hour', 'daily'];
-        const periodsToDisplay = [13, 49, 100, 200, 500, 1000];
-        const tfShortNames = {'15min': '15m','30min': '30m','1hour': '1H','2hour': '2H','4hour': '4H','daily': '1D'};
-        timeframesToDisplay.forEach(tf => {
-            const tfData = symbolEmaData[tf];
-            const row = emaTbody.insertRow();
-            row.insertCell().textContent = tfShortNames[tf] || tf;
-            periodsToDisplay.forEach(period => {
-                ['EMA', 'SMA'].forEach(type => {
-                    const cell = row.insertCell();
-                    if (tfData && tfData[`${type}_${period}`] !== undefined) {
-                        const val = tfData[`${type}_${period}`];
-                        cell.textContent = Math.round(val).toLocaleString();
-                        if (currentPrice > 0) {
-                            cell.className = val > currentPrice ? 'price-above' : 'price-below';
-                        }
-                    } else { cell.textContent = '...'; }
+
+        const symbolsToDisplay = ['BTC-USDT', 'ETH-USDT'];
+        
+        symbolsToDisplay.forEach(safeSymbol => {
+            const symbolEmaData = allEmaData.data[safeSymbol] || {};
+            let currentPrice = 0;
+            const dataFor15m = symbolEmaData['15min'];
+            if (dataFor15m && dataFor15m.price !== undefined) {
+                currentPrice = dataFor15m.price;
+            }
+
+            const container = document.createElement('div');
+            container.className = 'ema-table-container';
+
+            const heading = document.createElement('h4');
+            heading.textContent = `${safeSymbol.replace('-', '/')} Snapshot`;
+            container.appendChild(heading);
+
+            const priceDisplay = document.createElement('div');
+            priceDisplay.className = 'current-price-display';
+            priceDisplay.innerHTML = `Current Price (15m): <span class="price-value">${currentPrice > 0 ? '$' + currentPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '--'}</span>`;
+            container.appendChild(priceDisplay);
+
+            const table = document.createElement('table');
+            table.className = 'ema-table';
+            table.innerHTML = `<thead><tr><th>TF</th><th>EMA 13</th><th>SMA 13</th><th>EMA 49</th><th>SMA 49</th><th>EMA 100</th><th>SMA 100</th><th>EMA 200</th><th>SMA 200</th><th>EMA 500</th><th>SMA 500</th><th>EMA 1000</th><th>SMA 1000</th></tr></thead>`;
+            const tbody = document.createElement('tbody');
+
+            const timeframesToDisplay = ['15min', '30min', '1hour', '2hour', '4hour', 'daily'];
+            const periodsToDisplay = [13, 49, 100, 200, 500, 1000];
+            const tfShortNames = {'15min': '15m','30min': '30m','1hour': '1H','2hour': '2H','4hour': '4H','daily': '1D'};
+
+            timeframesToDisplay.forEach(tf => {
+                const tfData = symbolEmaData[tf];
+                const row = tbody.insertRow();
+                row.insertCell().textContent = tfShortNames[tf] || tf;
+                periodsToDisplay.forEach(period => {
+                    ['EMA', 'SMA'].forEach(type => {
+                        const cell = row.insertCell();
+                        if (tfData && tfData[`${type}_${period}`] !== undefined) {
+                            const val = tfData[`${type}_${period}`];
+                            cell.textContent = Math.round(val).toLocaleString();
+                            if (currentPrice > 0) {
+                                cell.className = val > currentPrice ? 'price-above' : 'price-below';
+                            }
+                        } else { cell.textContent = '...'; }
+                    });
                 });
             });
+
+            table.appendChild(tbody);
+            container.appendChild(table);
+            emaTablesContainer.appendChild(container);
         });
     }
 
-    // UPDATED: Renders data into both duplicated tables
-    function renderSetupsTable(data) {
-        if (!data) return;
-        allSetupsData = data;
-
-        const populateTable = (tableElement) => {
-             const tbody = tableElement.querySelector('tbody');
-             tbody.querySelectorAll('tr').forEach(row => {
-                const timeframe = row.firstElementChild.textContent.trim();
-                if (allSetupsData[timeframe]) {
-                    const rowData = allSetupsData[timeframe];
-                    const cells = row.querySelectorAll('td');
-                    cells[0].textContent = rowData.zero_entry || '';
-                    cells[1].textContent = rowData.zero_target || '';
-                    cells[2].textContent = rowData.zero_stoploss || '';
-                    cells[3].textContent = rowData.four_entry || '';
-                    cells[4].textContent = rowData.four_target || '';
-                    cells[5].textContent = rowData.four_stoploss || '';
-                } else {
-                    row.querySelectorAll('td').forEach(cell => cell.textContent = '');
-                }
-            });
-        };
-        
-        const table1 = document.getElementById('current-setups-table-1');
-        const table2 = document.getElementById('current-setups-table-2');
-        if (table1) populateTable(table1);
-        if (table2) populateTable(table2);
+    // UPDATED: Generic function to render a single setups table
+    function renderSetupsTable(tableElement, data) {
+        if (!tableElement || !data) return;
+        const tbody = tableElement.querySelector('tbody');
+        tbody.querySelectorAll('tr').forEach(row => {
+            const timeframe = row.firstElementChild.textContent.trim();
+            const rowData = data[timeframe];
+            const cells = row.querySelectorAll('td');
+            if (rowData) {
+                cells[0].textContent = rowData.entry || '';
+                cells[1].textContent = rowData.target || '';
+                cells[2].textContent = rowData.stoploss || '';
+            } else {
+                cells.forEach(cell => cell.textContent = '');
+            }
+        });
     }
 
-    // UPDATED: Saves data from the first table only
-    function saveSetupsTable() {
-        if (!isMasterUser) return;
+    // UPDATED: Generic function to save a single setups table
+    function saveSetupsTable(tableElement, dbRef, statusElement) {
+        if (!isMasterUser || !tableElement) return;
         const dataToSave = {};
-        const primaryTable = document.getElementById('current-setups-table-1');
-        if (!primaryTable) return;
-        
-        const tbody = primaryTable.querySelector('tbody');
+        const tbody = tableElement.querySelector('tbody');
 
         tbody.querySelectorAll('tr').forEach(row => {
             const timeframe = row.firstElementChild.textContent.trim();
             const cells = row.querySelectorAll('td');
             dataToSave[timeframe] = {
-                zero_entry: cells[0].textContent,
-                zero_target: cells[1].textContent,
-                zero_stoploss: cells[2].textContent,
-                four_entry: cells[3].textContent,
-                four_target: cells[4].textContent,
-                four_stoploss: cells[5].textContent,
+                entry: cells[0].textContent,
+                target: cells[1].textContent,
+                stoploss: cells[2].textContent,
             };
         });
 
-        const statusEl = document.getElementById('setups-save-status');
-        statusEl.textContent = 'Saving...';
-        setupsRef.set(dataToSave)
+        statusElement.textContent = 'Saving...';
+        dbRef.set(dataToSave)
             .then(() => {
-                statusEl.textContent = 'Saved.';
-                setTimeout(() => statusEl.textContent = '', 2000);
+                statusElement.textContent = 'Saved.';
+                setTimeout(() => { statusElement.textContent = '' }, 2000);
             })
             .catch(e => {
-                statusEl.textContent = `Error: ${e.message}`;
+                statusElement.textContent = `Error: ${e.message}`;
                 console.error("Error saving setups table:", e);
             });
     }
@@ -1022,13 +1041,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     else if (el.tagName === 'TH' || el.tagName === 'TD') el.style.display = 'table-cell'; 
                     else if (el.classList.contains('backup-controls')) el.style.display = 'flex'; 
                     else if (el.id === 'favourite-btn') el.style.display = 'block';
-                    else if (el.id === 'save-setups-btn') el.style.display = 'inline-block';
+                    else if (el.id.startsWith('save-setups-')) el.style.display = 'inline-block';
                     else el.style.display = 'block'; 
                 }); 
                 journalEntryEl.readOnly = false; 
                 persistentNotesEl.readOnly = false;
                 
-                // UPDATED: Makes cells in BOTH tables editable
                 document.querySelectorAll('.setups-table td').forEach(cell => {
                     cell.setAttribute('contenteditable', 'true');
                 });
@@ -1075,10 +1093,13 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderLiveTable(d){const t=document.getElementById('trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const noteText=a.note||'';const noteCell=`<td class="note-cell" title="${noteText}">${noteText}</td>`;const masterButtons=isMasterUser?`<td class="action-buttons"><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>`:'';r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.stoploss).toFixed(2)}</td><td>${parseFloat(a.target).toFixed(2)}</td><td>${parseFloat(a.size).toFixed(2)}</td><td style="color: #28a745;">${parseFloat(a.expected_profit||0).toFixed(2)}</td><td style="color: #dc3545;">${parseFloat(a.expected_loss||0).toFixed(2)}</td><td>${a.date}</td>${noteCell}${masterButtons}`;t.appendChild(r);});}
     function renderCompletedTable(d){const t=document.getElementById('completed-trades-tbody');t.innerHTML='';if(!d)return;Object.keys(d).sort((a,b)=>new Date(d[b].closed_date)-new Date(d[a].date)).forEach(id=>{const a=d[id],r=document.createElement('tr');const c=a.net_result>=0?'#28a745':'#dc3545',e=(a.entry_fee||0)+(a.exit_fee||0);const noteText=a.note||'';const noteCell=`<td class="note-cell" title="${noteText}">${noteText}</td>`;const masterButtons=isMasterUser?`<td class="action-buttons"><button class="note-btn-completed" data-id="${id}">Edit</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>`:'';r.innerHTML=`<td>${a.symbol}</td><td>${a.type}</td><td>${parseFloat(a.entry).toFixed(2)}</td><td>${parseFloat(a.exit_price).toFixed(2)}</td><td>${e.toFixed(2)}</td><td style="color:${c};font-weight:bold;">${parseFloat(a.net_result).toFixed(2)}</td><td>${a.date}</td><td>${a.closed_date}</td>${noteCell}${masterButtons}`;t.appendChild(r);});}
     
+    // --- Initialize Page ---
     checkMasterMode();
     renderDateNavigation();
     fetchEmaData();
     fetchSrData();
+
+    // --- EVENT LISTENERS ---
 
     if (srLegendHeader) {
         srLegendHeader.addEventListener('click', () => {
@@ -1220,10 +1241,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.target.matches('.date-nav-btn')) {
             const dateStr = e.target.dataset.date;
             const parts = dateStr.split('-');
-            const year = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10) - 1;
-            const day = parseInt(parts[2], 10);
-            selectedDate = new Date(Date.UTC(year, month, day));
+            selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2]));
             renderDateNavigation();
             updateJournalView();
         }
@@ -1237,7 +1255,10 @@ document.addEventListener('DOMContentLoaded', function () {
     journalTimeframeEl.addEventListener('change', updateJournalView);
     journalImageFilterEl.addEventListener('change', updateJournalView);
     document.getElementById('journal-image-upload').addEventListener('change', (e) => handleFileUpload(e.target.files[0]));
-    saveSetupsBtn.addEventListener('click', saveSetupsTable);
+    
+    // UPDATED: Event listeners for the new save buttons
+    if (saveSetupsZeroBtn) saveSetupsZeroBtn.addEventListener('click', () => saveSetupsTable(zeroCandleSetupsTable, setupsRefZero, document.getElementById('setups-save-status-zero')));
+    if (saveSetupsFourBtn) saveSetupsFourBtn.addEventListener('click', () => saveSetupsTable(fourCandleSetupsTable, setupsRefFour, document.getElementById('setups-save-status-four')));
     
     document.querySelector('.tabs').addEventListener('click', (e) => { 
         if (!e.target.matches('.tab-link')) return;
@@ -1279,6 +1300,7 @@ document.addEventListener('DOMContentLoaded', function () {
         localStorage.setItem('theme', theme);
     });
     
+    // --- FIREBASE DATA LISTENERS ---
     tradesRef.on('value',snapshot=>{
         const liveTrades = snapshot.val() || {};
         renderLiveTable(liveTrades);
@@ -1301,24 +1323,23 @@ document.addEventListener('DOMContentLoaded', function () {
     journalRef.on('value', (s) => { allJournalText = s.val() || {}; if(document.getElementById('journal-tab').classList.contains('active')) updateJournalView(); });
     journalImagesRef.on('value', (s) => {
         allJournalImages = s.val() || {};
-        if (document.getElementById('journal-tab').classList.contains('active')) {
-            updateJournalView();
-        }
-        if (document.getElementById('snapshot-tab').classList.contains('active')) {
-            renderSnapshotView();
-        }
+        if (document.getElementById('journal-tab').classList.contains('active')) { updateJournalView(); }
+        if (document.getElementById('snapshot-tab').classList.contains('active')) { renderSnapshotView(); }
     });
 
     favouritesRef.on('value', (s) => {
         allFavouriteEntries = s.val() || {};
-        if (document.getElementById('journal-tab').classList.contains('active')) {
-            updateJournalView();
-        }
+        if (document.getElementById('journal-tab').classList.contains('active')) { updateJournalView(); }
     });
 
-    setupsRef.on('value', (snapshot) => {
-        const data = snapshot.val() || {};
-        renderSetupsTable(data);
+    // UPDATED: Listeners for the new separate setup tables
+    setupsRefZero.on('value', (snapshot) => {
+        allSetupsDataZero = snapshot.val() || {};
+        renderSetupsTable(zeroCandleSetupsTable, allSetupsDataZero);
+    });
+    setupsRefFour.on('value', (snapshot) => {
+        allSetupsDataFour = snapshot.val() || {};
+        renderSetupsTable(fourCandleSetupsTable, allSetupsDataFour);
     });
     
     persistentNotesRef.on('value', (s) => {
