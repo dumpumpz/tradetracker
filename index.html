@@ -96,7 +96,7 @@
             resize: vertical;
             line-height: 1.6;
             margin-top: 5px;
-            overflow-y: auto;
+            overflow-y: hidden;
         }
         
         #journal-entry {
@@ -170,7 +170,7 @@
 
         /* ADDED: Styles for the closest S/R EMA summary */
         .ema-summary-container {
-            font-size: 13px;
+            font-size: 11px;
             padding: 8px 12px;
             margin: 0 auto 15px auto;
             max-width: 95%;
@@ -196,7 +196,7 @@
         }
         .ema-level-summary .support { color: var(--green-text); }
         .ema-level-summary .resistance { color: var(--red-text); }
-        .ema-level-summary .value { font-family: 'Courier New', Courier, monospace; }
+
 
         #snapshot-images-container { display: flex; flex-direction: column; align-items: center; gap: 25px; margin-top: 20px; }
         .snapshot-image-item { width: 100%; max-width: 900px; }
@@ -796,8 +796,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const dailyText = (allJournalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
         journalEntryEl.value = dailyText; 
-        autoResizeTextarea(journalEntryEl); 
-        autoResizeTextarea(persistentNotesEl);
+        
+        // Use a small timeout to allow the browser to render the now-visible
+        // textareas before we calculate their scrollHeight. This is crucial
+        // for reliability, especially on mobile devices after a layout change.
+        setTimeout(() => {
+            autoResizeTextarea(journalEntryEl); 
+            autoResizeTextarea(persistentNotesEl);
+        }, 0);
 
         if (favouriteText && dailyText.trim() && favouriteText === dailyText.trim()) {
             favouriteBtn.classList.add('active');
@@ -1428,8 +1434,6 @@ document.addEventListener('DOMContentLoaded', function () {
     persistentNotesRef.on('value', (s) => {
         persistentNotesText = s.val() || '';
         persistentNotesEl.value = persistentNotesText;
-        // Only attempt to resize if the element is visible.
-        // updateJournalView() handles resizing when the tab is switched to.
         if (document.getElementById('journal-tab').classList.contains('active')) {
             autoResizeTextarea(persistentNotesEl);
         }
