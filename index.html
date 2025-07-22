@@ -678,7 +678,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let isMasterUser = false, masterPassword = null, allJournalText = {}, allJournalImages = {}, allEmaData = {}, allSrData = {}, allFavouriteEntries = {}, persistentNotesText = '';
     let allSetupsData1 = {}, allSetupsData2 = {};
 
-    // FIX: Normalize initial dates to midnight UTC to prevent timezone bugs
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
     let selectedDate = new Date(today);
@@ -761,13 +760,18 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderDateNavigation() {
         dateButtonsContainer.innerHTML = '';
         const safeSymbol = getSafeSymbol(journalSymbolEl.value);
+        const timeframe = journalTimeframeEl.value;
 
         for (let i = -2; i <= 2; i++) {
             const date = new Date(centerDate);
-            date.setDate(centerDate.getDate() + i);
+            // --- FIX START ---
+            // Use setUTCDate to avoid timezone-related off-by-one errors.
+            date.setUTCDate(centerDate.getUTCDate() + i);
+            // --- FIX END ---
+            
             const btn = document.createElement('button');
             btn.className = 'date-nav-btn';
-            btn.textContent = date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
+            btn.textContent = date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', timeZone: 'UTC' });
             const yyyymmdd = getYYYYMMDD(date);
             btn.dataset.date = yyyymmdd;
             
@@ -775,15 +779,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 btn.classList.add('active');
             }
 
-            // --- FIX START ---
-            // Check if there's an entry for ANY timeframe on this day
-            const entriesForDay = allJournalText[safeSymbol]?.[yyyymmdd];
-            const hasAnyEntry = entriesForDay && Object.values(entriesForDay).some(text => text && text.trim() !== '');
-            
-            if (hasAnyEntry) {
+            // Check for entry on the specific timeframe for the specific day
+            const hasEntry = (allJournalText[safeSymbol]?.[yyyymmdd]?.[timeframe] || '').trim();
+            if (hasEntry) {
                 btn.classList.add('has-entry');
             }
-            // --- FIX END ---
 
             dateButtonsContainer.appendChild(btn);
         }
@@ -811,8 +811,9 @@ document.addEventListener('DOMContentLoaded', function () {
             autoResizeTextarea(persistentNotesEl);
         }, 0);
 
-        if (favouriteText && dailyText.trim() && favouriteText === dailyText.trim()) {
-            favouriteBtn.classList.add('active');
+        // Check if the current entry is the pinned one.
+        if (favouriteText && dailyText.trim() === favouriteText) {
+             favouriteBtn.classList.add('active');
         } else {
             favouriteBtn.classList.remove('active');
         }
@@ -835,20 +836,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 const text = journalEntryEl.value;
                 document.getElementById('save-status').textContent = 'Saving...'; 
                 
-                // When saving, also update the local cache immediately for a responsive UI
+                // Update local cache immediately for responsive UI
                 if (!allJournalText[safeSymbol]) allJournalText[safeSymbol] = {};
                 if (!allJournalText[safeSymbol][yyyymmdd]) allJournalText[safeSymbol][yyyymmdd] = {};
                 allJournalText[safeSymbol][yyyymmdd][timeframe] = text;
-
+                
                 journalRef.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text)
                     .then(() => { 
                         document.getElementById('save-status').textContent = 'Saved.'; 
-                        const favouriteText = (allFavouriteEntries[safeSymbol] || {})[timeframe];
-                        if (text.trim() && text.trim() === favouriteText) {
-                            favouriteBtn.classList.add('active');
-                        } else {
-                            favouriteBtn.classList.remove('active');
-                        }
+                        // Update the visual state of the date button immediately after saving
                         renderDateNavigation(); 
                         setTimeout(() => document.getElementById('save-status').textContent = '', 2000); 
                     })
@@ -1078,7 +1074,6 @@ document.addEventListener('DOMContentLoaded', function () {
             table.appendChild(tbody);
             tableWrapper.appendChild(table);
 
-            // FIX: Reposition ETH summary
             if (safeSymbol === 'ETH-USDT') {
                 container.appendChild(tableWrapper);
                 container.appendChild(summaryContainer);
@@ -1258,18 +1253,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const currentText = journalEntryEl.value.trim();
         const currentTextIsThePin = favouriteBtn.classList.contains('active');
         if (currentTextIsThePin) {
+            // Un-pin the note
             favouriteBtn.classList.remove('active');
-            favouritedEntryContainer.style.display = 'none';
             if (allFavouriteEntries[safeSymbol]) {
                 delete allFavouriteEntries[safeSymbol][timeframe];
             }
             favouritesRef.child(safeSymbol).child(timeframe).remove()
                 .catch(e => { console.error("Error un-pinning:", e); alert("Error un-pinning note."); updateJournalView(); });
         } else {
+            // Pin the current note
             if (!currentText) { alert('Cannot pin an empty note.'); return; }
             favouriteBtn.classList.add('active');
-            favouritedEntryText.textContent = currentText;
-            favouritedEntryContainer.style.display = 'block';
             if (!allFavouriteEntries[safeSymbol]) allFavouriteEntries[safeSymbol] = {};
             allFavouriteEntries[safeSymbol][timeframe] = currentText;
             favouritesRef.child(safeSymbol).child(timeframe).set(currentText)
@@ -1343,13 +1337,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const parts = dateStr.split('-');
             selectedDate = new Date(Date.UTC(parts, parseInt(parts, 10) - 1, parts));
             centerDate = new Date(selectedDate); 
-            renderDateNavigation();
             updateJournalView();
         }
     });
 
-    datePrevBtn.addEventListener('click', () => { centerDate.setDate(centerDate.getDate() - 5); renderDateNavigation(); });
-    dateNextBtn.addEventListener('click', () => { centerDate.setDate(centerDate.getDate() + 5); renderDateNavigation(); });
+    datePrevBtn.addEventListener('click', () => { centerDate.setUTCDate(centerDate.getUTCDate() - 5); renderDateNavigation(); });
+    dateNextBtn.addEventListener('click', () => { centerDate.setUTCDate(centerDate.getUTCDate() + 5); renderDateNavigation(); });
 
     snapshotSymbolEl.addEventListener('change', renderSnapshotView);
     srSymbolEl.addEventListener('change', renderSrLevels);
