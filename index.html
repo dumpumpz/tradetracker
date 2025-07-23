@@ -1078,8 +1078,7 @@
 
                 tbody.innerHTML = rowsHtml;
             }
-
-                       function renderLiveTable(data) {
+            function renderLiveTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
                     <td class="action-buttons">
@@ -1094,6 +1093,10 @@
                     .map(id => {
                         const trade = trades[id];
                         const noteText = trade.note || '';
+                        // --- NEW: FORMATTED P/L STRINGS ---
+                        const profitString = `$${parseFloat(trade.expected_profit || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent || 0).toFixed(2)}%)`;
+                        const lossString = `$${parseFloat(trade.expected_loss || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent || 0).toFixed(2)}%)`;
+
                         return `
                             <tr>
                                 <td>${trade.symbol}</td>
@@ -1103,8 +1106,8 @@
                                 <td>${parseFloat(trade.target).toFixed(2)}</td>
                                 <td>${parseFloat(trade.size).toFixed(2)}</td>
                                 <td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td>
-                                <td style="color: #28a745;">${parseFloat(trade.expected_profit || 0).toFixed(2)}</td>
-                                <td style="color: #dc3545;">${parseFloat(trade.expected_loss || 0).toFixed(2)}</td>
+                                <td style="color: #28a745;">${profitString}</td>
+                                <td style="color: #dc3545;">${lossString}</td>
                                 <td>${trade.date}</td>
                                 <td class="note-cell" title="${noteText}">${noteText}</td>
                                 ${masterButtonsHtml(id)}
@@ -1113,7 +1116,6 @@
                 
                 DOM.tradesTbody.innerHTML = rowsHtml;
             }
-
             function renderCompletedTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
@@ -1702,8 +1704,7 @@
             }
             
             // --- EVENT HANDLER LOGIC ---
-            
-               function handleAddTradeSubmit(e) {
+            function handleAddTradeSubmit(e) {
                 e.preventDefault();
                 if (!STATE.isMasterUser) return alert('You do not have permission to add trades.');
                 
@@ -1723,7 +1724,7 @@
                     return alert('Please ensure all numeric fields are filled correctly.');
                 }
                 
-                // --- NEW: INPUT VALIDATION ---
+                // --- INPUT VALIDATION ---
                 if (trade.type === 'Long') {
                     if (trade.target <= trade.entry) {
                         return alert('Validation Error: For a Long trade, the Target must be higher than the Entry Price.');
@@ -1740,11 +1741,10 @@
                     }
                 }
 
-                // --- CORRECTED: FEE AND NET P/L CALCULATION ---
+                // --- FEE AND NET P/L CALCULATION ---
 
                 const positionQty = trade.size / trade.entry;
 
-                // Fee calculations remain the same, they were correct
                 const entryFee = trade.size * FEE_RATE;
                 const exitValueAtTarget = (trade.target / trade.entry) * trade.size;
                 const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
@@ -1754,7 +1754,6 @@
                 const totalFeeAtTarget = entryFee + exitFeeAtTarget;
                 const totalFeeAtStop = entryFee + exitFeeAtStop;
 
-                // This structure ensures profit/loss amounts are always positive
                 let potentialProfit, potentialLoss;
                 if (trade.type === 'Long') {
                     potentialProfit = positionQty * (trade.target - trade.entry);
@@ -1763,12 +1762,14 @@
                     potentialProfit = positionQty * (trade.entry - trade.target);
                     potentialLoss = positionQty * (trade.stoploss - trade.entry);
                 }
-
-                // Store the NET P/L and estimated fee in the trade object
+                
                 trade.estimated_total_fee = totalFeeAtTarget;
                 trade.expected_profit = potentialProfit - totalFeeAtTarget;
-                // **THE FIX:** The loss amount is the price movement loss PLUS the fees for that losing trade.
                 trade.expected_loss = potentialLoss + totalFeeAtStop; 
+
+                // --- NEW: CALCULATE AND STORE PERCENTAGES ---
+                trade.expected_profit_percent = (trade.expected_profit / trade.size) * 100;
+                trade.expected_loss_percent = (trade.expected_loss / trade.size) * 100;
 
                 dbRefs.trades.push(trade)
                     .then(() => e.target.reset())
