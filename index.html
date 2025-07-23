@@ -579,7 +579,8 @@
 
             <!-- NEW: Asset Sentiment Tracker -->
             <div id="asset-sentiment-container">
-
+                <h2>Asset Sentiment</h2>
+                <p class="subtitle">What's your bias? Cast your vote. Your vote is anonymous and can be changed anytime.</p>
                 <div class="sentiment-trackers-wrapper">
                     <!-- BTC Tracker -->
                     <div class="sentiment-tracker" id="sentiment-tracker-btc">
@@ -1823,7 +1824,7 @@ uploadTask.on('state_changed',
             }
 
             /**
-             * NEW: Handles a click on a sentiment voting button.
+             * NEW/UPDATED: Handles a click on a sentiment voting button, allowing for toggling off.
              * @param {Event} e The click event.
              */
             function handleSentimentVote(e) {
@@ -1840,41 +1841,52 @@ uploadTask.on('state_changed',
                 const localVotes = JSON.parse(localStorage.getItem('myVotes')) || {};
                 const oldVote = localVotes[asset];
                 
-                // If clicking the same vote again, do nothing
-                if (oldVote === sentiment) return;
+                // Determine the new vote. If clicking the same button, new vote is null (deselect).
+                const newVote = (oldVote === sentiment) ? null : sentiment;
 
-                localVotes[asset] = sentiment;
+                // Update local storage
+                if (newVote) {
+                    localVotes[asset] = newVote;
+                } else {
+                    delete localVotes[asset]; // Remove vote on deselect
+                }
                 localStorage.setItem('myVotes', JSON.stringify(localVotes));
                 
                 renderAssetSentiment(); // Optimistically update the UI
                 
                 assetRef.transaction(currentData => {
+                    // Initialize data structure if it doesn't exist
                     if (currentData === null) {
                         currentData = { long: 0, neutral: 0, short: 0, voters: {} };
                     }
-                    
-                    currentData.long = currentData.long || 0;
-                    currentData.neutral = currentData.neutral || 0;
-                    currentData.short = currentData.short || 0;
                     currentData.voters = currentData.voters || {};
-
-                    const previousVote = currentData.voters[viewerId];
+                    ['long', 'neutral', 'short'].forEach(s => { currentData[s] = currentData[s] || 0; });
                     
-                    if (previousVote === sentiment) {
-                        return; // Abort transaction - already handled by local check but good for race conditions
-                    }
-
-                    if (previousVote && currentData[previousVote]) {
-                        currentData[previousVote]--;
+                    const previousVoteInDb = currentData.voters[viewerId];
+                    
+                    // --- Main Transaction Logic ---
+                    // 1. Decrement the count for the previous vote, if it exists
+                    if (previousVoteInDb && currentData[previousVoteInDb]) {
+                        currentData[previousVoteInDb]--;
                     }
                     
-                    currentData[sentiment]++;
-                    currentData.voters[viewerId] = sentiment;
+                    // 2. Increment the count for the new vote, if it's not null
+                    if (newVote && newVote !== previousVoteInDb) {
+                        currentData[newVote]++;
+                    }
+                    
+                    // 3. Update the voter's record in the database
+                    if (newVote) {
+                        currentData.voters[viewerId] = newVote;
+                    } else {
+                        delete currentData.voters[viewerId]; // Remove voter on deselect
+                    }
 
                     return currentData;
                 }, (error, committed, snapshot) => {
                     if (error) {
                         console.error("Sentiment vote transaction failed:", error);
+                        // Optional: Revert local storage if transaction fails
                     }
                 });
             }
