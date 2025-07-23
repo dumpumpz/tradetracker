@@ -446,14 +446,12 @@
             border: 2px solid transparent;
             transition: all 0.2s ease-in-out;
         }
+        .sentiment-btn:active {
+            transform: scale(0.98);
+        }
         .sentiment-btn[data-sentiment="long"] { background-color: var(--green-bg); color: var(--green-text); border-color: var(--green-border); }
         .sentiment-btn[data-sentiment="neutral"] { background-color: var(--card-bg); color: var(--subtle-text); border-color: var(--border-color); }
         .sentiment-btn[data-sentiment="short"] { background-color: var(--red-bg); color: var(--red-text); border-color: var(--red-border); }
-        .sentiment-btn.active {
-            box-shadow: 0 0 10px var(--link-color);
-            transform: scale(1.05);
-            border-color: var(--link-color);
-        }
         #sentiment-summary-container {
             text-align: center;
             margin-bottom: 20px;
@@ -577,7 +575,7 @@
             </form>
             
             <div id="sentiment-tracker-section">
-
+                <h3>Community Sentiment</h3>
                 <div id="sentiment-buttons-container">
                     <button class="sentiment-btn" data-sentiment="long">Long</button>
                     <button class="sentiment-btn" data-sentiment="neutral">Neutral</button>
@@ -838,7 +836,7 @@
                     authDomain: "journal-a003f.firebaseapp.com",
                     databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
                     projectId: "journal-a003f",
-                    storageBucket: "journal-a003f.firebasestorage.app", // <-- CORRECTED NAME
+                    storageBucket: "journal-a003f.firebasestorage.app",
                     messagingSenderId: "1038636626553",
                     appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
                 },
@@ -976,40 +974,19 @@
 
             // --- HELPER FUNCTIONS ---
 
-            /**
-             * Formats a number as a USD currency string.
-             * @param {number} num The number to format.
-             * @returns {string} Formatted currency string.
-             */
             const formatCurrency = (num) => `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-            /**
-             * Resizes a textarea to fit its content.
-             * @param {HTMLTextAreaElement} element The textarea element.
-             */
             function autoResizeTextarea(element) {
                 if (!element) return;
                 element.style.height = 'auto';
                 element.style.height = `${element.scrollHeight}px`;
             }
 
-            /**
-             * Gets a date string in YYYY-MM-DD format from a Date object.
-             * @param {Date} date The date object.
-             * @returns {string} The formatted date string.
-             */
             const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
-
-            /**
-             * Sanitizes a symbol string for use in Firebase paths.
-             * @param {string} symbol The symbol string (e.g., "BTC/USDT").
-             * @returns {string} The sanitized symbol (e.g., "BTC-USDT").
-             */
             const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
             
             // --- DATA FETCHING ---
             
-            /** Fetches and renders EMA data from the JSON file. */
             async function fetchEmaData() {
                 try {
                     const response = await fetch(`ma_analysis.json?cache_bust=${new Date().getTime()}`);
@@ -1022,7 +999,6 @@
                 }
             }
 
-            /** Fetches and renders S/R Level data from the JSON file. */
             async function fetchSrData() {
                 try {
                     const response = await fetch(`sr_levels_analysis.json?cache_bust=${new Date().getTime()}`);
@@ -1039,7 +1015,6 @@
 
             // --- RENDERING FUNCTIONS ---
             
-            /** Renders the live trades table. */
             function renderLiveTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
@@ -1074,7 +1049,6 @@
                 DOM.tradesTbody.innerHTML = rowsHtml;
             }
 
-            /** Renders the completed trades table and updates stats. */
             function renderCompletedTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
@@ -1111,32 +1085,30 @@
             /** Renders the sentiment tracker UI based on current data. */
             function renderSentimentTracker(clicks) {
                 clicks = clicks || {};
-                STATE.sentimentClicks = clicks; // Update state cache
+                STATE.sentimentClicks = clicks;
 
                 // Reset UI
                 DOM.sentimentReceiptsContainer.innerHTML = '';
-                document.querySelectorAll('.sentiment-btn').forEach(btn => btn.classList.remove('active'));
-
-                const viewerVote = clicks[STATE.viewerId];
-                if (viewerVote) {
-                    const activeBtn = DOM.sentimentButtonsContainer.querySelector(`[data-sentiment="${viewerVote.sentiment}"]`);
-                    if (activeBtn) activeBtn.classList.add('active');
-                }
+                // >>> CHANGE: No longer need to highlight buttons.
+                // document.querySelectorAll('.sentiment-btn').forEach(btn => btn.classList.remove('active'));
 
                 // Generate receipts and count votes
                 let longCount = 0;
                 let shortCount = 0;
                 let neutralCount = 0;
-                const receiptsHtml = Object.values(clicks)
-                    .sort((a, b) => b.timestamp - a.timestamp)
-                    .map(vote => {
+                
+                // >>> CHANGE: Iterate using Object.entries to get the unique voteId (the key)
+                const receiptsHtml = Object.entries(clicks)
+                    .sort(([, a], [, b]) => b.timestamp - a.timestamp) // Sort by timestamp
+                    .map(([voteId, vote]) => { // Destructure to get key and value
                         if (vote.sentiment === 'long') longCount++;
                         else if (vote.sentiment === 'short') shortCount++;
                         else if (vote.sentiment === 'neutral') neutralCount++;
                         
                         const isOwner = vote.viewerId === STATE.viewerId;
+                        // >>> CHANGE: Show delete button only if this viewer owns this specific vote
                         const deleteButtonHtml = isOwner ?
-                            `<button class="delete-receipt-btn" data-owner-id="${vote.viewerId}" title="Delete your vote">&times;</button>` :
+                            `<button class="delete-receipt-btn" data-vote-id="${voteId}" title="Delete your vote">&times;</button>` :
                             '';
 
                         return `
@@ -1159,7 +1131,6 @@
                 `;
             }
 
-            /** Renders the date navigation buttons for the journal. */
             function renderDateNavigation() {
                 const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
                 const timeframe = DOM.journalTimeframeEl.value;
@@ -1181,13 +1152,11 @@
                 DOM.dateButtonsContainer.innerHTML = buttonsHtml;
             }
 
-            /** Updates the entire journal view based on the current state. */
             function updateJournalView() {
                 const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
                 const timeframe = DOM.journalTimeframeEl.value;
                 const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
 
-                // Update pinned note
                 const favouriteText = (STATE.favouriteEntries[safeSymbol] || {})[timeframe];
                 if (favouriteText) {
                     DOM.favouritedEntryText.textContent = favouriteText;
@@ -1196,28 +1165,21 @@
                     DOM.favouritedEntryContainer.style.display = 'none';
                 }
 
-                // Update daily journal entry
                 const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
                 DOM.journalEntryEl.value = dailyText;
                 
-                // Update persistent scratchpad
                 DOM.persistentNotesEl.value = STATE.persistentNotes;
 
-                // Auto-resize textareas after content is set
                 setTimeout(() => {
                     autoResizeTextarea(DOM.journalEntryEl);
                     autoResizeTextarea(DOM.persistentNotesEl);
                 }, 0);
 
-                // Update favorite button state
                 DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
-
-                // Render associated images and data
                 renderJournalImages(safeSymbol, timeframe, yyyymmdd);
                 renderDateNavigation();
             }
             
-            /** Renders journal images for the selected criteria. */
             function renderJournalImages(symbol, timeframe, selectedYMD) {
                 const imagesForSymbol = STATE.journalImages[symbol] || {};
                 const imagesForTimeframe = imagesForSymbol[timeframe] || {};
@@ -1261,7 +1223,6 @@
                 DOM.journalImagesContainer.innerHTML = imagesHtml;
             }
 
-            /** Renders the EMA data tables and summaries. */
             function renderEmaData() {
                 if (!STATE.emaData.data) return;
                 
@@ -1300,7 +1261,6 @@
                             </table>
                         </div>`;
 
-                    // Build Support/Resistance summary
                     let summaryHtml = '';
                     if (currentPrice > 0) {
                         const levels = [];
@@ -1345,7 +1305,6 @@
                 DOM.emaTablesContainer.innerHTML = tablesHtml;
             }
             
-            /** Renders a "Current Setups" table with data. */
             function renderSetupsTable(tableElement, data) {
                 if (!tableElement) return;
                 const tbody = tableElement.querySelector('tbody');
@@ -1362,7 +1321,6 @@
                 });
             }
             
-            /** Renders the snapshot view with the latest image for each timeframe. */
             function renderSnapshotView() {
                 const selectedSymbol = getSafeSymbol(DOM.snapshotSymbolEl.value);
                 const symbolImageData = STATE.journalImages[selectedSymbol] || {};
@@ -1387,7 +1345,6 @@
                 DOM.snapshotImagesContainer.innerHTML = itemsHtml;
             }
 
-            /** Renders the S/R Levels tab based on selected criteria. */
             function renderSrLevels() {
                 const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
                 const selectedLookback = DOM.srLookbackEl.value;
@@ -1433,7 +1390,6 @@
 
             // --- DATA HANDLING AND SAVING ---
 
-            /** Saves a "Current Setups" table to Firebase. */
             function saveSetupsTable(tableElement, dbRef, statusElement) {
                 if (!STATE.isMasterUser) return;
                 const dataToSave = {};
@@ -1462,7 +1418,6 @@
                 });
             }
 
-            /** Saves the daily journal entry with a debounce. */
             const saveJournalEntry = () => {
                 clearTimeout(STATE.journalSaveTimer);
                 STATE.journalSaveTimer = setTimeout(() => {
@@ -1474,7 +1429,6 @@
                     
                     DOM.saveStatus.textContent = 'Saving...';
                     
-                    // Update local cache immediately
                     if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {};
                     if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {};
                     STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text;
@@ -1482,26 +1436,24 @@
                     dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text)
                         .then(() => {
                             DOM.saveStatus.textContent = 'Saved.';
-                            renderDateNavigation(); // Update button style
+                            renderDateNavigation(); 
                             setTimeout(() => DOM.saveStatus.textContent = '', 2000);
                         })
                         .catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`);
                 }, 750);
             };
             
-            /** Saves the persistent notes with a debounce. */
             const savePersistentNotes = () => {
                 clearTimeout(STATE.notesSaveTimer);
                 STATE.notesSaveTimer = setTimeout(() => {
                     if (!STATE.isMasterUser) return;
                     const text = DOM.persistentNotesEl.value;
-                    STATE.persistentNotes = text; // Update local cache
+                    STATE.persistentNotes = text;
                     dbRefs.persistentNotes.set(text)
                         .catch(e => console.error("Error saving persistent notes:", e));
                 }, 750);
             };
             
-            /** Handles image file uploads to Firebase Storage. */
             function handleFileUpload(files) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
                 
@@ -1546,12 +1498,6 @@
                 });
             }
 
-            /**
-             * Calculates the net result of a trade.
-             * @param {object} trade The trade object.
-             * @param {number} exitPrice The price the trade was closed at.
-             * @returns {object} An object with net_result, entry_fee, and exit_fee.
-             */
             function calculateNetResult(trade, exitPrice) {
                 const entry = parseFloat(trade.entry);
                 const posValue = parseFloat(trade.size);
@@ -1578,7 +1524,6 @@
                 };
             }
             
-            /** Handles the process of completing a live trade. */
             function completeTrade(tradeId, outcome) {
                 dbRefs.trades.child(tradeId).once('value', snapshot => {
                     const trade = snapshot.val();
@@ -1586,7 +1531,7 @@
 
                     const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
                     const exitPriceStr = prompt(`Enter exact exit price:`, defaultExit);
-                    if (exitPriceStr === null) return; // User cancelled
+                    if (exitPriceStr === null) return;
 
                     const exitPrice = parseFloat(exitPriceStr);
                     if (isNaN(exitPrice)) return alert("Invalid exit price.");
@@ -1609,14 +1554,12 @@
             // --- EVENT LISTENERS ---
             
             function setupEventListeners() {
-                // Theme Toggle
                 DOM.themeToggle.addEventListener('change', (e) => {
                     const theme = e.target.checked ? 'dark' : 'light';
                     document.documentElement.setAttribute('data-theme', theme);
                     localStorage.setItem('theme', theme);
                 });
 
-                // Tab Navigation
                 DOM.tabs.addEventListener('click', (e) => {
                     if (!e.target.matches('.tab-link')) return;
                     
@@ -1627,13 +1570,11 @@
                     
                     DOM.statsPanelContainer.style.display = (tabId === 'tracker') ? 'block' : 'none';
                     
-                    // Trigger updates for newly visible tabs
                     if (tabId === 'journal') updateJournalView();
                     if (tabId === 'snapshot') renderSnapshotView();
                     if (tabId === 'sr-levels') renderSrLevels();
                 });
                 
-                // Stats Panel
                 DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
                 DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
                 document.addEventListener('click', (e) => {
@@ -1642,25 +1583,20 @@
                     }
                 });
 
-                // Trade Form
                 DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
-
-                // Live & Completed Trade Actions (Event Delegation)
                 DOM.tradesTbody.addEventListener('click', handleTradeAction);
                 DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
                 
-                // Journal Controls
                 [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => {
                     el.addEventListener('change', updateJournalView);
                 });
                 
-                // Journal Date Navigation
                 DOM.dateButtonsContainer.addEventListener('click', (e) => {
                     if (e.target.matches('.date-nav-btn')) {
                         const dateStr = e.target.dataset.date;
                         const parts = dateStr.split('-');
                         STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2]));
-                        STATE.centerDate = new Date(STATE.selectedDate); // Recenter on selection
+                        STATE.centerDate = new Date(STATE.selectedDate);
                         updateJournalView();
                     }
                 });
@@ -1673,7 +1609,6 @@
                     renderDateNavigation();
                 });
 
-                // Journal Text Inputs
                 DOM.journalEntryEl.addEventListener('input', () => {
                     autoResizeTextarea(DOM.journalEntryEl);
                     saveJournalEntry();
@@ -1683,14 +1618,10 @@
                     savePersistentNotes();
                 });
 
-                // Favourite Button
                 DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
-
-                // Image Upload
                 DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
                 DOM.journalImagesContainer.addEventListener('click', handleImageDelete);
                 
-                // Drag and Drop Image Upload
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                     DOM.journalTab.addEventListener(eventName, e => {
                         e.preventDefault();
@@ -1710,7 +1641,6 @@
                     }
                 });
                 
-                // Setups Table Buttons & Toggles
                 DOM.saveSetups1Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1));
                 DOM.saveSetups2Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2));
                 
@@ -1727,8 +1657,6 @@
                     }
                 });
 
-
-                // Snapshot & S/R Level Controls
                 DOM.snapshotSymbolEl.addEventListener('change', renderSnapshotView);
                 DOM.srSymbolEl.addEventListener('change', renderSrLevels);
                 DOM.srLookbackEl.addEventListener('change', renderSrLevels);
@@ -1751,30 +1679,29 @@
                 }
 
                 const sentiment = e.target.dataset.sentiment;
-                const viewerId = STATE.viewerId;
-                const currentUserVote = STATE.sentimentClicks[viewerId];
-
-                // If user clicks the same button again, it's an "un-vote"
-                if (currentUserVote && currentUserVote.sentiment === sentiment) {
-                    dbRefs.sentimentClicks.child(viewerId).remove();
-                } else {
-                    const voteData = {
-                        sentiment: sentiment,
-                        timestamp: firebase.database.ServerValue.TIMESTAMP,
-                        viewerId: viewerId
-                    };
-                    dbRefs.sentimentClicks.child(viewerId).set(voteData);
-                }
+                const voteData = {
+                    sentiment: sentiment,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    viewerId: STATE.viewerId
+                };
+                
+                // >>> CHANGE: Always push a new vote to create a list.
+                dbRefs.sentimentClicks.push(voteData);
             }
 
             function handleReceiptDelete(e) {
                 const deleteBtn = e.target.closest('.delete-receipt-btn');
                 if (!deleteBtn) return;
+                
+                // >>> CHANGE: Get the unique vote ID from the button's data attribute.
+                const voteId = deleteBtn.dataset.voteId;
+                const voteData = STATE.sentimentClicks[voteId];
 
-                const ownerId = deleteBtn.dataset.ownerId;
-                if (ownerId === STATE.viewerId) {
+                // Check if the current user is the owner of this specific vote.
+                if (voteData && voteData.viewerId === STATE.viewerId) {
                     if (confirm("Are you sure you want to remove your vote?")) {
-                        dbRefs.sentimentClicks.child(ownerId).remove();
+                        // >>> CHANGE: Remove the vote by its unique ID.
+                        dbRefs.sentimentClicks.child(voteId).remove();
                     }
                 }
             }
@@ -1801,7 +1728,7 @@
                 if (trade.type === 'Long') {
                     trade.expected_profit = positionQty * (trade.target - trade.entry);
                     trade.expected_loss = positionQty * (trade.entry - trade.stoploss);
-                } else { // Short
+                } else {
                     trade.expected_profit = positionQty * (trade.entry - trade.target);
                     trade.expected_loss = positionQty * (trade.stoploss - trade.entry);
                 }
@@ -1848,7 +1775,7 @@
                         .catch((err) => {
                             console.warn("Storage deletion failed, maybe already gone. Deleting DB entry.", err.code);
                             if (err.code === 'storage/object-not-found') {
-                                database.ref(dbPath).remove(); // Still remove DB record
+                                database.ref(dbPath).remove();
                             }
                         });
                 }
@@ -1862,9 +1789,9 @@
 
                 const dbFavouriteRef = dbRefs.favourites.child(safeSymbol).child(timeframe);
 
-                if (DOM.favouriteBtn.classList.contains('active')) { // Un-pin
+                if (DOM.favouriteBtn.classList.contains('active')) {
                     dbFavouriteRef.remove();
-                } else { // Pin
+                } else {
                     if (!currentText) return alert('Cannot pin an empty note.');
                     dbFavouriteRef.set(currentText);
                 }
@@ -2005,3 +1932,52 @@
     </script>
 </body>
 </html>
+```
+
+---
+
+### 2. Updated Firebase Realtime Database Rules
+
+These new rules are designed for the list structure. They allow anyone to **add** a new vote and to **delete** a vote *if* they were the original creator. They **do not** allow anyone to modify an existing vote.
+
+Copy and replace your entire rules configuration with this block.
+
+```json
+{
+  "rules": {
+    // Make the entire database readable by anyone by default.
+    ".read": true,
+    
+    // Deny all writes by default. We will grant specific write access below.
+    ".write": false,
+
+    // --- RULES FOR MASTER USER ONLY ---
+    "bank": { ".write": true },
+    "completed_trades": { ".write": true },
+    "trades": { ".write": true },
+    "journal_text": { ".write": true },
+    "journal_images": { ".write": true },
+    "journal_favourites": { ".write": true },
+    "persistent_notes": { ".write": true },
+    "current_setups_1": { ".write": true },
+    "current_setups_2": { ".write": true },
+
+    // --- UPDATED RULES FOR SENTIMENT TRACKER LIST ---
+    "sentiment_clicks": {
+      // These rules apply to any unique key generated by .push()
+      "$voteId": {
+        // Allow write if:
+        // 1. Creating a NEW record (!data.exists())
+        // 2. DELETING an EXISTING record that you own.
+        ".write": "!data.exists() || (data.exists() && !newData.exists() && data.child('viewerId').val() === root.child('sentiment_clicks').child($voteId).child('viewerId').val())",
+        
+        // Validate the structure ONLY for new data. Deletions don't need validation.
+        ".validate": "newData.exists() ? (newData.hasChildren(['sentiment', 'timestamp', 'viewerId']) && newData.child('viewerId').isString() && (newData.child('sentiment').val() === 'long' || newData.child('sentiment').val() === 'neutral' || newData.child('sentiment').val() === 'short') && newData.child('timestamp').val() === now) : true"
+      }
+    }
+    // ---------------------------------------------------
+  }
+}
+```
+
+Now, every time a viewer clicks a sentiment button, it will add a new entry to the top of the list, and they can add as many as they like. They will also see a delete button next to each of their own entries, allowing them to remove them one by one.
