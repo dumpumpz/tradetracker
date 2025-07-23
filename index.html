@@ -614,7 +614,7 @@
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th class="master-only">Actions</th></tr>
+                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th class="master-only">Actions</th></tr>
                     </thead>
                     <tbody id="trades-tbody"></tbody>
                 </table>
@@ -1079,7 +1079,7 @@
                 tbody.innerHTML = rowsHtml;
             }
 
-            function renderLiveTable(data) {
+                       function renderLiveTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
                     <td class="action-buttons">
@@ -1102,6 +1102,7 @@
                                 <td>${parseFloat(trade.stoploss).toFixed(2)}</td>
                                 <td>${parseFloat(trade.target).toFixed(2)}</td>
                                 <td>${parseFloat(trade.size).toFixed(2)}</td>
+                                <td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td>
                                 <td style="color: #28a745;">${parseFloat(trade.expected_profit || 0).toFixed(2)}</td>
                                 <td style="color: #dc3545;">${parseFloat(trade.expected_loss || 0).toFixed(2)}</td>
                                 <td>${trade.date}</td>
@@ -1706,6 +1707,8 @@
                 e.preventDefault();
                 if (!STATE.isMasterUser) return alert('You do not have permission to add trades.');
                 
+                const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+
                 const trade = {
                     symbol: document.getElementById('trade-symbol').value,
                     type: document.getElementById('trade-type').value,
@@ -1720,14 +1723,34 @@
                     return alert('Please ensure all numeric fields are filled correctly.');
                 }
                 
+                // --- NEW FEE AND NET P/L CALCULATION ---
+
                 const positionQty = trade.size / trade.entry;
+
+                // Fee calculations
+                const entryFee = trade.size * FEE_RATE;
+                const exitValueAtTarget = (trade.target / trade.entry) * trade.size;
+                const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
+                const exitValueAtStop = (trade.stoploss / trade.entry) * trade.size;
+                const exitFeeAtStop = exitValueAtStop * FEE_RATE;
+
+                const totalFeeAtTarget = entryFee + exitFeeAtTarget;
+                const totalFeeAtStop = entryFee + exitFeeAtStop;
+
+                // Gross P/L calculations
+                let grossProfit, grossLoss;
                 if (trade.type === 'Long') {
-                    trade.expected_profit = positionQty * (trade.target - trade.entry);
-                    trade.expected_loss = positionQty * (trade.entry - trade.stoploss);
+                    grossProfit = positionQty * (trade.target - trade.entry);
+                    grossLoss = positionQty * (trade.entry - trade.stoploss);
                 } else { // Short
-                    trade.expected_profit = positionQty * (trade.entry - trade.target);
-                    trade.expected_loss = positionQty * (trade.stoploss - trade.entry);
+                    grossProfit = positionQty * (trade.entry - trade.target);
+                    grossLoss = positionQty * (trade.stoploss - trade.entry);
                 }
+
+                // Store the NET P/L and estimated fee in the trade object
+                trade.estimated_total_fee = totalFeeAtTarget; // We'll show the fee for the 'win' scenario
+                trade.expected_profit = grossProfit - totalFeeAtTarget;
+                trade.expected_loss = grossLoss + totalFeeAtStop; // Loss is a positive number, so we add the fee to it
 
                 dbRefs.trades.push(trade)
                     .then(() => e.target.reset())
