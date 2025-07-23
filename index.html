@@ -1341,12 +1341,24 @@
                     if (!file.type.startsWith('image/')) return;
                     
                     const fileName = `${Date.now()}_${file.name}`;
-                    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
-                    const fileRef = storage.ref(storagePath);
-                    const uploadTask = fileRef.put(file);
-                    
-                    uploadTask.on('state_changed', 
-                        (snapshot) => {
+// --- INSIDE handleFileUpload function ---
+const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
+const fileRef = storage.ref(storagePath);
+
+// 1. Create the metadata object
+const metadata = {
+  customMetadata: {
+    // We will use this password in our security rules
+    'password': STATE.masterPassword 
+  }
+};
+
+// 2. Add the metadata to the upload task
+const uploadTask = fileRef.put(file, metadata); // This is the new, updated line
+
+uploadTask.on('state_changed', 
+    (snapshot) => {
+
                             const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
                             DOM.uploadProgress.textContent = `Uploading ${index + 1}/${files.length}: ${progress}%`;
                         },
