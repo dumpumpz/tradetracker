@@ -1108,8 +1108,7 @@
                                 <td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td>
                                 <td style="color: #28a745;">${profitString}</td>
                                 <td style="color: #dc3545;">${lossString}</td>
-                                <td>${trade.date}</td>
-                                <td class="note-cell" title="${noteText}">${noteText}</td>
+                                <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>                                <td class="note-cell" title="${noteText}">${noteText}</td>
                                 ${masterButtonsHtml(id)}
                             </tr>`;
                     }).join('');
@@ -1140,8 +1139,7 @@
                                 <td>${totalFees.toFixed(2)}</td>
                                 <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
                                 <td>${trade.date}</td>
-                                <td>${trade.closed_date}</td>
-                                <td class="note-cell" title="${noteText}">${noteText}</td>
+                                <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>                                <td class="note-cell" title="${noteText}">${noteText}</td>
                                 ${masterButtonsHtml(id)}
                             </tr>`;
                     }).join('');
@@ -1557,8 +1555,7 @@
                     const completedTrade = {
                         ...trade,
                         ...result,
-                        closed_date: new Date().toLocaleString(),
-                        exit_price: exitPrice,
+                        closed_date: firebase.database.ServerValue.TIMESTAMP,                        exit_price: exitPrice,
                     };
                     delete completedTrade.expected_profit;
                     delete completedTrade.expected_loss;
@@ -1717,7 +1714,7 @@
                     stoploss: parseFloat(document.getElementById('stop-loss').value),
                     target: parseFloat(document.getElementById('target').value),
                     size: parseFloat(document.getElementById('position-value').value),
-                    date: new Date().toLocaleString()
+                    date: firebase.database.ServerValue.TIMESTAMP
                 };
 
                 if (Object.values(trade).some(val => val === null || isNaN(val) && typeof val === 'number')) {
