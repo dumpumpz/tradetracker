@@ -1346,15 +1346,14 @@ const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
 const fileRef = storage.ref(storagePath);
 
 // 1. Create the metadata object
+// --- INSIDE handleFileUpload function ---
 const metadata = {
   customMetadata: {
-    // We will use this password in our security rules
-    'password': STATE.masterPassword 
+    // This is a "secret key" that marks the file as deletable by a master user.
+    'owner': 'master' 
   }
 };
-
-// 2. Add the metadata to the upload task
-const uploadTask = fileRef.put(file, metadata); // This is the new, updated line
+const uploadTask = fileRef.put(file, metadata);
 
 uploadTask.on('state_changed', 
     (snapshot) => {
