@@ -67,7 +67,19 @@
         .tab-content.active { display: block; }
         
         .master-only { display: none; }
-        #add-trade-form { max-width: 950px; margin: 20px auto; padding: 15px; border: 1px solid var(--border-color); border-radius: 5px; background-color: var(--card-bg); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end; }
+        /* Applied to both forms now */
+        #add-trade-form, #add-idea-form { 
+            max-width: 950px; 
+            margin: 20px auto; 
+            padding: 15px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 5px; 
+            background-color: var(--card-bg); 
+            display: grid; /* Changed from 'none'/'grid' to always be grid for layout purposes */
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 15px; 
+            align-items: end; 
+        }
         label { margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input, select, button, textarea { padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%; box-sizing: border-box; font-family: inherit; background-color: var(--container-bg); color: var(--text-color); }
         button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.3s; margin-top: 5px; }
@@ -420,7 +432,7 @@
 
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
-            #add-trade-form { grid-template-columns: 1fr; } 
+            #add-trade-form, #add-idea-form { grid-template-columns: 1fr; } 
             .section-header { flex-direction: column; } 
             .backup-controls { position: static; margin-top: 10px; } 
             .journal-image-wrapper { max-width: 100%; } 
@@ -468,6 +480,31 @@
         </div>
         
         <div id="tracker-tab" class="tab-content active">
+            
+            <!-- Ideas Section (Visible to all) -->
+            <div class="section-header"><h2>Ideas</h2></div>
+            <p class="subtitle">A scratchpad for potential trade setups. Anyone can add or delete ideas.</p>
+            <form id="add-idea-form">
+                <div><label for="idea-symbol">Symbol:</label><select id="idea-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
+                <div><label for="idea-type">Trade Type:</label><select id="idea-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
+                <div><label for="idea-entry-price">Entry Price:</label><input type="number" id="idea-entry-price" step="any" required></div>
+                <div><label for="idea-stop-loss">Stop Loss:</label><input type="number" id="idea-stop-loss" step="any" required></div>
+                <div><label for="idea-target">Target:</label><input type="number" id="idea-target" step="any" required></div>
+                <div><label for="idea-position-value">Position Value ($):</label><input type="number" id="idea-position-value" step="any" required></div>
+                <div><button type="submit">Add Idea</button></div>
+            </form>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Date Added</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="ideas-tbody"></tbody>
+                </table>
+            </div>
+
+
+            <!-- Live Trades Section (Master only) -->
+            <div class="section-header"><h2>Live Trades</h2></div>
             <form id="add-trade-form" class="master-only">
                 <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
                 <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
@@ -477,7 +514,6 @@
                 <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
                 <div><button type="submit">Add Trade</button></div>
             </form>
-            <div class="section-header"><h2>Live Trades</h2></div>
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -486,6 +522,8 @@
                     <tbody id="trades-tbody"></tbody>
                 </table>
             </div>
+
+            <!-- Completed Trades Section -->
             <div class="section-header"><h2>Completed Trades</h2></div>
             <div class="table-wrapper">
                 <table>
@@ -731,6 +769,7 @@
                 DB_PATHS: {
                     TRADES: 'trades',
                     COMPLETED_TRADES: 'completed_trades',
+                    TRADE_IDEAS: 'trade_ideas', // New path for ideas
                     BANK: 'bank',
                     JOURNAL_TEXT: 'journal_text',
                     JOURNAL_IMAGES: 'journal_images',
@@ -772,6 +811,8 @@
                 addTradeForm: document.getElementById('add-trade-form'),
                 tradesTbody: document.getElementById('trades-tbody'),
                 completedTradesTbody: document.getElementById('completed-trades-tbody'),
+                addIdeaForm: document.getElementById('add-idea-form'), // New form for ideas
+                ideasTbody: document.getElementById('ideas-tbody'), // New table body for ideas
                 // Journal & Setups
                 journalTab: document.getElementById('journal-tab'),
                 persistentNotesEl: document.getElementById('persistent-notes-entry'),
@@ -844,6 +885,7 @@
             const dbRefs = {
                 trades: database.ref(CONFIG.DB_PATHS.TRADES),
                 completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES),
+                tradeIdeas: database.ref(CONFIG.DB_PATHS.TRADE_IDEAS), // New ref for ideas
                 bank: database.ref(CONFIG.DB_PATHS.BANK),
                 journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT),
                 journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES),
@@ -917,6 +959,31 @@
             }
 
             // --- RENDERING FUNCTIONS ---
+
+            /** Renders the trade ideas table. (New function) */
+            function renderIdeasTable(data) {
+                const ideas = data || {};
+                const rowsHtml = Object.keys(ideas)
+                    .sort((a, b) => new Date(ideas[b].dateAdded) - new Date(ideas[a].dateAdded))
+                    .map(id => {
+                        const idea = ideas[id];
+                        return `
+                            <tr>
+                                <td>${idea.symbol}</td>
+                                <td>${idea.type}</td>
+                                <td>${parseFloat(idea.entry).toFixed(2)}</td>
+                                <td>${parseFloat(idea.stoploss).toFixed(2)}</td>
+                                <td>${parseFloat(idea.target).toFixed(2)}</td>
+                                <td>${parseFloat(idea.size).toFixed(2)}</td>
+                                <td>${idea.dateAdded}</td>
+                                <td class="action-buttons">
+                                    <button class="delete-idea-btn" data-id="${id}">Delete</button>
+                                </td>
+                            </tr>`;
+                    }).join('');
+                
+                DOM.ideasTbody.innerHTML = rowsHtml;
+            }
             
             /** Renders the live trades table. */
             function renderLiveTable(data) {
@@ -1468,12 +1535,14 @@
                     }
                 });
 
-                // Trade Form
+                // --- Trade Tracker Forms ---
                 DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
+                DOM.addIdeaForm.addEventListener('submit', handleAddIdeaSubmit); // New listener
 
-                // Live & Completed Trade Actions (Event Delegation)
+                // --- Trade Tracker Tables (Event Delegation) ---
                 DOM.tradesTbody.addEventListener('click', handleTradeAction);
                 DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
+                DOM.ideasTbody.addEventListener('click', handleIdeaAction); // New listener
                 
                 // Journal Controls
                 [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => {
@@ -1569,6 +1638,27 @@
             
             // --- EVENT HANDLER LOGIC ---
             
+            function handleAddIdeaSubmit(e) {
+                e.preventDefault();
+                const idea = {
+                    symbol: document.getElementById('idea-symbol').value,
+                    type: document.getElementById('idea-type').value,
+                    entry: parseFloat(document.getElementById('idea-entry-price').value),
+                    stoploss: parseFloat(document.getElementById('idea-stop-loss').value),
+                    target: parseFloat(document.getElementById('idea-target').value),
+                    size: parseFloat(document.getElementById('idea-position-value').value),
+                    dateAdded: new Date().toLocaleString()
+                };
+
+                if (Object.values(idea).some(val => val === null || (typeof val === 'number' && isNaN(val)))) {
+                    return alert('Please ensure all numeric fields for the idea are filled correctly.');
+                }
+                
+                dbRefs.tradeIdeas.push(idea)
+                    .then(() => e.target.reset())
+                    .catch(error => alert(`Error adding idea: ${error.message}`));
+            }
+            
             function handleAddTradeSubmit(e) {
                 e.preventDefault();
                 if (!STATE.isMasterUser) return alert('You do not have permission to add trades.');
@@ -1599,6 +1689,16 @@
                 dbRefs.trades.push(trade)
                     .then(() => e.target.reset())
                     .catch(error => alert(`Error adding trade: ${error.message}`));
+            }
+
+            function handleIdeaAction(e) {
+                const button = e.target.closest('button.delete-idea-btn');
+                if (!button) return;
+                
+                const { id } = button.dataset;
+                if (confirm('Are you sure you want to delete this idea?')) {
+                    dbRefs.tradeIdeas.child(id).remove();
+                }
             }
 
             function handleTradeAction(e) {
@@ -1664,6 +1764,11 @@
             // --- FIREBASE DATA SUBSCRIPTIONS ---
             
             function subscribeToData() {
+                // New subscription for Trade Ideas
+                dbRefs.tradeIdeas.on('value', snapshot => {
+                    renderIdeasTable(snapshot.val());
+                });
+
                 dbRefs.trades.on('value', snapshot => {
                     const liveTrades = snapshot.val() || {};
                     renderLiveTable(liveTrades);
