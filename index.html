@@ -497,6 +497,16 @@
                     <tbody id="trades-tbody"></tbody>
                 </table>
             </div>
+            
+            <div class="section-header"><h2>Completed Trades</h2></div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
+                    </thead>
+                    <tbody id="completed-trades-tbody"></tbody>
+                </table>
+            </div>
 
             <!-- IDEAS SECTION START -->
             <div class="section-header"><h2>Ideas</h2></div>
@@ -518,16 +528,6 @@
                 </table>
             </div>
             <!-- IDEAS SECTION END -->
-
-            <div class="section-header"><h2>Completed Trades</h2></div>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
-                    </thead>
-                    <tbody id="completed-trades-tbody"></tbody>
-                </table>
-            </div>
         </div>
 
         <div id="journal-tab" class="tab-content">
@@ -749,8 +749,6 @@
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- CONFIGURATION ---
-            // WARNING: Do not expose sensitive keys in a production environment.
-            // For a real-world app, use Firebase App Check and server-side validation.
             const CONFIG = {
                 FIREBASE: {
                     apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
@@ -763,7 +761,7 @@
                 },
                 DB_PATHS: {
                     TRADES: 'trades',
-                    IDEAS: 'ideas',
+                    IDEAS: 'ideas', // Path for the new ideas section
                     COMPLETED_TRADES: 'completed_trades',
                     BANK: 'bank',
                     JOURNAL_TEXT: 'journal_text',
@@ -892,40 +890,20 @@
 
             // --- HELPER FUNCTIONS ---
 
-            /**
-             * Formats a number as a USD currency string.
-             * @param {number} num The number to format.
-             * @returns {string} Formatted currency string.
-             */
             const formatCurrency = (num) => `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-            /**
-             * Resizes a textarea to fit its content.
-             * @param {HTMLTextAreaElement} element The textarea element.
-             */
+            
             function autoResizeTextarea(element) {
                 if (!element) return;
                 element.style.height = 'auto';
                 element.style.height = `${element.scrollHeight}px`;
             }
 
-            /**
-             * Gets a date string in YYYY-MM-DD format from a Date object.
-             * @param {Date} date The date object.
-             * @returns {string} The formatted date string.
-             */
             const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
 
-            /**
-             * Sanitizes a symbol string for use in Firebase paths.
-             * @param {string} symbol The symbol string (e.g., "BTC/USDT").
-             * @returns {string} The sanitized symbol (e.g., "BTC-USDT").
-             */
             const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
             
             // --- DATA FETCHING ---
             
-            /** Fetches and renders EMA data from the JSON file. */
             async function fetchEmaData() {
                 try {
                     const response = await fetch(`ma_analysis.json?cache_bust=${new Date().getTime()}`);
@@ -938,7 +916,6 @@
                 }
             }
 
-            /** Fetches and renders S/R Level data from the JSON file. */
             async function fetchSrData() {
                 try {
                     const response = await fetch(`sr_levels_analysis.json?cache_bust=${new Date().getTime()}`);
@@ -955,7 +932,6 @@
 
             // --- RENDERING FUNCTIONS ---
             
-            /** Renders the live trades table. */
             function renderLiveTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
@@ -990,7 +966,7 @@
                 DOM.tradesTbody.innerHTML = rowsHtml;
             }
 
-            /** Renders the ideas table. */
+            /** Renders the ideas table. THIS IS FOR ALL USERS. */
             function renderIdeasTable(data) {
                 const ideas = data || {};
                 const actionButtonsHtml = (id) => `
@@ -1023,7 +999,6 @@
                 DOM.ideasTbody.innerHTML = rowsHtml;
             }
 
-            /** Renders the completed trades table and updates stats. */
             function renderCompletedTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
@@ -1057,7 +1032,6 @@
                 DOM.completedTradesTbody.innerHTML = rowsHtml;
             }
             
-            /** Renders the date navigation buttons for the journal. */
             function renderDateNavigation() {
                 const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
                 const timeframe = DOM.journalTimeframeEl.value;
@@ -1079,61 +1053,41 @@
                 DOM.dateButtonsContainer.innerHTML = buttonsHtml;
             }
 
-            /** Updates the entire journal view based on the current state. */
             function updateJournalView() {
                 const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
                 const timeframe = DOM.journalTimeframeEl.value;
                 const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
 
-                // Update pinned note
                 const favouriteText = (STATE.favouriteEntries[safeSymbol] || {})[timeframe];
-                if (favouriteText) {
-                    DOM.favouritedEntryText.textContent = favouriteText;
-                    DOM.favouritedEntryContainer.style.display = 'block';
-                } else {
-                    DOM.favouritedEntryContainer.style.display = 'none';
-                }
+                DOM.favouritedEntryText.textContent = favouriteText || '';
+                DOM.favouritedEntryContainer.style.display = favouriteText ? 'block' : 'none';
 
-                // Update daily journal entry
                 const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
                 DOM.journalEntryEl.value = dailyText;
                 
-                // Update persistent scratchpad
                 DOM.persistentNotesEl.value = STATE.persistentNotes;
 
-                // Auto-resize textareas after content is set
                 setTimeout(() => {
                     autoResizeTextarea(DOM.journalEntryEl);
                     autoResizeTextarea(DOM.persistentNotesEl);
                 }, 0);
 
-                // Update favorite button state
                 DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
 
-                // Render associated images and data
                 renderJournalImages(safeSymbol, timeframe, yyyymmdd);
                 renderDateNavigation();
             }
             
-            /** Renders journal images for the selected criteria. */
             function renderJournalImages(symbol, timeframe, selectedYMD) {
                 const imagesForSymbol = STATE.journalImages[symbol] || {};
                 const imagesForTimeframe = imagesForSymbol[timeframe] || {};
                 const allImageKeys = Object.keys(imagesForTimeframe);
                 
                 const filterMode = DOM.journalImageFilterEl.value;
-                let imageKeysToRender;
-
-                if (filterMode === 'today') {
-                    imageKeysToRender = allImageKeys.filter(key => {
-                        const imgData = imagesForTimeframe[key];
-                        if (!imgData?.timestamp) return false;
-                        return getYYYYMMDD(new Date(imgData.timestamp)) === selectedYMD;
-                    });
-                } else {
-                    imageKeysToRender = allImageKeys;
-                }
-
+                let imageKeysToRender = (filterMode === 'today')
+                    ? allImageKeys.filter(key => getYYYYMMDD(new Date(imagesForTimeframe[key]?.timestamp)) === selectedYMD)
+                    : allImageKeys;
+                
                 if (imageKeysToRender.length === 0) {
                     DOM.journalImagesContainer.innerHTML = '';
                     return;
@@ -1144,7 +1098,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg>
                     </button>` : '';
 
-                const imagesHtml = imageKeysToRender
+                DOM.journalImagesContainer.innerHTML = imageKeysToRender
                     .sort((a, b) => imagesForTimeframe[b].timestamp - imagesForTimeframe[a].timestamp)
                     .map(id => {
                         const imgData = imagesForTimeframe[id];
@@ -1155,50 +1109,32 @@
                                 <img src="${imgData.url}" alt="Journal Image for ${imgData.fileName}">
                             </div>`;
                     }).join('');
-
-                DOM.journalImagesContainer.innerHTML = imagesHtml;
             }
 
-            /** Renders the EMA data tables and summaries. */
             function renderEmaData() {
                 if (!STATE.emaData.data) return;
                 
-                const lastUpdated = STATE.emaData.last_updated ? new Date(STATE.emaData.last_updated).toLocaleString() : '--';
-                DOM.emaLastUpdatedTime.textContent = lastUpdated;
-
+                DOM.emaLastUpdatedTime.textContent = STATE.emaData.last_updated ? new Date(STATE.emaData.last_updated).toLocaleString() : '--';
                 const { SYMBOLS, TIMEFRAMES, PERIODS, SHORT_NAMES } = CONFIG.EMA_ANALYSIS;
                 
-                const tablesHtml = SYMBOLS.map(safeSymbol => {
+                DOM.emaTablesContainer.innerHTML = SYMBOLS.map(safeSymbol => {
                     const symbolEmaData = STATE.emaData.data[safeSymbol] || {};
                     const currentPrice = symbolEmaData['15min']?.price || 0;
                     
-                    const priceDisplayHtml = `
-                        <div class="current-price-display">
-                            Current Price (15m): <span class="price-value">${currentPrice > 0 ? formatCurrency(currentPrice) : '--'}</span>
-                        </div>`;
+                    const priceDisplayHtml = `<div class="current-price-display">Current Price (15m): <span class="price-value">${currentPrice > 0 ? formatCurrency(currentPrice) : '--'}</span></div>`;
 
                     const tableRowsHtml = TIMEFRAMES.map(tf => {
                         const tfData = symbolEmaData[tf];
                         const cellsHtml = PERIODS.flatMap(period => ['EMA', 'SMA'].map(type => {
                             const value = tfData?.[`${type}_${period}`];
-                            if (value !== undefined) {
-                                const priceClass = currentPrice > 0 ? (value > currentPrice ? 'price-above' : 'price-below') : '';
-                                return `<td class="${priceClass}">${Math.round(value).toLocaleString()}</td>`;
-                            }
-                            return '<td>...</td>';
+                            const priceClass = currentPrice > 0 && value ? (value > currentPrice ? 'price-above' : 'price-below') : '';
+                            return `<td class="${priceClass}">${value ? Math.round(value).toLocaleString() : '...'}</td>`;
                         })).join('');
                         return `<tr><td>${SHORT_NAMES[tf] || tf}</td>${cellsHtml}</tr>`;
                     }).join('');
 
-                    const tableHtml = `
-                        <div class="table-wrapper">
-                            <table class="ema-table">
-                                <thead><tr><th>TF</th>${PERIODS.flatMap(p => [`<th>EMA ${p}</th>`, `<th>SMA ${p}</th>`]).join('')}</tr></thead>
-                                <tbody>${tableRowsHtml}</tbody>
-                            </table>
-                        </div>`;
+                    const tableHtml = `<div class="table-wrapper"><table class="ema-table"><thead><tr><th>TF</th>${PERIODS.flatMap(p => [`<th>EMA ${p}</th>`, `<th>SMA ${p}</th>`]).join('')}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div>`;
 
-                    // Build Support/Resistance summary
                     let summaryHtml = '';
                     if (currentPrice > 0) {
                         const levels = [];
@@ -1207,43 +1143,20 @@
                             if (tfData) {
                                 PERIODS.forEach(period => ['EMA', 'SMA'].forEach(type => {
                                     const val = tfData[`${type}_${period}`];
-                                    if (val !== undefined) {
-                                        levels.push({
-                                            label: `${SHORT_NAMES[tf]} ${type} ${period}`,
-                                            value: val,
-                                            isSupport: val < currentPrice,
-                                            distance: Math.abs(currentPrice - val)
-                                        });
-                                    }
+                                    if (val) levels.push({ label: `${SHORT_NAMES[tf]} ${type} ${period}`, value: val, isSupport: val < currentPrice, distance: Math.abs(currentPrice - val) });
                                 }));
                             }
                         });
-
                         const supports = levels.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
                         const resistances = levels.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
                         const formatLevel = (level) => `<li>${level.label} (${Math.round(level.value).toLocaleString()})</li>`;
-                        
-                        summaryHtml = `
-                            <div class="ema-summary-container">
-                                <div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supports.map(formatLevel).join('') || 'None found.'}</ul></div>
-                                <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistances.map(formatLevel).join('') || 'None found.'}</ul></div>
-                            </div>`;
+                        summaryHtml = `<div class="ema-summary-container"><div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supports.map(formatLevel).join('') || 'None found.'}</ul></div><div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistances.map(formatLevel).join('') || 'None found.'}</ul></div></div>`;
                     }
                     
-                    const symbolHtml = `
-                        <div class="ema-table-container">
-                            <h4>${safeSymbol.replace('-', '/')} Snapshot</h4>
-                            ${priceDisplayHtml}
-                            ${safeSymbol === 'ETH-USDT' ? tableHtml + summaryHtml : summaryHtml + tableHtml}
-                        </div>`;
-                    
-                    return symbolHtml;
+                    return `<div class="ema-table-container"><h4>${safeSymbol.replace('-', '/')} Snapshot</h4>${priceDisplayHtml}${safeSymbol === 'ETH-USDT' ? tableHtml + summaryHtml : summaryHtml + tableHtml}</div>`;
                 }).join('');
-                
-                DOM.emaTablesContainer.innerHTML = tablesHtml;
             }
             
-            /** Renders a "Current Setups" table with data. */
             function renderSetupsTable(tableElement, data) {
                 if (!tableElement) return;
                 const tbody = tableElement.querySelector('tbody');
@@ -1260,32 +1173,20 @@
                 });
             }
             
-            /** Renders the snapshot view with the latest image for each timeframe. */
             function renderSnapshotView() {
                 const selectedSymbol = getSafeSymbol(DOM.snapshotSymbolEl.value);
                 const symbolImageData = STATE.journalImages[selectedSymbol] || {};
                 
-                const itemsHtml = CONFIG.SNAPSHOT_TIMEFRAMES.map(tf => {
+                DOM.snapshotImagesContainer.innerHTML = CONFIG.SNAPSHOT_TIMEFRAMES.map(tf => {
                     const imagesForTimeframe = symbolImageData[tf];
                     if (!imagesForTimeframe || Object.keys(imagesForTimeframe).length === 0) return '';
                     
                     const latestImage = Object.values(imagesForTimeframe).sort((a, b) => b.timestamp - a.timestamp)[0];
-                    if (latestImage) {
-                        return `
-                            <div class="snapshot-image-item">
-                                <h4>${tf.replace('min', 'm').replace('hour', 'H')}</h4>
-                                <div class="journal-image-wrapper">
-                                    <img src="${latestImage.url}" alt="Latest image for ${tf}">
-                                </div>
-                            </div>`;
-                    }
+                    if (latestImage) return `<div class="snapshot-image-item"><h4>${tf.replace('min', 'm').replace('hour', 'H')}</h4><div class="journal-image-wrapper"><img src="${latestImage.url}" alt="Latest image for ${tf}"></div></div>`;
                     return '';
                 }).join('');
-                
-                DOM.snapshotImagesContainer.innerHTML = itemsHtml;
             }
 
-            /** Renders the S/R Levels tab based on selected criteria. */
             function renderSrLevels() {
                 const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
                 const selectedLookback = DOM.srLookbackEl.value;
@@ -1298,55 +1199,29 @@
                 DOM.srMetadataDates.textContent = (analysisParams.oldest_pivot_date && analysisParams.newest_pivot_date) 
                     ? `${analysisParams.oldest_pivot_date} to ${analysisParams.newest_pivot_date}` : '--';
 
-                const buildLevelCard = (level) => `
-                    <div class="sr-level-card">
-                        <div class="sr-level-header">
-                            <span class="sr-level-price-range">$${Math.round(level['Price Start'])} - $${Math.round(level['Price End'])}</span>
-                            <span class="sr-level-strength">Score: ${level['Strength Score']}</span>
-                        </div>
-                        <div class="sr-level-pivots">Based on <span>${level['Pivot Count']}</span> pivots.</div>
-                    </div>`;
+                const buildLevelCard = (level) => `<div class="sr-level-card"><div class="sr-level-header"><span class="sr-level-price-range">$${Math.round(level['Price Start'])} - $${Math.round(level['Price End'])}</span><span class="sr-level-strength">Score: ${level['Strength Score']}</span></div><div class="sr-level-pivots">Based on <span>${level['Pivot Count']}</span> pivots.</div></div>`;
 
                 const supportLevels = lookbackData.support || [];
                 DOM.supportLevelsContainer.innerHTML = supportLevels.map(buildLevelCard).join('');
-                if (supportLevels.length > 0) {
-                    const lowest = Math.min(...supportLevels.map(l => l['Price Start']));
-                    const highest = Math.max(...supportLevels.map(l => l['Price End']));
-                    DOM.supportSummary.innerHTML = `Full Range: <span>$${Math.round(lowest)}</span> - <span>$${Math.round(highest)}</span>`;
-                } else {
-                    DOM.supportSummary.innerHTML = '';
-                }
+                DOM.supportSummary.innerHTML = supportLevels.length ? `Full Range: <span>$${Math.round(Math.min(...supportLevels.map(l => l['Price Start'])))}</span> - <span>$${Math.round(Math.max(...supportLevels.map(l => l['Price End'])))}</span>` : '';
                 
                 const resistanceLevels = lookbackData.resistance || [];
                 DOM.resistanceLevelsContainer.innerHTML = resistanceLevels.map(buildLevelCard).join('');
-                if (resistanceLevels.length > 0) {
-                    const lowest = Math.min(...resistanceLevels.map(l => l['Price Start']));
-                    const highest = Math.max(...resistanceLevels.map(l => l['Price End']));
-                    DOM.resistanceSummary.innerHTML = `Full Range: <span>$${Math.round(lowest)}</span> - <span>$${Math.round(highest)}</span>`;
-                } else {
-                    DOM.resistanceSummary.innerHTML = '';
-                }
+                DOM.resistanceSummary.innerHTML = resistanceLevels.length ? `Full Range: <span>$${Math.round(Math.min(...resistanceLevels.map(l => l['Price Start'])))}</span> - <span>$${Math.round(Math.max(...resistanceLevels.map(l => l['Price End'])))}</span>` : '';
             }
 
 
             // --- DATA HANDLING AND SAVING ---
 
-            /** Saves a "Current Setups" table to Firebase. */
             function saveSetupsTable(tableElement, dbRef, statusElement) {
                 if (!STATE.isMasterUser) return;
                 const dataToSave = {};
-                const tbody = tableElement.querySelector('tbody');
-                
-                tbody.querySelectorAll('tr').forEach(row => {
+                tableElement.querySelectorAll('tbody tr').forEach(row => {
                     const timeframe = row.firstElementChild.textContent.trim();
                     const cells = row.querySelectorAll('td');
                     dataToSave[timeframe] = {
-                        zero_entry: cells[0].textContent.trim(),
-                        zero_target: cells[1].textContent.trim(),
-                        zero_stoploss: cells[2].textContent.trim(),
-                        four_entry: cells[3].textContent.trim(),
-                        four_target: cells[4].textContent.trim(),
-                        four_stoploss: cells[5].textContent.trim(),
+                        zero_entry: cells[0].textContent.trim(), zero_target: cells[1].textContent.trim(), zero_stoploss: cells[2].textContent.trim(),
+                        four_entry: cells[3].textContent.trim(), four_target: cells[4].textContent.trim(), four_stoploss: cells[5].textContent.trim(),
                     };
                 });
                 
@@ -1356,11 +1231,9 @@
                     setTimeout(() => { statusElement.textContent = '' }, 2000);
                 }).catch(e => {
                     statusElement.textContent = `Error: ${e.message}`;
-                    console.error("Error saving setups table:", e);
                 });
             }
 
-            /** Saves the daily journal entry with a debounce. */
             const saveJournalEntry = () => {
                 clearTimeout(STATE.journalSaveTimer);
                 STATE.journalSaveTimer = setTimeout(() => {
@@ -1371,8 +1244,6 @@
                     const text = DOM.journalEntryEl.value;
                     
                     DOM.saveStatus.textContent = 'Saving...';
-                    
-                    // Update local cache immediately
                     if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {};
                     if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {};
                     STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text;
@@ -1380,26 +1251,22 @@
                     dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text)
                         .then(() => {
                             DOM.saveStatus.textContent = 'Saved.';
-                            renderDateNavigation(); // Update button style
+                            renderDateNavigation();
                             setTimeout(() => DOM.saveStatus.textContent = '', 2000);
                         })
                         .catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`);
                 }, 750);
             };
             
-            /** Saves the persistent notes with a debounce. */
             const savePersistentNotes = () => {
                 clearTimeout(STATE.notesSaveTimer);
                 STATE.notesSaveTimer = setTimeout(() => {
                     if (!STATE.isMasterUser) return;
-                    const text = DOM.persistentNotesEl.value;
-                    STATE.persistentNotes = text; // Update local cache
-                    dbRefs.persistentNotes.set(text)
-                        .catch(e => console.error("Error saving persistent notes:", e));
+                    STATE.persistentNotes = DOM.persistentNotesEl.value;
+                    dbRefs.persistentNotes.set(STATE.persistentNotes).catch(e => console.error("Error saving notes:", e));
                 }, 750);
             };
             
-            /** Handles image file uploads to Firebase Storage. */
             function handleFileUpload(files) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
                 
@@ -1411,125 +1278,73 @@
                     if (!file.type.startsWith('image/')) return;
                     
                     const fileName = `${Date.now()}_${file.name}`;
-                    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
-                    const fileRef = storage.ref(storagePath);
-                    const uploadTask = fileRef.put(file);
+                    const uploadTask = storage.ref(`journal_images/${safeSymbol}/${timeframe}/${fileName}`).put(file);
                     
                     uploadTask.on('state_changed', 
-                        (snapshot) => {
-                            const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-                            DOM.uploadProgress.textContent = `Uploading ${index + 1}/${files.length}: ${progress}%`;
-                        },
-                        (error) => {
-                            console.error("Upload Failed:", error);
-                            DOM.uploadProgress.textContent = `Upload Failed: ${error.code}`;
-                        },
-                        () => {
-                            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                                const imageData = {
-                                    url: downloadURL,
-                                    fileName: fileName,
-                                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                                };
-                                dbRefs.journalImages.child(safeSymbol).child(timeframe).push(imageData);
-                                if (index === files.length - 1) {
-                                    DOM.uploadProgress.textContent = 'Upload Complete!';
-                                    setTimeout(() => { DOM.uploadProgress.textContent = ''; }, 2000);
-                                }
-                            });
-                        }
+                        (s) => DOM.uploadProgress.textContent = `Uploading ${index + 1}/${files.length}: ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`,
+                        (err) => DOM.uploadProgress.textContent = `Upload Failed: ${err.code}`,
+                        () => uploadTask.snapshot.ref.getDownloadURL().then(url => {
+                            dbRefs.journalImages.child(safeSymbol).child(timeframe).push({ url, fileName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+                            if (index === files.length - 1) {
+                                DOM.uploadProgress.textContent = 'Upload Complete!';
+                                setTimeout(() => { DOM.uploadProgress.textContent = ''; }, 2000);
+                            }
+                        })
                     );
                 });
             }
 
-            /**
-             * Calculates the net result of a trade.
-             * @param {object} trade The trade object.
-             * @param {number} exitPrice The price the trade was closed at.
-             * @returns {object} An object with net_result, entry_fee, and exit_fee.
-             */
             function calculateNetResult(trade, exitPrice) {
-                const entry = parseFloat(trade.entry);
-                const posValue = parseFloat(trade.size);
-                const exit = parseFloat(exitPrice);
+                const { entry, size, type } = trade;
                 const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
-
-                if (isNaN(entry) || isNaN(posValue) || isNaN(exit)) {
-                    return { net_result: 0, entry_fee: 0, exit_fee: 0 };
-                }
-
+                const posValue = parseFloat(size);
                 const entryFee = posValue * FEE_RATE;
-                const exitPosValue = (exit / entry) * posValue;
+                const exitPosValue = (parseFloat(exitPrice) / parseFloat(entry)) * posValue;
                 const exitFee = exitPosValue * FEE_RATE;
-                const positionQty = posValue / entry;
-
-                const grossResult = trade.type === "Long"
-                    ? (exit - entry) * positionQty
-                    : (entry - exit) * positionQty;
-
-                return {
-                    net_result: grossResult - entryFee - exitFee,
-                    entry_fee: entryFee,
-                    exit_fee: exitFee
-                };
+                const positionQty = posValue / parseFloat(entry);
+                const grossResult = (type === "Long")
+                    ? (parseFloat(exitPrice) - parseFloat(entry)) * positionQty
+                    : (parseFloat(entry) - parseFloat(exitPrice)) * positionQty;
+                return { net_result: grossResult - entryFee - exitFee, entry_fee: entryFee, exit_fee: exitFee };
             }
             
-            /** Handles the process of completing a live trade. */
             function completeTrade(tradeId, outcome) {
                 dbRefs.trades.child(tradeId).once('value', snapshot => {
                     const trade = snapshot.val();
                     if (!trade) return;
 
-                    const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
-                    const exitPriceStr = prompt(`Enter exact exit price:`, defaultExit);
-                    if (exitPriceStr === null) return; // User cancelled
+                    const exitPriceStr = prompt(`Enter exact exit price:`, outcome === 'win' ? trade.target : trade.stoploss);
+                    if (exitPriceStr === null || isNaN(parseFloat(exitPriceStr))) return;
 
-                    const exitPrice = parseFloat(exitPriceStr);
-                    if (isNaN(exitPrice)) return alert("Invalid exit price.");
-
-                    const result = calculateNetResult(trade, exitPrice);
-                    const completedTrade = {
-                        ...trade,
-                        ...result,
-                        closed_date: new Date().toLocaleString(),
-                        exit_price: exitPrice,
-                    };
+                    const completedTrade = { ...trade, ...calculateNetResult(trade, exitPriceStr), closed_date: new Date().toLocaleString(), exit_price: parseFloat(exitPriceStr) };
                     delete completedTrade.expected_profit;
                     delete completedTrade.expected_loss;
 
-                    dbRefs.completedTrades.push(completedTrade)
-                        .then(() => dbRefs.trades.child(tradeId).remove());
+                    dbRefs.completedTrades.push(completedTrade).then(() => dbRefs.trades.child(tradeId).remove());
                 });
             }
 
             // --- EVENT LISTENERS ---
             
             function setupEventListeners() {
-                // Theme Toggle
                 DOM.themeToggle.addEventListener('change', (e) => {
                     const theme = e.target.checked ? 'dark' : 'light';
                     document.documentElement.setAttribute('data-theme', theme);
                     localStorage.setItem('theme', theme);
                 });
 
-                // Tab Navigation
                 DOM.tabs.addEventListener('click', (e) => {
                     if (!e.target.matches('.tab-link')) return;
-                    
                     document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
                     e.target.classList.add('active');
                     const tabId = e.target.dataset.tab;
                     document.getElementById(`${tabId}-tab`).classList.add('active');
-                    
                     DOM.statsPanelContainer.style.display = (tabId === 'tracker') ? 'block' : 'none';
-                    
-                    // Trigger updates for newly visible tabs
                     if (tabId === 'journal') updateJournalView();
                     if (tabId === 'snapshot') renderSnapshotView();
                     if (tabId === 'sr-levels') renderSrLevels();
                 });
                 
-                // Stats Panel
                 DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
                 DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
                 document.addEventListener('click', (e) => {
@@ -1538,95 +1353,56 @@
                     }
                 });
 
-                // Forms
                 DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
                 DOM.addIdeaForm.addEventListener('submit', handleAddIdeaSubmit);
 
-                // Table Actions (Event Delegation)
                 DOM.tradesTbody.addEventListener('click', handleTradeAction);
                 DOM.ideasTbody.addEventListener('click', handleIdeaAction);
                 DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
                 
-                // Journal Controls
-                [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => {
-                    el.addEventListener('change', updateJournalView);
-                });
+                [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', updateJournalView));
                 
-                // Journal Date Navigation
                 DOM.dateButtonsContainer.addEventListener('click', (e) => {
                     if (e.target.matches('.date-nav-btn')) {
-                        const dateStr = e.target.dataset.date;
-                        const parts = dateStr.split('-');
+                        const parts = e.target.dataset.date.split('-');
                         STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2]));
-                        STATE.centerDate = new Date(STATE.selectedDate); // Recenter on selection
+                        STATE.centerDate = new Date(STATE.selectedDate);
                         updateJournalView();
                     }
                 });
-                DOM.datePrevBtn.addEventListener('click', () => {
-                    STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5);
-                    renderDateNavigation();
-                });
-                DOM.dateNextBtn.addEventListener('click', () => {
-                    STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5);
-                    renderDateNavigation();
-                });
+                DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
+                DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
 
-                // Journal Text Inputs
-                DOM.journalEntryEl.addEventListener('input', () => {
-                    autoResizeTextarea(DOM.journalEntryEl);
-                    saveJournalEntry();
-                });
-                DOM.persistentNotesEl.addEventListener('input', () => {
-                    autoResizeTextarea(DOM.persistentNotesEl);
-                    savePersistentNotes();
-                });
-
-                // Favourite Button
+                DOM.journalEntryEl.addEventListener('input', () => { autoResizeTextarea(DOM.journalEntryEl); saveJournalEntry(); });
+                DOM.persistentNotesEl.addEventListener('input', () => { autoResizeTextarea(DOM.persistentNotesEl); savePersistentNotes(); });
                 DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
-
-                // Image Upload
                 DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
                 DOM.journalImagesContainer.addEventListener('click', handleImageDelete);
                 
-                // Drag and Drop Image Upload
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    DOM.journalTab.addEventListener(eventName, e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    });
-                });
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    DOM.journalTab.addEventListener(eventName, () => {
-                        if (STATE.isMasterUser) DOM.journalTab.classList.add('drag-over');
-                    });
-                });
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => DOM.journalTab.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }));
+                ['dragenter', 'dragover'].forEach(ev => DOM.journalTab.addEventListener(ev, () => { if (STATE.isMasterUser) DOM.journalTab.classList.add('drag-over'); }));
                 DOM.journalTab.addEventListener('dragleave', () => DOM.journalTab.classList.remove('drag-over'));
                 DOM.journalTab.addEventListener('drop', (e) => {
                     DOM.journalTab.classList.remove('drag-over');
-                    if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) {
-                        handleFileUpload(e.dataTransfer.files);
-                    }
+                    if (STATE.isMasterUser && e.dataTransfer?.files.length) handleFileUpload(e.dataTransfer.files);
                 });
                 
-                // Setups Table Buttons & Toggles
                 DOM.saveSetups1Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1));
                 DOM.saveSetups2Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2));
                 
                 DOM.journalTab.addEventListener('click', (e) => {
                     const header = e.target.closest('.setups-header');
                     if (header) {
-                        const targetWrapper = document.querySelector(header.dataset.target);
-                        const toggleBtn = header.querySelector('.setups-toggle-btn');
-                        if (targetWrapper && toggleBtn) {
-                            const isCollapsed = targetWrapper.style.display === 'none';
-                            targetWrapper.style.display = isCollapsed ? 'block' : 'none';
-                            toggleBtn.textContent = isCollapsed ? '−' : '+';
+                        const target = document.querySelector(header.dataset.target);
+                        const btn = header.querySelector('.setups-toggle-btn');
+                        if (target && btn) {
+                            const isCollapsed = target.style.display === 'none';
+                            target.style.display = isCollapsed ? 'block' : 'none';
+                            btn.textContent = isCollapsed ? '−' : '+';
                         }
                     }
                 });
 
-
-                // Snapshot & S/R Level Controls
                 DOM.snapshotSymbolEl.addEventListener('change', renderSnapshotView);
                 DOM.srSymbolEl.addEventListener('change', renderSrLevels);
                 DOM.srLookbackEl.addEventListener('change', renderSrLevels);
@@ -1646,62 +1422,38 @@
                 if (!STATE.isMasterUser) return alert('You do not have permission to add trades.');
                 
                 const trade = {
-                    symbol: document.getElementById('trade-symbol').value,
-                    type: document.getElementById('trade-type').value,
-                    entry: parseFloat(document.getElementById('entry-price').value),
-                    stoploss: parseFloat(document.getElementById('stop-loss').value),
-                    target: parseFloat(document.getElementById('target').value),
-                    size: parseFloat(document.getElementById('position-value').value),
+                    symbol: document.getElementById('trade-symbol').value, type: document.getElementById('trade-type').value,
+                    entry: parseFloat(document.getElementById('entry-price').value), stoploss: parseFloat(document.getElementById('stop-loss').value),
+                    target: parseFloat(document.getElementById('target').value), size: parseFloat(document.getElementById('position-value').value),
                     date: new Date().toLocaleString()
                 };
 
-                if (Object.values(trade).some(val => val === null || isNaN(val) && typeof val === 'number')) {
-                    return alert('Please ensure all numeric fields are filled correctly.');
-                }
+                if (Object.values(trade).some(val => val === null || (typeof val === 'number' && isNaN(val)))) return alert('Please fill all fields correctly.');
                 
-                const positionQty = trade.size / trade.entry;
-                if (trade.type === 'Long') {
-                    trade.expected_profit = positionQty * (trade.target - trade.entry);
-                    trade.expected_loss = positionQty * (trade.entry - trade.stoploss);
-                } else { // Short
-                    trade.expected_profit = positionQty * (trade.entry - trade.target);
-                    trade.expected_loss = positionQty * (trade.stoploss - trade.entry);
-                }
+                const posQty = trade.size / trade.entry;
+                trade.expected_profit = (trade.type === 'Long') ? posQty * (trade.target - trade.entry) : posQty * (trade.entry - trade.target);
+                trade.expected_loss = (trade.type === 'Long') ? posQty * (trade.entry - trade.stoploss) : posQty * (trade.stoploss - trade.entry);
 
-                dbRefs.trades.push(trade)
-                    .then(() => e.target.reset())
-                    .catch(error => alert(`Error adding trade: ${error.message}`));
+                dbRefs.trades.push(trade).then(() => e.target.reset());
             }
 
             function handleAddIdeaSubmit(e) {
-                e.preventDefault();
+                e.preventDefault(); // This is open to everyone
                 
                 const idea = {
-                    symbol: document.getElementById('idea-symbol').value,
-                    type: document.getElementById('idea-type').value,
-                    entry: parseFloat(document.getElementById('idea-entry-price').value),
-                    stoploss: parseFloat(document.getElementById('idea-stop-loss').value),
-                    target: parseFloat(document.getElementById('idea-target').value),
-                    size: parseFloat(document.getElementById('idea-position-value').value),
+                    symbol: document.getElementById('idea-symbol').value, type: document.getElementById('idea-type').value,
+                    entry: parseFloat(document.getElementById('idea-entry-price').value), stoploss: parseFloat(document.getElementById('idea-stop-loss').value),
+                    target: parseFloat(document.getElementById('idea-target').value), size: parseFloat(document.getElementById('idea-position-value').value),
                     date: new Date().toLocaleString()
                 };
 
-                if (Object.values(idea).some(val => val === null || isNaN(val) && typeof val === 'number')) {
-                    return alert('Please ensure all numeric fields are filled correctly.');
-                }
+                if (Object.values(idea).some(val => val === null || (typeof val === 'number' && isNaN(val)))) return alert('Please fill all fields correctly.');
                 
-                const positionQty = idea.size / idea.entry;
-                if (idea.type === 'Long') {
-                    idea.expected_profit = positionQty * (idea.target - idea.entry);
-                    idea.expected_loss = positionQty * (idea.entry - idea.stoploss);
-                } else { // Short
-                    idea.expected_profit = positionQty * (idea.entry - idea.target);
-                    idea.expected_loss = positionQty * (idea.stoploss - idea.entry);
-                }
+                const posQty = idea.size / idea.entry;
+                idea.expected_profit = (idea.type === 'Long') ? posQty * (idea.target - idea.entry) : posQty * (idea.entry - idea.target);
+                idea.expected_loss = (idea.type === 'Long') ? posQty * (idea.entry - idea.stoploss) : posQty * (idea.stoploss - idea.entry);
 
-                dbRefs.ideas.push(idea)
-                    .then(() => e.target.reset())
-                    .catch(error => alert(`Error adding idea: ${error.message}`));
+                dbRefs.ideas.push(idea).then(() => e.target.reset());
             }
 
             function handleTradeAction(e) {
@@ -1710,18 +1462,17 @@
                 if (!button) return;
                 
                 const { id } = button.dataset;
-                const tradeRef = button.classList.contains('note-btn-completed') || button.classList.contains('delete-btn-completed') 
-                    ? dbRefs.completedTrades.child(id) 
-                    : dbRefs.trades.child(id);
+                const isCompleted = button.matches('.note-btn-completed, .delete-btn-completed');
+                const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
 
                 if (button.matches('.win-btn')) completeTrade(id, 'win');
                 else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
                 else if (button.matches('.delete-btn, .delete-btn-completed')) {
-                    if (confirm('Are you sure you want to delete this trade?')) tradeRef.remove();
+                    if (confirm('Are you sure?')) tradeRef.remove();
                 } 
                 else if (button.matches('.note-btn, .note-btn-completed')) {
-                    tradeRef.child('note').once('value', snapshot => {
-                        const newNote = prompt("Enter note:", snapshot.val() || "");
+                    tradeRef.child('note').once('value', s => {
+                        const newNote = prompt("Enter note:", s.val() || "");
                         if (newNote !== null) tradeRef.update({ note: newNote });
                     });
                 }
@@ -1730,16 +1481,13 @@
             function handleIdeaAction(e) {
                 const button = e.target.closest('button');
                 if (!button) return;
-                
-                const { id } = button.dataset;
-                const ideaRef = dbRefs.ideas.child(id);
+                const ideaRef = dbRefs.ideas.child(button.dataset.id);
 
                 if (button.matches('.delete-btn-idea')) {
-                    if (confirm('Are you sure you want to delete this idea?')) ideaRef.remove();
-                } 
-                else if (button.matches('.note-btn-idea')) {
-                    ideaRef.child('note').once('value', snapshot => {
-                        const newNote = prompt("Enter note:", snapshot.val() || "");
+                    if (confirm('Delete this idea?')) ideaRef.remove();
+                } else if (button.matches('.note-btn-idea')) {
+                    ideaRef.child('note').once('value', s => {
+                        const newNote = prompt("Enter note:", s.val() || "");
                         if (newNote !== null) ideaRef.update({ note: newNote });
                     });
                 }
@@ -1751,17 +1499,9 @@
                 
                 const { safeSymbol, timeframe, id, filename } = button.dataset;
                 if (confirm(`Delete this image?\n\n${filename}`)) {
-                    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${filename}`;
-                    const dbPath = `${CONFIG.DB_PATHS.JOURNAL_IMAGES}/${safeSymbol}/${timeframe}/${id}`;
-                    
-                    storage.ref(storagePath).delete()
-                        .then(() => database.ref(dbPath).remove())
-                        .catch((err) => {
-                            console.warn("Storage deletion failed, maybe already gone. Deleting DB entry.", err.code);
-                            if (err.code === 'storage/object-not-found') {
-                                database.ref(dbPath).remove(); // Still remove DB record
-                            }
-                        });
+                    const storageRef = storage.ref(`journal_images/${safeSymbol}/${timeframe}/${filename}`);
+                    const dbRef = database.ref(`${CONFIG.DB_PATHS.JOURNAL_IMAGES}/${safeSymbol}/${timeframe}/${id}`);
+                    storageRef.delete().catch(err => { if(err.code !== 'storage/object-not-found') throw err; }).finally(() => dbRef.remove());
                 }
             }
             
@@ -1769,75 +1509,46 @@
                 if (!STATE.isMasterUser) return;
                 const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
                 const timeframe = DOM.journalTimeframeEl.value;
-                const currentText = DOM.journalEntryEl.value.trim();
+                const dbRef = dbRefs.favourites.child(safeSymbol).child(timeframe);
 
-                const dbFavouriteRef = dbRefs.favourites.child(safeSymbol).child(timeframe);
-
-                if (DOM.favouriteBtn.classList.contains('active')) { // Un-pin
-                    dbFavouriteRef.remove();
-                } else { // Pin
-                    if (!currentText) return alert('Cannot pin an empty note.');
-                    dbFavouriteRef.set(currentText);
+                if (DOM.favouriteBtn.classList.contains('active')) {
+                    dbRef.remove();
+                } else {
+                    const text = DOM.journalEntryEl.value.trim();
+                    if (text) dbRef.set(text); else alert('Cannot pin an empty note.');
                 }
             }
-
 
             // --- FIREBASE DATA SUBSCRIPTIONS ---
             
             function subscribeToData() {
-                dbRefs.trades.on('value', snapshot => {
-                    const liveTrades = snapshot.val() || {};
-                    renderLiveTable(liveTrades);
-                    DOM.statOpenTrades.textContent = Object.keys(liveTrades).length;
+                dbRefs.trades.on('value', s => {
+                    const data = s.val() || {};
+                    renderLiveTable(data);
+                    DOM.statOpenTrades.textContent = Object.keys(data).length;
                 });
+
+                dbRefs.ideas.on('value', s => renderIdeasTable(s.val()));
                 
-                dbRefs.ideas.on('value', snapshot => {
-                    const ideasData = snapshot.val() || {};
-                    renderIdeasTable(ideasData);
-                });
-
-                dbRefs.completedTrades.on('value', snapshot => {
-                    const completedData = snapshot.val() || {};
-                    renderCompletedTable(completedData);
-
+                dbRefs.completedTrades.on('value', s => {
+                    const data = s.val() || {};
+                    renderCompletedTable(data);
                     const { STARTING_BALANCE, USD_TO_AUD_RATE } = CONFIG.TRADE_SETTINGS;
-                    const totalProfitLoss = Object.values(completedData).reduce((sum, trade) => sum + (trade.net_result || 0), 0);
-                    const newBalance = STARTING_BALANCE + totalProfitLoss;
-
+                    const totalPl = Object.values(data).reduce((sum, trade) => sum + (trade.net_result || 0), 0);
+                    const newBalance = STARTING_BALANCE + totalPl;
                     DOM.statBalance.textContent = formatCurrency(newBalance);
                     DOM.statBalanceAud.textContent = `A${formatCurrency(newBalance * USD_TO_AUD_RATE)}`;
-                    DOM.statTotalPl.textContent = `${totalProfitLoss >= 0 ? '+' : ''}${formatCurrency(totalProfitLoss)}`;
-                    DOM.statTotalPl.style.color = totalProfitLoss >= 0 ? '#28a745' : '#dc3545';
-                    DOM.statCompletedTrades.textContent = Object.keys(completedData).length;
-
+                    DOM.statTotalPl.textContent = `${totalPl >= 0 ? '+' : ''}${formatCurrency(totalPl)}`;
+                    DOM.statTotalPl.style.color = totalPl >= 0 ? '#28a745' : '#dc3545';
+                    DOM.statCompletedTrades.textContent = Object.keys(data).length;
                     dbRefs.bank.set({ currentBalance: newBalance });
                 });
 
-                dbRefs.journalText.on('value', (s) => {
-                    STATE.journalText = s.val() || {};
-                    if (DOM.journalTab.classList.contains('active')) updateJournalView();
-                });
-                
-                dbRefs.journalImages.on('value', (s) => {
-                    STATE.journalImages = s.val() || {};
-                    if (DOM.journalTab.classList.contains('active')) updateJournalView();
-                    if (DOM.snapshotTab.classList.contains('active')) renderSnapshotView();
-                });
-                
-                dbRefs.favourites.on('value', (s) => {
-                    STATE.favouriteEntries = s.val() || {};
-                    if (DOM.journalTab.classList.contains('active')) updateJournalView();
-                });
-
-                dbRefs.setups1.on('value', (s) => {
-                    STATE.setupsData1 = s.val() || {};
-                    renderSetupsTable(DOM.setupsTable1, STATE.setupsData1);
-                });
-                dbRefs.setups2.on('value', (s) => {
-                    STATE.setupsData2 = s.val() || {};
-                    renderSetupsTable(DOM.setupsTable2, STATE.setupsData2);
-                });
-                
+                dbRefs.journalText.on('value', (s) => { STATE.journalText = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
+                dbRefs.journalImages.on('value', (s) => { STATE.journalImages = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); if (DOM.snapshotTab.classList.contains('active')) renderSnapshotView(); });
+                dbRefs.favourites.on('value', (s) => { STATE.favouriteEntries = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
+                dbRefs.setups1.on('value', (s) => { STATE.setupsData1 = s.val() || {}; renderSetupsTable(DOM.setupsTable1, STATE.setupsData1); });
+                dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(DOM.setupsTable2, STATE.setupsData2); });
                 dbRefs.persistentNotes.on('value', (s) => {
                     STATE.persistentNotes = s.val() || '';
                     if (DOM.journalTab.classList.contains('active')) {
@@ -1850,27 +1561,17 @@
             // --- INITIALIZATION ---
 
             function checkMasterMode() {
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('master') === 'true') {
-                    const password = prompt("Please enter master password:");
-                    if (password) {
-                        STATE.isMasterUser = true;
-                        STATE.masterPassword = password;
-                        document.querySelectorAll('.master-only').forEach(el => {
-                            if (el.id === 'add-trade-form') el.style.display = 'grid';
-                            else if (el.tagName === 'TH' || el.tagName === 'TD') el.style.display = 'table-cell';
-                            else if (el.id === 'favourite-btn') el.style.display = 'block';
-                            else if (el.id.startsWith('save-setups-')) el.style.display = 'inline-block';
-                            else el.style.display = 'block';
-                        });
-                        DOM.journalEntryEl.readOnly = false;
-                        DOM.persistentNotesEl.readOnly = false;
-                        document.querySelectorAll('.setups-table td').forEach(cell => {
-                            cell.setAttribute('contenteditable', 'true');
-                        });
-                    }
-                }
-                 if (!STATE.isMasterUser) {
+                if (new URLSearchParams(window.location.search).get('master') === 'true' && prompt("Please enter master password:")) {
+                    STATE.isMasterUser = true;
+                    document.querySelectorAll('.master-only').forEach(el => {
+                        el.style.display = (el.tagName === 'TH' || el.tagName === 'TD') ? 'table-cell' 
+                            : el.id === 'add-trade-form' ? 'grid'
+                            : 'block';
+                    });
+                    DOM.journalEntryEl.readOnly = false;
+                    DOM.persistentNotesEl.readOnly = false;
+                    document.querySelectorAll('.setups-table td').forEach(cell => cell.setAttribute('contenteditable', 'true'));
+                } else {
                     DOM.journalEntryEl.readOnly = true;
                     DOM.persistentNotesEl.readOnly = true;
                 }
@@ -1879,25 +1580,20 @@
             function initializeApp() {
                 checkMasterMode();
                 
-                // Initialize theme
                 const savedTheme = localStorage.getItem('theme');
                 if (savedTheme) {
                     document.documentElement.setAttribute('data-theme', savedTheme);
                     DOM.themeToggle.checked = savedTheme === 'dark';
                 }
                 
-                // Initialize dates
-                const today = new Date();
-                today.setUTCHours(0, 0, 0, 0);
-                STATE.selectedDate = new Date(today);
-                STATE.centerDate = new Date(today);
+                STATE.selectedDate = new Date();
+                STATE.selectedDate.setUTCHours(0, 0, 0, 0);
+                STATE.centerDate = new Date(STATE.selectedDate);
                 
                 setupEventListeners();
                 subscribeToData();
-                
                 fetchEmaData();
                 fetchSrData();
-                
                 renderDateNavigation();
             }
 
