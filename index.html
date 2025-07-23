@@ -418,10 +418,10 @@
             height:1em;
         }
 
-        /* --- NEW: Asset Sentiment Styles --- */
+        /* --- UPDATED: Asset Sentiment Styles --- */
         #asset-sentiment-container {
             max-width: 950px;
-            margin: 20px auto 40px auto;
+            margin: 20px auto 10px auto; /* Reduced bottom margin */
             padding: 20px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -453,33 +453,6 @@
             font-size: 16px;
             color: var(--subtle-text);
         }
-        .sentiment-progress-bar {
-            display: flex;
-            height: 20px;
-            width: 100%;
-            background-color: var(--header-bg);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 8px;
-            border: 1px solid var(--border-color);
-        }
-        .progress-fill {
-            height: 100%;
-            transition: width 0.5s ease-in-out;
-        }
-        .progress-fill.long { background-color: var(--green-bg); }
-        .progress-fill.neutral { background-color: #6c757d; }
-        .progress-fill.short { background-color: var(--red-bg); }
-
-        .sentiment-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            color: var(--subtle-text);
-            margin-bottom: 15px;
-            padding: 0 5px;
-        }
-
         .sentiment-buttons {
             display: flex;
             justify-content: center;
@@ -499,23 +472,15 @@
             opacity: 1;
             border-color: var(--link-color);
         }
-        .sentiment-buttons button.voted {
-            color: #fff;
-            border-width: 2px;
+        .sentiment-buttons button:active {
+            transform: scale(0.95);
+            background-color: var(--header-bg);
         }
-        .sentiment-buttons button[data-sentiment="long"].voted {
-            background-color: var(--green-text);
-            border-color: var(--green-border);
+
+        #sentiment-receipts-table td:nth-child(2) {
+            text-transform: capitalize;
+            font-weight: bold;
         }
-        .sentiment-buttons button[data-sentiment="neutral"].voted {
-            background-color: #5a6268;
-            border-color: #495057;
-        }
-        .sentiment-buttons button[data-sentiment="short"].voted {
-            background-color: var(--red-text);
-            border-color: var(--red-border);
-        }
-        /* --- END: Asset Sentiment Styles --- */
 
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
@@ -577,23 +542,14 @@
                 <div><button type="submit">Add Trade</button></div>
             </form>
 
-            <!-- NEW: Asset Sentiment Tracker -->
+            <!-- UPDATED: Asset Sentiment Logger -->
             <div id="asset-sentiment-container">
-
+                <h2>Asset Sentiment</h2>
+                <p class="subtitle">Click a button to log your sentiment. Each click is recorded below.</p>
                 <div class="sentiment-trackers-wrapper">
                     <!-- BTC Tracker -->
                     <div class="sentiment-tracker" id="sentiment-tracker-btc">
                         <h4>BTC/USDT</h4>
-                        <div class="sentiment-progress-bar">
-                            <div class="progress-fill long" id="btc-long-fill"></div>
-                            <div class="progress-fill neutral" id="btc-neutral-fill"></div>
-                            <div class="progress-fill short" id="btc-short-fill"></div>
-                        </div>
-                        <div class="sentiment-labels">
-                            <span id="btc-long-label">Long (0%)</span>
-                            <span id="btc-neutral-label">Neutral (0%)</span>
-                            <span id="btc-short-label">Short (0%)</span>
-                        </div>
                         <div class="sentiment-buttons">
                             <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
                             <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
@@ -603,16 +559,6 @@
                     <!-- ETH Tracker -->
                     <div class="sentiment-tracker" id="sentiment-tracker-eth">
                         <h4>ETH/USDT</h4>
-                        <div class="sentiment-progress-bar">
-                            <div class="progress-fill long" id="eth-long-fill"></div>
-                            <div class="progress-fill neutral" id="eth-neutral-fill"></div>
-                            <div class="progress-fill short" id="eth-short-fill"></div>
-                        </div>
-                        <div class="sentiment-labels">
-                            <span id="eth-long-label">Long (0%)</span>
-                            <span id="eth-neutral-label">Neutral (0%)</span>
-                            <span id="eth-short-label">Short (0%)</span>
-                        </div>
                         <div class="sentiment-buttons">
                             <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
                             <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
@@ -621,7 +567,21 @@
                     </div>
                 </div>
             </div>
-            <!-- END: Asset Sentiment Tracker -->
+            
+            <!-- NEW: Sentiment Log Table -->
+            <div class="section-header"><h2>Sentiment Log</h2></div>
+            <div class="table-wrapper">
+                <table id="sentiment-receipts-table">
+                    <thead>
+                        <tr>
+                            <th>Asset</th>
+                            <th>Sentiment</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sentiment-receipts-tbody"></tbody>
+                </table>
+            </div>
 
             <div class="section-header"><h2>Live Trades</h2></div>
             <div class="table-wrapper">
@@ -862,15 +822,13 @@
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- CONFIGURATION ---
-            // WARNING: Do not expose sensitive keys in a production environment.
-            // For a real-world app, use Firebase App Check and server-side validation.
             const CONFIG = {
                 FIREBASE: {
                     apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
                     authDomain: "journal-a003f.firebaseapp.com",
                     databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
                     projectId: "journal-a003f",
-                    storageBucket: "journal-a003f.firebasestorage.app", // <-- CORRECTED NAME
+                    storageBucket: "journal-a003f.firebasestorage.app",
                     messagingSenderId: "1038636626553",
                     appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
                 },
@@ -884,7 +842,7 @@
                     SETUPS_1: 'current_setups_1',
                     SETUPS_2: 'current_setups_2',
                     PERSISTENT_NOTES: 'persistent_notes',
-                    SENTIMENT: 'asset_sentiment' // New path for sentiment data
+                    SENTIMENT_RECEIPTS: 'sentiment_receipts' // UPDATED path for sentiment logs
                 },
                 TRADE_SETTINGS: {
                     FEE_RATE: 0.00075,
@@ -919,7 +877,8 @@
                 addTradeForm: document.getElementById('add-trade-form'),
                 tradesTbody: document.getElementById('trades-tbody'),
                 completedTradesTbody: document.getElementById('completed-trades-tbody'),
-                assetSentimentContainer: document.getElementById('asset-sentiment-container'), // New
+                assetSentimentContainer: document.getElementById('asset-sentiment-container'),
+                sentimentReceiptsTbody: document.getElementById('sentiment-receipts-tbody'), // NEW
                 // Journal & Setups
                 journalTab: document.getElementById('journal-tab'),
                 persistentNotesEl: document.getElementById('persistent-notes-entry'),
@@ -982,8 +941,6 @@
                 centerDate: null,
                 journalSaveTimer: null,
                 notesSaveTimer: null,
-                viewerId: null, // New
-                sentimentVotes: {}, // New
             };
 
             // --- INITIALIZE FIREBASE ---
@@ -1001,61 +958,20 @@
                 setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1),
                 setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2),
                 persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES),
-                sentiment: database.ref(CONFIG.DB_PATHS.SENTIMENT) // New
+                sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS) // UPDATED ref
             };
 
             // --- HELPER FUNCTIONS ---
-
-            /**
-             * Formats a number as a USD currency string.
-             * @param {number} num The number to format.
-             * @returns {string} Formatted currency string.
-             */
             const formatCurrency = (num) => `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-            /**
-             * Resizes a textarea to fit its content.
-             * @param {HTMLTextAreaElement} element The textarea element.
-             */
             function autoResizeTextarea(element) {
                 if (!element) return;
                 element.style.height = 'auto';
                 element.style.height = `${element.scrollHeight}px`;
             }
-
-            /**
-             * Gets a date string in YYYY-MM-DD format from a Date object.
-             * @param {Date} date The date object.
-             * @returns {string} The formatted date string.
-             */
             const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
-
-            /**
-             * Sanitizes a symbol string for use in Firebase paths.
-             * @param {string} symbol The symbol string (e.g., "BTC/USDT").
-             * @returns {string} The sanitized symbol (e.g., "BTC-USDT").
-             */
             const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
             
-            /**
-             * NEW: Gets a unique ID for the viewer from localStorage, or creates one.
-             * @returns {string} The viewer's unique ID.
-             */
-            function getViewerId() {
-                if (STATE.viewerId) return STATE.viewerId;
-                
-                let id = localStorage.getItem('viewerId');
-                if (!id) {
-                    id = `viewer_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-                    localStorage.setItem('viewerId', id);
-                }
-                STATE.viewerId = id;
-                return id;
-            }
-
             // --- DATA FETCHING ---
-            
-            /** Fetches and renders EMA data from the JSON file. */
             async function fetchEmaData() {
                 try {
                     const response = await fetch(`ma_analysis.json?cache_bust=${new Date().getTime()}`);
@@ -1068,7 +984,6 @@
                 }
             }
 
-            /** Fetches and renders S/R Level data from the JSON file. */
             async function fetchSrData() {
                 try {
                     const response = await fetch(`sr_levels_analysis.json?cache_bust=${new Date().getTime()}`);
@@ -1085,47 +1000,41 @@
 
             // --- RENDERING FUNCTIONS ---
             
-             /**
-             * NEW: Renders the asset sentiment trackers based on current data.
+            /**
+             * NEW: Renders the sentiment log table with receipt data.
+             * @param {object} receiptsData The receipt objects from Firebase.
              */
-            function renderAssetSentiment() {
-                const votes = STATE.sentimentVotes || {};
-                const localVotes = JSON.parse(localStorage.getItem('myVotes')) || {};
+            function renderSentimentReceipts(receiptsData) {
+                const tbody = DOM.sentimentReceiptsTbody;
+                if (!tbody) return;
 
-                ['BTC/USDT', 'ETH/USDT'].forEach(asset => {
-                    const assetKey = getSafeSymbol(asset);
-                    const assetVotes = votes[assetKey] || { long: 0, neutral: 0, short: 0 };
+                const receipts = receiptsData || {};
+                const receiptIds = Object.keys(receipts);
+
+                // Sort by Firebase push key (which is chronological) in descending order for newest first
+                receiptIds.sort().reverse();
+
+                const rowsHtml = receiptIds.map(id => {
+                    const receipt = receipts[id];
+                    if (!receipt || !receipt.asset || !receipt.sentiment || !receipt.timestamp) return '';
                     
-                    const totalVotes = (assetVotes.long || 0) + (assetVotes.neutral || 0) + (assetVotes.short || 0);
-                    
-                    const longPct = totalVotes > 0 ? (assetVotes.long / totalVotes) * 100 : 0;
-                    const neutralPct = totalVotes > 0 ? (assetVotes.neutral / totalVotes) * 100 : 0;
-                    const shortPct = totalVotes > 0 ? (assetVotes.short / totalVotes) * 100 : 0;
-                    
-                    const prefix = asset === 'BTC/USDT' ? 'btc' : 'eth';
+                    const sentimentClass = receipt.sentiment.toLowerCase();
+                    let sentimentColor = 'var(--text-color)';
+                    if (sentimentClass === 'long') sentimentColor = 'var(--green-text)';
+                    if (sentimentClass === 'short') sentimentColor = 'var(--red-text)';
 
-                    document.getElementById(`${prefix}-long-fill`).style.width = `${longPct}%`;
-                    document.getElementById(`${prefix}-neutral-fill`).style.width = `${neutralPct}%`;
-                    document.getElementById(`${prefix}-short-fill`).style.width = `${shortPct}%`;
+                    return `
+                        <tr>
+                            <td>${receipt.asset}</td>
+                            <td style="color: ${sentimentColor};">${receipt.sentiment}</td>
+                            <td>${receipt.timestamp}</td>
+                        </tr>
+                    `;
+                }).join('');
 
-                    document.getElementById(`${prefix}-long-label`).textContent = `Long (${longPct.toFixed(0)}%)`;
-                    document.getElementById(`${prefix}-neutral-label`).textContent = `Neutral (${neutralPct.toFixed(0)}%)`;
-                    document.getElementById(`${prefix}-short-label`).textContent = `Short (${shortPct.toFixed(0)}%)`;
-
-                    // Update button styles
-                    const trackerEl = document.getElementById(`sentiment-tracker-${prefix}`);
-                    if (trackerEl) {
-                        trackerEl.querySelectorAll('.sentiment-buttons button').forEach(btn => {
-                            btn.classList.remove('voted');
-                            if (btn.dataset.sentiment === localVotes[asset]) {
-                                btn.classList.add('voted');
-                            }
-                        });
-                    }
-                });
+                tbody.innerHTML = rowsHtml;
             }
 
-            /** Renders the live trades table. */
             function renderLiveTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
@@ -1160,7 +1069,6 @@
                 DOM.tradesTbody.innerHTML = rowsHtml;
             }
 
-            /** Renders the completed trades table and updates stats. */
             function renderCompletedTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
@@ -1194,7 +1102,6 @@
                 DOM.completedTradesTbody.innerHTML = rowsHtml;
             }
             
-            /** Renders the date navigation buttons for the journal. */
             function renderDateNavigation() {
                 const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
                 const timeframe = DOM.journalTimeframeEl.value;
@@ -1216,13 +1123,11 @@
                 DOM.dateButtonsContainer.innerHTML = buttonsHtml;
             }
 
-            /** Updates the entire journal view based on the current state. */
             function updateJournalView() {
                 const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
                 const timeframe = DOM.journalTimeframeEl.value;
                 const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
 
-                // Update pinned note
                 const favouriteText = (STATE.favouriteEntries[safeSymbol] || {})[timeframe];
                 if (favouriteText) {
                     DOM.favouritedEntryText.textContent = favouriteText;
@@ -1231,28 +1136,22 @@
                     DOM.favouritedEntryContainer.style.display = 'none';
                 }
 
-                // Update daily journal entry
                 const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
                 DOM.journalEntryEl.value = dailyText;
                 
-                // Update persistent scratchpad
                 DOM.persistentNotesEl.value = STATE.persistentNotes;
 
-                // Auto-resize textareas after content is set
                 setTimeout(() => {
                     autoResizeTextarea(DOM.journalEntryEl);
                     autoResizeTextarea(DOM.persistentNotesEl);
                 }, 0);
 
-                // Update favorite button state
                 DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
 
-                // Render associated images and data
                 renderJournalImages(safeSymbol, timeframe, yyyymmdd);
                 renderDateNavigation();
             }
             
-            /** Renders journal images for the selected criteria. */
             function renderJournalImages(symbol, timeframe, selectedYMD) {
                 const imagesForSymbol = STATE.journalImages[symbol] || {};
                 const imagesForTimeframe = imagesForSymbol[timeframe] || {};
@@ -1296,7 +1195,6 @@
                 DOM.journalImagesContainer.innerHTML = imagesHtml;
             }
 
-            /** Renders the EMA data tables and summaries. */
             function renderEmaData() {
                 if (!STATE.emaData.data) return;
                 
@@ -1335,7 +1233,6 @@
                             </table>
                         </div>`;
 
-                    // Build Support/Resistance summary
                     let summaryHtml = '';
                     if (currentPrice > 0) {
                         const levels = [];
@@ -1380,7 +1277,6 @@
                 DOM.emaTablesContainer.innerHTML = tablesHtml;
             }
             
-            /** Renders a "Current Setups" table with data. */
             function renderSetupsTable(tableElement, data) {
                 if (!tableElement) return;
                 const tbody = tableElement.querySelector('tbody');
@@ -1397,7 +1293,6 @@
                 });
             }
             
-            /** Renders the snapshot view with the latest image for each timeframe. */
             function renderSnapshotView() {
                 const selectedSymbol = getSafeSymbol(DOM.snapshotSymbolEl.value);
                 const symbolImageData = STATE.journalImages[selectedSymbol] || {};
@@ -1422,7 +1317,6 @@
                 DOM.snapshotImagesContainer.innerHTML = itemsHtml;
             }
 
-            /** Renders the S/R Levels tab based on selected criteria. */
             function renderSrLevels() {
                 const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
                 const selectedLookback = DOM.srLookbackEl.value;
@@ -1467,8 +1361,6 @@
 
 
             // --- DATA HANDLING AND SAVING ---
-
-            /** Saves a "Current Setups" table to Firebase. */
             function saveSetupsTable(tableElement, dbRef, statusElement) {
                 if (!STATE.isMasterUser) return;
                 const dataToSave = {};
@@ -1497,7 +1389,6 @@
                 });
             }
 
-            /** Saves the daily journal entry with a debounce. */
             const saveJournalEntry = () => {
                 clearTimeout(STATE.journalSaveTimer);
                 STATE.journalSaveTimer = setTimeout(() => {
@@ -1509,7 +1400,6 @@
                     
                     DOM.saveStatus.textContent = 'Saving...';
                     
-                    // Update local cache immediately
                     if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {};
                     if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {};
                     STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text;
@@ -1517,26 +1407,24 @@
                     dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text)
                         .then(() => {
                             DOM.saveStatus.textContent = 'Saved.';
-                            renderDateNavigation(); // Update button style
+                            renderDateNavigation(); 
                             setTimeout(() => DOM.saveStatus.textContent = '', 2000);
                         })
                         .catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`);
                 }, 750);
             };
             
-            /** Saves the persistent notes with a debounce. */
             const savePersistentNotes = () => {
                 clearTimeout(STATE.notesSaveTimer);
                 STATE.notesSaveTimer = setTimeout(() => {
                     if (!STATE.isMasterUser) return;
                     const text = DOM.persistentNotesEl.value;
-                    STATE.persistentNotes = text; // Update local cache
+                    STATE.persistentNotes = text;
                     dbRefs.persistentNotes.set(text)
                         .catch(e => console.error("Error saving persistent notes:", e));
                 }, 750);
             };
             
-            /** Handles image file uploads to Firebase Storage. */
             function handleFileUpload(files) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
                 
@@ -1548,23 +1436,13 @@
                     if (!file.type.startsWith('image/')) return;
                     
                     const fileName = `${Date.now()}_${file.name}`;
-// --- INSIDE handleFileUpload function ---
-const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
-const fileRef = storage.ref(storagePath);
+                    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
+                    const fileRef = storage.ref(storagePath);
+                    const metadata = { customMetadata: { 'owner': 'master' } };
+                    const uploadTask = fileRef.put(file, metadata);
 
-// 1. Create the metadata object
-// --- INSIDE handleFileUpload function ---
-const metadata = {
-  customMetadata: {
-    // This is a "secret key" that marks the file as deletable by a master user.
-    'owner': 'master' 
-  }
-};
-const uploadTask = fileRef.put(file, metadata);
-
-uploadTask.on('state_changed', 
-    (snapshot) => {
-
+                    uploadTask.on('state_changed', 
+                        (snapshot) => {
                             const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
                             DOM.uploadProgress.textContent = `Uploading ${index + 1}/${files.length}: ${progress}%`;
                         },
@@ -1590,12 +1468,6 @@ uploadTask.on('state_changed',
                 });
             }
 
-            /**
-             * Calculates the net result of a trade.
-             * @param {object} trade The trade object.
-             * @param {number} exitPrice The price the trade was closed at.
-             * @returns {object} An object with net_result, entry_fee, and exit_fee.
-             */
             function calculateNetResult(trade, exitPrice) {
                 const entry = parseFloat(trade.entry);
                 const posValue = parseFloat(trade.size);
@@ -1622,7 +1494,6 @@ uploadTask.on('state_changed',
                 };
             }
             
-            /** Handles the process of completing a live trade. */
             function completeTrade(tradeId, outcome) {
                 dbRefs.trades.child(tradeId).once('value', snapshot => {
                     const trade = snapshot.val();
@@ -1630,7 +1501,7 @@ uploadTask.on('state_changed',
 
                     const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
                     const exitPriceStr = prompt(`Enter exact exit price:`, defaultExit);
-                    if (exitPriceStr === null) return; // User cancelled
+                    if (exitPriceStr === null) return;
 
                     const exitPrice = parseFloat(exitPriceStr);
                     if (isNaN(exitPrice)) return alert("Invalid exit price.");
@@ -1653,14 +1524,12 @@ uploadTask.on('state_changed',
             // --- EVENT LISTENERS ---
             
             function setupEventListeners() {
-                // Theme Toggle
                 DOM.themeToggle.addEventListener('change', (e) => {
                     const theme = e.target.checked ? 'dark' : 'light';
                     document.documentElement.setAttribute('data-theme', theme);
                     localStorage.setItem('theme', theme);
                 });
 
-                // Tab Navigation
                 DOM.tabs.addEventListener('click', (e) => {
                     if (!e.target.matches('.tab-link')) return;
                     
@@ -1671,13 +1540,11 @@ uploadTask.on('state_changed',
                     
                     DOM.statsPanelContainer.style.display = (tabId === 'tracker') ? 'block' : 'none';
                     
-                    // Trigger updates for newly visible tabs
                     if (tabId === 'journal') updateJournalView();
                     if (tabId === 'snapshot') renderSnapshotView();
                     if (tabId === 'sr-levels') renderSrLevels();
                 });
                 
-                // Stats Panel
                 DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
                 DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
                 document.addEventListener('click', (e) => {
@@ -1686,28 +1553,23 @@ uploadTask.on('state_changed',
                     }
                 });
 
-                // Trade Form
                 DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
                 
-                // NEW: Sentiment Vote Handler
                 DOM.assetSentimentContainer.addEventListener('click', handleSentimentVote);
 
-                // Live & Completed Trade Actions (Event Delegation)
                 DOM.tradesTbody.addEventListener('click', handleTradeAction);
                 DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
                 
-                // Journal Controls
                 [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => {
                     el.addEventListener('change', updateJournalView);
                 });
                 
-                // Journal Date Navigation
                 DOM.dateButtonsContainer.addEventListener('click', (e) => {
                     if (e.target.matches('.date-nav-btn')) {
                         const dateStr = e.target.dataset.date;
                         const parts = dateStr.split('-');
                         STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2]));
-                        STATE.centerDate = new Date(STATE.selectedDate); // Recenter on selection
+                        STATE.centerDate = new Date(STATE.selectedDate);
                         updateJournalView();
                     }
                 });
@@ -1720,7 +1582,6 @@ uploadTask.on('state_changed',
                     renderDateNavigation();
                 });
 
-                // Journal Text Inputs
                 DOM.journalEntryEl.addEventListener('input', () => {
                     autoResizeTextarea(DOM.journalEntryEl);
                     saveJournalEntry();
@@ -1730,14 +1591,11 @@ uploadTask.on('state_changed',
                     savePersistentNotes();
                 });
 
-                // Favourite Button
                 DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
 
-                // Image Upload
                 DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
                 DOM.journalImagesContainer.addEventListener('click', handleImageDelete);
                 
-                // Drag and Drop Image Upload
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                     DOM.journalTab.addEventListener(eventName, e => {
                         e.preventDefault();
@@ -1757,7 +1615,6 @@ uploadTask.on('state_changed',
                     }
                 });
                 
-                // Setups Table Buttons & Toggles
                 DOM.saveSetups1Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1));
                 DOM.saveSetups2Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2));
                 
@@ -1774,8 +1631,6 @@ uploadTask.on('state_changed',
                     }
                 });
 
-
-                // Snapshot & S/R Level Controls
                 DOM.snapshotSymbolEl.addEventListener('change', renderSnapshotView);
                 DOM.srSymbolEl.addEventListener('change', renderSrLevels);
                 DOM.srLookbackEl.addEventListener('change', renderSrLevels);
@@ -1823,7 +1678,7 @@ uploadTask.on('state_changed',
             }
 
             /**
-             * NEW/UPDATED: Handles a click on a sentiment voting button, allowing for toggling off.
+             * REWRITTEN: Handles a click on a sentiment button to log a receipt.
              * @param {Event} e The click event.
              */
             function handleSentimentVote(e) {
@@ -1833,61 +1688,18 @@ uploadTask.on('state_changed',
                 const { asset, sentiment } = button.dataset;
                 if (!asset || !sentiment) return;
                 
-                const viewerId = getViewerId();
-                const assetKey = getSafeSymbol(asset);
-                const assetRef = dbRefs.sentiment.child(assetKey);
+                const receipt = {
+                    asset: asset,
+                    sentiment: sentiment,
+                    timestamp: new Date().toLocaleString()
+                };
 
-                const localVotes = JSON.parse(localStorage.getItem('myVotes')) || {};
-                const oldVote = localVotes[asset];
-                
-                // Determine the new vote. If clicking the same button, new vote is null (deselect).
-                const newVote = (oldVote === sentiment) ? null : sentiment;
-
-                // Update local storage
-                if (newVote) {
-                    localVotes[asset] = newVote;
-                } else {
-                    delete localVotes[asset]; // Remove vote on deselect
-                }
-                localStorage.setItem('myVotes', JSON.stringify(localVotes));
-                
-                renderAssetSentiment(); // Optimistically update the UI
-                
-                assetRef.transaction(currentData => {
-                    // Initialize data structure if it doesn't exist
-                    if (currentData === null) {
-                        currentData = { long: 0, neutral: 0, short: 0, voters: {} };
-                    }
-                    currentData.voters = currentData.voters || {};
-                    ['long', 'neutral', 'short'].forEach(s => { currentData[s] = currentData[s] || 0; });
-                    
-                    const previousVoteInDb = currentData.voters[viewerId];
-                    
-                    // --- Main Transaction Logic ---
-                    // 1. Decrement the count for the previous vote, if it exists
-                    if (previousVoteInDb && currentData[previousVoteInDb]) {
-                        currentData[previousVoteInDb]--;
-                    }
-                    
-                    // 2. Increment the count for the new vote, if it's not null
-                    if (newVote && newVote !== previousVoteInDb) {
-                        currentData[newVote]++;
-                    }
-                    
-                    // 3. Update the voter's record in the database
-                    if (newVote) {
-                        currentData.voters[viewerId] = newVote;
-                    } else {
-                        delete currentData.voters[viewerId]; // Remove voter on deselect
-                    }
-
-                    return currentData;
-                }, (error, committed, snapshot) => {
-                    if (error) {
-                        console.error("Sentiment vote transaction failed:", error);
-                        // Optional: Revert local storage if transaction fails
-                    }
-                });
+                // Push the new receipt to Firebase
+                dbRefs.sentimentReceipts.push(receipt)
+                    .catch(error => {
+                        console.error("Failed to log sentiment receipt:", error);
+                        alert("Could not log your sentiment. Please try again.");
+                    });
             }
 
             function handleTradeAction(e) {
@@ -1927,7 +1739,7 @@ uploadTask.on('state_changed',
                         .catch((err) => {
                             console.warn("Storage deletion failed, maybe already gone. Deleting DB entry.", err.code);
                             if (err.code === 'storage/object-not-found') {
-                                database.ref(dbPath).remove(); // Still remove DB record
+                                database.ref(dbPath).remove();
                             }
                         });
                 }
@@ -1941,14 +1753,13 @@ uploadTask.on('state_changed',
 
                 const dbFavouriteRef = dbRefs.favourites.child(safeSymbol).child(timeframe);
 
-                if (DOM.favouriteBtn.classList.contains('active')) { // Un-pin
+                if (DOM.favouriteBtn.classList.contains('active')) {
                     dbFavouriteRef.remove();
-                } else { // Pin
+                } else {
                     if (!currentText) return alert('Cannot pin an empty note.');
                     dbFavouriteRef.set(currentText);
                 }
             }
-
 
             // --- FIREBASE DATA SUBSCRIPTIONS ---
             
@@ -2009,10 +1820,9 @@ uploadTask.on('state_changed',
                     }
                 });
 
-                // NEW: Subscribe to sentiment data
-                dbRefs.sentiment.on('value', (s) => {
-                    STATE.sentimentVotes = s.val() || {};
-                    renderAssetSentiment();
+                // NEW: Subscribe to sentiment receipt data
+                dbRefs.sentimentReceipts.on('value', (s) => {
+                    renderSentimentReceipts(s.val());
                 });
             }
 
@@ -2048,22 +1858,16 @@ uploadTask.on('state_changed',
             function initializeApp() {
                 checkMasterMode();
                 
-                // Initialize theme
                 const savedTheme = localStorage.getItem('theme');
                 if (savedTheme) {
                     document.documentElement.setAttribute('data-theme', savedTheme);
                     DOM.themeToggle.checked = savedTheme === 'dark';
                 }
                 
-                // Initialize dates
                 const today = new Date();
                 today.setUTCHours(0, 0, 0, 0);
                 STATE.selectedDate = new Date(today);
                 STATE.centerDate = new Date(today);
-
-                // NEW: Initialize viewer ID and render sentiment from local storage
-                getViewerId();
-                renderAssetSentiment();
                 
                 setupEventListeners();
                 subscribeToData();
