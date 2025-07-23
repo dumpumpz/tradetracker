@@ -546,6 +546,8 @@
                     <div class="stat-item"><span class="stat-label">Current Balance</span><span id="stat-balance" class="stat-value">$0.00</span></div>
                     <div class="stat-item"><span class="stat-label">AUD Value (est.)</span><span id="stat-balance-aud" class="stat-value">--</span></div>
                     <div class="stat-item"><span class="stat-label">Total P/L</span><span id="stat-total-pl" class="stat-value">$0.00</span></div>
+                    <!-- Added AUD PNL -->
+                    <div class="stat-item"><span class="stat-label">Total P/L (AUD)</span><span id="stat-total-pl-aud" class="stat-value">A$0.00</span></div>
                     <div class="stat-item"><span class="stat-label">Completed Trades</span><span id="stat-completed-trades" class="stat-value">0</span></div>
                     <div class="stat-item"><span class="stat-label">Open Trades</span><span id="stat-open-trades" class="stat-value">0</span></div>
                 </div>
@@ -623,7 +625,8 @@
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
+                        <!-- Added Target column -->
+                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Target</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
                     </thead>
                     <tbody id="completed-trades-tbody"></tbody>
                 </table>
@@ -899,6 +902,7 @@
                 statBalance: document.getElementById('stat-balance'),
                 statBalanceAud: document.getElementById('stat-balance-aud'),
                 statTotalPl: document.getElementById('stat-total-pl'),
+                statTotalPlAud: document.getElementById('stat-total-pl-aud'), // Added
                 statCompletedTrades: document.getElementById('stat-completed-trades'),
                 statOpenTrades: document.getElementById('stat-open-trades'),
                 // Trade Tracker
@@ -991,7 +995,7 @@
             };
 
             // --- HELPER FUNCTIONS ---
-            const formatCurrency = (num) => `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const formatCurrency = (num, symbol = '$') => `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             function autoResizeTextarea(element) {
                 if (!element) return;
                 element.style.height = 'auto';
@@ -1135,11 +1139,13 @@
                                 <td>${trade.symbol}</td>
                                 <td>${trade.type}</td>
                                 <td>${parseFloat(trade.entry).toFixed(2)}</td>
+                                <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
                                 <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
                                 <td>${totalFees.toFixed(2)}</td>
                                 <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
                                 <td>${trade.date}</td>
-                                <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>                                <td class="note-cell" title="${noteText}">${noteText}</td>
+                                <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
+                                <td class="note-cell" title="${noteText}">${noteText}</td>
                                 ${masterButtonsHtml(id)}
                             </tr>`;
                     }).join('');
@@ -1908,12 +1914,18 @@
 
                     const { STARTING_BALANCE, USD_TO_AUD_RATE } = CONFIG.TRADE_SETTINGS;
                     const totalProfitLoss = Object.values(completedData).reduce((sum, trade) => sum + (trade.net_result || 0), 0);
+                    const totalProfitLossAud = totalProfitLoss * USD_TO_AUD_RATE;
                     const newBalance = STARTING_BALANCE + totalProfitLoss;
 
                     DOM.statBalance.textContent = formatCurrency(newBalance);
-                    DOM.statBalanceAud.textContent = `A${formatCurrency(newBalance * USD_TO_AUD_RATE)}`;
+                    DOM.statBalanceAud.textContent = formatCurrency(newBalance * USD_TO_AUD_RATE, 'A$');
+                    
                     DOM.statTotalPl.textContent = `${totalProfitLoss >= 0 ? '+' : ''}${formatCurrency(totalProfitLoss)}`;
                     DOM.statTotalPl.style.color = totalProfitLoss >= 0 ? '#28a745' : '#dc3545';
+                    
+                    DOM.statTotalPlAud.textContent = `${totalProfitLossAud >= 0 ? '+' : ''}${formatCurrency(totalProfitLossAud, 'A$')}`;
+                    DOM.statTotalPlAud.style.color = totalProfitLossAud >= 0 ? '#28a745' : '#dc3545';
+
                     DOM.statCompletedTrades.textContent = Object.keys(completedData).length;
 
                     dbRefs.bank.set({ currentBalance: newBalance });
