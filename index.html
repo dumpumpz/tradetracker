@@ -1703,7 +1703,7 @@
             
             // --- EVENT HANDLER LOGIC ---
             
-            function handleAddTradeSubmit(e) {
+               function handleAddTradeSubmit(e) {
                 e.preventDefault();
                 if (!STATE.isMasterUser) return alert('You do not have permission to add trades.');
                 
@@ -1723,11 +1723,28 @@
                     return alert('Please ensure all numeric fields are filled correctly.');
                 }
                 
-                // --- NEW FEE AND NET P/L CALCULATION ---
+                // --- NEW: INPUT VALIDATION ---
+                if (trade.type === 'Long') {
+                    if (trade.target <= trade.entry) {
+                        return alert('Validation Error: For a Long trade, the Target must be higher than the Entry Price.');
+                    }
+                    if (trade.stoploss >= trade.entry) {
+                        return alert('Validation Error: For a Long trade, the Stop Loss must be lower than the Entry Price.');
+                    }
+                } else { // Short
+                    if (trade.target >= trade.entry) {
+                        return alert('Validation Error: For a Short trade, the Target must be lower than the Entry Price.');
+                    }
+                    if (trade.stoploss <= trade.entry) {
+                        return alert('Validation Error: For a Short trade, the Stop Loss must be higher than the Entry Price.');
+                    }
+                }
+
+                // --- CORRECTED: FEE AND NET P/L CALCULATION ---
 
                 const positionQty = trade.size / trade.entry;
 
-                // Fee calculations
+                // Fee calculations remain the same, they were correct
                 const entryFee = trade.size * FEE_RATE;
                 const exitValueAtTarget = (trade.target / trade.entry) * trade.size;
                 const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
@@ -1737,26 +1754,26 @@
                 const totalFeeAtTarget = entryFee + exitFeeAtTarget;
                 const totalFeeAtStop = entryFee + exitFeeAtStop;
 
-                // Gross P/L calculations
-                let grossProfit, grossLoss;
+                // This structure ensures profit/loss amounts are always positive
+                let potentialProfit, potentialLoss;
                 if (trade.type === 'Long') {
-                    grossProfit = positionQty * (trade.target - trade.entry);
-                    grossLoss = positionQty * (trade.entry - trade.stoploss);
+                    potentialProfit = positionQty * (trade.target - trade.entry);
+                    potentialLoss = positionQty * (trade.entry - trade.stoploss);
                 } else { // Short
-                    grossProfit = positionQty * (trade.entry - trade.target);
-                    grossLoss = positionQty * (trade.stoploss - trade.entry);
+                    potentialProfit = positionQty * (trade.entry - trade.target);
+                    potentialLoss = positionQty * (trade.stoploss - trade.entry);
                 }
 
                 // Store the NET P/L and estimated fee in the trade object
-                trade.estimated_total_fee = totalFeeAtTarget; // We'll show the fee for the 'win' scenario
-                trade.expected_profit = grossProfit - totalFeeAtTarget;
-                trade.expected_loss = grossLoss + totalFeeAtStop; // Loss is a positive number, so we add the fee to it
+                trade.estimated_total_fee = totalFeeAtTarget;
+                trade.expected_profit = potentialProfit - totalFeeAtTarget;
+                // **THE FIX:** The loss amount is the price movement loss PLUS the fees for that losing trade.
+                trade.expected_loss = potentialLoss + totalFeeAtStop; 
 
                 dbRefs.trades.push(trade)
                     .then(() => e.target.reset())
                     .catch(error => alert(`Error adding trade: ${error.message}`));
             }
-
             function handleSentimentLog(e) {
                 const button = e.target.closest('.sentiment-buttons button');
                 if (!button) return;
