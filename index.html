@@ -418,6 +418,105 @@
             height:1em;
         }
 
+        /* --- NEW: Asset Sentiment Styles --- */
+        #asset-sentiment-container {
+            max-width: 950px;
+            margin: 20px auto 40px auto;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+        }
+        #asset-sentiment-container h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 5px;
+            border: none;
+            padding: 0;
+        }
+        .sentiment-trackers-wrapper {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .sentiment-tracker {
+            flex: 1;
+            min-width: 250px;
+            max-width: 400px;
+            text-align: center;
+        }
+        .sentiment-tracker h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: var(--subtle-text);
+        }
+        .sentiment-progress-bar {
+            display: flex;
+            height: 20px;
+            width: 100%;
+            background-color: var(--header-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease-in-out;
+        }
+        .progress-fill.long { background-color: var(--green-bg); }
+        .progress-fill.neutral { background-color: #6c757d; }
+        .progress-fill.short { background-color: var(--red-bg); }
+
+        .sentiment-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--subtle-text);
+            margin-bottom: 15px;
+            padding: 0 5px;
+        }
+
+        .sentiment-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .sentiment-buttons button {
+            flex: 1;
+            border: 1px solid var(--border-color);
+            background-color: transparent;
+            color: var(--text-color);
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .sentiment-buttons button:hover {
+            opacity: 1;
+            border-color: var(--link-color);
+        }
+        .sentiment-buttons button.voted {
+            color: #fff;
+            border-width: 2px;
+        }
+        .sentiment-buttons button[data-sentiment="long"].voted {
+            background-color: var(--green-text);
+            border-color: var(--green-border);
+        }
+        .sentiment-buttons button[data-sentiment="neutral"].voted {
+            background-color: #5a6268;
+            border-color: #495057;
+        }
+        .sentiment-buttons button[data-sentiment="short"].voted {
+            background-color: var(--red-text);
+            border-color: var(--red-border);
+        }
+        /* --- END: Asset Sentiment Styles --- */
+
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -477,6 +576,54 @@
                 <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
                 <div><button type="submit">Add Trade</button></div>
             </form>
+
+            <!-- NEW: Asset Sentiment Tracker -->
+            <div id="asset-sentiment-container">
+                <h2>Asset Sentiment</h2>
+                <p class="subtitle">What's your bias? Cast your vote. Your vote is anonymous and can be changed anytime.</p>
+                <div class="sentiment-trackers-wrapper">
+                    <!-- BTC Tracker -->
+                    <div class="sentiment-tracker" id="sentiment-tracker-btc">
+                        <h4>BTC/USDT</h4>
+                        <div class="sentiment-progress-bar">
+                            <div class="progress-fill long" id="btc-long-fill"></div>
+                            <div class="progress-fill neutral" id="btc-neutral-fill"></div>
+                            <div class="progress-fill short" id="btc-short-fill"></div>
+                        </div>
+                        <div class="sentiment-labels">
+                            <span id="btc-long-label">Long (0%)</span>
+                            <span id="btc-neutral-label">Neutral (0%)</span>
+                            <span id="btc-short-label">Short (0%)</span>
+                        </div>
+                        <div class="sentiment-buttons">
+                            <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
+                            <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
+                            <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
+                        </div>
+                    </div>
+                    <!-- ETH Tracker -->
+                    <div class="sentiment-tracker" id="sentiment-tracker-eth">
+                        <h4>ETH/USDT</h4>
+                        <div class="sentiment-progress-bar">
+                            <div class="progress-fill long" id="eth-long-fill"></div>
+                            <div class="progress-fill neutral" id="eth-neutral-fill"></div>
+                            <div class="progress-fill short" id="eth-short-fill"></div>
+                        </div>
+                        <div class="sentiment-labels">
+                            <span id="eth-long-label">Long (0%)</span>
+                            <span id="eth-neutral-label">Neutral (0%)</span>
+                            <span id="eth-short-label">Short (0%)</span>
+                        </div>
+                        <div class="sentiment-buttons">
+                            <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
+                            <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
+                            <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- END: Asset Sentiment Tracker -->
+
             <div class="section-header"><h2>Live Trades</h2></div>
             <div class="table-wrapper">
                 <table>
@@ -737,7 +884,8 @@
                     JOURNAL_FAVOURITES: 'journal_favourites',
                     SETUPS_1: 'current_setups_1',
                     SETUPS_2: 'current_setups_2',
-                    PERSISTENT_NOTES: 'persistent_notes'
+                    PERSISTENT_NOTES: 'persistent_notes',
+                    SENTIMENT: 'asset_sentiment' // New path for sentiment data
                 },
                 TRADE_SETTINGS: {
                     FEE_RATE: 0.00075,
@@ -772,6 +920,7 @@
                 addTradeForm: document.getElementById('add-trade-form'),
                 tradesTbody: document.getElementById('trades-tbody'),
                 completedTradesTbody: document.getElementById('completed-trades-tbody'),
+                assetSentimentContainer: document.getElementById('asset-sentiment-container'), // New
                 // Journal & Setups
                 journalTab: document.getElementById('journal-tab'),
                 persistentNotesEl: document.getElementById('persistent-notes-entry'),
@@ -834,6 +983,8 @@
                 centerDate: null,
                 journalSaveTimer: null,
                 notesSaveTimer: null,
+                viewerId: null, // New
+                sentimentVotes: {}, // New
             };
 
             // --- INITIALIZE FIREBASE ---
@@ -850,7 +1001,8 @@
                 favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES),
                 setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1),
                 setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2),
-                persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES)
+                persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES),
+                sentiment: database.ref(CONFIG.DB_PATHS.SENTIMENT) // New
             };
 
             // --- HELPER FUNCTIONS ---
@@ -886,6 +1038,22 @@
              */
             const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
             
+            /**
+             * NEW: Gets a unique ID for the viewer from localStorage, or creates one.
+             * @returns {string} The viewer's unique ID.
+             */
+            function getViewerId() {
+                if (STATE.viewerId) return STATE.viewerId;
+                
+                let id = localStorage.getItem('viewerId');
+                if (!id) {
+                    id = `viewer_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+                    localStorage.setItem('viewerId', id);
+                }
+                STATE.viewerId = id;
+                return id;
+            }
+
             // --- DATA FETCHING ---
             
             /** Fetches and renders EMA data from the JSON file. */
@@ -918,6 +1086,46 @@
 
             // --- RENDERING FUNCTIONS ---
             
+             /**
+             * NEW: Renders the asset sentiment trackers based on current data.
+             */
+            function renderAssetSentiment() {
+                const votes = STATE.sentimentVotes || {};
+                const localVotes = JSON.parse(localStorage.getItem('myVotes')) || {};
+
+                ['BTC/USDT', 'ETH/USDT'].forEach(asset => {
+                    const assetKey = getSafeSymbol(asset);
+                    const assetVotes = votes[assetKey] || { long: 0, neutral: 0, short: 0 };
+                    
+                    const totalVotes = (assetVotes.long || 0) + (assetVotes.neutral || 0) + (assetVotes.short || 0);
+                    
+                    const longPct = totalVotes > 0 ? (assetVotes.long / totalVotes) * 100 : 0;
+                    const neutralPct = totalVotes > 0 ? (assetVotes.neutral / totalVotes) * 100 : 0;
+                    const shortPct = totalVotes > 0 ? (assetVotes.short / totalVotes) * 100 : 0;
+                    
+                    const prefix = asset === 'BTC/USDT' ? 'btc' : 'eth';
+
+                    document.getElementById(`${prefix}-long-fill`).style.width = `${longPct}%`;
+                    document.getElementById(`${prefix}-neutral-fill`).style.width = `${neutralPct}%`;
+                    document.getElementById(`${prefix}-short-fill`).style.width = `${shortPct}%`;
+
+                    document.getElementById(`${prefix}-long-label`).textContent = `Long (${longPct.toFixed(0)}%)`;
+                    document.getElementById(`${prefix}-neutral-label`).textContent = `Neutral (${neutralPct.toFixed(0)}%)`;
+                    document.getElementById(`${prefix}-short-label`).textContent = `Short (${shortPct.toFixed(0)}%)`;
+
+                    // Update button styles
+                    const trackerEl = document.getElementById(`sentiment-tracker-${prefix}`);
+                    if (trackerEl) {
+                        trackerEl.querySelectorAll('.sentiment-buttons button').forEach(btn => {
+                            btn.classList.remove('voted');
+                            if (btn.dataset.sentiment === localVotes[asset]) {
+                                btn.classList.add('voted');
+                            }
+                        });
+                    }
+                });
+            }
+
             /** Renders the live trades table. */
             function renderLiveTable(data) {
                 const trades = data || {};
@@ -1481,6 +1689,9 @@ uploadTask.on('state_changed',
 
                 // Trade Form
                 DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
+                
+                // NEW: Sentiment Vote Handler
+                DOM.assetSentimentContainer.addEventListener('click', handleSentimentVote);
 
                 // Live & Completed Trade Actions (Event Delegation)
                 DOM.tradesTbody.addEventListener('click', handleTradeAction);
@@ -1612,6 +1823,63 @@ uploadTask.on('state_changed',
                     .catch(error => alert(`Error adding trade: ${error.message}`));
             }
 
+            /**
+             * NEW: Handles a click on a sentiment voting button.
+             * @param {Event} e The click event.
+             */
+            function handleSentimentVote(e) {
+                const button = e.target.closest('.sentiment-buttons button');
+                if (!button) return;
+
+                const { asset, sentiment } = button.dataset;
+                if (!asset || !sentiment) return;
+                
+                const viewerId = getViewerId();
+                const assetKey = getSafeSymbol(asset);
+                const assetRef = dbRefs.sentiment.child(assetKey);
+
+                const localVotes = JSON.parse(localStorage.getItem('myVotes')) || {};
+                const oldVote = localVotes[asset];
+                
+                // If clicking the same vote again, do nothing
+                if (oldVote === sentiment) return;
+
+                localVotes[asset] = sentiment;
+                localStorage.setItem('myVotes', JSON.stringify(localVotes));
+                
+                renderAssetSentiment(); // Optimistically update the UI
+                
+                assetRef.transaction(currentData => {
+                    if (currentData === null) {
+                        currentData = { long: 0, neutral: 0, short: 0, voters: {} };
+                    }
+                    
+                    currentData.long = currentData.long || 0;
+                    currentData.neutral = currentData.neutral || 0;
+                    currentData.short = currentData.short || 0;
+                    currentData.voters = currentData.voters || {};
+
+                    const previousVote = currentData.voters[viewerId];
+                    
+                    if (previousVote === sentiment) {
+                        return; // Abort transaction - already handled by local check but good for race conditions
+                    }
+
+                    if (previousVote && currentData[previousVote]) {
+                        currentData[previousVote]--;
+                    }
+                    
+                    currentData[sentiment]++;
+                    currentData.voters[viewerId] = sentiment;
+
+                    return currentData;
+                }, (error, committed, snapshot) => {
+                    if (error) {
+                        console.error("Sentiment vote transaction failed:", error);
+                    }
+                });
+            }
+
             function handleTradeAction(e) {
                 if (!STATE.isMasterUser) return;
                 const button = e.target.closest('button');
@@ -1730,6 +1998,12 @@ uploadTask.on('state_changed',
                          autoResizeTextarea(DOM.persistentNotesEl);
                     }
                 });
+
+                // NEW: Subscribe to sentiment data
+                dbRefs.sentiment.on('value', (s) => {
+                    STATE.sentimentVotes = s.val() || {};
+                    renderAssetSentiment();
+                });
             }
 
             // --- INITIALIZATION ---
@@ -1776,6 +2050,10 @@ uploadTask.on('state_changed',
                 today.setUTCHours(0, 0, 0, 0);
                 STATE.selectedDate = new Date(today);
                 STATE.centerDate = new Date(today);
+
+                // NEW: Initialize viewer ID and render sentiment from local storage
+                getViewerId();
+                renderAssetSentiment();
                 
                 setupEventListeners();
                 subscribeToData();
