@@ -418,6 +418,104 @@
             height:1em;
         }
 
+        /* --- NEW SENTIMENT TRACKER STYLES --- */
+        #sentiment-tracker-section {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+        }
+        #sentiment-tracker-section h3 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        #sentiment-buttons-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .sentiment-btn {
+            flex-grow: 1;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border: 2px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+        .sentiment-btn[data-sentiment="long"] { background-color: var(--green-bg); color: var(--green-text); border-color: var(--green-border); }
+        .sentiment-btn[data-sentiment="neutral"] { background-color: var(--card-bg); color: var(--subtle-text); border-color: var(--border-color); }
+        .sentiment-btn[data-sentiment="short"] { background-color: var(--red-bg); color: var(--red-text); border-color: var(--red-border); }
+        .sentiment-btn.active {
+            box-shadow: 0 0 10px var(--link-color);
+            transform: scale(1.05);
+            border-color: var(--link-color);
+        }
+        #sentiment-summary-container {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: var(--subtle-text);
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        #sentiment-receipts-container {
+            margin-top: 20px;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .sentiment-receipt {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: var(--bg-color);
+            border-radius: 5px;
+            font-size: 13px;
+        }
+        .sentiment-receipt-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sentiment-receipt-label {
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: white;
+            text-transform: capitalize;
+        }
+        .sentiment-receipt-label.long { background-color: #28a745; }
+        .sentiment-receipt-label.neutral { background-color: #6c757d; }
+        .sentiment-receipt-label.short { background-color: #dc3545; }
+        .sentiment-receipt-time {
+            color: var(--subtle-text);
+        }
+        .delete-receipt-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            padding: 0 5px;
+            margin: 0;
+            opacity: 0.7;
+        }
+        .delete-receipt-btn:hover {
+            opacity: 1;
+        }
+        /* --- END NEW STYLES --- */
+
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -477,6 +575,22 @@
                 <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
                 <div><button type="submit">Add Trade</button></div>
             </form>
+            
+            <div id="sentiment-tracker-section">
+                <h3>Community Sentiment</h3>
+                <div id="sentiment-buttons-container">
+                    <button class="sentiment-btn" data-sentiment="long">Long</button>
+                    <button class="sentiment-btn" data-sentiment="neutral">Neutral</button>
+                    <button class="sentiment-btn" data-sentiment="short">Short</button>
+                </div>
+                <div id="sentiment-summary-container">
+                    <!-- Summary will be rendered here -->
+                </div>
+                <div id="sentiment-receipts-container">
+                    <!-- Receipts will be rendered here -->
+                </div>
+            </div>
+
             <div class="section-header"><h2>Live Trades</h2></div>
             <div class="table-wrapper">
                 <table>
@@ -737,7 +851,8 @@
                     JOURNAL_FAVOURITES: 'journal_favourites',
                     SETUPS_1: 'current_setups_1',
                     SETUPS_2: 'current_setups_2',
-                    PERSISTENT_NOTES: 'persistent_notes'
+                    PERSISTENT_NOTES: 'persistent_notes',
+                    SENTIMENT_CLICKS: 'sentiment_clicks'
                 },
                 TRADE_SETTINGS: {
                     FEE_RATE: 0.00075,
@@ -772,6 +887,9 @@
                 addTradeForm: document.getElementById('add-trade-form'),
                 tradesTbody: document.getElementById('trades-tbody'),
                 completedTradesTbody: document.getElementById('completed-trades-tbody'),
+                sentimentButtonsContainer: document.getElementById('sentiment-buttons-container'),
+                sentimentSummaryContainer: document.getElementById('sentiment-summary-container'),
+                sentimentReceiptsContainer: document.getElementById('sentiment-receipts-container'),
                 // Journal & Setups
                 journalTab: document.getElementById('journal-tab'),
                 persistentNotesEl: document.getElementById('persistent-notes-entry'),
@@ -834,6 +952,8 @@
                 centerDate: null,
                 journalSaveTimer: null,
                 notesSaveTimer: null,
+                sentimentClicks: {},
+                viewerId: null,
             };
 
             // --- INITIALIZE FIREBASE ---
@@ -850,7 +970,8 @@
                 favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES),
                 setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1),
                 setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2),
-                persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES)
+                persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES),
+                sentimentClicks: database.ref(CONFIG.DB_PATHS.SENTIMENT_CLICKS),
             };
 
             // --- HELPER FUNCTIONS ---
@@ -987,6 +1108,57 @@
                 DOM.completedTradesTbody.innerHTML = rowsHtml;
             }
             
+            /** Renders the sentiment tracker UI based on current data. */
+            function renderSentimentTracker(clicks) {
+                clicks = clicks || {};
+                STATE.sentimentClicks = clicks; // Update state cache
+
+                // Reset UI
+                DOM.sentimentReceiptsContainer.innerHTML = '';
+                document.querySelectorAll('.sentiment-btn').forEach(btn => btn.classList.remove('active'));
+
+                const viewerVote = clicks[STATE.viewerId];
+                if (viewerVote) {
+                    const activeBtn = DOM.sentimentButtonsContainer.querySelector(`[data-sentiment="${viewerVote.sentiment}"]`);
+                    if (activeBtn) activeBtn.classList.add('active');
+                }
+
+                // Generate receipts and count votes
+                let longCount = 0;
+                let shortCount = 0;
+                let neutralCount = 0;
+                const receiptsHtml = Object.values(clicks)
+                    .sort((a, b) => b.timestamp - a.timestamp)
+                    .map(vote => {
+                        if (vote.sentiment === 'long') longCount++;
+                        else if (vote.sentiment === 'short') shortCount++;
+                        else if (vote.sentiment === 'neutral') neutralCount++;
+                        
+                        const isOwner = vote.viewerId === STATE.viewerId;
+                        const deleteButtonHtml = isOwner ?
+                            `<button class="delete-receipt-btn" data-owner-id="${vote.viewerId}" title="Delete your vote">&times;</button>` :
+                            '';
+
+                        return `
+                            <div class="sentiment-receipt">
+                                <div class="sentiment-receipt-info">
+                                    <span class="sentiment-receipt-label ${vote.sentiment}">${vote.sentiment}</span>
+                                    <span class="sentiment-receipt-time">Voted: ${new Date(vote.timestamp).toLocaleString()}</span>
+                                </div>
+                                ${deleteButtonHtml}
+                            </div>`;
+                    }).join('');
+                
+                DOM.sentimentReceiptsContainer.innerHTML = receiptsHtml;
+
+                // Update summary
+                DOM.sentimentSummaryContainer.innerHTML = `
+                    <span><strong>Longs:</strong> ${longCount}</span>
+                    <span><strong>Neutrals:</strong> ${neutralCount}</span>
+                    <span><strong>Shorts:</strong> ${shortCount}</span>
+                `;
+            }
+
             /** Renders the date navigation buttons for the journal. */
             function renderDateNavigation() {
                 const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
@@ -1341,23 +1513,14 @@
                     if (!file.type.startsWith('image/')) return;
                     
                     const fileName = `${Date.now()}_${file.name}`;
-// --- INSIDE handleFileUpload function ---
-const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
-const fileRef = storage.ref(storagePath);
+                    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
+                    const fileRef = storage.ref(storagePath);
 
-// 1. Create the metadata object
-// --- INSIDE handleFileUpload function ---
-const metadata = {
-  customMetadata: {
-    // This is a "secret key" that marks the file as deletable by a master user.
-    'owner': 'master' 
-  }
-};
-const uploadTask = fileRef.put(file, metadata);
+                    const metadata = { customMetadata: { 'owner': 'master' } };
+                    const uploadTask = fileRef.put(file, metadata);
 
-uploadTask.on('state_changed', 
-    (snapshot) => {
-
+                    uploadTask.on('state_changed', 
+                        (snapshot) => {
                             const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
                             DOM.uploadProgress.textContent = `Uploading ${index + 1}/${files.length}: ${progress}%`;
                         },
@@ -1580,6 +1743,42 @@ uploadTask.on('state_changed',
             
             // --- EVENT HANDLER LOGIC ---
             
+            function handleSentimentClick(e) {
+                if (!e.target.matches('.sentiment-btn')) return;
+                if (STATE.isMasterUser) {
+                    alert("Master users can view sentiment but cannot vote.");
+                    return;
+                }
+
+                const sentiment = e.target.dataset.sentiment;
+                const viewerId = STATE.viewerId;
+                const currentUserVote = STATE.sentimentClicks[viewerId];
+
+                // If user clicks the same button again, it's an "un-vote"
+                if (currentUserVote && currentUserVote.sentiment === sentiment) {
+                    dbRefs.sentimentClicks.child(viewerId).remove();
+                } else {
+                    const voteData = {
+                        sentiment: sentiment,
+                        timestamp: firebase.database.ServerValue.TIMESTAMP,
+                        viewerId: viewerId
+                    };
+                    dbRefs.sentimentClicks.child(viewerId).set(voteData);
+                }
+            }
+
+            function handleReceiptDelete(e) {
+                const deleteBtn = e.target.closest('.delete-receipt-btn');
+                if (!deleteBtn) return;
+
+                const ownerId = deleteBtn.dataset.ownerId;
+                if (ownerId === STATE.viewerId) {
+                    if (confirm("Are you sure you want to remove your vote?")) {
+                        dbRefs.sentimentClicks.child(ownerId).remove();
+                    }
+                }
+            }
+            
             function handleAddTradeSubmit(e) {
                 e.preventDefault();
                 if (!STATE.isMasterUser) return alert('You do not have permission to add trades.');
@@ -1698,6 +1897,10 @@ uploadTask.on('state_changed',
                     dbRefs.bank.set({ currentBalance: newBalance });
                 });
 
+                dbRefs.sentimentClicks.on('value', snapshot => {
+                    renderSentimentTracker(snapshot.val());
+                });
+
                 dbRefs.journalText.on('value', (s) => {
                     STATE.journalText = s.val() || {};
                     if (DOM.journalTab.classList.contains('active')) updateJournalView();
@@ -1733,6 +1936,18 @@ uploadTask.on('state_changed',
             }
 
             // --- INITIALIZATION ---
+            
+            function initializeSentimentTracker() {
+                let viewerId = localStorage.getItem('viewerId');
+                if (!viewerId) {
+                    viewerId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+                    localStorage.setItem('viewerId', viewerId);
+                }
+                STATE.viewerId = viewerId;
+                
+                DOM.sentimentButtonsContainer.addEventListener('click', handleSentimentClick);
+                DOM.sentimentReceiptsContainer.addEventListener('click', handleReceiptDelete);
+            }
 
             function checkMasterMode() {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -1764,19 +1979,18 @@ uploadTask.on('state_changed',
             function initializeApp() {
                 checkMasterMode();
                 
-                // Initialize theme
                 const savedTheme = localStorage.getItem('theme');
                 if (savedTheme) {
                     document.documentElement.setAttribute('data-theme', savedTheme);
                     DOM.themeToggle.checked = savedTheme === 'dark';
                 }
                 
-                // Initialize dates
                 const today = new Date();
                 today.setUTCHours(0, 0, 0, 0);
                 STATE.selectedDate = new Date(today);
                 STATE.centerDate = new Date(today);
                 
+                initializeSentimentTracker();
                 setupEventListeners();
                 subscribeToData();
                 
