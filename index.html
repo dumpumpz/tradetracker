@@ -477,12 +477,17 @@
             background-color: var(--header-bg);
         }
 
+        .sentiment-note-cell {
+            white-space: normal; /* Allow text to wrap */
+            max-width: 250px;
+            font-size: 13px;
+        }
+
         #sentiment-receipts-table td:nth-child(2) {
             text-transform: capitalize;
             font-weight: bold;
         }
 
-        /* NEW: Styles for the sentiment delete button */
         .delete-sentiment-btn {
             background: none;
             border: none;
@@ -490,13 +495,21 @@
             font-weight: bold;
             font-size: 18px;
             cursor: pointer;
-            padding: 0 10px;
+            padding: 0 5px;
             margin: 0;
             line-height: 1;
             opacity: 0.6;
         }
         .delete-sentiment-btn:hover {
             opacity: 1;
+        }
+        .edit-sentiment-note-btn {
+            background-color: var(--subtle-text);
+            color: var(--container-bg);
+            border: none;
+        }
+        .edit-sentiment-note-btn:hover {
+            background-color: var(--link-color);
         }
 
         @media (max-width: 768px) { 
@@ -559,11 +572,10 @@
                 <div><button type="submit">Add Trade</button></div>
             </form>
 
-            <!-- UPDATED: Asset Sentiment Logger -->
             <div id="asset-sentiment-container">
-
+                <h2>Asset Sentiment</h2>
+                <p class="subtitle">Click a button to log your sentiment. Each click is recorded below.</p>
                 <div class="sentiment-trackers-wrapper">
-                    <!-- BTC Tracker -->
                     <div class="sentiment-tracker" id="sentiment-tracker-btc">
                         <h4>BTC/USDT</h4>
                         <div class="sentiment-buttons">
@@ -572,7 +584,6 @@
                             <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
                         </div>
                     </div>
-                    <!-- ETH Tracker -->
                     <div class="sentiment-tracker" id="sentiment-tracker-eth">
                         <h4>ETH/USDT</h4>
                         <div class="sentiment-buttons">
@@ -584,7 +595,6 @@
                 </div>
             </div>
             
-            <!-- NEW: Sentiment Log Table -->
             <div class="section-header"><h2>Sentiment Log</h2></div>
             <div class="table-wrapper">
                 <table id="sentiment-receipts-table">
@@ -592,6 +602,7 @@
                         <tr>
                             <th>Asset</th>
                             <th>Sentiment</th>
+                            <th class="note-header">Note</th>
                             <th>Timestamp</th>
                             <th>Actions</th>
                         </tr>
@@ -859,7 +870,7 @@
                     SETUPS_1: 'current_setups_1',
                     SETUPS_2: 'current_setups_2',
                     PERSISTENT_NOTES: 'persistent_notes',
-                    SENTIMENT_RECEIPTS: 'sentiment_receipts' // UPDATED path
+                    SENTIMENT_RECEIPTS: 'sentiment_receipts'
                 },
                 TRADE_SETTINGS: {
                     FEE_RATE: 0.00075,
@@ -880,7 +891,7 @@
                 // General
                 tabs: document.querySelector('.tabs'),
                 themeToggle: document.getElementById('theme-checkbox'),
-                trackerTab: document.getElementById('tracker-tab'), // For event delegation
+                trackerTab: document.getElementById('tracker-tab'),
                 // Stats Panel
                 statsPanelContainer: document.getElementById('stats-panel-container'),
                 statsFab: document.getElementById('stats-fab'),
@@ -947,7 +958,7 @@
             const STATE = {
                 isMasterUser: false,
                 masterPassword: null,
-                viewerId: null, // ADDED
+                viewerId: null,
                 journalText: {},
                 journalImages: {},
                 emaData: {},
@@ -977,7 +988,7 @@
                 setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1),
                 setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2),
                 persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES),
-                sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS) // UPDATED
+                sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS)
             };
 
             // --- HELPER FUNCTIONS ---
@@ -990,10 +1001,6 @@
             const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
             const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
             
-            /**
-             * Gets a unique ID for the viewer from localStorage, or creates one.
-             * @returns {string} The viewer's unique ID.
-             */
             function getViewerId() {
                 if (STATE.viewerId) return STATE.viewerId;
                 
@@ -1035,10 +1042,6 @@
 
             // --- RENDERING FUNCTIONS ---
             
-            /**
-             * REWRITTEN: Renders the sentiment log table with receipt data and delete buttons.
-             * @param {object} receiptsData The receipt objects from Firebase.
-             */
             function renderSentimentReceipts(receiptsData) {
                 const tbody = DOM.sentimentReceiptsTbody;
                 if (!tbody) return;
@@ -1047,7 +1050,6 @@
                 const receipts = receiptsData || {};
                 const receiptIds = Object.keys(receipts);
 
-                // Sort by Firebase push key (chronological) in descending order
                 receiptIds.sort().reverse();
 
                 const rowsHtml = receiptIds.map(id => {
@@ -1059,16 +1061,18 @@
                     if (sentimentClass === 'long') sentimentColor = 'var(--green-text)';
                     if (sentimentClass === 'short') sentimentColor = 'var(--red-text)';
 
-                    const deleteButtonHtml = (receipt.viewerId === currentViewerId)
-                        ? `<button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">&times;</button>`
+                    const ownerActionsHtml = (receipt.viewerId === currentViewerId)
+                        ? `<button class="edit-sentiment-note-btn" data-id="${id}">Note</button>
+                           <button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">&times;</button>`
                         : '';
 
                     return `
                         <tr>
                             <td>${receipt.asset || '--'}</td>
                             <td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td>
+                            <td class="sentiment-note-cell">${receipt.note || ''}</td>
                             <td>${receipt.timestamp || '--'}</td>
-                            <td class="action-buttons">${deleteButtonHtml}</td>
+                            <td class="action-buttons">${ownerActionsHtml}</td>
                         </tr>
                     `;
                 }).join('');
@@ -1596,13 +1600,15 @@
 
                 DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
                 
-                // Use event delegation on the main tracker tab for all its children
                 DOM.trackerTab.addEventListener('click', (e) => {
                     if (e.target.closest('.sentiment-buttons button')) {
                         handleSentimentLog(e);
                     }
                     if (e.target.matches('.delete-sentiment-btn')) {
                         handleSentimentDelete(e);
+                    }
+                    if (e.target.matches('.edit-sentiment-note-btn')) {
+                        handleSentimentNoteEdit(e);
                     }
                     if (e.target.closest('#trades-tbody')) {
                         handleTradeAction(e);
@@ -1729,10 +1735,6 @@
                     .catch(error => alert(`Error adding trade: ${error.message}`));
             }
 
-            /**
-             * REWRITTEN: Handles a click on a sentiment button to log a receipt.
-             * @param {Event} e The click event.
-             */
             function handleSentimentLog(e) {
                 const button = e.target.closest('.sentiment-buttons button');
                 if (!button) return;
@@ -1744,7 +1746,7 @@
                     asset: asset,
                     sentiment: sentiment,
                     timestamp: new Date().toLocaleString(),
-                    viewerId: getViewerId() // Add the user's unique ID
+                    viewerId: getViewerId()
                 };
 
                 dbRefs.sentimentReceipts.push(receipt)
@@ -1754,10 +1756,6 @@
                     });
             }
 
-            /**
-             * NEW: Handles the deletion of a sentiment log entry.
-             * @param {Event} e The click event.
-             */
             function handleSentimentDelete(e) {
                 const button = e.target;
                 const receiptId = button.dataset.id;
@@ -1767,9 +1765,36 @@
                     dbRefs.sentimentReceipts.child(receiptId).remove()
                         .catch(error => {
                             console.error('Failed to delete sentiment entry:', error);
-                            alert('Could not delete the entry. Please check permissions or try again.');
+                            alert('Could not delete the entry. Please try again.');
                         });
                 }
+            }
+
+            /**
+             * NEW: Handles adding or editing a note for a sentiment log entry.
+             * @param {Event} e The click event.
+             */
+            function handleSentimentNoteEdit(e) {
+                const button = e.target;
+                const receiptId = button.dataset.id;
+                if (!receiptId) return;
+
+                const receiptRef = dbRefs.sentimentReceipts.child(receiptId);
+
+                // First, get the current note to pre-fill the prompt
+                receiptRef.child('note').once('value', snapshot => {
+                    const currentNote = snapshot.val() || "";
+                    const newNote = prompt("Enter your note for this entry:", currentNote);
+
+                    // If the user didn't cancel the prompt
+                    if (newNote !== null) {
+                        receiptRef.update({ note: newNote })
+                            .catch(error => {
+                                console.error('Failed to update note:', error);
+                                alert('Could not save the note. Please try again.');
+                            });
+                    }
+                });
             }
 
             function handleTradeAction(e) {
@@ -1831,7 +1856,6 @@
                 }
             }
 
-
             // --- FIREBASE DATA SUBSCRIPTIONS ---
             
             function subscribeToData() {
@@ -1891,7 +1915,6 @@
                     }
                 });
 
-                // UPDATED: Subscribe to sentiment receipt data
                 dbRefs.sentimentReceipts.on('value', (s) => {
                     renderSentimentReceipts(s.val());
                 });
@@ -1928,7 +1951,7 @@
 
             function initializeApp() {
                 checkMasterMode();
-                getViewerId(); // IMPORTANT: Get user ID on startup
+                getViewerId();
                 
                 const savedTheme = localStorage.getItem('theme');
                 if (savedTheme) {
