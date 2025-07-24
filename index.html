@@ -1045,48 +1045,62 @@
 
             // --- RENDERING FUNCTIONS ---
             
-   function renderSentimentReceipts(receiptsData) {
-    const tbody = DOM.sentimentReceiptsTbody;
-    if (!tbody) return;
+            // =================================================================
+            // START: CORRECTED FUNCTION renderSentimentReceipts
+            // =================================================================
+            function renderSentimentReceipts(receiptsData) {
+                const tbody = DOM.sentimentReceiptsTbody;
+                if (!tbody) return;
 
-    const currentViewerId = getViewerId();
-    const receipts = receiptsData || {};
-    const receiptIds = Object.keys(receipts);
+                const currentViewerId = getViewerId();
+                const receipts = receiptsData || {};
+                const receiptIds = Object.keys(receipts);
 
-    receiptIds.sort().reverse();
+                receiptIds.sort().reverse();
 
-    const rowsHtml = receiptIds.map(id => {
-        const receipt = receipts[id];
-        if (!receipt) return '';
-        
-        const sentimentClass = (receipt.sentiment || '').toLowerCase();
-        let sentimentColor = 'var(--text-color)';
-        if (sentimentClass === 'long') sentimentColor = 'var(--green-text)';
-        if (sentimentClass === 'short') sentimentColor = 'var(--red-text)';
+                const rowsHtml = receiptIds.map(id => {
+                    const receipt = receipts[id];
+                    if (!receipt) return '';
+                    
+                    const sentimentClass = (receipt.sentiment || '').toLowerCase();
+                    let sentimentColor = 'var(--text-color)';
+                    if (sentimentClass === 'long') sentimentColor = 'var(--green-text)';
+                    if (sentimentClass === 'short') sentimentColor = 'var(--red-text)';
 
-        const ownerActionsHtml = (receipt.viewerId === currentViewerId)
-            ? `<button class="edit-sentiment-note-btn" data-id="${id}">Note</button>
-               <button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">×</button>`
-            : '';
+                    const ownerActionsHtml = (receipt.viewerId === currentViewerId)
+                        ? `<button class="edit-sentiment-note-btn" data-id="${id}">Note</button>
+                           <button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">×</button>`
+                        : '';
 
-        // Convert the numeric timestamp from Firebase into the viewer's local time string.
-        const displayTimestamp = receipt.timestamp 
-            ? new Date(receipt.timestamp).toLocaleString() 
-            : '--';
+                    let displayTimestamp;
+                    // FIX: This function is now backward-compatible.
+                    // It checks if the timestamp is a number (the new, correct format).
+                    if (typeof receipt.timestamp === 'number') {
+                        // If so, convert it to the viewer's local timezone.
+                        displayTimestamp = new Date(receipt.timestamp).toLocaleString();
+                    } else {
+                        // Otherwise, it's the old string format. Display it as-is
+                        // to prevent showing "Invalid Date" for old entries.
+                        displayTimestamp = receipt.timestamp || '--';
+                    }
 
-        return `
-            <tr>
-                <td>${receipt.asset || '--'}</td>
-                <td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td>
-                <td class="sentiment-note-cell">${receipt.note || ''}</td>
-                <td>${displayTimestamp}</td>
-                <td class="action-buttons">${ownerActionsHtml}</td>
-            </tr>
-        `;
-    }).join('');
+                    return `
+                        <tr>
+                            <td>${receipt.asset || '--'}</td>
+                            <td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td>
+                            <td class="sentiment-note-cell">${receipt.note || ''}</td>
+                            <td>${displayTimestamp}</td>
+                            <td class="action-buttons">${ownerActionsHtml}</td>
+                        </tr>
+                    `;
+                }).join('');
 
-    tbody.innerHTML = rowsHtml;
-}
+                tbody.innerHTML = rowsHtml;
+            }
+            // =================================================================
+            // END: CORRECTED FUNCTION renderSentimentReceipts
+            // =================================================================
+            
             function renderLiveTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
@@ -1782,6 +1796,10 @@
                     .then(() => e.target.reset())
                     .catch(error => alert(`Error adding trade: ${error.message}`));
             }
+
+            // =================================================================
+            // START: CORRECTED FUNCTION handleSentimentLog
+            // =================================================================
             function handleSentimentLog(e) {
                 const button = e.target.closest('.sentiment-buttons button');
                 if (!button) return;
@@ -1792,7 +1810,9 @@
                 const receipt = {
                     asset: asset,
                     sentiment: sentiment,
-                    timestamp: new Date().toLocaleString(),
+                    // FIX: Always use the Firebase server's universal timestamp.
+                    // This ensures new entries are always stored correctly.
+                    timestamp: firebase.database.ServerValue.TIMESTAMP, 
                     viewerId: getViewerId()
                 };
 
@@ -1802,6 +1822,9 @@
                         alert("Could not log your sentiment. Please try again.");
                     });
             }
+            // =================================================================
+            // END: CORRECTED FUNCTION handleSentimentLog
+            // =================================================================
 
             function handleSentimentDelete(e) {
                 const button = e.target;
@@ -1821,27 +1844,26 @@
              * NEW: Handles adding or editing a note for a sentiment log entry.
              * @param {Event} e The click event.
              */
-function handleSentimentLog(e) {
-    const button = e.target.closest('.sentiment-buttons button');
-    if (!button) return;
+            function handleSentimentNoteEdit(e) {
+                const button = e.target;
+                const receiptId = button.dataset.id;
+                if (!receiptId) return;
 
-    const { asset, sentiment } = button.dataset;
-    if (!asset || !sentiment) return;
-    
-    const receipt = {
-        asset: asset,
-        sentiment: sentiment,
-        // Use the Firebase server's timestamp for a universal, timezone-agnostic value.
-        timestamp: firebase.database.ServerValue.TIMESTAMP, 
-        viewerId: getViewerId()
-    };
-
-    dbRefs.sentimentReceipts.push(receipt)
-        .catch(error => {
-            console.error("Failed to log sentiment receipt:", error);
-            alert("Could not log your sentiment. Please try again.");
-        });
-}
+                const receiptRef = dbRefs.sentimentReceipts.child(receiptId);
+                receiptRef.child('note').once('value', snapshot => {
+                    const currentNote = snapshot.val() || '';
+                    const newNote = prompt('Enter a note for this entry:', currentNote);
+                    
+                    // The prompt returns null if the user hits "Cancel"
+                    if (newNote !== null) {
+                        receiptRef.update({ note: newNote })
+                            .catch(error => {
+                                console.error('Failed to update sentiment note:', error);
+                                alert('Could not save the note. Please try again.');
+                            });
+                    }
+                });
+            }
 
             function handleTradeAction(e) {
                 if (!STATE.isMasterUser) return;
