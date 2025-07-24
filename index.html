@@ -625,8 +625,8 @@
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <!-- MODIFIED: Added Entry Note column and renamed Note to Exit Note -->
-                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Target</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Entry Note</th><th>Exit Note</th><th class="master-only">Actions</th></tr>
+                        <!-- Added Target column -->
+                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Target</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
                     </thead>
                     <tbody id="completed-trades-tbody"></tbody>
                 </table>
@@ -877,7 +877,7 @@
                 TRADE_SETTINGS: {
                     FEE_RATE: 0.00075,
                     STARTING_BALANCE: 3881,
-                    USD_TO_AUD_RATE: 1.51
+                    USD_TO_AUD_RATE: 1.53
                 },
                 EMA_ANALYSIS: {
                     SYMBOLS: ['BTC-USDT', 'ETH-USDT'],
@@ -1088,7 +1088,7 @@
                     <td class="action-buttons">
                         <button class="win-btn" data-id="${id}">Win</button>
                         <button class="loss-btn" data-id="${id}">Loss</button>
-                        <button class="note-btn" data-id="${id}">Edit Note</button>
+                        <button class="note-btn" data-id="${id}">Edit</button>
                         <button class="delete-btn" data-id="${id}">Delete</button>
                     </td>` : '';
                 
@@ -1123,7 +1123,7 @@
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
                     <td class="action-buttons">
-                        <button class="note-btn-completed" data-id="${id}">Edit Note</button>
+                        <button class="note-btn-completed" data-id="${id}">Edit</button>
                         <button class="delete-btn-completed" data-id="${id}">Delete</button>
                     </td>` : '';
 
@@ -1133,8 +1133,7 @@
                         const trade = trades[id];
                         const resultColor = trade.net_result >= 0 ? '#28a745' : '#dc3545';
                         const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
-                        const entryNoteText = trade.entry_note || ''; // The imported note
-                        const exitNoteText = trade.note || '';      // The editable exit note
+                        const noteText = trade.note || '';
                         return `
                             <tr>
                                 <td>${trade.symbol}</td>
@@ -1144,10 +1143,8 @@
                                 <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
                                 <td>${totalFees.toFixed(2)}</td>
                                 <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
-                                <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
-                                <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
-                                <td class="note-cell" title="${entryNoteText}">${entryNoteText}</td>
-                                <td class="note-cell" title="${exitNoteText}">${exitNoteText}</td>
+<td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>                                <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
+                                <td class="note-cell" title="${noteText}">${noteText}</td>
                                 ${masterButtonsHtml(id)}
                             </tr>`;
                     }).join('');
@@ -1549,37 +1546,24 @@
             
             function completeTrade(tradeId, outcome) {
                 dbRefs.trades.child(tradeId).once('value', snapshot => {
-                    const liveTrade = snapshot.val();
-                    if (!liveTrade) return;
+                    const trade = snapshot.val();
+                    if (!trade) return;
 
-                    const defaultExit = outcome === 'win' ? liveTrade.target : liveTrade.stoploss;
+                    const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
                     const exitPriceStr = prompt(`Enter exact exit price:`, defaultExit);
                     if (exitPriceStr === null) return;
 
                     const exitPrice = parseFloat(exitPriceStr);
                     if (isNaN(exitPrice)) return alert("Invalid exit price.");
 
-                    const result = calculateNetResult(liveTrade, exitPrice);
-
+                    const result = calculateNetResult(trade, exitPrice);
                     const completedTrade = {
-                        // Fields from live trade to keep for record-keeping
-                        symbol: liveTrade.symbol,
-                        type: liveTrade.type,
-                        entry: liveTrade.entry,
-                        stoploss: liveTrade.stoploss,
-                        target: liveTrade.target,
-                        size: liveTrade.size,
-                        date: liveTrade.date,
-                        
-                        // New/modified fields for note handling
-                        entry_note: liveTrade.note || '', // The imported entry note
-                        note: '', // This will be the editable exit note, starts empty
-                        
-                        // Result fields
-                        ...result, // Spreads net_result, entry_fee, exit_fee
-                        closed_date: firebase.database.ServerValue.TIMESTAMP,
-                        exit_price: exitPrice
+                        ...trade,
+                        ...result,
+                        closed_date: firebase.database.ServerValue.TIMESTAMP,                        exit_price: exitPrice,
                     };
+                    delete completedTrade.expected_profit;
+                    delete completedTrade.expected_loss;
 
                     dbRefs.completedTrades.push(completedTrade)
                         .then(() => dbRefs.trades.child(tradeId).remove());
@@ -1865,22 +1849,14 @@
                     ? dbRefs.completedTrades.child(id) 
                     : dbRefs.trades.child(id);
 
-                if (button.matches('.win-btn')) {
-                    completeTrade(id, 'win');
-                } else if (button.matches('.loss-btn')) {
-                    completeTrade(id, 'loss');
-                } else if (button.matches('.delete-btn, .delete-btn-completed')) {
-                    if (confirm('Are you sure you want to delete this trade?')) {
-                        tradeRef.remove();
-                    }
-                } else if (button.matches('.note-btn-completed')) {
+                if (button.matches('.win-btn')) completeTrade(id, 'win');
+                else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
+                else if (button.matches('.delete-btn, .delete-btn-completed')) {
+                    if (confirm('Are you sure you want to delete this trade?')) tradeRef.remove();
+                } 
+                else if (button.matches('.note-btn, .note-btn-completed')) {
                     tradeRef.child('note').once('value', snapshot => {
-                        const newNote = prompt("Enter or edit the Exit Note:", snapshot.val() || "");
-                        if (newNote !== null) tradeRef.update({ note: newNote });
-                    });
-                } else if (button.matches('.note-btn')) {
-                    tradeRef.child('note').once('value', snapshot => {
-                        const newNote = prompt("Enter or edit the Entry Note:", snapshot.val() || "");
+                        const newNote = prompt("Enter note:", snapshot.val() || "");
                         if (newNote !== null) tradeRef.update({ note: newNote });
                     });
                 }
@@ -2050,4 +2026,3 @@
     </script>
 </body>
 </html>
-```
