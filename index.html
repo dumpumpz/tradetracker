@@ -1074,7 +1074,7 @@
                             <td>${receipt.asset || '--'}</td>
                             <td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td>
                             <td class="sentiment-note-cell">${receipt.note || ''}</td>
-                            <td>${receipt.timestamp ? new Date(receipt.timestamp).toLocaleString() : '--'}</td>
+                            <td>${receipt.timestamp || '--'}</td>
                             <td class="action-buttons">${ownerActionsHtml}</td>
                         </tr>
                     `;
@@ -1787,7 +1787,7 @@
                 const receipt = {
                     asset: asset,
                     sentiment: sentiment,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    timestamp: new Date().toLocaleString(),
                     viewerId: getViewerId()
                 };
 
