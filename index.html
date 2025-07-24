@@ -1045,43 +1045,48 @@
 
             // --- RENDERING FUNCTIONS ---
             
-            function renderSentimentReceipts(receiptsData) {
-                const tbody = DOM.sentimentReceiptsTbody;
-                if (!tbody) return;
+   function renderSentimentReceipts(receiptsData) {
+    const tbody = DOM.sentimentReceiptsTbody;
+    if (!tbody) return;
 
-                const currentViewerId = getViewerId();
-                const receipts = receiptsData || {};
-                const receiptIds = Object.keys(receipts);
+    const currentViewerId = getViewerId();
+    const receipts = receiptsData || {};
+    const receiptIds = Object.keys(receipts);
 
-                receiptIds.sort().reverse();
+    receiptIds.sort().reverse();
 
-                const rowsHtml = receiptIds.map(id => {
-                    const receipt = receipts[id];
-                    if (!receipt) return '';
-                    
-                    const sentimentClass = (receipt.sentiment || '').toLowerCase();
-                    let sentimentColor = 'var(--text-color)';
-                    if (sentimentClass === 'long') sentimentColor = 'var(--green-text)';
-                    if (sentimentClass === 'short') sentimentColor = 'var(--red-text)';
+    const rowsHtml = receiptIds.map(id => {
+        const receipt = receipts[id];
+        if (!receipt) return '';
+        
+        const sentimentClass = (receipt.sentiment || '').toLowerCase();
+        let sentimentColor = 'var(--text-color)';
+        if (sentimentClass === 'long') sentimentColor = 'var(--green-text)';
+        if (sentimentClass === 'short') sentimentColor = 'var(--red-text)';
 
-                    const ownerActionsHtml = (receipt.viewerId === currentViewerId)
-                        ? `<button class="edit-sentiment-note-btn" data-id="${id}">Note</button>
-                           <button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">&times;</button>`
-                        : '';
+        const ownerActionsHtml = (receipt.viewerId === currentViewerId)
+            ? `<button class="edit-sentiment-note-btn" data-id="${id}">Note</button>
+               <button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">×</button>`
+            : '';
 
-                    return `
-                        <tr>
-                            <td>${receipt.asset || '--'}</td>
-                            <td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td>
-                            <td class="sentiment-note-cell">${receipt.note || ''}</td>
-                            <td>${receipt.timestamp || '--'}</td>
-                            <td class="action-buttons">${ownerActionsHtml}</td>
-                        </tr>
-                    `;
-                }).join('');
+        // Convert the numeric timestamp from Firebase into the viewer's local time string.
+        const displayTimestamp = receipt.timestamp 
+            ? new Date(receipt.timestamp).toLocaleString() 
+            : '--';
 
-                tbody.innerHTML = rowsHtml;
-            }
+        return `
+            <tr>
+                <td>${receipt.asset || '--'}</td>
+                <td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td>
+                <td class="sentiment-note-cell">${receipt.note || ''}</td>
+                <td>${displayTimestamp}</td>
+                <td class="action-buttons">${ownerActionsHtml}</td>
+            </tr>
+        `;
+    }).join('');
+
+    tbody.innerHTML = rowsHtml;
+}
             function renderLiveTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
@@ -1816,28 +1821,27 @@
              * NEW: Handles adding or editing a note for a sentiment log entry.
              * @param {Event} e The click event.
              */
-            function handleSentimentNoteEdit(e) {
-                const button = e.target;
-                const receiptId = button.dataset.id;
-                if (!receiptId) return;
+function handleSentimentLog(e) {
+    const button = e.target.closest('.sentiment-buttons button');
+    if (!button) return;
 
-                const receiptRef = dbRefs.sentimentReceipts.child(receiptId);
+    const { asset, sentiment } = button.dataset;
+    if (!asset || !sentiment) return;
+    
+    const receipt = {
+        asset: asset,
+        sentiment: sentiment,
+        // Use the Firebase server's timestamp for a universal, timezone-agnostic value.
+        timestamp: firebase.database.ServerValue.TIMESTAMP, 
+        viewerId: getViewerId()
+    };
 
-                // First, get the current note to pre-fill the prompt
-                receiptRef.child('note').once('value', snapshot => {
-                    const currentNote = snapshot.val() || "";
-                    const newNote = prompt("Enter your note for this entry:", currentNote);
-
-                    // If the user didn't cancel the prompt
-                    if (newNote !== null) {
-                        receiptRef.update({ note: newNote })
-                            .catch(error => {
-                                console.error('Failed to update note:', error);
-                                alert('Could not save the note. Please try again.');
-                            });
-                    }
-                });
-            }
+    dbRefs.sentimentReceipts.push(receipt)
+        .catch(error => {
+            console.error("Failed to log sentiment receipt:", error);
+            alert("Could not log your sentiment. Please try again.");
+        });
+}
 
             function handleTradeAction(e) {
                 if (!STATE.isMasterUser) return;
