@@ -101,7 +101,7 @@
         
         #image-upload-section { margin-top: 20px; border-top: 1px dashed var(--border-color); padding-top: 20px; }
         .image-upload-label { background-color: #28a745; color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; text-align: center; display: inline-block; }
-        #journal-image-upload { display: none; }
+        #journal-image-upload, #library-image-upload { display: none; }
         #upload-progress { margin-top: 10px; font-style: italic; color: var(--link-color); }
         #journal-images-container { margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
         .journal-image-wrapper { position: relative; max-width: 80%; border: 1px solid var(--border-color); padding: 5px; background: var(--card-bg); border-radius: 4px; }
@@ -512,6 +512,116 @@
             background-color: var(--link-color);
         }
 
+        /* --- NEW: Image Library Styles --- */
+        #image-library-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+        }
+        .library-image-wrapper {
+            position: relative;
+            border: 1px solid var(--border-color);
+            padding: 5px;
+            background: var(--container-bg);
+            border-radius: 4px;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+        }
+        .library-image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        .library-image-wrapper:hover img {
+            transform: scale(1.05);
+        }
+        .delete-library-image {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: rgba(220, 53, 69, 0.85);
+            border: 1px solid rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.2s ease-in-out;
+            opacity: 0;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .library-image-wrapper:hover .delete-library-image {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .delete-library-image svg {
+            width: 14px;
+            height: 14px;
+            fill: white;
+        }
+
+        /* --- NEW: Image Modal Styles --- */
+        .modal-overlay {
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation-name: fadeIn;
+            animation-duration: 0.3s;
+        }
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90vw;
+            max-height: 90vh;
+            animation-name: zoomIn;
+            animation-duration: 0.4s;
+        }
+        @keyframes fadeIn {
+            from {opacity: 0}
+            to {opacity: 1}
+        }
+        @keyframes zoomIn {
+            from {transform:scale(0.1)}
+            to {transform:scale(1)}
+        }
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+        .modal-close:hover,
+        .modal-close:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -610,6 +720,21 @@
                     </thead>
                     <tbody id="sentiment-receipts-tbody"></tbody>
                 </table>
+            </div>
+
+            <!-- NEW IMAGE LIBRARY SECTION -->
+            <div id="image-library-section">
+                <div class="section-header">
+                    <h2>Chart Library</h2>
+                </div>
+                <div id="library-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
+                    <label for="library-image-upload" class="image-upload-label">Add to Library</label>
+                    <input type="file" id="library-image-upload" accept="image/*" multiple>
+                    <div id="library-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
+                </div>
+                <div id="image-library-container">
+                    <!-- Thumbnails will be rendered here by JavaScript -->
+                </div>
             </div>
 
             <div class="section-header"><h2>Live Trades</h2></div>
@@ -843,6 +968,12 @@
         </div>
 
     </div>
+
+    <!-- NEW IMAGE MODAL -->
+    <div id="image-modal" class="modal-overlay" style="display: none;">
+      <span class="modal-close">&times;</span>
+      <img class="modal-content" id="modal-image-content">
+    </div>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -868,6 +999,7 @@
                     BANK: 'bank',
                     JOURNAL_TEXT: 'journal_text',
                     JOURNAL_IMAGES: 'journal_images',
+                    IMAGE_LIBRARY: 'image_library', // <-- NEW
                     JOURNAL_FAVOURITES: 'journal_favourites',
                     SETUPS_1: 'current_setups_1',
                     SETUPS_2: 'current_setups_2',
@@ -911,6 +1043,13 @@
                 completedTradesTbody: document.getElementById('completed-trades-tbody'),
                 assetSentimentContainer: document.getElementById('asset-sentiment-container'),
                 sentimentReceiptsTbody: document.getElementById('sentiment-receipts-tbody'),
+                // -- NEW: Image Library --
+                imageLibraryContainer: document.getElementById('image-library-container'),
+                libraryImageUpload: document.getElementById('library-image-upload'),
+                libraryUploadProgress: document.getElementById('library-upload-progress'),
+                imageModal: document.getElementById('image-modal'),
+                modalImageContent: document.getElementById('modal-image-content'),
+                modalClose: document.querySelector('.modal-close'),
                 // Journal & Setups
                 journalTab: document.getElementById('journal-tab'),
                 persistentNotesEl: document.getElementById('persistent-notes-entry'),
@@ -987,6 +1126,7 @@
                 bank: database.ref(CONFIG.DB_PATHS.BANK),
                 journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT),
                 journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES),
+                imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), // <-- NEW
                 favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES),
                 setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1),
                 setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2),
@@ -1045,9 +1185,6 @@
 
             // --- RENDERING FUNCTIONS ---
             
-            // =================================================================
-            // START: CORRECTED FUNCTION renderSentimentReceipts
-            // =================================================================
             function renderSentimentReceipts(receiptsData) {
                 const tbody = DOM.sentimentReceiptsTbody;
                 if (!tbody) return;
@@ -1073,14 +1210,9 @@
                         : '';
 
                     let displayTimestamp;
-                    // FIX: This function is now backward-compatible.
-                    // It checks if the timestamp is a number (the new, correct format).
                     if (typeof receipt.timestamp === 'number') {
-                        // If so, convert it to the viewer's local timezone.
                         displayTimestamp = new Date(receipt.timestamp).toLocaleString();
                     } else {
-                        // Otherwise, it's the old string format. Display it as-is
-                        // to prevent showing "Invalid Date" for old entries.
                         displayTimestamp = receipt.timestamp || '--';
                     }
 
@@ -1097,9 +1229,6 @@
 
                 tbody.innerHTML = rowsHtml;
             }
-            // =================================================================
-            // END: CORRECTED FUNCTION renderSentimentReceipts
-            // =================================================================
             
             function renderLiveTable(data) {
                 const trades = data || {};
@@ -1116,7 +1245,6 @@
                     .map(id => {
                         const trade = trades[id];
                         const noteText = trade.note || '';
-                        // --- NEW: FORMATTED P/L STRINGS ---
                         const profitString = `$${parseFloat(trade.expected_profit || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent || 0).toFixed(2)}%)`;
                         const lossString = `$${parseFloat(trade.expected_loss || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent || 0).toFixed(2)}%)`;
 
@@ -1162,13 +1290,38 @@
                                 <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
                                 <td>${totalFees.toFixed(2)}</td>
                                 <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
-<td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>                                <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
+                                <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>                                <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
                                 <td class="note-cell" title="${noteText}">${noteText}</td>
                                 ${masterButtonsHtml(id)}
                             </tr>`;
                     }).join('');
                 
                 DOM.completedTradesTbody.innerHTML = rowsHtml;
+            }
+
+            // --- NEW: Render Image Library ---
+            function renderImageLibrary(imagesData) {
+                const images = imagesData || {};
+                if (!DOM.imageLibraryContainer) return;
+
+                const deleteButtonHtml = (id, fileName) => (STATE.isMasterUser) ? `
+                    <button class="delete-library-image" title="Delete Image" data-id="${id}" data-filename="${fileName}">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg>
+                    </button>` : '';
+
+                const imagesHtml = Object.keys(images)
+                    .sort((a, b) => images[b].timestamp - images[a].timestamp)
+                    .map(id => {
+                        const imgData = images[id];
+                        if (!imgData?.url || !imgData?.fileName) return '';
+                        return `
+                            <div class="library-image-wrapper">
+                                ${deleteButtonHtml(id, imgData.fileName)}
+                                <img src="${imgData.url}" alt="Library Image" data-full-src="${imgData.url}">
+                            </div>`;
+                    }).join('');
+
+                DOM.imageLibraryContainer.innerHTML = imagesHtml;
             }
             
             function renderDateNavigation() {
@@ -1537,6 +1690,53 @@
                 });
             }
 
+            // --- NEW: Handle Library Image Upload ---
+      // THIS IS THE NEW, CORRECTED FUNCTION
+            // --- NEW: Handle Library Image Upload ---
+            function handleLibraryImageUpload(files) {
+                if (!STATE.isMasterUser || !files || files.length === 0) return;
+                
+                DOM.libraryUploadProgress.style.display = 'block';
+                
+                Array.from(files).forEach((file, index) => {
+                    if (!file.type.startsWith('image/')) return;
+                    
+                    const fileName = `${Date.now()}_${file.name}`;
+                    const storagePath = `image_library/${fileName}`;
+                    const fileRef = storage.ref(storagePath);
+
+                    // --- FIX: ADD METADATA TO THE UPLOAD ---
+                    // This is the "password" your Storage Rules are looking for.
+                    const metadata = { customMetadata: { 'owner': 'master' } };
+                    const uploadTask = fileRef.put(file, metadata);
+
+                    uploadTask.on('state_changed', 
+                        (snapshot) => {
+                            const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                            DOM.libraryUploadProgress.textContent = `Uploading ${index + 1}/${files.length}: ${progress}%`;
+                        },
+                        (error) => {
+                            console.error("Library Upload Failed:", error);
+                            DOM.libraryUploadProgress.textContent = `Upload Failed: ${error.code}`;
+                        },
+                        () => {
+                            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                                const imageData = {
+                                    url: downloadURL,
+                                    fileName: fileName,
+                                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                                };
+                                dbRefs.imageLibrary.push(imageData);
+                                if (index === files.length - 1) {
+                                    DOM.libraryUploadProgress.textContent = 'Upload Complete!';
+                                    setTimeout(() => { DOM.libraryUploadProgress.textContent = ''; }, 2000);
+                                }
+                            });
+                        }
+                    );
+                });
+            }
+
             function calculateNetResult(trade, exitPrice) {
                 const entry = parseFloat(trade.entry);
                 const posValue = parseFloat(trade.size);
@@ -1639,8 +1839,21 @@
                     if (e.target.closest('#completed-trades-tbody')) {
                         handleTradeAction(e);
                     }
+                    // NEW: Listener delegated to the container
+                    if (e.target.closest('#image-library-container')) {
+                        handleImageLibraryClick(e);
+                    }
                 });
                 
+                // --- NEW: Image Library Listeners ---
+                DOM.libraryImageUpload.addEventListener('change', (e) => handleLibraryImageUpload(e.target.files));
+                DOM.modalClose.addEventListener('click', () => DOM.imageModal.style.display = 'none');
+                DOM.imageModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'image-modal') {
+                        DOM.imageModal.style.display = 'none';
+                    }
+                });
+
                 [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => {
                     el.addEventListener('change', updateJournalView);
                 });
@@ -1745,33 +1958,20 @@
                     return alert('Please ensure all numeric fields are filled correctly.');
                 }
                 
-                // --- INPUT VALIDATION ---
                 if (trade.type === 'Long') {
-                    if (trade.target <= trade.entry) {
-                        return alert('Validation Error: For a Long trade, the Target must be higher than the Entry Price.');
-                    }
-                    if (trade.stoploss >= trade.entry) {
-                        return alert('Validation Error: For a Long trade, the Stop Loss must be lower than the Entry Price.');
-                    }
+                    if (trade.target <= trade.entry) { return alert('Validation Error: For a Long trade, the Target must be higher than the Entry Price.'); }
+                    if (trade.stoploss >= trade.entry) { return alert('Validation Error: For a Long trade, the Stop Loss must be lower than the Entry Price.'); }
                 } else { // Short
-                    if (trade.target >= trade.entry) {
-                        return alert('Validation Error: For a Short trade, the Target must be lower than the Entry Price.');
-                    }
-                    if (trade.stoploss <= trade.entry) {
-                        return alert('Validation Error: For a Short trade, the Stop Loss must be higher than the Entry Price.');
-                    }
+                    if (trade.target >= trade.entry) { return alert('Validation Error: For a Short trade, the Target must be lower than the Entry Price.'); }
+                    if (trade.stoploss <= trade.entry) { return alert('Validation Error: For a Short trade, the Stop Loss must be higher than the Entry Price.'); }
                 }
 
-                // --- FEE AND NET P/L CALCULATION ---
-
                 const positionQty = trade.size / trade.entry;
-
                 const entryFee = trade.size * FEE_RATE;
                 const exitValueAtTarget = (trade.target / trade.entry) * trade.size;
                 const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
                 const exitValueAtStop = (trade.stoploss / trade.entry) * trade.size;
                 const exitFeeAtStop = exitValueAtStop * FEE_RATE;
-
                 const totalFeeAtTarget = entryFee + exitFeeAtTarget;
                 const totalFeeAtStop = entryFee + exitFeeAtStop;
 
@@ -1787,8 +1987,6 @@
                 trade.estimated_total_fee = totalFeeAtTarget;
                 trade.expected_profit = potentialProfit - totalFeeAtTarget;
                 trade.expected_loss = potentialLoss + totalFeeAtStop; 
-
-                // --- NEW: CALCULATE AND STORE PERCENTAGES ---
                 trade.expected_profit_percent = (trade.expected_profit / trade.size) * 100;
                 trade.expected_loss_percent = (trade.expected_loss / trade.size) * 100;
 
@@ -1797,9 +1995,6 @@
                     .catch(error => alert(`Error adding trade: ${error.message}`));
             }
 
-            // =================================================================
-            // START: CORRECTED FUNCTION handleSentimentLog
-            // =================================================================
             function handleSentimentLog(e) {
                 const button = e.target.closest('.sentiment-buttons button');
                 if (!button) return;
@@ -1810,8 +2005,6 @@
                 const receipt = {
                     asset: asset,
                     sentiment: sentiment,
-                    // FIX: Always use the Firebase server's universal timestamp.
-                    // This ensures new entries are always stored correctly.
                     timestamp: firebase.database.ServerValue.TIMESTAMP, 
                     viewerId: getViewerId()
                 };
@@ -1822,9 +2015,6 @@
                         alert("Could not log your sentiment. Please try again.");
                     });
             }
-            // =================================================================
-            // END: CORRECTED FUNCTION handleSentimentLog
-            // =================================================================
 
             function handleSentimentDelete(e) {
                 const button = e.target;
@@ -1840,10 +2030,6 @@
                 }
             }
 
-            /**
-             * NEW: Handles adding or editing a note for a sentiment log entry.
-             * @param {Event} e The click event.
-             */
             function handleSentimentNoteEdit(e) {
                 const button = e.target;
                 const receiptId = button.dataset.id;
@@ -1854,7 +2040,6 @@
                     const currentNote = snapshot.val() || '';
                     const newNote = prompt('Enter a note for this entry:', currentNote);
                     
-                    // The prompt returns null if the user hits "Cancel"
                     if (newNote !== null) {
                         receiptRef.update({ note: newNote })
                             .catch(error => {
@@ -1863,6 +2048,33 @@
                             });
                     }
                 });
+            }
+
+            // --- NEW: Handles Clicks in the Image Library ---
+            function handleImageLibraryClick(e) {
+                const deleteBtn = e.target.closest('.delete-library-image');
+                const img = e.target.closest('img');
+
+                if (deleteBtn && STATE.isMasterUser) {
+                    const { id, filename } = deleteBtn.dataset;
+                    if (confirm(`Delete this image from the library?\n\n${filename}`)) {
+                        const storagePath = `image_library/${filename}`;
+                        
+                        storage.ref(storagePath).delete()
+                            .then(() => dbRefs.imageLibrary.child(id).remove())
+                            .catch((err) => {
+                                console.warn("Storage deletion failed, maybe already gone. Deleting DB entry.", err.code);
+                                if (err.code === 'storage/object-not-found') {
+                                    dbRefs.imageLibrary.child(id).remove();
+                                } else {
+                                    alert('Error deleting image.');
+                                }
+                            });
+                    }
+                } else if (img) {
+                    DOM.modalImageContent.src = img.dataset.fullSrc;
+                    DOM.imageModal.style.display = 'flex';
+                }
             }
 
             function handleTradeAction(e) {
@@ -1965,6 +2177,11 @@
                     STATE.journalImages = s.val() || {};
                     if (DOM.journalTab.classList.contains('active')) updateJournalView();
                     if (DOM.snapshotTab.classList.contains('active')) renderSnapshotView();
+                });
+
+                // --- NEW: Subscribe to Image Library Data ---
+                dbRefs.imageLibrary.on('value', (s) => {
+                    renderImageLibrary(s.val());
                 });
                 
                 dbRefs.favourites.on('value', (s) => {
