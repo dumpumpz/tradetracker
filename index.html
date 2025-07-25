@@ -1691,6 +1691,7 @@
             }
 
             // --- NEW: Handle Library Image Upload ---
+            // --- NEW: Handle Library Image Upload ---
             function handleLibraryImageUpload(files) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
                 
@@ -1702,7 +1703,11 @@
                     const fileName = `${Date.now()}_${file.name}`;
                     const storagePath = `image_library/${fileName}`;
                     const fileRef = storage.ref(storagePath);
-                    const uploadTask = fileRef.put(file);
+
+                    // --- FIX: ADD METADATA TO THE UPLOAD ---
+                    // This is the "password" your Storage Rules are looking for.
+                    const metadata = { customMetadata: { 'owner': 'master' } };
+                    const uploadTask = fileRef.put(file, metadata);
 
                     uploadTask.on('state_changed', 
                         (snapshot) => {
@@ -1730,7 +1735,6 @@
                     );
                 });
             }
-
             function calculateNetResult(trade, exitPrice) {
                 const entry = parseFloat(trade.entry);
                 const posValue = parseFloat(trade.size);
