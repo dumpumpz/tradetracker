@@ -637,6 +637,68 @@
             #sr-metadata-container { flex-direction: column; }
             .theme-switch-wrapper { top: 8px; right: 10px; }
         }
+
+                /* --- Add these new rules to your <style> block --- */
+
+        .library-image-wrapper {
+            /* Add this to make room for the caption */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .library-image-wrapper img {
+            /* Make image fill the available space */
+            flex-grow: 1;
+            min-height: 0; /* Important for flexbox shrinking */
+        }
+        
+        .library-image-caption {
+            font-size: 12px;
+            color: var(--subtle-text);
+            padding: 6px 4px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .edit-caption-btn {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: rgba(0, 123, 255, 0.85); /* Blue */
+            border: 1px solid rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.2s ease-in-out;
+            opacity: 0;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .library-image-wrapper:hover .edit-caption-btn {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .edit-caption-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: white;
+        }
+
+        #modal-caption {
+            text-align: center;
+            color: #ccc;
+            padding: 15px 0;
+            font-size: 18px;
+            line-height: 1.4;
+            max-width: 80vw;
+        }
     </style>
 </head>
 <body>
@@ -973,13 +1035,14 @@
     <div id="image-modal" class="modal-overlay" style="display: none;">
       <span class="modal-close">&times;</span>
       <img class="modal-content" id="modal-image-content">
+              <div id="modal-caption"></div>
     </div>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
-    <script>
+      <script>
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- CONFIGURATION ---
@@ -999,7 +1062,7 @@
                     BANK: 'bank',
                     JOURNAL_TEXT: 'journal_text',
                     JOURNAL_IMAGES: 'journal_images',
-                    IMAGE_LIBRARY: 'image_library', // <-- NEW
+                    IMAGE_LIBRARY: 'image_library',
                     JOURNAL_FAVOURITES: 'journal_favourites',
                     SETUPS_1: 'current_setups_1',
                     SETUPS_2: 'current_setups_2',
@@ -1034,7 +1097,7 @@
                 statBalance: document.getElementById('stat-balance'),
                 statBalanceAud: document.getElementById('stat-balance-aud'),
                 statTotalPl: document.getElementById('stat-total-pl'),
-                statTotalPlAud: document.getElementById('stat-total-pl-aud'), // Added
+                statTotalPlAud: document.getElementById('stat-total-pl-aud'),
                 statCompletedTrades: document.getElementById('stat-completed-trades'),
                 statOpenTrades: document.getElementById('stat-open-trades'),
                 // Trade Tracker
@@ -1043,13 +1106,14 @@
                 completedTradesTbody: document.getElementById('completed-trades-tbody'),
                 assetSentimentContainer: document.getElementById('asset-sentiment-container'),
                 sentimentReceiptsTbody: document.getElementById('sentiment-receipts-tbody'),
-                // -- NEW: Image Library --
+                // Image Library
                 imageLibraryContainer: document.getElementById('image-library-container'),
                 libraryImageUpload: document.getElementById('library-image-upload'),
                 libraryUploadProgress: document.getElementById('library-upload-progress'),
                 imageModal: document.getElementById('image-modal'),
                 modalImageContent: document.getElementById('modal-image-content'),
                 modalClose: document.querySelector('.modal-close'),
+                modalCaption: document.getElementById('modal-caption'),
                 // Journal & Setups
                 journalTab: document.getElementById('journal-tab'),
                 persistentNotesEl: document.getElementById('persistent-notes-entry'),
@@ -1126,7 +1190,7 @@
                 bank: database.ref(CONFIG.DB_PATHS.BANK),
                 journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT),
                 journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES),
-                imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), // <-- NEW
+                imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY),
                 favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES),
                 setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1),
                 setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2),
@@ -1146,7 +1210,6 @@
             
             function getViewerId() {
                 if (STATE.viewerId) return STATE.viewerId;
-                
                 let id = localStorage.getItem('viewerId');
                 if (!id) {
                     id = `viewer_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
@@ -1184,7 +1247,6 @@
             }
 
             // --- RENDERING FUNCTIONS ---
-            
             function renderSentimentReceipts(receiptsData) {
                 const tbody = DOM.sentimentReceiptsTbody;
                 if (!tbody) return;
@@ -1266,6 +1328,7 @@
                 
                 DOM.tradesTbody.innerHTML = rowsHtml;
             }
+
             function renderCompletedTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
@@ -1299,25 +1362,30 @@
                 DOM.completedTradesTbody.innerHTML = rowsHtml;
             }
 
-            // --- NEW: Render Image Library ---
             function renderImageLibrary(imagesData) {
                 const images = imagesData || {};
                 if (!DOM.imageLibraryContainer) return;
 
-                const deleteButtonHtml = (id, fileName) => (STATE.isMasterUser) ? `
+                const masterButtonsHtml = (id, fileName) => (STATE.isMasterUser) ? `
                     <button class="delete-library-image" title="Delete Image" data-id="${id}" data-filename="${fileName}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg>
+                    </button>
+                    <button class="edit-caption-btn" title="Edit Caption" data-id="${id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M471.6 21.7c-21.9-21.9-57.3-21.9-79.2 0L362.3 51.7l97.9 97.9 30.1-30.1c21.9-21.9 21.9-57.3 0-79.2L471.6 21.7zm-299.2 220c-6.1 6.1-10.8 13.6-13.5 21.9l-29.6 88.8c-2.9 8.6-.6 18.1 5.8 24.6s15.9 8.7 24.6 5.8l88.8-29.6c8.2-2.7 15.7-7.4 21.9-13.5L437.7 172.3 339.7 74.3 172.4 241.7zM96 64C43 64 0 107 0 160V416c0 53 43 96 96 96H352c53 0 96-43 96-96V320c0-17.7-14.3-32-32-32s-32 14.3-32 32v96c0 17.7-14.3 32-32 32H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h96c17.7 0 32-14.3 32-32s-14.3-32-32-32H96z"/></svg>
                     </button>` : '';
 
                 const imagesHtml = Object.keys(images)
                     .sort((a, b) => images[b].timestamp - images[a].timestamp)
                     .map(id => {
                         const imgData = images[id];
-                        if (!imgData?.url || !imgData?.fileName) return '';
+                        if (!imgData?.url) return '';
                         return `
                             <div class="library-image-wrapper">
-                                ${deleteButtonHtml(id, imgData.fileName)}
-                                <img src="${imgData.url}" alt="Library Image" data-full-src="${imgData.url}">
+                                <div style="position: relative; flex-grow: 1;">
+                                    ${masterButtonsHtml(id, imgData.fileName)}
+                                    <img src="${imgData.url}" alt="Library Image" data-full-src="${imgData.url}" data-caption="${imgData.caption || ''}">
+                                </div>
+                                <div class="library-image-caption" title="${imgData.caption || ''}">${imgData.caption || ' '}</div>
                             </div>`;
                     }).join('');
 
@@ -1690,9 +1758,6 @@
                 });
             }
 
-            // --- NEW: Handle Library Image Upload ---
-      // THIS IS THE NEW, CORRECTED FUNCTION
-            // --- NEW: Handle Library Image Upload ---
             function handleLibraryImageUpload(files) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
                 
@@ -1704,9 +1769,7 @@
                     const fileName = `${Date.now()}_${file.name}`;
                     const storagePath = `image_library/${fileName}`;
                     const fileRef = storage.ref(storagePath);
-
-                    // --- FIX: ADD METADATA TO THE UPLOAD ---
-                    // This is the "password" your Storage Rules are looking for.
+                    
                     const metadata = { customMetadata: { 'owner': 'master' } };
                     const uploadTask = fileRef.put(file, metadata);
 
@@ -1790,7 +1853,6 @@
             }
 
             // --- EVENT LISTENERS ---
-            
             function setupEventListeners() {
                 DOM.themeToggle.addEventListener('change', (e) => {
                     const theme = e.target.checked ? 'dark' : 'light';
@@ -1839,13 +1901,11 @@
                     if (e.target.closest('#completed-trades-tbody')) {
                         handleTradeAction(e);
                     }
-                    // NEW: Listener delegated to the container
                     if (e.target.closest('#image-library-container')) {
                         handleImageLibraryClick(e);
                     }
                 });
                 
-                // --- NEW: Image Library Listeners ---
                 DOM.libraryImageUpload.addEventListener('change', (e) => handleLibraryImageUpload(e.target.files));
                 DOM.modalClose.addEventListener('click', () => DOM.imageModal.style.display = 'none');
                 DOM.imageModal.addEventListener('click', (e) => {
@@ -2050,16 +2110,15 @@
                 });
             }
 
-            // --- NEW: Handles Clicks in the Image Library ---
             function handleImageLibraryClick(e) {
                 const deleteBtn = e.target.closest('.delete-library-image');
+                const editBtn = e.target.closest('.edit-caption-btn');
                 const img = e.target.closest('img');
 
                 if (deleteBtn && STATE.isMasterUser) {
                     const { id, filename } = deleteBtn.dataset;
                     if (confirm(`Delete this image from the library?\n\n${filename}`)) {
                         const storagePath = `image_library/${filename}`;
-                        
                         storage.ref(storagePath).delete()
                             .then(() => dbRefs.imageLibrary.child(id).remove())
                             .catch((err) => {
@@ -2071,10 +2130,32 @@
                                 }
                             });
                     }
+                } else if (editBtn && STATE.isMasterUser) {
+                    handleEditCaption(editBtn.dataset.id);
                 } else if (img) {
                     DOM.modalImageContent.src = img.dataset.fullSrc;
+                    DOM.modalCaption.textContent = img.dataset.caption || '';
                     DOM.imageModal.style.display = 'flex';
                 }
+            }
+            
+            function handleEditCaption(id) {
+                if (!id || !STATE.isMasterUser) return;
+                
+                const imageRef = dbRefs.imageLibrary.child(id);
+                
+                imageRef.child('caption').once('value', snapshot => {
+                    const currentCaption = snapshot.val() || '';
+                    const newCaption = prompt('Enter image caption:', currentCaption);
+
+                    if (newCaption !== null) {
+                        imageRef.update({ caption: newCaption.trim() })
+                            .catch(error => {
+                                console.error('Failed to update caption:', error);
+                                alert('Could not save the caption. Please try again.');
+                            });
+                    }
+                });
             }
 
             function handleTradeAction(e) {
@@ -2137,7 +2218,6 @@
             }
 
             // --- FIREBASE DATA SUBSCRIPTIONS ---
-            
             function subscribeToData() {
                 dbRefs.trades.on('value', snapshot => {
                     const liveTrades = snapshot.val() || {};
@@ -2179,7 +2259,6 @@
                     if (DOM.snapshotTab.classList.contains('active')) renderSnapshotView();
                 });
 
-                // --- NEW: Subscribe to Image Library Data ---
                 dbRefs.imageLibrary.on('value', (s) => {
                     renderImageLibrary(s.val());
                 });
@@ -2212,7 +2291,6 @@
             }
 
             // --- INITIALIZATION ---
-
             function checkMasterMode() {
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.get('master') === 'true') {
