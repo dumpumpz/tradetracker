@@ -33,6 +33,19 @@ PIVOT_SOURCE_WEIGHTS = {
     'Close': 1.5
 }
 
+### NEW: LOOKBACK PERIOD WEIGHTING SYSTEM ###
+# Gives higher weight to pivots found in longer historical analyses
+LOOKBACK_DAY_WEIGHTS = {
+    60: 2.5,
+    30: 2.0,
+    21: 1.8,
+    14: 1.5,
+    7:  1.2,
+    3:  1.0,
+    2:  1.0
+}
+
+
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -154,6 +167,8 @@ def generate_pivots_for_timeframe(symbol, timeframe, lookback_days):
     }
 
     timeframe_weight = TIMEFRAME_WEIGHTS.get(timeframe, 1.0)
+    ### NEW: Get the weight for the current lookback period ###
+    lookback_weight = LOOKBACK_DAY_WEIGHTS.get(lookback_days, 1.0)
 
     for window in PIVOT_WINDOWS:
         for pivot_name, (
@@ -161,14 +176,16 @@ def generate_pivots_for_timeframe(symbol, timeframe, lookback_days):
             source_weight = PIVOT_SOURCE_WEIGHTS.get(source, 1.0)
             for timestamp, price in find_pivots_from_series(series, window,
                                                             is_high):
-                weighted_strength = window * timeframe_weight * source_weight
+                ### MODIFIED: Add lookback_weight to the strength calculation ###
+                weighted_strength = window * timeframe_weight * source_weight * lookback_weight
                 all_pivots_list.append({
                     'Timestamp': timestamp,
                     'Price': price,
                     'Strength': weighted_strength,
                     'Type': type_str,
                     'Source': source,
-                    'Timeframe': timeframe
+                    'Timeframe': timeframe,
+                    'LookbackDays': lookback_days # Optional: add for debugging/auditing
                 })
     return pd.DataFrame(all_pivots_list)
 
