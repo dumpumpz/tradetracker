@@ -850,8 +850,8 @@
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <!-- Added Target column -->
-                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Target</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
+                        <!-- FIX: Added Position Value ($) header -->
+                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Position Value ($)</th><th>Target</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
                     </thead>
                     <tbody id="completed-trades-tbody"></tbody>
                 </table>
@@ -1382,16 +1382,19 @@
                         const resultColor = trade.net_result >= 0 ? '#28a745' : '#dc3545';
                         const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                         const noteText = trade.note || '';
+                        // FIX: Added Position Value cell
                         return `
                             <tr>
                                 <td>${trade.symbol}</td>
                                 <td>${trade.type}</td>
                                 <td>${parseFloat(trade.entry).toFixed(2)}</td>
+                                <td>${trade.size ? parseFloat(trade.size).toFixed(2) : '--'}</td>
                                 <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
                                 <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
                                 <td>${totalFees.toFixed(2)}</td>
                                 <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
-                                <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>                                <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
+                                <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
+                                <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
                                 <td class="note-cell" title="${noteText}">${noteText}</td>
                                 ${masterButtonsHtml(id)}
                             </tr>`;
