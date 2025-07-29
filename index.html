@@ -573,7 +573,7 @@
             fill: white;
         }
 
-        /* --- NEW: Image Modal Styles --- */
+        /* --- NEW: Image Modal Styles (CORRECTED) --- */
         .modal-overlay {
             position: fixed;
             z-index: 2000;
@@ -584,6 +584,7 @@
             overflow: auto;
             background-color: rgba(0,0,0,0.85);
             display: flex;
+            flex-direction: column; /* THIS LINE IS THE FIX */
             justify-content: center;
             align-items: center;
             animation-name: fadeIn;
@@ -593,7 +594,7 @@
             margin: auto;
             display: block;
             max-width: 90vw;
-            max-height: 90vh;
+            max-height: 85vh; /* Adjusted slightly to make more room for caption */
             animation-name: zoomIn;
             animation-duration: 0.4s;
         }
@@ -638,18 +639,14 @@
             .theme-switch-wrapper { top: 8px; right: 10px; }
         }
 
-                /* --- Add these new rules to your <style> block --- */
-
         .library-image-wrapper {
-            /* Add this to make room for the caption */
             display: flex;
             flex-direction: column;
         }
 
         .library-image-wrapper img {
-            /* Make image fill the available space */
             flex-grow: 1;
-            min-height: 0; /* Important for flexbox shrinking */
+            min-height: 0; 
         }
         
         .library-image-caption {
@@ -664,12 +661,12 @@
 
        .edit-caption-btn {
             position: absolute;
-            top: 8px;   /* MOVED to top */
-            left: 8px;  /* MOVED to left */
+            top: 8px;
+            left: 8px;
             width: 28px;
             height: 28px;
             border-radius: 50%;
-            background-color: rgba(0, 123, 255, 0.85); /* Blue */
+            background-color: rgba(0, 123, 255, 0.85);
             border: 1px solid rgba(255,255,255,0.4);
             display: flex;
             align-items: center;
@@ -698,16 +695,8 @@
             font-size: 18px;
             line-height: 1.4;
             max-width: 80vw;
+            word-wrap: break-word; /* Ensure long captions wrap */
         }
-
-
-
-
-
-
-
-
-                /* --- Replace the old rules with these corrected ones --- */
 
         .library-image-wrapper {
             position: relative;
@@ -715,7 +704,6 @@
             padding: 5px;
             background: var(--container-bg);
             border-radius: 4px;
-            /* Adjusting aspect ratio to be slightly taller to better accommodate captions */
             aspect-ratio: 4 / 3; 
             overflow: hidden;
             display: flex;
@@ -724,12 +712,10 @@
 
         .library-image-caption {
             font-size: 12px;
-            line-height: 1.4; /* Improves readability for wrapped text */
+            line-height: 1.4;
             color: var(--subtle-text);
             padding: 4px;
             text-align: center;
-            /* REMOVED white-space: nowrap to allow wrapping */
-            /* The parent flex container handles the rest */
         }
 
         .edit-caption-btn {
@@ -1437,7 +1423,7 @@
                                     ${masterButtonsHtml(id, imgData.fileName)}
                                     <img src="${imgData.url}" alt="Library Image" data-full-src="${imgData.url}" data-caption="${imgData.caption || ''}">
                                 </div>
-                                <div class="library-image-caption" title="${imgData.caption || ''}">${imgData.caption || ' '}</div>
+                                <div class="library-image-caption" title="${imgData.caption || ''}">${imgData.caption || ' '}</div>
                             </div>`;
                     }).join('');
 
