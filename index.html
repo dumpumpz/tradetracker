@@ -369,8 +369,8 @@
             box-shadow: 0 0 5px var(--shadow-color);
         }
         
-        /* NEW: Add cursor for clickable color cells for master user */
-        .setups-table td.color-cell[contenteditable="true"] {
+        /* Add cursor for clickable color cells for master user */
+        .setups-table td.color-cell[contenteditable="false"] {
             cursor: pointer;
         }
 
@@ -2316,14 +2316,6 @@
 
                 cell.dataset.color = newColor;
                 cell.style.backgroundColor = colorMap[newColor];
-
-                // Auto-save the change
-                const table = cell.closest('.setups-table');
-                if (table.id === 'current-setups-table-1') {
-                    saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1);
-                } else if (table.id === 'current-setups-table-2') {
-                    saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2);
-                }
             }
 
 
@@ -2418,8 +2410,10 @@
                         DOM.journalEntryEl.readOnly = false;
                         DOM.persistentNotesEl.readOnly = false;
                         document.querySelectorAll('.setups-table td').forEach(cell => {
-                            // Don't make the color cell content editable, just the others.
-                            if (!cell.classList.contains('color-cell')) {
+                            // The color cell is not editable, but it is clickable for master user.
+                            if (cell.classList.contains('color-cell')) {
+                                cell.setAttribute('contenteditable', 'false');
+                            } else {
                                 cell.setAttribute('contenteditable', 'true');
                             }
                         });
