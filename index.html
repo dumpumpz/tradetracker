@@ -508,6 +508,28 @@
         .edit-sentiment-note-btn:hover {
             background-color: var(--link-color);
         }
+        
+        /* NEW: History Toggle Button Style */
+        .toggle-history-btn {
+            font-size: 12px;
+            padding: 4px 10px;
+            margin: 0 0 0 15px; /* Removed top margin */
+            cursor: pointer;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--subtle-text);
+            border-radius: 4px;
+            align-self: center; /* Vertically align with h2 in flex container */
+            display: none; /* Hidden by default, shown by JS if needed */
+        }
+        .toggle-history-btn:hover {
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
+        .section-header h2 {
+            margin-bottom: 0; /* Ensures h2 and button align well */
+        }
+
 
         /* Image Library Styles */
         #image-library-container {
@@ -778,7 +800,10 @@
                 </div>
             </div>
             
-            <div class="section-header"><h2>Sentiment Log</h2></div>
+            <div class="section-header">
+                <h2>Sentiment Log</h2>
+                <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
+            </div>
             <div class="table-wrapper">
                 <table id="sentiment-receipts-table">
                     <thead>
@@ -818,7 +843,10 @@
                     <tbody id="trades-tbody"></tbody>
                 </table>
             </div>
-            <div class="section-header"><h2>Completed Trades</h2></div>
+            <div class="section-header">
+                <h2>Completed Trades</h2>
+                <button id="toggle-old-trades" class="toggle-history-btn">Show All</button>
+            </div>
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -1256,12 +1284,48 @@
                     DOM.supportLevelsContainer.parentElement.innerHTML = '<p style="color: red; text-align: center;">Error loading S/R data.</p>';
                 }
             }
+            
+            // --- HISTORY TOGGLE LOGIC ---
+            function updateToggleButtonsVisibility() {
+                const sentimentBody = document.getElementById('sentiment-receipts-tbody');
+                const sentimentButton = document.getElementById('toggle-old-sentiments');
+                if (sentimentBody && sentimentButton) {
+                    const hasHistorical = sentimentBody.querySelector('.historical-entry');
+                    sentimentButton.style.display = hasHistorical ? 'inline-block' : 'none';
+                }
+
+                const tradesBody = document.getElementById('completed-trades-tbody');
+                const tradesButton = document.getElementById('toggle-old-trades');
+                if (tradesBody && tradesButton) {
+                    const hasHistorical = tradesBody.querySelector('.historical-entry');
+                    tradesButton.style.display = hasHistorical ? 'inline-block' : 'none';
+                }
+            }
+
+            function toggleHistoricalRows(tbodyId, button) {
+                const tbody = document.getElementById(tbodyId);
+                if (!tbody) return;
+
+                const historicalRows = tbody.querySelectorAll('.historical-entry');
+                if (historicalRows.length === 0) return;
+
+                const isCurrentlyHidden = historicalRows[0].style.display === 'none';
+                const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
+                
+                historicalRows.forEach(row => {
+                    row.style.display = displayStyle;
+                });
+
+                button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
+            }
+
 
             // --- RENDERING FUNCTIONS ---
             function renderSentimentReceipts(receiptsData) {
                 const tbody = DOM.sentimentReceiptsTbody;
                 if (!tbody) return;
 
+                const todayStr = getYYYYMMDD(new Date());
                 const currentViewerId = getViewerId();
                 const receipts = receiptsData || {};
                 const receiptIds = Object.keys(receipts);
@@ -1282,15 +1346,19 @@
                            <button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">×</button>`
                         : '';
 
-                    let displayTimestamp;
+                    let displayTimestamp, receiptDateStr, isHistorical;
                     if (typeof receipt.timestamp === 'number') {
-                        displayTimestamp = new Date(receipt.timestamp).toLocaleString();
+                        const receiptDate = new Date(receipt.timestamp);
+                        displayTimestamp = receiptDate.toLocaleString();
+                        receiptDateStr = getYYYYMMDD(receiptDate);
+                        isHistorical = receiptDateStr !== todayStr;
                     } else {
                         displayTimestamp = receipt.timestamp || '--';
+                        isHistorical = true; // Assume old if timestamp is malformed
                     }
 
                     return `
-                        <tr>
+                        <tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${receiptDateStr || ''}">
                             <td>${receipt.asset || '--'}</td>
                             <td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td>
                             <td class="sentiment-note-cell">${receipt.note || ''}</td>
@@ -1301,6 +1369,7 @@
                 }).join('');
 
                 tbody.innerHTML = rowsHtml;
+                updateToggleButtonsVisibility();
             }
             
             function renderLiveTable(data) {
@@ -1344,6 +1413,8 @@
 
             function renderCompletedTable(data) {
                 const trades = data || {};
+                const todayStr = getYYYYMMDD(new Date());
+
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
                     <td class="action-buttons">
                         <button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button>
@@ -1352,14 +1423,24 @@
                     </td>` : '';
 
                 const rowsHtml = Object.keys(trades)
-                    .sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].date))
+                    .sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date))
                     .map(id => {
                         const trade = trades[id];
                         const resultColor = trade.net_result >= 0 ? '#28a745' : '#dc3545';
                         const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                         const noteText = trade.note || '';
+
+                        let closedDateStr, isHistorical;
+                        if (trade.closed_date) {
+                            const closedDate = new Date(trade.closed_date);
+                            closedDateStr = getYYYYMMDD(closedDate);
+                            isHistorical = closedDateStr !== todayStr;
+                        } else {
+                            isHistorical = true; // Assume old if no close date
+                        }
+
                         return `
-                            <tr>
+                            <tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedDateStr || ''}">
                                 <td>${trade.symbol}</td>
                                 <td>${trade.type}</td>
                                 <td>${parseFloat(trade.entry).toFixed(4)}</td>
@@ -1376,6 +1457,7 @@
                     }).join('');
                 
                 DOM.completedTradesTbody.innerHTML = rowsHtml;
+                updateToggleButtonsVisibility();
             }
 
             function renderImageLibrary(imagesData) {
@@ -1922,6 +2004,12 @@
                     }
                     if (e.target.closest('#image-library-container')) {
                         handleImageLibraryClick(e);
+                    }
+                    if (e.target.id === 'toggle-old-sentiments') {
+                        toggleHistoricalRows('sentiment-receipts-tbody', e.target);
+                    }
+                    if (e.target.id === 'toggle-old-trades') {
+                        toggleHistoricalRows('completed-trades-tbody', e.target);
                     }
                 });
                 
