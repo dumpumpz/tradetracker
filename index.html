@@ -478,7 +478,7 @@
         }
 
         .sentiment-note-cell {
-            white-space: normal; /* Allow text to wrap */
+            white-space: normal;
             max-width: 250px;
             font-size: 13px;
         }
@@ -512,7 +512,7 @@
             background-color: var(--link-color);
         }
 
-        /* --- NEW: Image Library Styles --- */
+        /* --- Image Library Styles --- */
         #image-library-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -531,6 +531,8 @@
             border-radius: 4px;
             aspect-ratio: 16 / 9;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         .library-image-wrapper img {
             width: 100%;
@@ -572,8 +574,43 @@
             height: 14px;
             fill: white;
         }
-
-        /* --- NEW: Image Modal Styles --- */
+       .edit-caption-btn {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: rgba(0, 123, 255, 0.85);
+            border: 1px solid rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.2s ease-in-out;
+            opacity: 0;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .library-image-wrapper:hover .edit-caption-btn {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .edit-caption-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: white;
+        }
+        .library-image-caption {
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--subtle-text);
+            padding: 4px;
+            text-align: center;
+        }
+        
+        /* --- Image Modal Styles --- */
         .modal-overlay {
             position: fixed;
             z-index: 2000;
@@ -622,6 +659,30 @@
             text-decoration: none;
             cursor: pointer;
         }
+        #modal-caption {
+            text-align: center;
+            color: #ccc;
+            padding: 15px 0;
+            font-size: 18px;
+            line-height: 1.4;
+            max-width: 80vw;
+            word-wrap: break-word; 
+        }
+
+        /* --- Styles for Completed Trade Merge Tool --- */
+        .in-merge-mode #completed-trades-tbody tr {
+            cursor: crosshair;
+        }
+        .in-merge-mode #completed-trades-tbody tr:hover {
+            background-color: var(--header-bg);
+        }
+        #completed-trades-tbody tr.is-merge-base {
+            background-color: var(--purple-bg) !important;
+            color: var(--text-color);
+        }
+        #completed-trades-tbody tr.is-merge-base td {
+            font-weight: bold;
+        }
 
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
@@ -637,105 +698,6 @@
             #sr-levels-container { grid-template-columns: 1fr; }
             #sr-metadata-container { flex-direction: column; }
             .theme-switch-wrapper { top: 8px; right: 10px; }
-        }
-
-        .library-image-wrapper {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .library-image-wrapper img {
-            flex-grow: 1;
-            min-height: 0; 
-        }
-        
-        .library-image-caption {
-            font-size: 12px;
-            color: var(--subtle-text);
-            padding: 6px 4px;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-       .edit-caption-btn {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background-color: rgba(0, 123, 255, 0.85);
-            border: 1px solid rgba(255,255,255,0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-            transition: all 0.2s ease-in-out;
-            opacity: 0;
-            padding: 0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        }
-        .library-image-wrapper:hover .edit-caption-btn {
-            opacity: 1;
-            transform: scale(1.1);
-        }
-        .edit-caption-btn svg {
-            width: 14px;
-            height: 14px;
-            fill: white;
-        }
-
-        #modal-caption {
-            text-align: center;
-            color: #ccc;
-            padding: 15px 0;
-            font-size: 18px;
-            line-height: 1.4;
-            max-width: 80vw;
-            word-wrap: break-word; 
-        }
-
-        .library-image-wrapper {
-            position: relative;
-            border: 1px solid var(--border-color);
-            padding: 5px;
-            background: var(--container-bg);
-            border-radius: 4px;
-            aspect-ratio: 4 / 3; 
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .library-image-caption {
-            font-size: 12px;
-            line-height: 1.4;
-            color: var(--subtle-text);
-            padding: 4px;
-            text-align: center;
-        }
-
-        .edit-caption-btn {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background-color: rgba(0, 123, 255, 0.85); 
-            border: 1px solid rgba(255,255,255,0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-            transition: all 0.2s ease-in-out;
-            opacity: 0;
-            padding: 0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
     </style>
 </head>
@@ -835,7 +797,7 @@
                 </table>
             </div>
 
-            <!-- NEW IMAGE LIBRARY SECTION -->
+            <!-- IMAGE LIBRARY SECTION -->
             <div id="image-library-section">
                 <div class="section-header">
                     <h2>Chart Library</h2>
@@ -863,7 +825,6 @@
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <!-- Added Target column -->
                         <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Target</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
                     </thead>
                     <tbody id="completed-trades-tbody"></tbody>
@@ -1228,6 +1189,8 @@
                 centerDate: null,
                 journalSaveTimer: null,
                 notesSaveTimer: null,
+                isMerging: false,
+                mergeBaseTradeId: null,
             };
 
             // --- INITIALIZE FIREBASE ---
@@ -1386,6 +1349,7 @@
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
                     <td class="action-buttons">
+                        <button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button>
                         <button class="note-btn-completed" data-id="${id}">Edit</button>
                         <button class="delete-btn-completed" data-id="${id}">Delete</button>
                     </td>` : '';
@@ -2287,21 +2251,38 @@
 
             function handleTradeAction(e) {
                 if (!STATE.isMasterUser) return;
+
+                if (STATE.isMerging) {
+                    const targetRow = e.target.closest('tr');
+                    if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody' && !e.target.closest('button')) {
+                        const absorbedTradeId = targetRow.querySelector('.action-buttons button')?.dataset.id;
+                        if (absorbedTradeId) {
+                            executeMerge(STATE.mergeBaseTradeId, absorbedTradeId);
+                        }
+                        return;
+                    }
+                }
+
                 const button = e.target.closest('button');
                 if (!button) return;
                 
                 const { id } = button.dataset;
-                const tradeRef = button.closest('tbody').id === 'completed-trades-tbody'
-                    ? dbRefs.completedTrades.child(id) 
-                    : dbRefs.trades.child(id);
+                const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
+                const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
 
                 if (button.matches('.win-btn')) completeTrade(id, 'win');
                 else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
                 else if (button.matches('.add-to-position-btn')) {
                     handleAddStaggeredEntry(id);
+                } 
+                else if (button.matches('.merge-btn-completed')) {
+                    initiateMerge(id);
                 }
                 else if (button.matches('.delete-btn, .delete-btn-completed')) {
-                    if (confirm('Are you sure you want to delete this trade?')) tradeRef.remove();
+                    if (confirm('Are you sure you want to delete this trade?')) {
+                        resetMergeState();
+                        tradeRef.remove();
+                    }
                 } 
                 else if (button.matches('.note-btn, .note-btn-completed')) {
                     tradeRef.child('note').once('value', snapshot => {
@@ -2345,6 +2326,103 @@
                     if (!currentText) return alert('Cannot pin an empty note.');
                     dbFavouriteRef.set(currentText);
                 }
+            }
+
+            function resetMergeState() {
+                STATE.isMerging = false;
+                STATE.mergeBaseTradeId = null;
+                document.body.classList.remove('in-merge-mode');
+                document.querySelectorAll('#completed-trades-tbody tr.is-merge-base').forEach(row => {
+                    row.classList.remove('is-merge-base');
+                });
+            }
+
+            function initiateMerge(baseTradeId) {
+                if (STATE.isMerging && STATE.mergeBaseTradeId === baseTradeId) {
+                    resetMergeState();
+                    alert('Merge cancelled.');
+                    return;
+                }
+                resetMergeState();
+                STATE.isMerging = true;
+                STATE.mergeBaseTradeId = baseTradeId;
+                document.body.classList.add('in-merge-mode');
+                const baseRow = document.querySelector(`#completed-trades-tbody button[data-id='${baseTradeId}']`).closest('tr');
+                if (baseRow) {
+                    baseRow.classList.add('is-merge-base');
+                }
+                alert('MERGE MODE: Click on another completed trade to merge it into this one. Click the "Merge" button again to cancel.');
+            }
+
+            function executeMerge(baseTradeId, absorbedTradeId) {
+                if (!baseTradeId || !absorbedTradeId || baseTradeId === absorbedTradeId) {
+                    resetMergeState();
+                    return;
+                }
+
+                const completedTradesRef = dbRefs.completedTrades;
+
+                completedTradesRef.once('value', snapshot => {
+                    const allTrades = snapshot.val();
+                    const baseTrade = allTrades[baseTradeId];
+                    const absorbedTrade = allTrades[absorbedTradeId];
+
+                    if (!baseTrade || !absorbedTrade) {
+                        alert('Error: Could not find one of the trades to merge.');
+                        resetMergeState();
+                        return;
+                    }
+
+                    if (baseTrade.symbol !== absorbedTrade.symbol || baseTrade.type !== absorbedTrade.type) {
+                        alert('Error: Cannot merge trades with different symbols or types (Long/Short).');
+                        resetMergeState();
+                        return;
+                    }
+
+                    const baseSize = parseFloat(baseTrade.size);
+                    const baseEntry = parseFloat(baseTrade.entry);
+                    const baseQty = baseSize / baseEntry;
+
+                    const absorbedSize = parseFloat(absorbedTrade.size);
+                    const absorbedEntry = parseFloat(absorbedTrade.entry);
+                    const absorbedQty = absorbedSize / absorbedEntry;
+
+                    const totalQty = baseQty + absorbedQty;
+                    const totalValue = baseSize + absorbedSize;
+                    
+                    const mergedEntry = totalValue / totalQty;
+                    
+                    const baseExitValue = parseFloat(baseTrade.exit_price) * baseQty;
+                    const absorbedExitValue = parseFloat(absorbedTrade.exit_price) * absorbedQty;
+                    const mergedExitPrice = (baseExitValue + absorbedExitValue) / totalQty;
+
+                    const mergedTrade = {
+                        ...baseTrade,
+                        entry: mergedEntry,
+                        size: totalValue,
+                        exit_price: mergedExitPrice,
+                        net_result: (baseTrade.net_result || 0) + (absorbedTrade.net_result || 0),
+                        entry_fee: (baseTrade.entry_fee || 0) + (absorbedTrade.entry_fee || 0),
+                        exit_fee: (baseTrade.exit_fee || 0) + (absorbedTrade.exit_fee || 0),
+                        date: Math.min(new Date(baseTrade.date).getTime(), new Date(absorbedTrade.date).getTime()),
+                        closed_date: Math.max(new Date(baseTrade.closed_date).getTime(), new Date(absorbedTrade.closed_date).getTime()),
+                        note: `${baseTrade.note || ''}\n--- MERGED ---\n${absorbedTrade.note || ''}`.trim(),
+                    };
+
+                    const updates = {};
+                    updates[baseTradeId] = mergedTrade;
+                    updates[absorbedTradeId] = null; 
+                    
+                    completedTradesRef.update(updates)
+                        .then(() => {
+                            alert('Trades merged successfully!');
+                            resetMergeState();
+                        })
+                        .catch(error => {
+                            alert(`Error merging trades: ${error.message}`);
+                            resetMergeState();
+                        });
+                });
             }
 
             // --- FIREBASE DATA SUBSCRIPTIONS ---
@@ -2508,4 +2586,4 @@
 </body>
 </html>
 ```
-276.2s
+283.6s
