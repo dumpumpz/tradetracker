@@ -85,7 +85,7 @@
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
         .controls-container > div { display: flex; align-items: center; gap: 8px; }
         
-        #journal-entry, #persistent-notes-entry {
+        #journal-entry, #persistent-notes-entry, #tracker-scratchpad {
             width: 100%; 
             resize: vertical;
             line-height: 1.6;
@@ -94,7 +94,7 @@
             min-height: 120px; 
         }
         
-        #journal-entry:read-only, #persistent-notes-entry:read-only { 
+        #journal-entry:read-only, #persistent-notes-entry:read-only, #tracker-scratchpad:read-only { 
             background-color: var(--card-bg); 
             cursor: not-allowed; 
         }
@@ -768,6 +768,11 @@
         </div>
         
         <div id="tracker-tab" class="tab-content active">
+            
+            <div style="margin-bottom: 25px; max-width: 950px; margin-left: auto; margin-right: auto;">
+                <textarea id="tracker-scratchpad" placeholder="Tracker scratchpad..."></textarea>
+            </div>
+
             <form id="add-trade-form" class="master-only">
                 <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
                 <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
@@ -838,7 +843,7 @@
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th class="master-only">Actions</th></tr>
+                        <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th class="master-only">Actions</th></tr>
                     </thead>
                     <tbody id="trades-tbody"></tbody>
                 </table>
@@ -850,7 +855,7 @@
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
+                        <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
                     </thead>
                     <tbody id="completed-trades-tbody"></tbody>
                 </table>
@@ -1104,6 +1109,7 @@
                     SETUPS_1: 'current_setups_1',
                     SETUPS_2: 'current_setups_2',
                     PERSISTENT_NOTES: 'persistent_notes',
+                    TRACKER_SCRATCHPAD: 'tracker_scratchpad', // New path
                     SENTIMENT_RECEIPTS: 'sentiment_receipts'
                 },
                 TRADE_SETTINGS: {
@@ -1138,6 +1144,7 @@
                 statCompletedTrades: document.getElementById('stat-completed-trades'),
                 statOpenTrades: document.getElementById('stat-open-trades'),
                 // Trade Tracker
+                trackerScratchpadEl: document.getElementById('tracker-scratchpad'), // New
                 addTradeForm: document.getElementById('add-trade-form'),
                 tradesTbody: document.getElementById('trades-tbody'),
                 completedTradesTbody: document.getElementById('completed-trades-tbody'),
@@ -1208,12 +1215,14 @@
                 srData: {},
                 favouriteEntries: {},
                 persistentNotes: '',
+                trackerScratchpadText: '', // New
                 setupsData1: {},
                 setupsData2: {},
                 selectedDate: null,
                 centerDate: null,
                 journalSaveTimer: null,
                 notesSaveTimer: null,
+                trackerSaveTimer: null, // New
                 isMerging: false,
                 mergeBaseTradeId: null,
             };
@@ -1234,6 +1243,7 @@
                 setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1),
                 setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2),
                 persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES),
+                trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD), // New
                 sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS)
             };
 
@@ -1390,12 +1400,14 @@
                         const noteText = trade.note || '';
                         const profitString = `$${parseFloat(trade.expected_profit || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent || 0).toFixed(2)}%)`;
                         const lossString = `$${parseFloat(trade.expected_loss || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent || 0).toFixed(2)}%)`;
+                        const entriesList = (trade.entry_prices || [trade.entry]).map(p => p.toLocaleString()).join(', ');
 
                         return `
                             <tr>
                                 <td>${trade.symbol}</td>
                                 <td>${trade.type}</td>
                                 <td>${parseFloat(trade.entry).toFixed(4)}</td>
+                                <td class="note-cell">${entriesList}</td>
                                 <td>${parseFloat(trade.stoploss).toFixed(2)}</td>
                                 <td>${parseFloat(trade.target).toFixed(2)}</td>
                                 <td>${parseFloat(trade.size).toFixed(2)}</td>
@@ -1429,6 +1441,7 @@
                         const resultColor = trade.net_result >= 0 ? '#28a745' : '#dc3545';
                         const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                         const noteText = trade.note || '';
+                        const entriesList = (trade.entry_prices || [trade.entry]).map(p => p.toLocaleString()).join(', ');
 
                         let closedDateStr, isHistorical;
                         if (trade.closed_date) {
@@ -1444,6 +1457,7 @@
                                 <td>${trade.symbol}</td>
                                 <td>${trade.type}</td>
                                 <td>${parseFloat(trade.entry).toFixed(4)}</td>
+                                <td class="note-cell">${entriesList}</td>
                                 <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
                                 <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
                                 <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
@@ -1812,6 +1826,17 @@
                         .catch(e => console.error("Error saving persistent notes:", e));
                 }, 750);
             };
+
+            const saveTrackerScratchpad = () => {
+                clearTimeout(STATE.trackerSaveTimer);
+                STATE.trackerSaveTimer = setTimeout(() => {
+                    if (!STATE.isMasterUser) return;
+                    const text = DOM.trackerScratchpadEl.value;
+                    STATE.trackerScratchpadText = text;
+                    dbRefs.trackerScratchpad.set(text)
+                        .catch(e => console.error("Error saving tracker scratchpad:", e));
+                }, 750);
+            };
             
             function handleFileUpload(files) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
@@ -2012,6 +2037,11 @@
                         toggleHistoricalRows('completed-trades-tbody', e.target);
                     }
                 });
+
+                DOM.trackerScratchpadEl.addEventListener('input', () => {
+                    autoResizeTextarea(DOM.trackerScratchpadEl);
+                    saveTrackerScratchpad();
+                });
                 
                 DOM.libraryImageUpload.addEventListener('change', (e) => handleLibraryImageUpload(e.target.files));
                 DOM.modalClose.addEventListener('click', () => DOM.imageModal.style.display = 'none');
@@ -2118,12 +2148,15 @@
                     stoploss: parseFloat(document.getElementById('stop-loss').value),
                     target: parseFloat(document.getElementById('target').value),
                     size: parseFloat(document.getElementById('position-value').value),
-                    date: firebase.database.ServerValue.TIMESTAMP
+                    date: firebase.database.ServerValue.TIMESTAMP,
+                    entry_prices: [] // Initialize entry prices array
                 };
 
                 if (Object.values(trade).some(val => val === null || isNaN(val) && typeof val === 'number')) {
                     return alert('Please ensure all numeric fields are filled correctly.');
                 }
+
+                trade.entry_prices.push(trade.entry); // Add first entry
                 
                 if (trade.type === 'Long') {
                     if (trade.target <= trade.entry) { return alert('Validation Error: For a Long trade, the Target must be higher than the Entry Price.'); }
@@ -2250,6 +2283,10 @@
                     const totalQuantity = (currentSize / currentEntry) + (newPositionValue / newEntryPrice);
                     const newAverageEntryPrice = totalValue / totalQuantity;
 
+                    // Update entry prices list
+                    const updatedEntryPrices = currentTrade.entry_prices || [currentTrade.entry];
+                    updatedEntryPrices.push(newEntryPrice);
+
                     const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
                     const positionQty = totalQuantity;
                     const entryFee = totalValue * FEE_RATE;
@@ -2273,6 +2310,7 @@
                         ...currentTrade,
                         entry: newAverageEntryPrice,
                         size: totalValue,
+                        entry_prices: updatedEntryPrices, // Save the updated list
                         estimated_total_fee: totalFeeAtTarget,
                         expected_profit: potentialProfit - totalFeeAtTarget,
                         expected_loss: potentialLoss + totalFeeAtStop,
@@ -2481,12 +2519,17 @@
                     const baseExitValue = parseFloat(baseTrade.exit_price) * baseQty;
                     const absorbedExitValue = parseFloat(absorbedTrade.exit_price) * absorbedQty;
                     const mergedExitPrice = (baseExitValue + absorbedExitValue) / totalQty;
+                    
+                    const baseEntryPrices = baseTrade.entry_prices || [baseTrade.entry];
+                    const absorbedEntryPrices = absorbedTrade.entry_prices || [absorbedTrade.entry];
+                    const mergedEntryPrices = [...baseEntryPrices, ...absorbedEntryPrices];
 
                     const mergedTrade = {
                         ...baseTrade,
                         entry: mergedEntry,
                         size: totalValue,
                         exit_price: mergedExitPrice,
+                        entry_prices: mergedEntryPrices,
                         net_result: (baseTrade.net_result || 0) + (absorbedTrade.net_result || 0),
                         entry_fee: (baseTrade.entry_fee || 0) + (absorbedTrade.entry_fee || 0),
                         exit_fee: (baseTrade.exit_fee || 0) + (absorbedTrade.exit_fee || 0),
@@ -2609,6 +2652,14 @@
                     }
                 });
 
+                dbRefs.trackerScratchpad.on('value', (s) => {
+                    STATE.trackerScratchpadText = s.val() || '';
+                    if (DOM.trackerTab.classList.contains('active')) {
+                         DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText;
+                         autoResizeTextarea(DOM.trackerScratchpadEl);
+                    }
+                });
+
                 dbRefs.sentimentReceipts.on('value', (s) => {
                     renderSentimentReceipts(s.val());
                 });
@@ -2631,6 +2682,7 @@
                         });
                         DOM.journalEntryEl.readOnly = false;
                         DOM.persistentNotesEl.readOnly = false;
+                        DOM.trackerScratchpadEl.readOnly = false;
                         document.querySelectorAll('.setups-table td').forEach(cell => {
                             cell.setAttribute('contenteditable', 'true');
                         });
@@ -2639,6 +2691,7 @@
                  if (!STATE.isMasterUser) {
                     DOM.journalEntryEl.readOnly = true;
                     DOM.persistentNotesEl.readOnly = true;
+                    DOM.trackerScratchpadEl.readOnly = true;
                 }
             }
 
@@ -2664,6 +2717,10 @@
                 fetchSrData();
                 
                 renderDateNavigation();
+
+                // Initialize scratchpads with any loaded data
+                DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText;
+                autoResizeTextarea(DOM.trackerScratchpadEl);
             }
 
             initializeApp();
