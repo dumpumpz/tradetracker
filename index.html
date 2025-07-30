@@ -766,15 +766,28 @@
         <div id="stats-panel-container">
             <div id="stats-panel">
                 <div class="stats-header"><h3>Performance Stats</h3><button id="close-stats-btn" title="Close Panel">×</button></div>
-                <div class="stats-grid">
-                    <div class="stat-item"><span class="stat-label">Current Balance</span><span id="stat-balance" class="stat-value">$0.00</span></div>
-                    <div class="stat-item"><span class="stat-label">AUD Value (est.)</span><span id="stat-balance-aud" class="stat-value">--</span></div>
-                    <div class="stat-item"><span class="stat-label">Total P/L</span><span id="stat-total-pl" class="stat-value">$0.00</span></div>
-                    <!-- Added AUD PNL -->
-                    <div class="stat-item"><span class="stat-label">Total P/L (AUD)</span><span id="stat-total-pl-aud" class="stat-value">A$0.00</span></div>
-                    <div class="stat-item"><span class="stat-label">Completed Trades</span><span id="stat-completed-trades" class="stat-value">0</span></div>
-                    <div class="stat-item"><span class="stat-label">Open Trades</span><span id="stat-open-trades" class="stat-value">0</span></div>
-                </div>
+           <div class="stats-grid">
+    <!-- Core Balance Stats -->
+    <div class="stat-item"><span class="stat-label">Current Balance</span><span id="stat-balance" class="stat-value">$0.00</span></div>
+    <div class="stat-item"><span class="stat-label">AUD Value (est.)</span><span id="stat-balance-aud" class="stat-value">--</span></div>
+    <div class="stat-item"><span class="stat-label">Total P/L</span><span id="stat-total-pl" class="stat-value">$0.00</span></div>
+    <div class="stat-item"><span class="stat-label">Total P/L (AUD)</span><span id="stat-total-pl-aud" class="stat-value">A$0.00</span></div>
+    
+    <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
+
+    <!-- Performance Metrics -->
+    <div class="stat-item"><span class="stat-label">Completed Trades</span><span id="stat-completed-trades" class="stat-value">0</span></div>
+    <div class="stat-item">
+        <span class="stat-label">Wins / Losses</span>
+        <div><span id="stat-wins" class="stat-value" style="color: var(--green-text);">0</span> / <span id="stat-losses" class="stat-value" style="color: var(--red-text);">0</span></div>
+    </div>
+    <div class="stat-item"><span class="stat-label">Win Rate</span><span id="stat-win-rate" class="stat-value">0.0%</span></div>
+    <div class="stat-item"><span class="stat-label">Profit Factor</span><span id="stat-profit-factor" class="stat-value">N/A</span></div>
+    <div class="stat-item"><span class="stat-label">Avg. Win</span><span id="stat-avg-win" class="stat-value" style="color: var(--green-text);">$0.00</span></div>
+    <div class="stat-item"><span class="stat-label">Avg. Loss</span><span id="stat-avg-loss" class="stat-value" style="color: var(--red-text);">$0.00</span></div>
+    <div class="stat-item"><span class="stat-label">Reward:Risk Ratio</span><span id="stat-reward-risk" class="stat-value">N/A</span></div>
+    <div class="stat-item"><span class="stat-label">Open Trades</span><span id="stat-open-trades" class="stat-value">0</span></div>
+</div>
             </div>
             <button id="stats-fab" title="Show Stats"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M32 32c17.7 0 32 14.3 32 32V400c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V64C32 46.3 46.3 32 64 32H160c17.7 0 32 14.3 32 32s-14.3 32-32 32H96v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96H64V64zM256 224c0-17.7-14.3-32-32-32H160c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32V224zM352 288c-17.7 0-32 14.3-32 32v64H256c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32zM480 32c17.7 0 32 14.3 32 32s-14.3 32-32 32H416v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96h-1.5c-16.3 0-30.8-12.4-32-28.5c-.2-2.1-.2-4.2-.2-6.4V64c0-17.7 14.3-32 32-32H480z"/></svg></button>
         </div>
@@ -2342,27 +2355,63 @@
                 });
                 
                 dbRefs.completedTrades.on('value', snapshot => {
-                    const completedData = snapshot.val() || {};
-                    renderCompletedTable(completedData);
+    const completedData = snapshot.val() || {};
+    renderCompletedTable(completedData);
 
-                    const { STARTING_BALANCE, USD_TO_AUD_RATE } = CONFIG.TRADE_SETTINGS;
-                    const totalProfitLoss = Object.values(completedData).reduce((sum, trade) => sum + (trade.net_result || 0), 0);
-                    const totalProfitLossAud = totalProfitLoss * USD_TO_AUD_RATE;
-                    const newBalance = STARTING_BALANCE + totalProfitLoss;
+    // --- Performance Metrics Calculation ---
+    let wins = 0;
+    let losses = 0;
+    let grossProfit = 0;
+    let grossLoss = 0;
+    const allTrades = Object.values(completedData);
 
-                    DOM.statBalance.textContent = formatCurrency(newBalance);
-                    DOM.statBalanceAud.textContent = formatCurrency(newBalance * USD_TO_AUD_RATE, 'A$');
-                    
-                    DOM.statTotalPl.textContent = `${totalProfitLoss >= 0 ? '+' : ''}${formatCurrency(totalProfitLoss)}`;
-                    DOM.statTotalPl.style.color = totalProfitLoss >= 0 ? '#28a745' : '#dc3545';
-                    
-                    DOM.statTotalPlAud.textContent = `${totalProfitLossAud >= 0 ? '+' : ''}${formatCurrency(totalProfitLossAud, 'A$')}`;
-                    DOM.statTotalPlAud.style.color = totalProfitLossAud >= 0 ? '#28a745' : '#dc3545';
+    allTrades.forEach(trade => {
+        const netResult = trade.net_result || 0;
+        if (netResult > 0) {
+            wins++;
+            grossProfit += netResult;
+        } else {
+            losses++;
+            grossLoss += Math.abs(netResult); // Loss is the absolute value
+        }
+    });
 
-                    DOM.statCompletedTrades.textContent = Object.keys(completedData).length;
+    const totalCompletedTrades = wins + losses;
+    const winRate = totalCompletedTrades > 0 ? (wins / totalCompletedTrades) * 100 : 0;
+    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0; // Handle division by zero
+    const avgWin = wins > 0 ? grossProfit / wins : 0;
+    const avgLoss = losses > 0 ? grossLoss / losses : 0;
+    const rewardRiskRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
 
-                    dbRefs.bank.set({ currentBalance: newBalance });
-                });
+    // --- DOM Update for Stats Panel ---
+    const { STARTING_BALANCE, USD_TO_AUD_RATE } = CONFIG.TRADE_SETTINGS;
+    const totalProfitLoss = grossProfit - grossLoss;
+    const totalProfitLossAud = totalProfitLoss * USD_TO_AUD_RATE;
+    const newBalance = STARTING_BALANCE + totalProfitLoss;
+
+    // Update core balance stats
+    DOM.statBalance.textContent = formatCurrency(newBalance);
+    DOM.statBalanceAud.textContent = formatCurrency(newBalance * USD_TO_AUD_RATE, 'A$');
+    DOM.statTotalPl.textContent = `${totalProfitLoss >= 0 ? '+' : ''}${formatCurrency(totalProfitLoss)}`;
+    DOM.statTotalPl.style.color = totalProfitLoss >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+    DOM.statTotalPlAud.textContent = `${totalProfitLossAud >= 0 ? '+' : ''}${formatCurrency(totalProfitLossAud, 'A$')}`;
+    DOM.statTotalPlAud.style.color = totalProfitLossAud >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+    
+    // Update new performance metrics
+    document.getElementById('stat-completed-trades').textContent = totalCompletedTrades;
+    document.getElementById('stat-wins').textContent = wins;
+    document.getElementById('stat-losses').textContent = losses;
+    document.getElementById('stat-win-rate').textContent = `${winRate.toFixed(1)}%`;
+    
+    // Handle "N/A" cases for ratios
+    document.getElementById('stat-profit-factor').textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
+    document.getElementById('stat-avg-win').textContent = formatCurrency(avgWin);
+    document.getElementById('stat-avg-loss').textContent = formatCurrency(avgLoss);
+    document.getElementById('stat-reward-risk').textContent = rewardRiskRatio > 0 ? `${rewardRiskRatio.toFixed(2)} : 1` : 'N/A';
+
+    // Update bank balance in Firebase
+    dbRefs.bank.set({ currentBalance: newBalance });
+});
 
                 dbRefs.journalText.on('value', (s) => {
                     STATE.journalText = s.val() || {};
