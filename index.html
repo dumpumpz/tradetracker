@@ -22,6 +22,7 @@
             --red-border: #f5c6cb;
             --green-text: #155724;
             --red-text: #721c24;
+            --grey-bg: #e9ecef;
         }
 
         [data-theme="dark"] {
@@ -41,6 +42,7 @@
             --red-border: #6b282e;
             --green-text: #a7d7b2;
             --red-text: #f5b7bd;
+            --grey-bg: #3a3a3a;
         }
 
         body { 
@@ -367,6 +369,11 @@
             box-shadow: 0 0 5px var(--shadow-color);
         }
         
+        /* NEW: Add cursor for clickable color cells for master user */
+        .setups-table td.color-cell[contenteditable="true"] {
+            cursor: pointer;
+        }
+
         .setups-container {
             margin-bottom: 30px; 
             border: 1px solid var(--border-color);
@@ -850,7 +857,6 @@
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <!-- FIX: Added Position Value ($) header -->
                         <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Position Value ($)</th><th>Target</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
                     </thead>
                     <tbody id="completed-trades-tbody"></tbody>
@@ -877,6 +883,9 @@
                                 <th rowspan="2">TF</th>
                                 <th colspan="3">0-Candle</th>
                                 <th colspan="3">4-Candle</th>
+                                <th rowspan="2">Support</th>
+                                <th rowspan="2">Resistance</th>
+                                <th rowspan="2">Colour</th>
                             </tr>
                             <tr>
                                 <th>Entry</th>
@@ -888,15 +897,15 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -918,6 +927,9 @@
                                 <th rowspan="2">TF</th>
                                 <th colspan="3">0-Candle</th>
                                 <th colspan="3">4-Candle</th>
+                                <th rowspan="2">Support</th>
+                                <th rowspan="2">Resistance</th>
+                                <th rowspan="2">Colour</th>
                             </tr>
                             <tr>
                                 <th>Entry</th>
@@ -929,15 +941,15 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
+                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="color-cell"></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1382,7 +1394,6 @@
                         const resultColor = trade.net_result >= 0 ? '#28a745' : '#dc3545';
                         const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                         const noteText = trade.note || '';
-                        // FIX: Added Position Value cell
                         return `
                             <tr>
                                 <td>${trade.symbol}</td>
@@ -1611,16 +1622,31 @@
             function renderSetupsTable(tableElement, data) {
                 if (!tableElement) return;
                 const tbody = tableElement.querySelector('tbody');
+                const colorMap = {
+                    red: 'var(--red-bg)',
+                    green: 'var(--green-bg)',
+                    grey: 'var(--grey-bg)',
+                    '': 'transparent'
+                };
+
                 tbody.querySelectorAll('tr').forEach(row => {
                     const timeframe = row.firstElementChild.textContent.trim();
                     const rowData = data[timeframe] || {};
-                    const cells = row.querySelectorAll('td');
+                    const cells = Array.from(row.querySelectorAll('td'));
+
                     cells[0].textContent = rowData.zero_entry || '';
                     cells[1].textContent = rowData.zero_target || '';
                     cells[2].textContent = rowData.zero_stoploss || '';
                     cells[3].textContent = rowData.four_entry || '';
                     cells[4].textContent = rowData.four_target || '';
                     cells[5].textContent = rowData.four_stoploss || '';
+                    cells[6].textContent = rowData.support || '';
+                    cells[7].textContent = rowData.resistance || '';
+                    
+                    const colorCell = cells[8];
+                    const savedColor = rowData.color || '';
+                    colorCell.dataset.color = savedColor;
+                    colorCell.style.backgroundColor = colorMap[savedColor] || 'transparent';
                 });
             }
             
@@ -1699,7 +1725,7 @@
                 
                 tbody.querySelectorAll('tr').forEach(row => {
                     const timeframe = row.firstElementChild.textContent.trim();
-                    const cells = row.querySelectorAll('td');
+                    const cells = Array.from(row.querySelectorAll('td'));
                     dataToSave[timeframe] = {
                         zero_entry: cells[0].textContent.trim(),
                         zero_target: cells[1].textContent.trim(),
@@ -1707,15 +1733,20 @@
                         four_entry: cells[3].textContent.trim(),
                         four_target: cells[4].textContent.trim(),
                         four_stoploss: cells[5].textContent.trim(),
+                        support: cells[6].textContent.trim(),
+                        resistance: cells[7].textContent.trim(),
+                        color: cells[8].dataset.color || ''
                     };
                 });
                 
-                statusElement.textContent = 'Saving...';
+                if (statusElement) statusElement.textContent = 'Saving...';
                 dbRef.set(dataToSave).then(() => {
-                    statusElement.textContent = 'Saved.';
-                    setTimeout(() => { statusElement.textContent = '' }, 2000);
+                    if (statusElement) {
+                        statusElement.textContent = 'Saved.';
+                        setTimeout(() => { statusElement.textContent = '' }, 2000);
+                    }
                 }).catch(e => {
-                    statusElement.textContent = `Error: ${e.message}`;
+                    if (statusElement) statusElement.textContent = `Error: ${e.message}`;
                     console.error("Error saving setups table:", e);
                 });
             }
@@ -1887,6 +1918,9 @@
                     };
                     delete completedTrade.expected_profit;
                     delete completedTrade.expected_loss;
+                    delete completedTrade.expected_profit_percent;
+                    delete completedTrade.expected_loss_percent;
+                    delete completedTrade.estimated_total_fee;
 
                     dbRefs.completedTrades.push(completedTrade)
                         .then(() => dbRefs.trades.child(tradeId).remove());
@@ -2014,6 +2048,7 @@
                 DOM.saveSetups2Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2));
                 
                 DOM.journalTab.addEventListener('click', (e) => {
+                    // Handle accordion toggle
                     const header = e.target.closest('.setups-header');
                     if (header) {
                         const targetWrapper = document.querySelector(header.dataset.target);
@@ -2024,6 +2059,9 @@
                             toggleBtn.textContent = isCollapsed ? '−' : '+';
                         }
                     }
+
+                    // Handle color cell click
+                    handleSetupColorClick(e);
                 });
 
                 DOM.snapshotSymbolEl.addEventListener('change', renderSnapshotView);
@@ -2258,6 +2296,37 @@
                 }
             }
 
+            function handleSetupColorClick(e) {
+                if (!STATE.isMasterUser) return;
+                const cell = e.target;
+                if (!cell.matches('td.color-cell')) return;
+
+                const colors = ['', 'red', 'green', 'grey']; 
+                const colorMap = {
+                    red: 'var(--red-bg)',
+                    green: 'var(--green-bg)',
+                    grey: 'var(--grey-bg)',
+                    '': 'transparent'
+                };
+                
+                const currentColor = cell.dataset.color || '';
+                const currentIndex = colors.indexOf(currentColor);
+                const nextIndex = (currentIndex + 1) % colors.length;
+                const newColor = colors[nextIndex];
+
+                cell.dataset.color = newColor;
+                cell.style.backgroundColor = colorMap[newColor];
+
+                // Auto-save the change
+                const table = cell.closest('.setups-table');
+                if (table.id === 'current-setups-table-1') {
+                    saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1);
+                } else if (table.id === 'current-setups-table-2') {
+                    saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2);
+                }
+            }
+
+
             // --- FIREBASE DATA SUBSCRIPTIONS ---
             function subscribeToData() {
                 dbRefs.trades.on('value', snapshot => {
@@ -2349,7 +2418,10 @@
                         DOM.journalEntryEl.readOnly = false;
                         DOM.persistentNotesEl.readOnly = false;
                         document.querySelectorAll('.setups-table td').forEach(cell => {
-                            cell.setAttribute('contenteditable', 'true');
+                            // Don't make the color cell content editable, just the others.
+                            if (!cell.classList.contains('color-cell')) {
+                                cell.setAttribute('contenteditable', 'true');
+                            }
                         });
                     }
                 }
