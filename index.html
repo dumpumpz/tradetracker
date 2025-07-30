@@ -418,7 +418,7 @@
             height:1em;
         }
 
-        /* --- UPDATED: Asset Sentiment Styles --- */
+        /* Asset Sentiment Styles */
         #asset-sentiment-container {
             max-width: 950px;
             margin: 20px auto 10px auto;
@@ -476,18 +476,15 @@
             transform: scale(0.95);
             background-color: var(--header-bg);
         }
-
         .sentiment-note-cell {
             white-space: normal;
             max-width: 250px;
             font-size: 13px;
         }
-
         #sentiment-receipts-table td:nth-child(2) {
             text-transform: capitalize;
             font-weight: bold;
         }
-
         .delete-sentiment-btn {
             background: none;
             border: none;
@@ -512,7 +509,7 @@
             background-color: var(--link-color);
         }
 
-        /* --- Image Library Styles --- */
+        /* Image Library Styles */
         #image-library-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -610,7 +607,7 @@
             text-align: center;
         }
         
-        /* --- Image Modal Styles --- */
+        /* Image Modal Styles */
         .modal-overlay {
             position: fixed;
             z-index: 2000;
@@ -825,7 +822,7 @@
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Target</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
+                        <tr><th>Symbol</th><th>Type</th><th>Entry Price</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
                     </thead>
                     <tbody id="completed-trades-tbody"></tbody>
                 </table>
@@ -1367,6 +1364,7 @@
                                 <td>${trade.type}</td>
                                 <td>${parseFloat(trade.entry).toFixed(4)}</td>
                                 <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
+                                <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
                                 <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
                                 <td>${totalFees.toFixed(2)}</td>
                                 <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
@@ -2585,5 +2583,3 @@
     </script>
 </body>
 </html>
-```
-283.6s
