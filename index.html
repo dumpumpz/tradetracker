@@ -2026,8 +2026,7 @@
                     const fileName = `${Date.now()}_${file.name}`;
                     const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
                     const fileRef = storage.ref(storagePath);
-                    const metadata = { customMetadata: { 'owner': 'master' } };
-                    const uploadTask = fileRef.put(file, metadata);
+                    const uploadTask = fileRef.put(file);
 
                     uploadTask.on('state_changed', 
                         (snapshot) => {
@@ -2067,9 +2066,7 @@
                     const fileName = `${Date.now()}_${file.name}`;
                     const storagePath = `image_library/${fileName}`;
                     const fileRef = storage.ref(storagePath);
-                    
-                    const metadata = { customMetadata: { 'owner': 'master' } };
-                    const uploadTask = fileRef.put(file, metadata);
+                    const uploadTask = fileRef.put(file);
 
                     uploadTask.on('state_changed', 
                         (snapshot) => {
@@ -2110,10 +2107,7 @@
                     const fileName = `${Date.now()}_${file.name}`;
                     const storagePath = `chart_library_2/${folderName}/${fileName}`;
                     const fileRef = storage.ref(storagePath);
-                    
-                    // THIS METADATA OBJECT IS ESSENTIAL FOR THE RULE TO PASS
-                    const metadata = { customMetadata: { 'owner': 'master' } };
-                    const uploadTask = fileRef.put(file, metadata); // It must be passed here
+                    const uploadTask = fileRef.put(file);
 
                     uploadTask.on('state_changed', 
                         null, 
@@ -2998,4 +2992,3 @@
     </script>
 </body>
 </html>
-```
