@@ -2098,7 +2098,7 @@
                 });
             }
             
-                 function handleChartLibrary2Upload(files, folderName) {
+            function handleChartLibrary2Upload(files, folderName) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
                 
                 const folderCard = document.querySelector(`.cl2-folder-card[data-folder="${folderName}"]`);
@@ -2111,9 +2111,9 @@
                     const storagePath = `chart_library_2/${folderName}/${fileName}`;
                     const fileRef = storage.ref(storagePath);
                     
-                    // CORRECTED: Added the metadata object to the upload task
+                    // THIS METADATA OBJECT IS ESSENTIAL FOR THE RULE TO PASS
                     const metadata = { customMetadata: { 'owner': 'master' } };
-                    const uploadTask = fileRef.put(file, metadata);
+                    const uploadTask = fileRef.put(file, metadata); // It must be passed here
 
                     uploadTask.on('state_changed', 
                         null, 
