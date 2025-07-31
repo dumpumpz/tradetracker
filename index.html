@@ -703,6 +703,88 @@
             font-weight: bold;
         }
 
+        /* Chart Library 2 Styles */
+        #chart-library-2-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        #chart-library-2-container {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+            min-height: 200px;
+        }
+        .cl2-folder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 15px;
+        }
+        .cl2-folder-card {
+            position: relative;
+            border: 1px solid var(--border-color);
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            aspect-ratio: 4 / 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .cl2-folder-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px var(--shadow-color);
+            border-color: var(--link-color);
+        }
+        .cl2-folder-card h4 {
+            margin: 10px 0 5px 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-color);
+            text-transform: capitalize;
+        }
+        .cl2-folder-icon {
+            font-size: 40px;
+            color: var(--link-color);
+        }
+        .cl2-folder-count {
+            font-size: 12px;
+            color: var(--subtle-text);
+        }
+        .cl2-folder-card.drag-over {
+            border-color: var(--link-color);
+            border-style: dashed;
+            transform: scale(1.05);
+            background-color: var(--header-bg);
+        }
+        .cl2-image-view-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .cl2-back-button {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        .cl2-view-title {
+            margin: 0;
+            font-size: 20px;
+            text-transform: capitalize;
+            color: var(--text-color);
+        }
+        .cl2-image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -771,6 +853,16 @@
             
             <div style="margin-bottom: 25px; max-width: 950px; margin-left: auto; margin-right: auto;">
                 <textarea id="tracker-scratchpad" placeholder="Tracker scratchpad..."></textarea>
+            </div>
+
+            <!-- NEW CHART LIBRARY 2 SECTION -->
+            <div id="chart-library-2-section">
+                <div class="section-header">
+                    <h2 style="border:none; padding:0;">Chart Library 2</h2>
+                </div>
+                <div id="chart-library-2-container">
+                    <!-- Folders or Image Grid will be rendered here by JS -->
+                </div>
             </div>
 
             <form id="add-trade-form" class="master-only">
@@ -1105,11 +1197,12 @@
                     JOURNAL_TEXT: 'journal_text',
                     JOURNAL_IMAGES: 'journal_images',
                     IMAGE_LIBRARY: 'image_library',
+                    CHART_LIBRARY_2: 'chart_library_2', // New
                     JOURNAL_FAVOURITES: 'journal_favourites',
                     SETUPS_1: 'current_setups_1',
                     SETUPS_2: 'current_setups_2',
                     PERSISTENT_NOTES: 'persistent_notes',
-                    TRACKER_SCRATCHPAD: 'tracker_scratchpad', // New path
+                    TRACKER_SCRATCHPAD: 'tracker_scratchpad',
                     SENTIMENT_RECEIPTS: 'sentiment_receipts'
                 },
                 TRADE_SETTINGS: {
@@ -1125,6 +1218,8 @@
                 },
                 SNAPSHOT_TIMEFRAMES: ['15min', '30min', '1hour', '2hour', '4hour', 'daily', 'weekly', 'monthly']
             };
+            
+            const CL2_FOLDERS = ['monthly', 'weekly', 'daily', '4hour', '2hour', '1hour', '30min', '15min'];
 
             // --- DOM ELEMENT CACHE ---
             const DOM = {
@@ -1144,12 +1239,14 @@
                 statCompletedTrades: document.getElementById('stat-completed-trades'),
                 statOpenTrades: document.getElementById('stat-open-trades'),
                 // Trade Tracker
-                trackerScratchpadEl: document.getElementById('tracker-scratchpad'), // New
+                trackerScratchpadEl: document.getElementById('tracker-scratchpad'),
                 addTradeForm: document.getElementById('add-trade-form'),
                 tradesTbody: document.getElementById('trades-tbody'),
                 completedTradesTbody: document.getElementById('completed-trades-tbody'),
                 assetSentimentContainer: document.getElementById('asset-sentiment-container'),
                 sentimentReceiptsTbody: document.getElementById('sentiment-receipts-tbody'),
+                // Chart Library 2
+                chartLibrary2Container: document.getElementById('chart-library-2-container'),
                 // Image Library
                 imageLibraryContainer: document.getElementById('image-library-container'),
                 libraryImageUpload: document.getElementById('library-image-upload'),
@@ -1211,18 +1308,19 @@
                 viewerId: null,
                 journalText: {},
                 journalImages: {},
+                chartLibrary2Data: {}, // New
                 emaData: {},
                 srData: {},
                 favouriteEntries: {},
                 persistentNotes: '',
-                trackerScratchpadText: '', // New
+                trackerScratchpadText: '',
                 setupsData1: {},
                 setupsData2: {},
                 selectedDate: null,
                 centerDate: null,
                 journalSaveTimer: null,
                 notesSaveTimer: null,
-                trackerSaveTimer: null, // New
+                trackerSaveTimer: null,
                 isMerging: false,
                 mergeBaseTradeId: null,
             };
@@ -1239,11 +1337,12 @@
                 journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT),
                 journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES),
                 imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY),
+                chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), // New
                 favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES),
                 setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1),
                 setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2),
                 persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES),
-                trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD), // New
+                trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD),
                 sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS)
             };
 
@@ -1503,7 +1602,83 @@
 
                 DOM.imageLibraryContainer.innerHTML = imagesHtml;
             }
+
+            function renderChartLibrary2Folders() {
+                if (!DOM.chartLibrary2Container) return;
+
+                const foldersHtml = CL2_FOLDERS.map(folder => {
+                    const imageCount = STATE.chartLibrary2Data[folder] ? Object.keys(STATE.chartLibrary2Data[folder]).length : 0;
+                    return `
+                        <div class="cl2-folder-card" data-folder="${folder}">
+                            <div class="cl2-folder-icon">📁</div>
+                            <h4>${folder}</h4>
+                            <div class="cl2-folder-count">${imageCount} image${imageCount !== 1 ? 's' : ''}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                DOM.chartLibrary2Container.innerHTML = `<div class="cl2-folder-grid">${foldersHtml}</div>`;
+
+                // Add drag and drop listeners only for master user
+                if (STATE.isMasterUser) {
+                    document.querySelectorAll('.cl2-folder-card').forEach(folderEl => {
+                        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                            folderEl.addEventListener(eventName, e => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            });
+                        });
+                        ['dragenter', 'dragover'].forEach(eventName => {
+                            folderEl.addEventListener(eventName, () => folderEl.classList.add('drag-over'));
+                        });
+                        folderEl.addEventListener('dragleave', () => folderEl.classList.remove('drag-over'));
+                        folderEl.addEventListener('drop', e => {
+                            folderEl.classList.remove('drag-over');
+                            const folderName = folderEl.dataset.folder;
+                            if (e.dataTransfer?.files.length > 0) {
+                                handleChartLibrary2Upload(e.dataTransfer.files, folderName);
+                            }
+                        });
+                    });
+                }
+            }
             
+            function renderFolderContents(folderName) {
+                if (!DOM.chartLibrary2Container) return;
+                
+                const imagesForFolder = STATE.chartLibrary2Data[folderName] || {};
+
+                const headerHtml = `
+                    <div class="cl2-image-view-header">
+                        <button class="cl2-back-button">← Back to Folders</button>
+                        <h3 class="cl2-view-title">${folderName}</h3>
+                        <span></span> <!-- Spacer -->
+                    </div>
+                `;
+
+                const masterDeleteButtonHtml = (id, fileName) => (STATE.isMasterUser) ? `
+                    <button class="delete-library-image" title="Delete Image" data-folder="${folderName}" data-id="${id}" data-filename="${fileName}">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg>
+                    </button>` : '';
+
+                const imagesHtml = Object.keys(imagesForFolder)
+                    .sort((a, b) => imagesForFolder[b].timestamp - imagesForFolder[a].timestamp)
+                    .map(id => {
+                        const imgData = imagesForFolder[id];
+                        if (!imgData?.url) return '';
+                        // Reusing existing library-image-wrapper and img structure
+                        return `
+                            <div class="library-image-wrapper">
+                                ${masterDeleteButtonHtml(id, imgData.fileName)}
+                                <img src="${imgData.url}" alt="Image from ${folderName}" data-full-src="${imgData.url}" data-caption="${imgData.fileName}">
+                            </div>`;
+                    }).join('');
+                
+                const gridHtml = `<div class="cl2-image-grid">${imagesHtml || '<p>No images in this folder. Drag and drop to add some!</p>'}</div>`;
+                
+                DOM.chartLibrary2Container.innerHTML = headerHtml + gridHtml;
+            }
+
             function renderDateNavigation() {
                 const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
                 const timeframe = DOM.journalTimeframeEl.value;
@@ -1922,6 +2097,46 @@
                     );
                 });
             }
+            
+            function handleChartLibrary2Upload(files, folderName) {
+                if (!STATE.isMasterUser || !files || files.length === 0) return;
+                
+                const folderCard = document.querySelector(`.cl2-folder-card[data-folder="${folderName}"]`);
+                if(folderCard) folderCard.style.outline = '2px solid var(--link-color)';
+
+                Array.from(files).forEach((file, index) => {
+                    if (!file.type.startsWith('image/')) return;
+                    
+                    const fileName = `${Date.now()}_${file.name}`;
+                    const storagePath = `chart_library_2/${folderName}/${fileName}`;
+                    const fileRef = storage.ref(storagePath);
+                    
+                    const uploadTask = fileRef.put(file);
+
+                    uploadTask.on('state_changed', 
+                        null, 
+                        (error) => {
+                            console.error(`Upload to ${folderName} Failed:`, error);
+                            alert(`Upload failed for ${file.name}.`);
+                            if(folderCard) folderCard.style.outline = 'none';
+                        },
+                        () => {
+                            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                                const imageData = {
+                                    url: downloadURL,
+                                    fileName: fileName,
+                                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                                };
+                                dbRefs.chartLibrary2.child(folderName).push(imageData);
+                                if (index === files.length - 1) {
+                                    if(folderCard) folderCard.style.outline = 'none';
+                                }
+                            });
+                        }
+                    );
+                });
+            }
+
 
             function calculateNetResult(trade, exitPrice) {
                 const entry = parseFloat(trade.entry);
@@ -2043,6 +2258,8 @@
                     saveTrackerScratchpad();
                 });
                 
+                DOM.chartLibrary2Container.addEventListener('click', handleChartLibrary2Click);
+
                 DOM.libraryImageUpload.addEventListener('change', (e) => handleLibraryImageUpload(e.target.files));
                 DOM.modalClose.addEventListener('click', () => DOM.imageModal.style.display = 'none');
                 DOM.imageModal.addEventListener('click', (e) => {
@@ -2353,6 +2570,49 @@
                     DOM.imageModal.style.display = 'flex';
                 }
             }
+
+            function handleChartLibrary2Click(e) {
+                const folderCard = e.target.closest('.cl2-folder-card');
+                const backBtn = e.target.closest('.cl2-back-button');
+                const deleteBtn = e.target.closest('.delete-library-image'); // Reusing class
+                const img = e.target.closest('img');
+
+                if (folderCard) {
+                    const folderName = folderCard.dataset.folder;
+                    renderFolderContents(folderName);
+                    return;
+                }
+
+                if (backBtn) {
+                    renderChartLibrary2Folders();
+                    return;
+                }
+
+                if (deleteBtn && STATE.isMasterUser) {
+                    const { folder, id, filename } = deleteBtn.dataset;
+                    if (confirm(`Delete this image from the ${folder} folder?\n\n${filename}`)) {
+                        const storagePath = `chart_library_2/${folder}/${filename}`;
+                        storage.ref(storagePath).delete()
+                            .then(() => dbRefs.chartLibrary2.child(folder).child(id).remove())
+                            .catch((err) => {
+                                console.warn("Storage deletion failed, maybe already gone. Deleting DB entry.", err.code);
+                                if (err.code === 'storage/object-not-found') {
+                                    dbRefs.chartLibrary2.child(folder).child(id).remove();
+                                } else {
+                                    alert('Error deleting image.');
+                                }
+                            });
+                    }
+                    return;
+                }
+
+                if (img) { // Reusing image modal
+                    DOM.modalImageContent.src = img.dataset.fullSrc;
+                    DOM.modalCaption.textContent = img.dataset.caption || '';
+                    DOM.imageModal.style.display = 'flex';
+                    return;
+                }
+            }
             
             function handleEditCaption(id) {
                 if (!id || !STATE.isMasterUser) return;
@@ -2629,6 +2889,13 @@
                 dbRefs.imageLibrary.on('value', (s) => {
                     renderImageLibrary(s.val());
                 });
+
+                dbRefs.chartLibrary2.on('value', snapshot => {
+                    STATE.chartLibrary2Data = snapshot.val() || {};
+                    if (DOM.chartLibrary2Container.querySelector('.cl2-folder-grid')) {
+                        renderChartLibrary2Folders();
+                    }
+                });
                 
                 dbRefs.favourites.on('value', (s) => {
                     STATE.favouriteEntries = s.val() || {};
@@ -2717,6 +2984,7 @@
                 fetchSrData();
                 
                 renderDateNavigation();
+                renderChartLibrary2Folders();
 
                 // Initialize scratchpads with any loaded data
                 DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText;
@@ -2728,3 +2996,4 @@
     </script>
 </body>
 </html>
+```
