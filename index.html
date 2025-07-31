@@ -784,7 +784,7 @@
             gap: 15px;
         }
         
-        /* NEW: Chart Library 2 Preview Styles */
+        /* Chart Library 2 Preview Styles */
         #chart-library-2-preview-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -886,7 +886,7 @@
                 <div id="chart-library-2-container">
                     <!-- Folders or Image Grid will be rendered here by JS -->
                 </div>
-                <!-- NEW PREVIEW SECTION -->
+                <!-- PREVIEW SECTION -->
                 <div id="chart-library-2-preview-section">
                     <div class="section-header">
                         <h2 style="border:none; padding:0; margin-top:20px;">Preview</h2>
@@ -2301,8 +2301,9 @@
                     if (e.target.closest('#completed-trades-tbody')) {
                         handleTradeAction(e);
                     }
-                    if (e.target.closest('#image-library-container')) {
-                        handleImageLibraryClick(e);
+                    // This now handles clicks for all image libraries in the tracker tab
+                    if (e.target.closest('#image-library-container, #chart-library-2-container, #chart-library-2-preview-container')) {
+                        handleGenericImageLibraryClick(e);
                     }
                     if (e.target.id === 'toggle-old-sentiments') {
                         toggleHistoricalRows('sentiment-receipts-tbody', e.target);
@@ -2317,8 +2318,6 @@
                     saveTrackerScratchpad();
                 });
                 
-                DOM.chartLibrary2Container.addEventListener('click', handleChartLibrary2Click);
-
                 DOM.libraryImageUpload.addEventListener('change', (e) => handleLibraryImageUpload(e.target.files));
                 DOM.modalClose.addEventListener('click', () => DOM.imageModal.style.display = 'none');
                 DOM.imageModal.addEventListener('click', (e) => {
@@ -2601,10 +2600,27 @@
                 });
             }
 
-            function handleImageLibraryClick(e) {
+            function handleGenericImageLibraryClick(e) {
+                // This single handler now manages clicks for all image libraries on the tracker tab
+                const img = e.target.closest('img');
+                if (img) {
+                    DOM.modalImageContent.src = img.dataset.fullSrc;
+                    DOM.modalCaption.textContent = img.dataset.caption || '';
+                    DOM.imageModal.style.display = 'flex';
+                    return; // Stop further processing if an image was clicked
+                }
+
+                // Delegate to specific library handlers for other actions (delete, edit, etc.)
+                if (e.target.closest('#image-library-container')) {
+                    handleLibrary1Actions(e);
+                } else if (e.target.closest('#chart-library-2-container')) {
+                    handleChartLibrary2Click(e);
+                }
+            }
+
+            function handleLibrary1Actions(e) {
                 const deleteBtn = e.target.closest('.delete-library-image');
                 const editBtn = e.target.closest('.edit-caption-btn');
-                const img = e.target.closest('img');
 
                 if (deleteBtn && STATE.isMasterUser) {
                     const { id, filename } = deleteBtn.dataset;
@@ -2623,10 +2639,6 @@
                     }
                 } else if (editBtn && STATE.isMasterUser) {
                     handleEditCaption(editBtn.dataset.id);
-                } else if (img) {
-                    DOM.modalImageContent.src = img.dataset.fullSrc;
-                    DOM.modalCaption.textContent = img.dataset.caption || '';
-                    DOM.imageModal.style.display = 'flex';
                 }
             }
 
@@ -2634,7 +2646,6 @@
                 const folderCard = e.target.closest('.cl2-folder-card');
                 const backBtn = e.target.closest('.cl2-back-button');
                 const deleteBtn = e.target.closest('.delete-library-image');
-                const img = e.target.closest('img');
 
                 if (folderCard) {
                     const folderName = folderCard.dataset.folder;
@@ -2664,13 +2675,6 @@
                                 }
                             });
                     }
-                    return;
-                }
-
-                if (img) {
-                    DOM.modalImageContent.src = img.dataset.fullSrc;
-                    DOM.modalCaption.textContent = img.dataset.caption || '';
-                    DOM.imageModal.style.display = 'flex';
                     return;
                 }
             }
@@ -2958,7 +2962,7 @@
                     } else {
                         renderChartLibrary2Folders();
                     }
-                    renderChartLibrary2Preview(); // <-- ALWAYS UPDATE THE PREVIEW
+                    renderChartLibrary2Preview();
                 });
                 
                 dbRefs.favourites.on('value', (s) => {
