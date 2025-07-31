@@ -500,6 +500,14 @@
         .delete-sentiment-btn:hover {
             opacity: 1;
         }
+        
+        /* NEW: Style for live trade editable cells */
+        .editable-cell[contenteditable="true"]:focus {
+            background-color: var(--header-bg);
+            outline: 2px solid var(--link-color);
+            box-shadow: 0 0 5px var(--shadow-color);
+        }
+
         .edit-sentiment-note-btn {
             background-color: var(--subtle-text);
             color: var(--container-bg);
@@ -1566,6 +1574,15 @@
                         <button class="delete-btn" data-id="${id}">Delete</button>
                     </td>` : '';
                 
+                const masterEditableCell = (className, field, tradeId, value, isMaster) => {
+                    const formattedValue = parseFloat(value).toFixed(2);
+                    if (isMaster) {
+                        return `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>`;
+                    } else {
+                        return `<td>${formattedValue}</td>`;
+                    }
+                };
+                
                 const rowsHtml = Object.keys(trades)
                     .sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date))
                     .map(id => {
@@ -1581,8 +1598,8 @@
                                 <td>${trade.type}</td>
                                 <td>${parseFloat(trade.entry).toFixed(4)}</td>
                                 <td class="note-cell">${entriesList}</td>
-                                <td>${parseFloat(trade.stoploss).toFixed(2)}</td>
-                                <td>${parseFloat(trade.target).toFixed(2)}</td>
+                                ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser)}
+                                ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser)}
                                 <td>${parseFloat(trade.size).toFixed(2)}</td>
                                 <td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td>
                                 <td style="color: #28a745;">${profitString}</td>
@@ -2400,6 +2417,12 @@
                     }
                 });
 
+                // Live Trade Edit Listener
+                DOM.tradesTbody.addEventListener('blur', (e) => {
+                    if (e.target.matches('.editable-cell')) {
+                        handleLiveTradeUpdate(e.target);
+                    }
+                }, true); // Use capturing to ensure it fires
 
                 [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => {
                     el.addEventListener('change', updateJournalView);
@@ -2541,9 +2564,9 @@
                 const entryFee = trade.size * FEE_RATE;
                 const exitValueAtTarget = (trade.target / trade.entry) * trade.size;
                 const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
+                const totalFeeAtTarget = entryFee + exitFeeAtTarget;
                 const exitValueAtStop = (trade.stoploss / trade.entry) * trade.size;
                 const exitFeeAtStop = exitValueAtStop * FEE_RATE;
-                const totalFeeAtTarget = entryFee + exitFeeAtTarget;
                 const totalFeeAtStop = entryFee + exitFeeAtStop;
 
                 let potentialProfit, potentialLoss;
@@ -2564,6 +2587,111 @@
                 dbRefs.trades.push(trade)
                     .then(() => e.target.reset())
                     .catch(error => alert(`Error adding trade: ${error.message}`));
+            }
+            
+            function handleLiveTradeUpdate(cell) {
+                if (!STATE.isMasterUser) return;
+
+                const tradeId = cell.dataset.id;
+                const fieldToUpdate = cell.dataset.field; // 'stoploss' or 'target'
+                
+                // Sanitize and parse input
+                let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, ''));
+
+                if (isNaN(newValue)) {
+                    alert('Invalid number format.');
+                    // The automatic re-render from Firebase will correct the cell's text.
+                    return;
+                }
+
+                const tradeRef = dbRefs.trades.child(tradeId);
+                
+                tradeRef.once('value', snapshot => {
+                    const trade = snapshot.val();
+                    if (!trade) {
+                        alert('Error: Trade not found.');
+                        return;
+                    }
+
+                    // If the value hasn't actually changed, do nothing.
+                    if (parseFloat(trade[fieldToUpdate]).toFixed(2) === newValue.toFixed(2)) {
+                        // Make sure the cell is formatted correctly even if no change
+                        cell.textContent = newValue.toFixed(2);
+                        return;
+                    }
+                    
+                    const updates = {};
+                    updates[fieldToUpdate] = newValue;
+
+                    const tempTrade = { ...trade, ...updates };
+
+                    // --- Validation ---
+                    if (tempTrade.type === 'Long') {
+                        if (tempTrade.target <= tempTrade.entry) { 
+                            alert('Validation Error: For a Long trade, the Target must be higher than the Entry Price.');
+                            cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(2); // Revert cell content
+                            return;
+                        }
+                        if (tempTrade.stoploss >= tempTrade.entry) { 
+                            alert('Validation Error: For a Long trade, the Stop Loss must be lower than the Entry Price.');
+                            cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(2); // Revert cell content
+                            return;
+                        }
+                    } else { // Short
+                        if (tempTrade.target >= tempTrade.entry) { 
+                            alert('Validation Error: For a Short trade, the Target must be lower than the Entry Price.'); 
+                            cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(2); // Revert cell content
+                            return;
+                        }
+                        if (tempTrade.stoploss <= tempTrade.entry) { 
+                            alert('Validation Error: For a Short trade, the Stop Loss must be higher than the Entry Price.');
+                            cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(2); // Revert cell content
+                            return;
+                        }
+                    }
+
+                    // --- Recalculate P/L ---
+                    const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+                    const positionQty = tempTrade.size / tempTrade.entry;
+                    const entryFee = tempTrade.size * FEE_RATE;
+                    
+                    const exitValueAtTarget = (tempTrade.target / tempTrade.entry) * tempTrade.size;
+                    const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
+                    const totalFeeAtTarget = entryFee + exitFeeAtTarget;
+
+                    let potentialProfit;
+                    if (tempTrade.type === 'Long') {
+                        potentialProfit = positionQty * (tempTrade.target - tempTrade.entry);
+                    } else { 
+                        potentialProfit = positionQty * (tempTrade.entry - tempTrade.target);
+                    }
+
+                    const exitValueAtStop = (tempTrade.stoploss / tempTrade.entry) * tempTrade.size;
+                    const exitFeeAtStop = exitValueAtStop * FEE_RATE;
+                    const totalFeeAtStop = entryFee + exitFeeAtStop;
+
+                    let potentialLoss;
+                    if (tempTrade.type === 'Long') {
+                        potentialLoss = positionQty * (tempTrade.entry - tempTrade.stoploss);
+                    } else { 
+                        potentialLoss = positionQty * (tempTrade.stoploss - tempTrade.entry);
+                    }
+                    
+                    updates.estimated_total_fee = totalFeeAtTarget;
+                    updates.expected_profit = potentialProfit - totalFeeAtTarget;
+                    updates.expected_loss = potentialLoss + totalFeeAtStop; 
+                    updates.expected_profit_percent = (updates.expected_profit / tempTrade.size) * 100;
+                    updates.expected_loss_percent = (updates.expected_loss / tempTrade.size) * 100;
+                    
+                    const originalValue = parseFloat(trade[fieldToUpdate]).toFixed(2);
+                    updates.note = (trade.note || '') + `\n${fieldToUpdate.charAt(0).toUpperCase() + fieldToUpdate.slice(1)} updated from ${originalValue} to ${newValue.toFixed(2)} on ${new Date().toLocaleString()}`;
+
+                    // Update Firebase
+                    tradeRef.update(updates).catch(error => {
+                        alert('Failed to update trade: ' + error.message);
+                        cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(2); // Revert cell content on error
+                    });
+                });
             }
 
             function handleSentimentLog(e) {
@@ -2663,9 +2791,9 @@
                     const entryFee = totalValue * FEE_RATE;
                     const exitValueAtTarget = (currentTrade.target / newAverageEntryPrice) * totalValue;
                     const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
+                    const totalFeeAtTarget = entryFee + exitFeeAtTarget;
                     const exitValueAtStop = (currentTrade.stoploss / newAverageEntryPrice) * totalValue;
                     const exitFeeAtStop = exitValueAtStop * FEE_RATE;
-                    const totalFeeAtTarget = entryFee + exitFeeAtTarget;
                     const totalFeeAtStop = entryFee + exitFeeAtStop;
                     
                     let potentialProfit, potentialLoss;
@@ -3171,4 +3299,3 @@
     </script>
 </body>
 </html>
-```
