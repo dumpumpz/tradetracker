@@ -51,11 +51,11 @@
             color: var(--text-color);
             transition: background-color 0.3s, color 0.3s;
         }
-        .container { max-width: 1400px; margin: auto; background: var(--container-bg); padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-color); transition: background-color 0.3s; }
+        .container { max-width: 1200px; margin: auto; background: var(--container-bg); padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-color); transition: background-color 0.3s; }
         h1 { text-align: center; color: var(--text-color); margin-bottom: 5px; }
         h2 { margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 20px; }
         h3 { text-align: center; color: var(--text-color); margin-top: 30px; margin-bottom: -5px; font-weight: 500;}
-        .section-header { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+        .section-header { display: flex; justify-content: center; align-items: center; position: relative; }
         .backup-controls { position: absolute; right: 0; display: flex; gap: 10px; }
         .backup-controls button, .backup-controls label { font-size: 12px; padding: 6px 12px; cursor: pointer; background-color: #6c757d; border: none; color: white; border-radius: 4px; }
         .backup-controls input[type="file"] { display: none; }
@@ -67,14 +67,14 @@
         .tab-content.active { display: block; }
         
         .master-only { display: none; }
-        #add-trade-form { max-width: 100%; margin: 0 0 20px 0; padding: 20px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--card-bg); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end; }
+        #add-trade-form { max-width: 950px; margin: 20px auto; padding: 15px; border: 1px solid var(--border-color); border-radius: 5px; background-color: var(--card-bg); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end; }
         label { margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input, select, button, textarea { padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%; box-sizing: border-box; font-family: inherit; background-color: var(--container-bg); color: var(--text-color); }
         button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.3s; margin-top: 5px; }
         button:hover { opacity: 0.85; }
         
-        .table-wrapper { overflow-x: auto; margin-top: 15px; }
-        table { width: 100%; border-collapse: collapse; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; font-size: 14px; white-space: nowrap; vertical-align: top; }
         th { background-color: var(--header-bg); font-weight: bold; vertical-align: middle; text-align: center; }
         .action-buttons button { padding: 5px 8px; font-size: 12px; margin-right: 4px; }
@@ -89,7 +89,7 @@
             width: 100%; 
             resize: vertical;
             line-height: 1.6;
-            margin-top: 15px;
+            margin-top: 5px;
             overflow-y: hidden; 
             min-height: 120px; 
         }
@@ -156,28 +156,106 @@
         .ema-table th { font-weight: bold; background-color: var(--header-bg); color: var(--subtle-text); }
         .ema-table td:first-child { font-weight: bold; text-align: left; color: var(--link-color); padding-left: 15px; }
 
-        .ema-summary-container { font-size: 13px; padding: 8px 12px; margin: 0 auto 15px auto; max-width: 95%; border-radius: 6px; background-color: var(--bg-color); }
-        .ema-level-summary { line-height: 1.5; }
-        .ema-level-summary ul { margin: 5px 0 0 0; padding-left: 20px; list-style-type: disc; }
-        .ema-level-summary li { margin-bottom: 4px; line-height: 1.4; }
-        .ema-level-summary strong { font-weight: 600; }
+        .ema-summary-container {
+            font-size: 13px;
+            padding: 8px 12px;
+            margin: 0 auto 15px auto;
+            max-width: 95%;
+            border-radius: 6px;
+            background-color: var(--bg-color);
+        }
+        .ema-level-summary {
+            line-height: 1.5;
+        }
+
+        .ema-level-summary ul {
+            margin: 5px 0 0 0;
+            padding-left: 20px;
+            list-style-type: disc;
+        }
+        .ema-level-summary li {
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+        .ema-level-summary strong {
+            font-weight: 600;
+        }
         .ema-level-summary .support { color: var(--green-text); }
         .ema-level-summary .resistance { color: var(--red-text); }
+
 
         #snapshot-images-container { display: flex; flex-direction: column; align-items: center; gap: 25px; margin-top: 20px; }
         .snapshot-image-item { width: 100%; max-width: 900px; }
         .snapshot-image-item h4 { text-align: center; margin-bottom: 8px; font-size: 18px; color: var(--subtle-text); text-transform: capitalize; }
         .snapshot-image-item .journal-image-wrapper { max-width: 100%; margin: auto; }
 
-        #sr-legend-container { margin: 0 auto 10px auto; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
-        #sr-legend-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; cursor: pointer; border-bottom: 1px solid var(--border-color); transition: border-color 0.3s ease; }
-        #sr-legend-header.collapsed { border-bottom-color: transparent; }
-        #sr-legend-header h4 { margin: 0; font-size: 16px; color: var(--text-color); font-weight: 500; }
-        #sr-legend-toggle-btn { background: none; border: 1px solid var(--border-color); color: var(--subtle-text); width: 24px; height: 24px; border-radius: 50%; font-size: 20px; line-height: 20px; text-align: center; cursor: pointer; padding: 0; font-weight: bold; margin: 0; transition: transform 0.3s ease, color 0.2s, border-color 0.2s; }
-        #sr-legend-header:hover #sr-legend-toggle-btn { border-color: var(--link-color); color: var(--link-color); }
-        #sr-legend-content { padding: 15px; display: block; }
-        #sr-metadata-container { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; padding: 0; margin: 0; background-color: transparent; border: none; text-align: center; }
-        #sr-levels-tab .controls-container { margin-bottom: 25px; padding: 10px; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; }
+        #sr-legend-container {
+            margin: 0 auto 10px auto;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #sr-legend-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: border-color 0.3s ease;
+        }
+        #sr-legend-header.collapsed {
+            border-bottom-color: transparent;
+        }
+        #sr-legend-header h4 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+        #sr-legend-toggle-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--subtle-text);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 20px;
+            line-height: 20px;
+            text-align: center;
+            cursor: pointer;
+            padding: 0;
+            font-weight: bold;
+            margin: 0;
+            transition: transform 0.3s ease, color 0.2s, border-color 0.2s;
+        }
+        #sr-legend-header:hover #sr-legend-toggle-btn {
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
+        #sr-legend-content {
+            padding: 15px;
+            display: block;
+        }
+        #sr-metadata-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 0;
+            margin: 0;
+            background-color: transparent;
+            border: none;
+            text-align: center;
+        }
+        #sr-levels-tab .controls-container {
+            margin-bottom: 25px;
+            padding: 10px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
 
         .metadata-item { font-size: 14px; }
         .metadata-label { font-weight: bold; color: var(--subtle-text); display: block; margin-bottom: 4px; }
@@ -196,8 +274,19 @@
         .sr-column.resistance .sr-level-strength { background-color: #dc3545; }
         .sr-level-pivots { padding: 15px; font-size: 13px; color: var(--subtle-text); }
         .sr-level-pivots span { font-weight: 600; color: var(--text-color); }
-        .sr-summary { margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color); text-align: center; font-size: 14px; color: var(--subtle-text); }
-        .sr-summary span { font-weight: bold; color: var(--text-color); font-family: 'Courier New', Courier, monospace; }
+        .sr-summary {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border-color);
+            text-align: center;
+            font-size: 14px;
+            color: var(--subtle-text);
+        }
+        .sr-summary span {
+            font-weight: bold;
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+        }
 
         .price-above { color: #dc3545 !important; }
         .price-below { color: #28a745 !important; }
@@ -212,156 +301,549 @@
         .slider.round { border-radius: 34px; }
         .slider.round:before { border-radius: 50%; }
 
-        .journal-input-wrapper { position: relative; }
-        #favourite-btn { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; font-size: 20px; padding: 0; margin: 0; background-color: var(--card-bg); border: 1px solid var(--border-color); color: #ccc; cursor: pointer; display: none; transition: all 0.2s ease; z-index: 5; }
-        #favourite-btn:hover { border-color: #ffc107; color: #ffc107; }
-        #favourite-btn.active { color: #ffc107; border-color: #ffc107; box-shadow: 0 0 8px rgba(255, 193, 7, 0.5); }
-        #favourited-entry-container { background-color: var(--purple-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-        .favourited-header { display: flex; align-items: center; font-weight: bold; color: var(--text-color); margin-bottom: 10px; font-size: 14px; }
-        .favourited-header .star-icon { font-size: 18px; margin-right: 8px; color: #ffc107; }
-        #favourited-entry-text { white-space: pre-wrap; word-wrap: break-word; font-size: 14px; line-height: 1.6; color: var(--text-color); }
+        .journal-input-wrapper {
+            position: relative;
+        }
+        #favourite-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 20px;
+            padding: 0;
+            margin: 0;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: #ccc; 
+            cursor: pointer;
+            display: none; 
+            transition: all 0.2s ease;
+            z-index: 5;
+        }
+        #favourite-btn:hover {
+            border-color: #ffc107;
+            color: #ffc107;
+        }
+        #favourite-btn.active {
+            color: #ffc107;
+            border-color: #ffc107;
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+        }
+        #favourited-entry-container {
+            background-color: var(--purple-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .favourited-header {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .favourited-header .star-icon {
+            font-size: 18px;
+            margin-right: 8px;
+            color: #ffc107;
+        }
+        #favourited-entry-text {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-color);
+        }
         
         .setups-table th:first-child { text-align: left; padding-left: 15px; color: var(--link-color); }
         .setups-table td { text-align: center; }
-        .setups-table td[contenteditable="true"]:focus { background-color: var(--header-bg); outline: 2px solid var(--link-color); box-shadow: 0 0 5px var(--shadow-color); }
+        .setups-table td[contenteditable="true"]:focus {
+            background-color: var(--header-bg);
+            outline: 2px solid var(--link-color);
+            box-shadow: 0 0 5px var(--shadow-color);
+        }
         
-        .setups-container { margin-bottom: 30px; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; background-color: var(--card-bg); }
-        .setups-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; cursor: pointer; }
-        .setups-header h2 { margin: 0; font-size: 18px; padding: 0; border: none; }
-        .setups-toggle-btn { background: none; border: 1px solid var(--border-color); color: var(--subtle-text); width: 24px; height: 24px; border-radius: 50%; font-size: 20px; line-height: 20px; text-align: center; cursor: pointer; padding: 0; font-weight: bold; margin: 0; transition: transform 0.3s ease, color 0.2s, border-color 0.2s; }
-        .setups-header:hover .setups-toggle-btn { border-color: var(--link-color); color: var(--link-color); }
-        .setups-controls { text-align: center; margin-top: 15px; }
-        .setups-save-status { text-align:center; font-style:italic; color:var(--subtle-text); height:1em; }
+        .setups-container {
+            margin-bottom: 30px; 
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 8px;
+            background-color: var(--card-bg);
+        }
+        .setups-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            cursor: pointer;
+        }
+        .setups-header h2 {
+            margin: 0;
+            font-size: 18px;
+            padding: 0;
+            border: none;
+        }
+        .setups-toggle-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--subtle-text);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 20px;
+            line-height: 20px;
+            text-align: center;
+            cursor: pointer;
+            padding: 0;
+            font-weight: bold;
+            margin: 0;
+            transition: transform 0.3s ease, color 0.2s, border-color 0.2s;
+        }
+        .setups-header:hover .setups-toggle-btn {
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
+        .setups-controls {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .setups-save-status {
+            text-align:center;
+            font-style:italic;
+            color:var(--subtle-text);
+            height:1em;
+        }
 
         /* Asset Sentiment Styles */
-        #asset-sentiment-container { margin: 20px auto 10px auto; padding: 0; border: none; background-color: transparent; }
-        #asset-sentiment-container h2, #asset-sentiment-container h4 { display: none; /* Hide redundant headers */ }
-        .sentiment-trackers-wrapper { display: flex; justify-content: space-around; gap: 20px; flex-wrap: wrap; }
-        .sentiment-tracker { flex: 1; min-width: 250px; max-width: 400px; text-align: center; }
-        .sentiment-tracker h4 { margin-top: 0; margin-bottom: 15px; font-size: 16px; color: var(--subtle-text); }
-        .sentiment-buttons { display: flex; justify-content: center; gap: 10px; }
-        .sentiment-buttons button { flex: 1; border: 1px solid var(--border-color); background-color: transparent; color: var(--text-color); padding: 8px 12px; cursor: pointer; transition: all 0.2s ease; font-weight: 500; }
-        .sentiment-buttons button:hover { opacity: 1; border-color: var(--link-color); }
-        .sentiment-buttons button:active { transform: scale(0.95); background-color: var(--header-bg); }
-        .sentiment-note-cell { white-space: normal; max-width: 250px; font-size: 13px; }
-        #sentiment-receipts-table td:nth-child(2) { text-transform: capitalize; font-weight: bold; }
-        .delete-sentiment-btn { background: none; border: none; color: var(--red-text); font-weight: bold; font-size: 18px; cursor: pointer; padding: 0 5px; margin: 0; line-height: 1; opacity: 0.6; }
-        .delete-sentiment-btn:hover { opacity: 1; }
+        #asset-sentiment-container {
+            max-width: 950px;
+            margin: 20px auto 10px auto;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+        }
+        #asset-sentiment-container h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 5px;
+            border: none;
+            padding: 0;
+        }
+        .sentiment-trackers-wrapper {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .sentiment-tracker {
+            flex: 1;
+            min-width: 250px;
+            max-width: 400px;
+            text-align: center;
+        }
+        .sentiment-tracker h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: var(--subtle-text);
+        }
+        .sentiment-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .sentiment-buttons button {
+            flex: 1;
+            border: 1px solid var(--border-color);
+            background-color: transparent;
+            color: var(--text-color);
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .sentiment-buttons button:hover {
+            opacity: 1;
+            border-color: var(--link-color);
+        }
+        .sentiment-buttons button:active {
+            transform: scale(0.95);
+            background-color: var(--header-bg);
+        }
+        .sentiment-note-cell {
+            white-space: normal;
+            max-width: 250px;
+            font-size: 13px;
+        }
+        #sentiment-receipts-table td:nth-child(2) {
+            text-transform: capitalize;
+            font-weight: bold;
+        }
+        .delete-sentiment-btn {
+            background: none;
+            border: none;
+            color: var(--red-text);
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 5px;
+            margin: 0;
+            line-height: 1;
+            opacity: 0.6;
+        }
+        .delete-sentiment-btn:hover {
+            opacity: 1;
+        }
         
-        .editable-cell[contenteditable="true"]:focus { background-color: var(--header-bg); outline: 2px solid var(--link-color); box-shadow: 0 0 5px var(--shadow-color); }
-        .edit-sentiment-note-btn { background-color: var(--subtle-text); color: var(--container-bg); border: none; }
-        .edit-sentiment-note-btn:hover { background-color: var(--link-color); }
+        /* NEW: Style for live trade editable cells */
+        .editable-cell[contenteditable="true"]:focus {
+            background-color: var(--header-bg);
+            outline: 2px solid var(--link-color);
+            box-shadow: 0 0 5px var(--shadow-color);
+        }
+
+        .edit-sentiment-note-btn {
+            background-color: var(--subtle-text);
+            color: var(--container-bg);
+            border: none;
+        }
+        .edit-sentiment-note-btn:hover {
+            background-color: var(--link-color);
+        }
         
-        .toggle-history-btn { font-size: 12px; padding: 4px 10px; margin: 0; cursor: pointer; background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--subtle-text); border-radius: 4px; align-self: center; display: none; }
-        .toggle-history-btn:hover { border-color: var(--link-color); color: var(--link-color); }
+        /* NEW: History Toggle Button Style */
+        .toggle-history-btn {
+            font-size: 12px;
+            padding: 4px 10px;
+            margin: 0 0 0 15px; /* Removed top margin */
+            cursor: pointer;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--subtle-text);
+            border-radius: 4px;
+            align-self: center; /* Vertically align with h2 in flex container */
+            display: none; /* Hidden by default, shown by JS if needed */
+        }
+        .toggle-history-btn:hover {
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
+        .section-header h2 {
+            margin-bottom: 0; /* Ensures h2 and button align well */
+        }
+
 
         /* Image Library Styles */
-        #image-library-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 20px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-color); }
-        .library-image-wrapper { position: relative; border: 1px solid var(--border-color); padding: 5px; background: var(--container-bg); border-radius: 4px; aspect-ratio: 16 / 9; overflow: hidden; display: flex; flex-direction: column; }
-        .library-image-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 2px; cursor: pointer; transition: transform 0.2s ease-in-out; }
-        .library-image-wrapper:hover img { transform: scale(1.05); }
-        .delete-library-image { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background-color: rgba(220, 53, 69, 0.85); border: 1px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; transition: all 0.2s ease-in-out; opacity: 0; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        .library-image-wrapper:hover .delete-library-image { opacity: 1; transform: scale(1.1); }
-        .delete-library-image svg { width: 14px; height: 14px; fill: white; }
-       .edit-caption-btn { position: absolute; top: 8px; left: 8px; width: 28px; height: 28px; border-radius: 50%; background-color: rgba(0, 123, 255, 0.85); border: 1px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; transition: all 0.2s ease-in-out; opacity: 0; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        .library-image-wrapper:hover .edit-caption-btn { opacity: 1; transform: scale(1.1); }
-        .edit-caption-btn svg { width: 14px; height: 14px; fill: white; }
-        .library-image-caption { font-size: 12px; line-height: 1.4; color: var(--subtle-text); padding: 4px; text-align: center; }
+        #image-library-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+        }
+        .library-image-wrapper {
+            position: relative;
+            border: 1px solid var(--border-color);
+            padding: 5px;
+            background: var(--container-bg);
+            border-radius: 4px;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .library-image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        .library-image-wrapper:hover img {
+            transform: scale(1.05);
+        }
+        .delete-library-image {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: rgba(220, 53, 69, 0.85);
+            border: 1px solid rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.2s ease-in-out;
+            opacity: 0;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .library-image-wrapper:hover .delete-library-image {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .delete-library-image svg {
+            width: 14px;
+            height: 14px;
+            fill: white;
+        }
+       .edit-caption-btn {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: rgba(0, 123, 255, 0.85);
+            border: 1px solid rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.2s ease-in-out;
+            opacity: 0;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .library-image-wrapper:hover .edit-caption-btn {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .edit-caption-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: white;
+        }
+        .library-image-caption {
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--subtle-text);
+            padding: 4px;
+            text-align: center;
+        }
         
         /* Image Modal Styles */
-        .modal-overlay { position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; animation-name: fadeIn; animation-duration: 0.3s; }
-        .modal-content { margin: auto; display: block; max-width: 90vw; max-height: 85vh; animation-name: zoomIn; animation-duration: 0.4s; }
-        @keyframes fadeIn { from {opacity: 0} to {opacity: 1} }
-        @keyframes zoomIn { from {transform:scale(0.1)} to {transform:scale(1)} }
-        .modal-close { position: absolute; top: 15px; right: 35px; color: #f1f1f1; font-size: 40px; font-weight: bold; transition: 0.3s; cursor: pointer; z-index: 2002; }
-        .modal-close:hover, .modal-close:focus { color: #bbb; text-decoration: none; cursor: pointer; }
-        #modal-caption { text-align: center; color: #ccc; padding: 15px 0; font-size: 18px; line-height: 1.4; max-width: 80vw; word-wrap: break-word; text-transform: capitalize; }
-        .modal-nav { position: fixed; top: 50%; transform: translateY(-50%); width: 50px; height: 50px; background-color: rgba(255, 255, 255, 0.2); color: #fff; border: none; border-radius: 50%; font-size: 28px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2001; transition: background-color 0.2s ease; }
-        .modal-nav:hover { background-color: rgba(255, 255, 255, 0.4); }
+        .modal-overlay {
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column; 
+            justify-content: center;
+            align-items: center;
+            animation-name: fadeIn;
+            animation-duration: 0.3s;
+        }
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90vw;
+            max-height: 85vh;
+            animation-name: zoomIn;
+            animation-duration: 0.4s;
+        }
+        @keyframes fadeIn {
+            from {opacity: 0}
+            to {opacity: 1}
+        }
+        @keyframes zoomIn {
+            from {transform:scale(0.1)}
+            to {transform:scale(1)}
+        }
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+            z-index: 2002;
+        }
+        .modal-close:hover,
+        .modal-close:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        #modal-caption {
+            text-align: center;
+            color: #ccc;
+            padding: 15px 0;
+            font-size: 18px;
+            line-height: 1.4;
+            max-width: 80vw;
+            word-wrap: break-word; 
+            text-transform: capitalize;
+        }
+        .modal-nav {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2001;
+            transition: background-color 0.2s ease;
+        }
+        .modal-nav:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
         #modal-prev { left: 20px; }
         #modal-next { right: 20px; }
 
+
         /* --- Styles for Completed Trade Merge Tool --- */
-        .in-merge-mode #completed-trades-tbody tr { cursor: crosshair; }
-        .in-merge-mode #completed-trades-tbody tr:hover { background-color: var(--header-bg); }
-        #completed-trades-tbody tr.is-merge-base { background-color: var(--purple-bg) !important; color: var(--text-color); }
-        #completed-trades-tbody tr.is-merge-base td { font-weight: bold; }
+        .in-merge-mode #completed-trades-tbody tr {
+            cursor: crosshair;
+        }
+        .in-merge-mode #completed-trades-tbody tr:hover {
+            background-color: var(--header-bg);
+        }
+        #completed-trades-tbody tr.is-merge-base {
+            background-color: var(--purple-bg) !important;
+            color: var(--text-color);
+        }
+        #completed-trades-tbody tr.is-merge-base td {
+            font-weight: bold;
+        }
 
         /* Chart Library 2 Styles */
-        #chart-library-2-section { margin-top: 0; padding-top: 0; border-top: none; }
-        #chart-library-2-container { padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-color); min-height: 200px; }
-        .cl2-folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; }
-        .cl2-folder-card { position: relative; border: 1px solid var(--border-color); background-color: var(--container-bg); border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s ease-in-out; aspect-ratio: 4 / 3; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .cl2-folder-card:hover { transform: translateY(-3px); box-shadow: 0 4px 8px var(--shadow-color); border-color: var(--link-color); }
-        .cl2-folder-card h4 { margin: 10px 0 5px 0; font-size: 16px; font-weight: 500; color: var(--text-color); text-transform: capitalize; }
-        .cl2-folder-icon { font-size: 40px; color: var(--link-color); }
-        .cl2-folder-count { font-size: 12px; color: var(--subtle-text); }
-        .cl2-folder-card.drag-over { border-color: var(--link-color); border-style: dashed; transform: scale(1.05); background-color: var(--header-bg); }
-        .cl2-image-view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .cl2-back-button { padding: 8px 16px; font-size: 14px; }
-        .cl2-view-title { margin: 0; font-size: 20px; text-transform: capitalize; color: var(--text-color); }
-        .cl2-image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
-        
-        #chart-library-2-preview-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; margin-top: 10px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-color); }
-        .cl2-preview-item h4 { text-align: center; margin-bottom: 10px; margin-top: 0; font-size: 18px; color: var(--subtle-text); text-transform: capitalize; }
-
-
-        /* *** NEW LAYOUT STYLES FOR TRADE TRACKER TAB *** */
-        .tracker-section-card {
-            background-color: var(--card-bg);
+        #chart-library-2-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        #chart-library-2-container {
+            padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px var(--shadow-color);
+            background-color: var(--card-bg);
+            min-height: 200px;
+        }
+        .cl2-folder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 15px;
+        }
+        .cl2-folder-card {
+            position: relative;
+            border: 1px solid var(--border-color);
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            aspect-ratio: 4 / 3;
             display: flex;
             flex-direction: column;
-            height: 100%; /* For grid items */
+            align-items: center;
+            justify-content: center;
         }
-        .tracker-section-card h2 {
-            margin-top: 0;
-            border-top: none;
-            padding-top: 0;
-            margin-bottom: 0; /* Let section-header handle spacing */
-            text-align: left;
-            font-size: 20px;
+        .cl2-folder-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px var(--shadow-color);
+            border-color: var(--link-color);
         }
-        .tracker-grid-2col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+        .cl2-folder-card h4 {
+            margin: 10px 0 5px 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-color);
+            text-transform: capitalize;
+        }
+        .cl2-folder-icon {
+            font-size: 40px;
+            color: var(--link-color);
+        }
+        .cl2-folder-count {
+            font-size: 12px;
+            color: var(--subtle-text);
+        }
+        .cl2-folder-card.drag-over {
+            border-color: var(--link-color);
+            border-style: dashed;
+            transform: scale(1.05);
+            background-color: var(--header-bg);
+        }
+        .cl2-image-view-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
         }
-        #tracker-scratchpad {
-            margin-top: 15px;
-            flex-grow: 1; /* Make it fill the card height */
+        .cl2-back-button {
+            padding: 8px 16px;
+            font-size: 14px;
         }
-        .tracker-section-card .section-header {
-            padding-bottom: 10px;
+        .cl2-view-title {
+            margin: 0;
+            font-size: 20px;
+            text-transform: capitalize;
+            color: var(--text-color);
+        }
+        .cl2-image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        /* Chart Library 2 Preview Styles */
+        #chart-library-2-preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+        }
+        .cl2-preview-item h4 {
+            text-align: center;
             margin-bottom: 10px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        /* Remove double-border on headers that are already inside a card */
-        .tracker-section-card h2.section-header, 
-        .tracker-section-card .section-header > h2 {
-             border-top: none;
-             margin-top: 0;
-             padding-top: 0;
-        }
-        .tracker-section-card #asset-sentiment-container {
-             max-width: 100%;
+            margin-top: 0;
+            font-size: 18px;
+            color: var(--subtle-text);
+            text-transform: capitalize;
         }
 
 
-        @media (max-width: 1200px) {
-            .tracker-grid-2col {
-                grid-template-columns: 1fr;
-            }
-        }
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
-            .section-header { flex-direction: column; align-items: flex-start; } 
+            .section-header { flex-direction: column; } 
             .backup-controls { position: static; margin-top: 10px; } 
             .journal-image-wrapper { max-width: 100%; } 
             th, td { font-size: 12px; padding: 6px; } 
@@ -372,8 +854,14 @@
             #sr-levels-container { grid-template-columns: 1fr; }
             #sr-metadata-container { flex-direction: column; }
             .theme-switch-wrapper { top: 8px; right: 10px; }
-            #chart-library-2-preview-container { grid-template-columns: 1fr; }
-            .modal-nav { width: 40px; height: 40px; font-size: 24px; }
+            #chart-library-2-preview-container {
+                grid-template-columns: 1fr;
+            }
+            .modal-nav {
+                width: 40px;
+                height: 40px;
+                font-size: 24px;
+            }
             #modal-prev { left: 5px; }
             #modal-next { right: 5px; }
         }
@@ -427,8 +915,30 @@
         </div>
         
         <div id="tracker-tab" class="tab-content active">
+            
+            <div style="margin-bottom: 25px; max-width: 950px; margin-left: auto; margin-right: auto;">
+                <textarea id="tracker-scratchpad" placeholder="Tracker scratchpad..."></textarea>
+            </div>
 
-            <!-- ADD TRADE FORM (Master Only) -->
+            <!-- CHART LIBRARY 2 SECTION -->
+            <div id="chart-library-2-section">
+                <div class="section-header">
+                    <h2 style="border:none; padding:0;">Chart Library 2</h2>
+                </div>
+                <div id="chart-library-2-container">
+                    <!-- Folders or Image Grid will be rendered here by JS -->
+                </div>
+                <!-- PREVIEW SECTION -->
+                <div id="chart-library-2-preview-section">
+                    <div class="section-header">
+                        <h2 style="border:none; padding:0; margin-top:20px;">Preview</h2>
+                    </div>
+                    <div id="chart-library-2-preview-container">
+                        <!-- JS will render preview items here -->
+                    </div>
+                </div>
+            </div>
+
             <form id="add-trade-form" class="master-only">
                 <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
                 <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
@@ -439,126 +949,83 @@
                 <div><button type="submit">Add Trade</button></div>
             </form>
 
-            <!-- TRADES GRID (2-COLUMN) -->
-            <div class="tracker-grid-2col">
-                <!-- Live Trades Card -->
-                <div class="tracker-section-card">
-                    <div class="section-header"><h2>Live Trades</h2></div>
-                    <div class="table-wrapper">
-                        <table>
-                            <thead>
-                                <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th class="master-only">Actions</th></tr>
-                            </thead>
-                            <tbody id="trades-tbody"></tbody>
-                        </table>
+            <div id="asset-sentiment-container">
+               <h4>Sentiment Log 👀</h4>
+                <div class="sentiment-trackers-wrapper">
+                    <div class="sentiment-tracker" id="sentiment-tracker-btc">
+                        <h4>BTC/USDT</h4>
+                        <div class="sentiment-buttons">
+                            <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
+                            <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
+                            <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Completed Trades Card -->
-                <div class="tracker-section-card">
-                    <div class="section-header">
-                        <h2>Completed Trades</h2>
-                        <button id="toggle-old-trades" class="toggle-history-btn">Show All</button>
-                    </div>
-                    <div class="table-wrapper">
-                        <table>
-                            <thead>
-                                <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
-                            </thead>
-                            <tbody id="completed-trades-tbody"></tbody>
-                        </table>
+                    <div class="sentiment-tracker" id="sentiment-tracker-eth">
+                        <h4>ETH/USDT</h4>
+                        <div class="sentiment-buttons">
+                            <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
+                            <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
+                            <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
+                        </div>
                     </div>
                 </div>
             </div>
+            
+            <div class="section-header">
+                <h2>Sentiment Log</h2>
+                <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
+            </div>
+            <div class="table-wrapper">
+                <table id="sentiment-receipts-table">
+                    <thead>
+                        <tr>
+                            <th>Asset</th>
+                            <th>Sentiment</th>
+                            <th class="note-header">Note</th>
+                            <th>Timestamp</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sentiment-receipts-tbody"></tbody>
+                </table>
+            </div>
 
-            <!-- SENTIMENT CARD (FULL-WIDTH) -->
-            <div class="tracker-section-card">
+            <!-- IMAGE LIBRARY SECTION -->
+            <div id="image-library-section">
                 <div class="section-header">
-                    <h2>Sentiment</h2>
-                    <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
+                    <h2>Chart Library</h2>
                 </div>
-                <!-- Sentiment Buttons -->
-                <div id="asset-sentiment-container">
-                    <div class="sentiment-trackers-wrapper">
-                        <div class="sentiment-tracker" id="sentiment-tracker-btc">
-                            <h4>BTC/USDT</h4>
-                            <div class="sentiment-buttons">
-                                <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
-                                <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
-                                <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
-                            </div>
-                        </div>
-                        <div class="sentiment-tracker" id="sentiment-tracker-eth">
-                            <h4>ETH/USDT</h4>
-                            <div class="sentiment-buttons">
-                                <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
-                                <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
-                                <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
-                            </div>
-                        </div>
-                    </div>
+                <div id="library-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
+                    <label for="library-image-upload" class="image-upload-label">Add to Library</label>
+                    <input type="file" id="library-image-upload" accept="image/*" multiple>
+                    <div id="library-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
                 </div>
-                <!-- Sentiment Log Table -->
-                <div class="table-wrapper">
-                    <table id="sentiment-receipts-table">
-                        <thead>
-                            <tr>
-                                <th>Asset</th>
-                                <th>Sentiment</th>
-                                <th class="note-header">Note</th>
-                                <th>Timestamp</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sentiment-receipts-tbody"></tbody>
-                    </table>
+                <div id="image-library-container">
+                    <!-- Thumbnails will be rendered here by JavaScript -->
                 </div>
             </div>
 
-            <!-- SCRATCHPAD CARD (FULL-WIDTH) -->
-            <div class="tracker-section-card">
-                <h2>Tracker Scratchpad</h2>
-                <textarea id="tracker-scratchpad" placeholder="Quick notes, thoughts, reminders..."></textarea>
+            <div class="section-header"><h2>Live Trades</h2></div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th class="master-only">Actions</th></tr>
+                    </thead>
+                    <tbody id="trades-tbody"></tbody>
+                </table>
             </div>
-
-            <!-- CHART LIBRARY 2 CARD (FULL-WIDTH) -->
-            <div class="tracker-section-card">
-                <div id="chart-library-2-section">
-                    <div class="section-header">
-                        <h2>Chart Library 2</h2>
-                    </div>
-                    <div id="chart-library-2-container">
-                        <!-- Folders or Image Grid will be rendered here by JS -->
-                    </div>
-                    <!-- PREVIEW SECTION -->
-                    <div id="chart-library-2-preview-section" style="margin-top: 20px;">
-                        <div class="section-header">
-                            <h3>Preview</h3>
-                        </div>
-                        <div id="chart-library-2-preview-container">
-                            <!-- JS will render preview items here -->
-                        </div>
-                    </div>
-                </div>
+            <div class="section-header">
+                <h2>Completed Trades</h2>
+                <button id="toggle-old-trades" class="toggle-history-btn">Show All</button>
             </div>
-
-            <!-- IMAGE LIBRARY 1 CARD (FULL-WIDTH) -->
-            <div class="tracker-section-card">
-                <div id="image-library-section">
-                    <div class="section-header">
-                        <h2>Chart Library (Misc)</h2>
-                    </div>
-                    <div id="library-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
-                        <label for="library-image-upload" class="image-upload-label">Add to Library</label>
-                        <input type="file" id="library-image-upload" accept="image/*" multiple>
-                        <div id="library-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
-                    </div>
-                    <div id="image-library-container">
-                        <!-- Thumbnails will be rendered here by JavaScript -->
-                    </div>
-                </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
+                    </thead>
+                    <tbody id="completed-trades-tbody"></tbody>
+                </table>
             </div>
-
         </div>
 
         <div id="journal-tab" class="tab-content">
@@ -786,8 +1253,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
       <script>
-        // THE ENTIRE <script> BLOCK FROM THE ORIGINAL FILE GOES HERE
-        // No changes are needed in the JavaScript.
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- CONFIGURATION ---
@@ -2834,5 +3299,3 @@
     </script>
 </body>
 </html>
-```
-390.7s
