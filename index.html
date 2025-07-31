@@ -687,6 +687,7 @@
             line-height: 1.4;
             max-width: 80vw;
             word-wrap: break-word; 
+            text-transform: capitalize;
         }
         .modal-nav {
             position: fixed;
@@ -1667,7 +1668,7 @@
                             <div class="library-image-wrapper">
                                 <div style="position: relative; flex-grow: 1;">
                                     ${masterButtonsHtml(id, imgData.fileName)}
-                                    <img src="${imgData.url}" alt="Library Image" data-full-src="${imgData.url}" data-caption="${imgData.caption || ''}">
+                                    <img src="${imgData.url}" alt="Library Image" data-full-src="${imgData.url}" data-caption="${imgData.caption || 'Library Image'}">
                                 </div>
                                 <div class="library-image-caption" title="${imgData.caption || ''}">${imgData.caption || ' '}</div>
                             </div>`;
@@ -1739,11 +1740,10 @@
                     .map(id => {
                         const imgData = imagesForFolder[id];
                         if (!imgData?.url) return '';
-                        // Reusing existing library-image-wrapper and img structure
                         return `
                             <div class="library-image-wrapper">
                                 ${masterDeleteButtonHtml(id, imgData.fileName)}
-                                <img src="${imgData.url}" alt="Image from ${folderName}" data-full-src="${imgData.url}" data-caption="${imgData.fileName}">
+                                <img src="${imgData.url}" alt="Image from ${folderName}" data-full-src="${imgData.url}" data-caption="${folderName}">
                             </div>`;
                     }).join('');
                 
@@ -1763,7 +1763,6 @@
                         return; // Skip folders with no images
                     }
 
-                    // Find the latest image by sorting by timestamp
                     const latestImage = Object.values(imagesInFolder).sort((a, b) => b.timestamp - a.timestamp)[0];
 
                     if (latestImage) {
@@ -1771,7 +1770,7 @@
                             <div class="cl2-preview-item">
                                 <h4>${folderName}</h4>
                                 <div class="library-image-wrapper">
-                                    <img src="${latestImage.url}" alt="Latest from ${folderName}" data-full-src="${latestImage.url}" data-caption="${latestImage.fileName}">
+                                    <img src="${latestImage.url}" alt="Latest from ${folderName}" data-full-src="${latestImage.url}" data-caption="${folderName}">
                                 </div>
                             </div>
                         `;
@@ -1867,7 +1866,7 @@
                         return `
                             <div class="journal-image-wrapper">
                                 ${deleteButtonHtml(id, imgData.fileName)}
-                                <img src="${imgData.url}" alt="Journal Image for ${imgData.fileName}" data-full-src="${imgData.url}" data-caption="Journal Image">
+                                <img src="${imgData.url}" alt="Journal Image" data-full-src="${imgData.url}" data-caption="Journal Image">
                             </div>`;
                     }).join('');
 
@@ -2436,8 +2435,43 @@
                 DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
 
                 DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
-                DOM.journalImagesContainer.addEventListener('click', handleImageDelete);
                 
+                DOM.journalTab.addEventListener('click', (e) => {
+                    if (e.target.closest('.delete-journal-image')) {
+                        handleImageDelete(e);
+                        return;
+                    }
+                    
+                    const header = e.target.closest('.setups-header');
+                    if (header) {
+                        const targetWrapper = document.querySelector(header.dataset.target);
+                        const toggleBtn = header.querySelector('.setups-toggle-btn');
+                        if (targetWrapper && toggleBtn) {
+                            const isCollapsed = targetWrapper.style.display === 'none';
+                            targetWrapper.style.display = isCollapsed ? 'block' : 'none';
+                            toggleBtn.textContent = isCollapsed ? '−' : '+';
+                        }
+                    } else { 
+                        const img = e.target.closest('#journal-images-container img');
+                        if(img) {
+                            const allImageElements = DOM.journalImagesContainer.querySelectorAll('img');
+                            const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption }));
+                            const clickedIndex = Array.from(allImageElements).indexOf(img);
+                            openImageModal(imageArray, clickedIndex);
+                        }
+                    }
+                });
+
+                DOM.snapshotTab.addEventListener('click', (e) => {
+                     const img = e.target.closest('#snapshot-images-container img');
+                     if(img) {
+                        const allImageElements = DOM.snapshotImagesContainer.querySelectorAll('img');
+                        const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption }));
+                        const clickedIndex = Array.from(allImageElements).indexOf(img);
+                        openImageModal(imageArray, clickedIndex);
+                     }
+                });
+
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                     DOM.journalTab.addEventListener(eventName, e => {
                         e.preventDefault();
@@ -2459,37 +2493,6 @@
                 
                 DOM.saveSetups1Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1));
                 DOM.saveSetups2Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2));
-                
-                DOM.journalTab.addEventListener('click', (e) => {
-                    const header = e.target.closest('.setups-header');
-                    if (header) {
-                        const targetWrapper = document.querySelector(header.dataset.target);
-                        const toggleBtn = header.querySelector('.setups-toggle-btn');
-                        if (targetWrapper && toggleBtn) {
-                            const isCollapsed = targetWrapper.style.display === 'none';
-                            targetWrapper.style.display = isCollapsed ? 'block' : 'none';
-                            toggleBtn.textContent = isCollapsed ? '−' : '+';
-                        }
-                    } else { // Handle image click for journal images
-                        const img = e.target.closest('#journal-images-container img');
-                        if(img) {
-                            const allImageElements = DOM.journalImagesContainer.querySelectorAll('img');
-                            const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption }));
-                            const clickedIndex = Array.from(allImageElements).indexOf(img);
-                            openImageModal(imageArray, clickedIndex);
-                        }
-                    }
-                });
-
-                DOM.snapshotTab.addEventListener('click', (e) => {
-                     const img = e.target.closest('#snapshot-images-container img');
-                     if(img) {
-                        const allImageElements = DOM.snapshotImagesContainer.querySelectorAll('img');
-                        const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption }));
-                        const clickedIndex = Array.from(allImageElements).indexOf(img);
-                        openImageModal(imageArray, clickedIndex);
-                     }
-                });
 
                 DOM.srSymbolEl.addEventListener('change', renderSrLevels);
                 DOM.srLookbackEl.addEventListener('change', renderSrLevels);
@@ -2695,7 +2698,7 @@
 
             function handleGenericImageLibraryClick(e) {
                 const clickedImg = e.target.closest('img');
-                if (clickedImg) {
+                if (clickedImg && clickedImg.dataset.fullSrc) {
                     const galleryContainer = clickedImg.closest('#image-library-container, .cl2-image-grid, #chart-library-2-preview-container');
                     if (galleryContainer) {
                         const allImageElements = galleryContainer.querySelectorAll('img');
@@ -2708,7 +2711,6 @@
                     return; 
                 }
 
-                // Delegate to specific library handlers for other actions (delete, edit, folders etc.)
                 if (e.target.closest('#image-library-container')) {
                     handleLibrary1Actions(e);
                 } else if (e.target.closest('#chart-library-2-container')) {
@@ -2845,7 +2847,6 @@
                 
                 const img = button.closest('.journal-image-wrapper').querySelector('img');
                 
-                // If the modal is open and showing this image, close it first
                 if (DOM.imageModal.style.display === 'flex' && DOM.modalImageContent.src === img.src) {
                     closeModal();
                 }
@@ -3170,3 +3171,4 @@
     </script>
 </body>
 </html>
+```
