@@ -14,7 +14,7 @@
             --link-color: #007bff;
             --subtle-text: #666;
             --card-bg: #fafafa;
-            --shadow-color: rgba(0,0,0,0.07);
+            --shadow-color: rgba(0,0,0,0.1);
             --green-bg: #d4edda;
             --red-bg: #f8d7da;
             --purple-bg: #e2d9f3;
@@ -67,7 +67,7 @@
         .tab-content.active { display: block; }
         
         .master-only { display: none; }
-        #add-trade-form { max-width: 950px; margin: 0 auto; padding: 15px; border: 1px solid var(--border-color); border-radius: 5px; background-color: var(--card-bg); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end; }
+        #add-trade-form { max-width: 950px; margin: 20px auto; padding: 15px; border: 1px solid var(--border-color); border-radius: 5px; background-color: var(--card-bg); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end; }
         label { margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input, select, button, textarea { padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%; box-sizing: border-box; font-family: inherit; background-color: var(--container-bg); color: var(--text-color); }
         button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.3s; margin-top: 5px; }
@@ -78,82 +78,6 @@
         th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; font-size: 14px; white-space: nowrap; vertical-align: top; }
         th { background-color: var(--header-bg); font-weight: bold; vertical-align: middle; text-align: center; }
         .action-buttons button { padding: 5px 8px; font-size: 12px; margin-right: 4px; }
-        
-        /* --- NEW: Tracker Tab Revamp --- */
-        .tracker-section-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 12px var(--shadow-color);
-            overflow: hidden;
-            transition: all 0.3s ease-in-out;
-        }
-        .tracker-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 20px;
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-color);
-            background-color: var(--bg-color);
-            transition: border-color 0.3s ease;
-        }
-        .tracker-card-header h3 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-color);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-align: left;
-            padding: 0;
-            border: none;
-        }
-        .tracker-card-header h3 .title-text {
-             flex-grow: 1;
-        }
-        .toggle-card-btn {
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--subtle-text);
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            font-size: 20px;
-            line-height: 26px;
-            text-align: center;
-            cursor: pointer;
-            padding: 0;
-            font-weight: bold;
-            margin: 0;
-            transition: transform 0.3s ease, color 0.2s, border-color 0.2s;
-        }
-        .tracker-card-header:hover .toggle-card-btn {
-            border-color: var(--link-color);
-            color: var(--link-color);
-        }
-        .toggle-card-btn.collapsed {
-            transform: rotate(-90deg);
-        }
-        .tracker-card-content {
-            padding: 20px;
-            max-height: 5000px;
-            transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out, opacity 0.3s ease-in-out;
-            opacity: 1;
-        }
-        .tracker-card-content.collapsed {
-            max-height: 0;
-            padding-top: 0;
-            padding-bottom: 0;
-            overflow: hidden;
-            opacity: 0;
-        }
-        .tracker-card-header.is-collapsed {
-            border-bottom-color: transparent;
-        }
-        /* --- End Revamp --- */
 
         .note-cell { white-space: normal; max-width: 300px; min-width: 150px; font-size: 12px; line-height: 1.4; }
 
@@ -496,14 +420,26 @@
 
         /* Asset Sentiment Styles */
         #asset-sentiment-container {
-            margin-top: 20px;
+            max-width: 950px;
+            margin: 20px auto 10px auto;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+        }
+        #asset-sentiment-container h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 5px;
+            border: none;
+            padding: 0;
         }
         .sentiment-trackers-wrapper {
             display: flex;
             justify-content: space-around;
             gap: 20px;
             flex-wrap: wrap;
-            margin-bottom: 20px;
+            margin-top: 20px;
         }
         .sentiment-tracker {
             flex: 1;
@@ -565,7 +501,7 @@
             opacity: 1;
         }
         
-        /* Style for live trade editable cells */
+        /* NEW: Style for live trade editable cells */
         .editable-cell[contenteditable="true"]:focus {
             background-color: var(--header-bg);
             outline: 2px solid var(--link-color);
@@ -581,22 +517,27 @@
             background-color: var(--link-color);
         }
         
+        /* NEW: History Toggle Button Style */
         .toggle-history-btn {
             font-size: 12px;
             padding: 4px 10px;
-            margin: 0 0 0 15px; 
+            margin: 0 0 0 15px; /* Removed top margin */
             cursor: pointer;
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
             color: var(--subtle-text);
             border-radius: 4px;
-            align-self: center;
-            display: none; 
+            align-self: center; /* Vertically align with h2 in flex container */
+            display: none; /* Hidden by default, shown by JS if needed */
         }
         .toggle-history-btn:hover {
             border-color: var(--link-color);
             color: var(--link-color);
         }
+        .section-header h2 {
+            margin-bottom: 0; /* Ensures h2 and button align well */
+        }
+
 
         /* Image Library Styles */
         #image-library-container {
@@ -604,6 +545,10 @@
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 15px;
             margin-top: 20px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
         }
         .library-image-wrapper {
             position: relative;
@@ -793,10 +738,22 @@
             font-weight: bold;
         }
 
-        /* Chart Library 2 Styles (Revamped) */
+        /* Chart Library 2 Styles */
+        #chart-library-2-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        #chart-library-2-container {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+            min-height: 200px;
+        }
         .cl2-folder-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
             gap: 15px;
         }
         .cl2-folder-card {
@@ -804,7 +761,7 @@
             border: 1px solid var(--border-color);
             background-color: var(--container-bg);
             border-radius: 8px;
-            padding: 10px;
+            padding: 15px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s ease-in-out;
@@ -820,18 +777,18 @@
             border-color: var(--link-color);
         }
         .cl2-folder-card h4 {
-            margin: 8px 0 4px 0;
-            font-size: 14px;
+            margin: 10px 0 5px 0;
+            font-size: 16px;
             font-weight: 500;
             color: var(--text-color);
             text-transform: capitalize;
         }
         .cl2-folder-icon {
-            font-size: 32px;
+            font-size: 40px;
             color: var(--link-color);
         }
         .cl2-folder-count {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--subtle-text);
         }
         .cl2-folder-card.drag-over {
@@ -862,11 +819,16 @@
             gap: 15px;
         }
         
+        /* Chart Library 2 Preview Styles */
         #chart-library-2-preview-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
             margin-top: 10px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
         }
         .cl2-preview-item h4 {
             text-align: center;
@@ -954,147 +916,115 @@
         
         <div id="tracker-tab" class="tab-content active">
             
-            <div class="tracker-section-card">
-                <div class="tracker-card-header">
-                    <h3>📝 <span class="title-text">Quick Notes</span></h3>
-                    <button class="toggle-card-btn">-</button>
+            <div style="margin-bottom: 25px; max-width: 950px; margin-left: auto; margin-right: auto;">
+                <textarea id="tracker-scratchpad" placeholder="Tracker scratchpad..."></textarea>
+            </div>
+
+            <!-- CHART LIBRARY 2 SECTION -->
+            <div id="chart-library-2-section">
+                <div class="section-header">
+                    <h2 style="border:none; padding:0;">Chart Library 2</h2>
                 </div>
-                <div class="tracker-card-content">
-                    <textarea id="tracker-scratchpad" placeholder="Tracker scratchpad..."></textarea>
+                <div id="chart-library-2-container">
+                    <!-- Folders or Image Grid will be rendered here by JS -->
+                </div>
+                <!-- PREVIEW SECTION -->
+                <div id="chart-library-2-preview-section">
+                    <div class="section-header">
+                        <h2 style="border:none; padding:0; margin-top:20px;">Preview</h2>
+                    </div>
+                    <div id="chart-library-2-preview-container">
+                        <!-- JS will render preview items here -->
+                    </div>
+                </div>
+            </div>
+
+            <form id="add-trade-form" class="master-only">
+                <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
+                <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
+                <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
+                <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
+                <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
+                <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
+                <div><button type="submit">Add Trade</button></div>
+            </form>
+
+            <div id="asset-sentiment-container">
+               <h4>Sentiment Log 👀</h4>
+                <div class="sentiment-trackers-wrapper">
+                    <div class="sentiment-tracker" id="sentiment-tracker-btc">
+                        <h4>BTC/USDT</h4>
+                        <div class="sentiment-buttons">
+                            <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
+                            <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
+                            <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
+                        </div>
+                    </div>
+                    <div class="sentiment-tracker" id="sentiment-tracker-eth">
+                        <h4>ETH/USDT</h4>
+                        <div class="sentiment-buttons">
+                            <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
+                            <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
+                            <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <div class="tracker-section-card master-only">
-                <div class="tracker-card-header">
-                    <h3>➕ <span class="title-text">Add New Trade</span></h3>
-                    <button class="toggle-card-btn collapsed">+</button>
+            <div class="section-header">
+                <h2>Sentiment Log</h2>
+                <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
+            </div>
+            <div class="table-wrapper">
+                <table id="sentiment-receipts-table">
+                    <thead>
+                        <tr>
+                            <th>Asset</th>
+                            <th>Sentiment</th>
+                            <th class="note-header">Note</th>
+                            <th>Timestamp</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sentiment-receipts-tbody"></tbody>
+                </table>
+            </div>
+
+            <!-- IMAGE LIBRARY SECTION -->
+            <div id="image-library-section">
+                <div class="section-header">
+                    <h2>Chart Library</h2>
                 </div>
-                <div class="tracker-card-content collapsed">
-                    <form id="add-trade-form">
-                        <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
-                        <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
-                        <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
-                        <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
-                        <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
-                        <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
-                        <div><button type="submit">Add Trade</button></div>
-                    </form>
+                <div id="library-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
+                    <label for="library-image-upload" class="image-upload-label">Add to Library</label>
+                    <input type="file" id="library-image-upload" accept="image/*" multiple>
+                    <div id="library-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
+                </div>
+                <div id="image-library-container">
+                    <!-- Thumbnails will be rendered here by JavaScript -->
                 </div>
             </div>
 
-            <div class="tracker-section-card">
-                <div class="tracker-card-header">
-                    <h3>📊 <span class="title-text">Chart Library</span></h3>
-                    <button class="toggle-card-btn">-</button>
-                </div>
-                <div class="tracker-card-content">
-                    <div id="chart-library-2-container">
-                        <!-- Folders or Image Grid will be rendered here by JS -->
-                    </div>
-                    <div id="chart-library-2-preview-section">
-                        <h4 style="text-align:center; margin-top:30px; margin-bottom:10px; color: var(--subtle-text); font-weight:500;">Latest Previews</h4>
-                        <div id="chart-library-2-preview-container">
-                            <!-- JS will render preview items here -->
-                        </div>
-                    </div>
-                </div>
+            <div class="section-header"><h2>Live Trades</h2></div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th class="master-only">Actions</th></tr>
+                    </thead>
+                    <tbody id="trades-tbody"></tbody>
+                </table>
             </div>
-
-            <div class="tracker-section-card">
-                <div class="tracker-card-header">
-                    <h3>👀 <span class="title-text">Sentiment</span></h3>
-                    <button class="toggle-card-btn">-</button>
-                </div>
-                <div class="tracker-card-content">
-                    <div id="asset-sentiment-container">
-                        <div class="sentiment-trackers-wrapper">
-                            <div class="sentiment-tracker" id="sentiment-tracker-btc">
-                                <h4>BTC/USDT</h4>
-                                <div class="sentiment-buttons">
-                                    <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
-                                    <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
-                                    <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
-                                </div>
-                            </div>
-                            <div class="sentiment-tracker" id="sentiment-tracker-eth">
-                                <h4>ETH/USDT</h4>
-                                <div class="sentiment-buttons">
-                                    <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
-                                    <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
-                                    <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="tracker-card-header" style="background:transparent; padding:10px 0; cursor:default;">
-                         <h3 style="font-size:16px;">Sentiment Log <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button></h3>
-                    </div>
-                    <div class="table-wrapper">
-                        <table id="sentiment-receipts-table">
-                            <thead>
-                                <tr>
-                                    <th>Asset</th>
-                                    <th>Sentiment</th>
-                                    <th class="note-header">Note</th>
-                                    <th>Timestamp</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="sentiment-receipts-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="section-header">
+                <h2>Completed Trades</h2>
+                <button id="toggle-old-trades" class="toggle-history-btn">Show All</button>
             </div>
-
-            <div class="tracker-section-card">
-                 <div class="tracker-card-header">
-                    <h3>🖼️ <span class="title-text">Legacy Chart Library</span></h3>
-                    <button class="toggle-card-btn collapsed">+</button>
-                </div>
-                <div class="tracker-card-content collapsed">
-                    <div id="library-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
-                        <label for="library-image-upload" class="image-upload-label">Add to Library</label>
-                        <input type="file" id="library-image-upload" accept="image/*" multiple>
-                        <div id="library-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
-                    </div>
-                    <div id="image-library-container">
-                        <!-- Thumbnails will be rendered here by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="tracker-section-card">
-                <div class="tracker-card-header">
-                    <h3>🟢 <span class="title-text">Live Trades</span></h3>
-                    <button class="toggle-card-btn">-</button>
-                </div>
-                <div class="tracker-card-content">
-                    <div class="table-wrapper">
-                        <table>
-                            <thead>
-                                <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th class="master-only">Actions</th></tr>
-                            </thead>
-                            <tbody id="trades-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="tracker-section-card">
-                <div class="tracker-card-header">
-                    <h3>✅ <span class="title-text">Completed Trades</span> <button id="toggle-old-trades" class="toggle-history-btn">Show All</button></h3>
-                    <button class="toggle-card-btn">-</button>
-                </div>
-                <div class="tracker-card-content">
-                    <div class="table-wrapper">
-                        <table>
-                            <thead>
-                                <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
-                            </thead>
-                            <tbody id="completed-trades-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
+                    </thead>
+                    <tbody id="completed-trades-tbody"></tbody>
+                </table>
             </div>
         </div>
 
@@ -1864,7 +1794,7 @@
                     }
                 });
 
-                container.innerHTML = html || '<p style="text-align:center; color: var(--subtle-text);">No previews available.</p>';
+                container.innerHTML = html;
             }
 
             function renderDateNavigation() {
@@ -2438,16 +2368,6 @@
                 DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
                 
                 DOM.trackerTab.addEventListener('click', (e) => {
-                    // Card Collapse/Expand Logic
-                    const cardHeader = e.target.closest('.tracker-card-header');
-                    if (cardHeader && !e.target.closest('button')) { // Don't trigger if a button inside is clicked
-                         const content = cardHeader.nextElementSibling;
-                         const button = cardHeader.querySelector('.toggle-card-btn');
-                         content.classList.toggle('collapsed');
-                         button.classList.toggle('collapsed');
-                         cardHeader.classList.toggle('is-collapsed');
-                    }
-
                     if (e.target.closest('.sentiment-buttons button')) {
                         handleSentimentLog(e);
                     }
@@ -3379,5 +3299,3 @@
     </script>
 </body>
 </html>
-```
-381.0s
