@@ -1308,7 +1308,8 @@
                 viewerId: null,
                 journalText: {},
                 journalImages: {},
-                chartLibrary2Data: {}, // New
+                chartLibrary2Data: {}, 
+                currentCl2Folder: null,
                 emaData: {},
                 srData: {},
                 favouriteEntries: {},
@@ -2570,16 +2571,18 @@
             function handleChartLibrary2Click(e) {
                 const folderCard = e.target.closest('.cl2-folder-card');
                 const backBtn = e.target.closest('.cl2-back-button');
-                const deleteBtn = e.target.closest('.delete-library-image'); // Reusing class
+                const deleteBtn = e.target.closest('.delete-library-image');
                 const img = e.target.closest('img');
 
                 if (folderCard) {
                     const folderName = folderCard.dataset.folder;
+                    STATE.currentCl2Folder = folderName; 
                     renderFolderContents(folderName);
                     return;
                 }
 
                 if (backBtn) {
+                    STATE.currentCl2Folder = null; 
                     renderChartLibrary2Folders();
                     return;
                 }
@@ -2602,7 +2605,7 @@
                     return;
                 }
 
-                if (img) { // Reusing image modal
+                if (img) {
                     DOM.modalImageContent.src = img.dataset.fullSrc;
                     DOM.modalCaption.textContent = img.dataset.caption || '';
                     DOM.imageModal.style.display = 'flex';
@@ -2888,7 +2891,9 @@
 
                 dbRefs.chartLibrary2.on('value', snapshot => {
                     STATE.chartLibrary2Data = snapshot.val() || {};
-                    if (DOM.chartLibrary2Container.querySelector('.cl2-folder-grid')) {
+                    if (STATE.currentCl2Folder) {
+                        renderFolderContents(STATE.currentCl2Folder);
+                    } else {
                         renderChartLibrary2Folders();
                     }
                 });
