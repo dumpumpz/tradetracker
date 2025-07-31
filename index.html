@@ -67,7 +67,7 @@
         .tab-content.active { display: block; }
         
         .master-only { display: none; }
-        #add-trade-form { display: grid; gap: 15px; align-items: end; }
+        #add-trade-form { max-width: 950px; margin: 20px auto; padding: 15px; border: 1px solid var(--border-color); border-radius: 5px; background-color: var(--card-bg); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end; }
         label { margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input, select, button, textarea { padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%; box-sizing: border-box; font-family: inherit; background-color: var(--container-bg); color: var(--text-color); }
         button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.3s; margin-top: 5px; }
@@ -79,14 +79,7 @@
         th { background-color: var(--header-bg); font-weight: bold; vertical-align: middle; text-align: center; }
         .action-buttons button { padding: 5px 8px; font-size: 12px; margin-right: 4px; }
 
-        .note-cell { 
-            white-space: nowrap; 
-            max-width: 250px; 
-            overflow: hidden; 
-            text-overflow: ellipsis; 
-            font-size: 12px; 
-            line-height: 1.4; 
-        }
+        .note-cell { white-space: normal; max-width: 300px; min-width: 150px; font-size: 12px; line-height: 1.4; }
 
         #journal-tab, #snapshot-tab, #sr-levels-tab { position: relative; }
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
@@ -427,29 +420,36 @@
 
         /* Asset Sentiment Styles */
         #asset-sentiment-container {
-            /* This is now part of the sidebar, so most global styles are removed */
+            max-width: 950px;
+            margin: 20px auto 10px auto;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
         }
-        #asset-sentiment-container h4 {
+        #asset-sentiment-container h2 {
             text-align: center;
             margin-top: 0;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
             border: none;
             padding: 0;
-            font-size: 1.1em;
-            color: var(--text-color);
         }
         .sentiment-trackers-wrapper {
             display: flex;
-            flex-direction: column; /* Stack vertically in sidebar */
+            justify-content: space-around;
             gap: 20px;
-            margin-top: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
         }
         .sentiment-tracker {
+            flex: 1;
+            min-width: 250px;
+            max-width: 400px;
             text-align: center;
         }
         .sentiment-tracker h4 {
             margin-top: 0;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             font-size: 16px;
             color: var(--subtle-text);
         }
@@ -501,6 +501,7 @@
             opacity: 1;
         }
         
+        /* NEW: Style for live trade editable cells */
         .editable-cell[contenteditable="true"]:focus {
             background-color: var(--header-bg);
             outline: 2px solid var(--link-color);
@@ -516,27 +517,125 @@
             background-color: var(--link-color);
         }
         
+        /* NEW: History Toggle Button Style */
         .toggle-history-btn {
             font-size: 12px;
             padding: 4px 10px;
-            margin: 0 0 0 15px;
+            margin: 0 0 0 15px; /* Removed top margin */
             cursor: pointer;
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
             color: var(--subtle-text);
             border-radius: 4px;
-            align-self: center;
-            display: none; 
+            align-self: center; /* Vertically align with h2 in flex container */
+            display: none; /* Hidden by default, shown by JS if needed */
         }
         .toggle-history-btn:hover {
             border-color: var(--link-color);
             color: var(--link-color);
         }
         .section-header h2 {
-            margin-bottom: 0;
+            margin-bottom: 0; /* Ensures h2 and button align well */
         }
 
-        /* Image Library Styles (Old library removed) */
+
+        /* Image Library Styles */
+        #image-library-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+        }
+        .library-image-wrapper {
+            position: relative;
+            border: 1px solid var(--border-color);
+            padding: 5px;
+            background: var(--container-bg);
+            border-radius: 4px;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .library-image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        .library-image-wrapper:hover img {
+            transform: scale(1.05);
+        }
+        .delete-library-image {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: rgba(220, 53, 69, 0.85);
+            border: 1px solid rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.2s ease-in-out;
+            opacity: 0;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .library-image-wrapper:hover .delete-library-image {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .delete-library-image svg {
+            width: 14px;
+            height: 14px;
+            fill: white;
+        }
+       .edit-caption-btn {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: rgba(0, 123, 255, 0.85);
+            border: 1px solid rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.2s ease-in-out;
+            opacity: 0;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .library-image-wrapper:hover .edit-caption-btn {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .edit-caption-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: white;
+        }
+        .library-image-caption {
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--subtle-text);
+            padding: 4px;
+            text-align: center;
+        }
         
         /* Image Modal Styles */
         .modal-overlay {
@@ -624,6 +723,7 @@
         #modal-next { right: 20px; }
 
 
+        /* --- Styles for Completed Trade Merge Tool --- */
         .in-merge-mode #completed-trades-tbody tr {
             cursor: crosshair;
         }
@@ -638,24 +738,17 @@
             font-weight: bold;
         }
 
-        /* Chart Library 2 (now the main library) Styles */
-        #chart-library-section {
-            padding: 20px;
+        /* Chart Library 2 Styles */
+        #chart-library-2-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        #chart-library-2-container {
+            padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             background-color: var(--card-bg);
-        }
-        .chart-library-header {
-            margin: 0;
-            border: none;
-            padding: 0;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        #chart-library-container {
-            padding: 10px 0;
-            border: none;
-            background-color: transparent;
             min-height: 200px;
         }
         .cl2-folder-grid {
@@ -725,73 +818,17 @@
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 15px;
         }
-         .library-image-wrapper {
-            position: relative;
-            border: 1px solid var(--border-color);
-            padding: 5px;
-            background: var(--container-bg);
-            border-radius: 4px;
-            aspect-ratio: 16 / 9;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        .library-image-wrapper img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            border-radius: 2px;
-            cursor: pointer;
-            transition: transform 0.2s ease-in-out;
-        }
-        .library-image-wrapper:hover img {
-            transform: scale(1.05);
-        }
-         .delete-library-image {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background-color: rgba(220, 53, 69, 0.85);
-            border: 1px solid rgba(255,255,255,0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-            transition: all 0.2s ease-in-out;
-            opacity: 0;
-            padding: 0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        }
-        .library-image-wrapper:hover .delete-library-image {
-            opacity: 1;
-            transform: scale(1.1);
-        }
-        .delete-library-image svg {
-            width: 14px;
-            height: 14px;
-            fill: white;
-        }
-
-        /* Chart Library Preview Styles */
-        #chart-library-preview-section {
-            padding: 20px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background-color: var(--card-bg);
-        }
-        #chart-library-preview-container {
+        
+        /* Chart Library 2 Preview Styles */
+        #chart-library-2-preview-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
             margin-top: 10px;
-            padding: 0;
-            border: none;
-            background-color: transparent;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
         }
         .cl2-preview-item h4 {
             text-align: center;
@@ -802,48 +839,10 @@
             text-transform: capitalize;
         }
 
-        /* --- NEW: Tracker Tab Layout --- */
-        #tracker-layout {
-            display: grid;
-            grid-template-columns: 1fr; /* Default to single column */
-            gap: 25px;
-        }
-        #tracker-main-content {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-        }
-        #tracker-sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-        }
-        .tracker-card {
-            padding: 20px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background-color: var(--card-bg);
-        }
-        .tracker-card h4 {
-            margin-top: 0;
-            margin-bottom: 20px;
-            text-align: center;
-            font-size: 1.2rem;
-            color: var(--text-color);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
-        }
-
-        @media (min-width: 992px) {
-             #tracker-layout {
-                grid-template-columns: 2fr 1fr; /* Two columns on larger screens */
-            }
-        }
-        /* --- END: New Tracker Tab Layout --- */
-
 
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
+            #add-trade-form { grid-template-columns: 1fr; } 
             .section-header { flex-direction: column; } 
             .backup-controls { position: static; margin-top: 10px; } 
             .journal-image-wrapper { max-width: 100%; } 
@@ -855,7 +854,7 @@
             #sr-levels-container { grid-template-columns: 1fr; }
             #sr-metadata-container { flex-direction: column; }
             .theme-switch-wrapper { top: 8px; right: 10px; }
-            #chart-library-preview-container {
+            #chart-library-2-preview-container {
                 grid-template-columns: 1fr;
             }
             .modal-nav {
@@ -882,11 +881,15 @@
             <div id="stats-panel">
                 <div class="stats-header"><h3>Performance Stats</h3><button id="close-stats-btn" title="Close Panel">×</button></div>
                 <div class="stats-grid">
+                    <!-- Core Balance Stats -->
                     <div class="stat-item"><span class="stat-label">Current Balance</span><span id="stat-balance" class="stat-value">$0.00</span></div>
                     <div class="stat-item"><span class="stat-label">AUD Value (est.)</span><span id="stat-balance-aud" class="stat-value">--</span></div>
                     <div class="stat-item"><span class="stat-label">Total P/L</span><span id="stat-total-pl" class="stat-value">$0.00</span></div>
                     <div class="stat-item"><span class="stat-label">Total P/L (AUD)</span><span id="stat-total-pl-aud" class="stat-value">A$0.00</span></div>
+                    
                     <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
+
+                    <!-- Performance Metrics -->
                     <div class="stat-item"><span class="stat-label">Completed Trades</span><span id="stat-completed-trades" class="stat-value">0</span></div>
                     <div class="stat-item">
                         <span class="stat-label">Wins / Losses</span>
@@ -911,138 +914,119 @@
             <button class="tab-link" data-tab="sr-levels">S/R Levels</button>
         </div>
         
-        <!-- =============================================================================== -->
-        <!-- ======================= MODIFIED TRADE TRACKER TAB ============================ -->
-        <!-- =============================================================================== -->
         <div id="tracker-tab" class="tab-content active">
             
-            <div id="tracker-layout">
+            <div style="margin-bottom: 25px; max-width: 950px; margin-left: auto; margin-right: auto;">
+                <textarea id="tracker-scratchpad" placeholder="Tracker scratchpad..."></textarea>
+            </div>
 
-                <!-- MAIN CONTENT (LEFT COLUMN) -->
-                <div id="tracker-main-content">
-                    
-                    <!-- LIVE TRADES SECTION -->
-                    <div class="tracker-card">
-                        <div class="section-header"><h2>Live Trades</h2></div>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th class="master-only">Actions</th></tr>
-                                </thead>
-                                <tbody id="trades-tbody"></tbody>
-                            </table>
+            <!-- CHART LIBRARY 2 SECTION -->
+            <div id="chart-library-2-section">
+                <div class="section-header">
+                    <h2 style="border:none; padding:0;">Chart Library 2</h2>
+                </div>
+                <div id="chart-library-2-container">
+                    <!-- Folders or Image Grid will be rendered here by JS -->
+                </div>
+                <!-- PREVIEW SECTION -->
+                <div id="chart-library-2-preview-section">
+                    <div class="section-header">
+                        <h2 style="border:none; padding:0; margin-top:20px;">Preview</h2>
+                    </div>
+                    <div id="chart-library-2-preview-container">
+                        <!-- JS will render preview items here -->
+                    </div>
+                </div>
+            </div>
+
+            <form id="add-trade-form" class="master-only">
+                <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
+                <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
+                <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
+                <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
+                <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
+                <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
+                <div><button type="submit">Add Trade</button></div>
+            </form>
+
+            <div id="asset-sentiment-container">
+               <h4>Sentiment Log 👀</h4>
+                <div class="sentiment-trackers-wrapper">
+                    <div class="sentiment-tracker" id="sentiment-tracker-btc">
+                        <h4>BTC/USDT</h4>
+                        <div class="sentiment-buttons">
+                            <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
+                            <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
+                            <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
                         </div>
                     </div>
-                    
-                    <!-- COMPLETED TRADES SECTION -->
-                    <div class="tracker-card">
-                        <div class="section-header">
-                            <h2>Completed Trades</h2>
-                            <button id="toggle-old-trades" class="toggle-history-btn">Show All</button>
-                        </div>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
-                                </thead>
-                                <tbody id="completed-trades-tbody"></tbody>
-                            </table>
+                    <div class="sentiment-tracker" id="sentiment-tracker-eth">
+                        <h4>ETH/USDT</h4>
+                        <div class="sentiment-buttons">
+                            <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
+                            <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
+                            <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
                         </div>
                     </div>
-                    
-                    <!-- SENTIMENT LOG SECTION -->
-                    <div class="tracker-card">
-                        <div class="section-header">
-                            <h2>Sentiment Log</h2>
-                            <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
-                        </div>
-                        <div class="table-wrapper">
-                            <table id="sentiment-receipts-table">
-                                <thead>
-                                    <tr>
-                                        <th>Asset</th>
-                                        <th>Sentiment</th>
-                                        <th class="note-header">Note</th>
-                                        <th>Timestamp</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="sentiment-receipts-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
+                </div>
+            </div>
+            
+            <div class="section-header">
+                <h2>Sentiment Log</h2>
+                <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
+            </div>
+            <div class="table-wrapper">
+                <table id="sentiment-receipts-table">
+                    <thead>
+                        <tr>
+                            <th>Asset</th>
+                            <th>Sentiment</th>
+                            <th class="note-header">Note</th>
+                            <th>Timestamp</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sentiment-receipts-tbody"></tbody>
+                </table>
+            </div>
 
-                    <!-- CHART LIBRARY SECTION -->
-                    <div id="chart-library-section">
-                        <h2 class="chart-library-header">Chart Library</h2>
-                        <div id="chart-library-container">
-                            <!-- Folders or Image Grid will be rendered here by JS -->
-                        </div>
-                        <!-- PREVIEW SECTION -->
-                        <div id="chart-library-preview-section">
-                            <h2 class="chart-library-header" style="margin-top:40px;">Latest Previews</h2>
-                            <div id="chart-library-preview-container">
-                                <!-- JS will render preview items here -->
-                            </div>
-                        </div>
-                    </div>
+            <!-- IMAGE LIBRARY SECTION -->
+            <div id="image-library-section">
+                <div class="section-header">
+                    <h2>Chart Library</h2>
+                </div>
+                <div id="library-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
+                    <label for="library-image-upload" class="image-upload-label">Add to Library</label>
+                    <input type="file" id="library-image-upload" accept="image/*" multiple>
+                    <div id="library-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
+                </div>
+                <div id="image-library-container">
+                    <!-- Thumbnails will be rendered here by JavaScript -->
+                </div>
+            </div>
 
-                </div><!-- END MAIN CONTENT -->
-
-                <!-- SIDEBAR (RIGHT COLUMN) -->
-                <div id="tracker-sidebar">
-                    
-                    <!-- SCRATCHPAD -->
-                    <div class="tracker-card">
-                        <h4>Tracker Scratchpad</h4>
-                        <textarea id="tracker-scratchpad" placeholder="Quick notes for the tracker tab..."></textarea>
-                    </div>
-                    
-                    <!-- ADD TRADE -->
-                    <div id="add-trade-card" class="tracker-card master-only">
-                        <h4>Add New Trade</h4>
-                        <form id="add-trade-form">
-                            <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
-                            <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
-                            <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
-                            <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
-                            <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
-                            <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
-                            <div><button type="submit">Add Trade</button></div>
-                        </form>
-                    </div>
-
-                    <!-- SENTIMENT LOGGER -->
-                    <div id="asset-sentiment-container" class="tracker-card">
-                       <h4>Log Market Sentiment 👀</h4>
-                        <div class="sentiment-trackers-wrapper">
-                            <div class="sentiment-tracker" id="sentiment-tracker-btc">
-                                <h4>BTC/USDT</h4>
-                                <div class="sentiment-buttons">
-                                    <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
-                                    <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
-                                    <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
-                                </div>
-                            </div>
-                            <div class="sentiment-tracker" id="sentiment-tracker-eth">
-                                <h4>ETH/USDT</h4>
-                                <div class="sentiment-buttons">
-                                    <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
-                                    <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
-                                    <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div><!-- END SIDEBAR -->
-
-            </div><!-- END TRACKER LAYOUT -->
+            <div class="section-header"><h2>Live Trades</h2></div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th class="master-only">Actions</th></tr>
+                    </thead>
+                    <tbody id="trades-tbody"></tbody>
+                </table>
+            </div>
+            <div class="section-header">
+                <h2>Completed Trades</h2>
+                <button id="toggle-old-trades" class="toggle-history-btn">Show All</button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
+                    </thead>
+                    <tbody id="completed-trades-tbody"></tbody>
+                </table>
+            </div>
         </div>
-        <!-- =============================================================================== -->
-        <!-- ======================= END OF MODIFIED TAB =================================== -->
-        <!-- =============================================================================== -->
-
 
         <div id="journal-tab" class="tab-content">
             
@@ -1269,9 +1253,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
       <script>
-        // All JavaScript remains the same as your original provided script.
-        // There is no need to change the JavaScript logic as the element IDs 
-        // that the script relies on have been preserved in the new HTML structure.
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- CONFIGURATION ---
@@ -1341,9 +1322,12 @@
                 assetSentimentContainer: document.getElementById('asset-sentiment-container'),
                 sentimentReceiptsTbody: document.getElementById('sentiment-receipts-tbody'),
                 // Chart Library 2
-                chartLibrary2Container: document.getElementById('chart-library-container'),
-                chartLibrary2PreviewContainer: document.getElementById('chart-library-preview-container'),
-                // Image Library - Removed old one
+                chartLibrary2Container: document.getElementById('chart-library-2-container'),
+                chartLibrary2PreviewContainer: document.getElementById('chart-library-2-preview-container'),
+                // Image Library
+                imageLibraryContainer: document.getElementById('image-library-container'),
+                libraryImageUpload: document.getElementById('library-image-upload'),
+                libraryUploadProgress: document.getElementById('library-upload-progress'),
                 imageModal: document.getElementById('image-modal'),
                 modalImageContent: document.getElementById('modal-image-content'),
                 modalClose: document.querySelector('.modal-close'),
@@ -1434,7 +1418,7 @@
                 bank: database.ref(CONFIG.DB_PATHS.BANK),
                 journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT),
                 journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES),
-                imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), // Kept for any potential script logic, but UI is removed
+                imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY),
                 chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2),
                 favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES),
                 setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1),
@@ -1678,6 +1662,36 @@
                 
                 DOM.completedTradesTbody.innerHTML = rowsHtml;
                 updateToggleButtonsVisibility();
+            }
+
+            function renderImageLibrary(imagesData) {
+                const images = imagesData || {};
+                if (!DOM.imageLibraryContainer) return;
+
+                const masterButtonsHtml = (id, fileName) => (STATE.isMasterUser) ? `
+                    <button class="delete-library-image" title="Delete Image" data-id="${id}" data-filename="${fileName}">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg>
+                    </button>
+                    <button class="edit-caption-btn" title="Edit Caption" data-id="${id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M471.6 21.7c-21.9-21.9-57.3-21.9-79.2 0L362.3 51.7l97.9 97.9 30.1-30.1c21.9-21.9 21.9-57.3 0-79.2L471.6 21.7zm-299.2 220c-6.1 6.1-10.8 13.6-13.5 21.9l-29.6 88.8c-2.9 8.6-.6 18.1 5.8 24.6s15.9 8.7 24.6 5.8l88.8-29.6c8.2-2.7 15.7-7.4 21.9-13.5L437.7 172.3 339.7 74.3 172.4 241.7zM96 64C43 64 0 107 0 160V416c0 53 43 96 96 96H352c53 0 96-43 96-96V320c0-17.7-14.3-32-32-32s-32 14.3-32 32v96c0 17.7-14.3 32-32 32H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h96c17.7 0 32-14.3 32-32s-14.3-32-32-32H96z"/></svg>
+                    </button>` : '';
+
+                const imagesHtml = Object.keys(images)
+                    .sort((a, b) => images[b].timestamp - images[a].timestamp)
+                    .map(id => {
+                        const imgData = images[id];
+                        if (!imgData?.url) return '';
+                        return `
+                            <div class="library-image-wrapper">
+                                <div style="position: relative; flex-grow: 1;">
+                                    ${masterButtonsHtml(id, imgData.fileName)}
+                                    <img src="${imgData.url}" alt="Library Image" data-full-src="${imgData.url}" data-caption="${imgData.caption || 'Library Image'}">
+                                </div>
+                                <div class="library-image-caption" title="${imgData.caption || ''}">${imgData.caption || ' '}</div>
+                            </div>`;
+                    }).join('');
+
+                DOM.imageLibraryContainer.innerHTML = imagesHtml;
             }
 
             function renderChartLibrary2Folders() {
@@ -2158,6 +2172,46 @@
                     );
                 });
             }
+
+            function handleLibraryImageUpload(files) {
+                if (!STATE.isMasterUser || !files || files.length === 0) return;
+                
+                DOM.libraryUploadProgress.style.display = 'block';
+                
+                Array.from(files).forEach((file, index) => {
+                    if (!file.type.startsWith('image/')) return;
+                    
+                    const fileName = `${Date.now()}_${file.name}`;
+                    const storagePath = `image_library/${fileName}`;
+                    const fileRef = storage.ref(storagePath);
+                    const uploadTask = fileRef.put(file);
+
+                    uploadTask.on('state_changed', 
+                        (snapshot) => {
+                            const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                            DOM.libraryUploadProgress.textContent = `Uploading ${index + 1}/${files.length}: ${progress}%`;
+                        },
+                        (error) => {
+                            console.error("Library Upload Failed:", error);
+                            DOM.libraryUploadProgress.textContent = `Upload Failed: ${error.code}`;
+                        },
+                        () => {
+                            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                                const imageData = {
+                                    url: downloadURL,
+                                    fileName: fileName,
+                                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                                };
+                                dbRefs.imageLibrary.push(imageData);
+                                if (index === files.length - 1) {
+                                    DOM.libraryUploadProgress.textContent = 'Upload Complete!';
+                                    setTimeout(() => { DOM.libraryUploadProgress.textContent = ''; }, 2000);
+                                }
+                            });
+                        }
+                    );
+                });
+            }
             
             function handleChartLibrary2Upload(files, folderName) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
@@ -2329,7 +2383,7 @@
                     if (e.target.closest('#completed-trades-tbody')) {
                         handleTradeAction(e);
                     }
-                    if (e.target.closest('#chart-library-container, #chart-library-preview-container')) {
+                    if (e.target.closest('#image-library-container, #chart-library-2-container, #chart-library-2-preview-container')) {
                         handleGenericImageLibraryClick(e);
                     }
                     if (e.target.id === 'toggle-old-sentiments') {
@@ -2344,6 +2398,8 @@
                     autoResizeTextarea(DOM.trackerScratchpadEl);
                     saveTrackerScratchpad();
                 });
+                
+                DOM.libraryImageUpload.addEventListener('change', (e) => handleLibraryImageUpload(e.target.files));
                 
                 // Modal Listeners
                 DOM.modalClose.addEventListener('click', closeModal);
@@ -2771,7 +2827,7 @@
             function handleGenericImageLibraryClick(e) {
                 const clickedImg = e.target.closest('img');
                 if (clickedImg && clickedImg.dataset.fullSrc) {
-                    const galleryContainer = clickedImg.closest('.cl2-image-grid, #chart-library-preview-container');
+                    const galleryContainer = clickedImg.closest('#image-library-container, .cl2-image-grid, #chart-library-2-preview-container');
                     if (galleryContainer) {
                         const allImageElements = galleryContainer.querySelectorAll('img');
                         const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption }));
@@ -2783,8 +2839,34 @@
                     return; 
                 }
 
-                if (e.target.closest('#chart-library-container')) {
+                if (e.target.closest('#image-library-container')) {
+                    handleLibrary1Actions(e);
+                } else if (e.target.closest('#chart-library-2-container')) {
                     handleChartLibrary2Click(e);
+                }
+            }
+
+            function handleLibrary1Actions(e) {
+                const deleteBtn = e.target.closest('.delete-library-image');
+                const editBtn = e.target.closest('.edit-caption-btn');
+
+                if (deleteBtn && STATE.isMasterUser) {
+                    const { id, filename } = deleteBtn.dataset;
+                    if (confirm(`Delete this image from the library?\n\n${filename}`)) {
+                        const storagePath = `image_library/${filename}`;
+                        storage.ref(storagePath).delete()
+                            .then(() => dbRefs.imageLibrary.child(id).remove())
+                            .catch((err) => {
+                                console.warn("Storage deletion failed, maybe already gone. Deleting DB entry.", err.code);
+                                if (err.code === 'storage/object-not-found') {
+                                    dbRefs.imageLibrary.child(id).remove();
+                                } else {
+                                    alert('Error deleting image.');
+                                }
+                            });
+                    }
+                } else if (editBtn && STATE.isMasterUser) {
+                    handleEditCaption(editBtn.dataset.id);
                 }
             }
 
@@ -2825,6 +2907,25 @@
                 }
             }
             
+            function handleEditCaption(id) {
+                if (!id || !STATE.isMasterUser) return;
+                
+                const imageRef = dbRefs.imageLibrary.child(id);
+                
+                imageRef.child('caption').once('value', snapshot => {
+                    const currentCaption = snapshot.val() || '';
+                    const newCaption = prompt('Enter image caption:', currentCaption);
+
+                    if (newCaption !== null) {
+                        imageRef.update({ caption: newCaption.trim() })
+                            .catch(error => {
+                                console.error('Failed to update caption:', error);
+                                alert('Could not save the caption. Please try again.');
+                            });
+                    }
+                });
+            }
+
             function handleTradeAction(e) {
                 if (!STATE.isMasterUser) return;
 
@@ -3084,16 +3185,18 @@
                     if (DOM.snapshotTab.classList.contains('active')) renderSnapshotView();
                 });
 
+                dbRefs.imageLibrary.on('value', (s) => {
+                    renderImageLibrary(s.val());
+                });
+
                 dbRefs.chartLibrary2.on('value', snapshot => {
                     STATE.chartLibrary2Data = snapshot.val() || {};
-                    if (DOM.trackerTab.classList.contains('active')) {
-                        if (STATE.currentCl2Folder) {
-                            renderFolderContents(STATE.currentCl2Folder);
-                        } else {
-                            renderChartLibrary2Folders();
-                        }
-                        renderChartLibrary2Preview();
+                    if (STATE.currentCl2Folder) {
+                        renderFolderContents(STATE.currentCl2Folder);
+                    } else {
+                        renderChartLibrary2Folders();
                     }
+                    renderChartLibrary2Preview();
                 });
                 
                 dbRefs.favourites.on('value', (s) => {
@@ -3140,18 +3243,11 @@
                         STATE.isMasterUser = true;
                         STATE.masterPassword = password;
                         document.querySelectorAll('.master-only').forEach(el => {
-                            // Use appropriate display type for each element
-                            if (el.id === 'add-trade-card') {
-                                el.style.display = 'block'; 
-                            } else if (el.tagName === 'TH' || el.tagName === 'TD') {
-                                el.style.display = 'table-cell';
-                            } else if (el.id === 'favourite-btn') {
-                                el.style.display = 'block';
-                            } else if (el.id.startsWith('save-setups-')) {
-                                el.style.display = 'inline-block';
-                            } else {
-                                el.style.display = 'block';
-                            }
+                            if (el.id === 'add-trade-form') el.style.display = 'grid';
+                            else if (el.tagName === 'TH' || el.tagName === 'TD') el.style.display = 'table-cell';
+                            else if (el.id === 'favourite-btn') el.style.display = 'block';
+                            else if (el.id.startsWith('save-setups-')) el.style.display = 'inline-block';
+                            else el.style.display = 'block';
                         });
                         DOM.journalEntryEl.readOnly = false;
                         DOM.persistentNotesEl.readOnly = false;
@@ -3193,6 +3289,7 @@
                 renderChartLibrary2Folders();
                 renderChartLibrary2Preview();
 
+                // Initialize scratchpads with any loaded data
                 DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText;
                 autoResizeTextarea(DOM.trackerScratchpadEl);
             }
