@@ -2098,7 +2098,7 @@
                 });
             }
             
-            function handleChartLibrary2Upload(files, folderName) {
+                 function handleChartLibrary2Upload(files, folderName) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
                 
                 const folderCard = document.querySelector(`.cl2-folder-card[data-folder="${folderName}"]`);
@@ -2111,7 +2111,9 @@
                     const storagePath = `chart_library_2/${folderName}/${fileName}`;
                     const fileRef = storage.ref(storagePath);
                     
-                    const uploadTask = fileRef.put(file);
+                    // CORRECTED: Added the metadata object to the upload task
+                    const metadata = { customMetadata: { 'owner': 'master' } };
+                    const uploadTask = fileRef.put(file, metadata);
 
                     uploadTask.on('state_changed', 
                         null, 
