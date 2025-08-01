@@ -1284,7 +1284,7 @@
                 TRADE_SETTINGS: {
                     FEE_RATE: 0.00075,
                     STARTING_BALANCE: 3881,
-                    USD_TO_AUD_RATE: 1.53
+                    // USD_TO_AUD_RATE: 1.53 // <-- REMOVED
                 },
                 EMA_ANALYSIS: {
                     SYMBOLS: ['BTC-USDT', 'ETH-USDT'],
@@ -1385,6 +1385,7 @@
                 isMasterUser: false,
                 masterPassword: null,
                 viewerId: null,
+                usdToAudRate: 1.53, // A fallback default rate
                 journalText: {},
                 journalImages: {},
                 chartLibrary2Data: {}, 
@@ -1450,6 +1451,34 @@
             }
 
             // --- DATA FETCHING ---
+            async function fetchLiveConversionRate() {
+                // This URL gets the latest rates with USD as the base currency,
+                // and asks only for the AUD rate to keep the response small.
+                const apiUrl = 'https://api.exchangerate.host/latest?base=USD&symbols=AUD';
+
+                try {
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        // If the API call fails (e.g., server is down), log a warning and use the default.
+                        console.warn(`Failed to fetch conversion rate. Status: ${response.status}. Using default rate.`);
+                        return;
+                    }
+
+                    const data = await response.json();
+
+                    // Check if the API call was successful and the data is valid
+                    if (data && data.success && data.rates && data.rates.AUD) {
+                        STATE.usdToAudRate = data.rates.AUD;
+                        console.log(`Successfully fetched live AUD/USD rate: ${STATE.usdToAudRate}`);
+                    } else {
+                        console.warn("API response was not in the expected format. Using default rate.");
+                    }
+                } catch (error) {
+                    // This catches network errors (e.g., user is offline)
+                    console.error("Could not fetch conversion rate due to a network error. Using default rate.", error);
+                }
+            }
+            
             async function fetchEmaData() {
                 try {
                     const response = await fetch(`ma_analysis.json?cache_bust=${new Date().getTime()}`);
@@ -3149,7 +3178,9 @@
                     const avgLoss = losses > 0 ? grossLoss / losses : 0;
                     const rewardRiskRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
 
-                    const { STARTING_BALANCE, USD_TO_AUD_RATE } = CONFIG.TRADE_SETTINGS;
+                    const { STARTING_BALANCE } = CONFIG.TRADE_SETTINGS;
+                    const USD_TO_AUD_RATE = STATE.usdToAudRate;
+                    
                     const totalProfitLoss = grossProfit - grossLoss;
                     const totalProfitLossAud = totalProfitLoss * USD_TO_AUD_RATE;
                     const newBalance = STARTING_BALANCE + totalProfitLoss;
@@ -3264,9 +3295,13 @@
                 }
             }
 
-            function initializeApp() {
+            async function initializeApp() {
                 checkMasterMode();
                 getViewerId();
+                
+                await fetchLiveConversionRate();
+                fetchEmaData();
+                fetchSrData();
                 
                 const savedTheme = localStorage.getItem('theme');
                 if (savedTheme) {
@@ -3282,9 +3317,6 @@
                 setupEventListeners();
                 subscribeToData();
                 
-                fetchEmaData();
-                fetchSrData();
-                
                 renderDateNavigation();
                 renderChartLibrary2Folders();
                 renderChartLibrary2Preview();
@@ -3299,3 +3331,4 @@
     </script>
 </body>
 </html>
+```
