@@ -1451,33 +1451,36 @@
             }
 
             // --- DATA FETCHING ---
-            async function fetchLiveConversionRate() {
-                // This URL gets the latest rates with USD as the base currency,
-                // and asks only for the AUD rate to keep the response small.
-                const apiUrl = 'https://api.exchangerate.host/latest?base=USD&symbols=AUD';
+            // --- DATA FETCHING ---
+async function fetchLiveConversionRate() {
+    console.log("Attempting to fetch live conversion rate...");
+    const apiUrl = 'https://api.exchangerate.host/latest?base=USD&symbols=AUD';
 
-                try {
-                    const response = await fetch(apiUrl);
-                    if (!response.ok) {
-                        // If the API call fails (e.g., server is down), log a warning and use the default.
-                        console.warn(`Failed to fetch conversion rate. Status: ${response.status}. Using default rate.`);
-                        return;
-                    }
+    try {
+        const response = await fetch(apiUrl);
+        console.log("API response received. Status:", response.status);
 
-                    const data = await response.json();
+        if (!response.ok) {
+            console.warn(`API responded with an error. Status: ${response.status}. Using default rate.`);
+            return;
+        }
 
-                    // Check if the API call was successful and the data is valid
-                    if (data && data.success && data.rates && data.rates.AUD) {
-                        STATE.usdToAudRate = data.rates.AUD;
-                        console.log(`Successfully fetched live AUD/USD rate: ${STATE.usdToAudRate}`);
-                    } else {
-                        console.warn("API response was not in the expected format. Using default rate.");
-                    }
-                } catch (error) {
-                    // This catches network errors (e.g., user is offline)
-                    console.error("Could not fetch conversion rate due to a network error. Using default rate.", error);
-                }
-            }
+        const data = await response.json();
+        console.log("API Data Parsed:", data); // Log the entire data object to inspect it
+
+        // Check if the API call was successful and the data is valid
+        if (data && data.success && data.rates && data.rates.AUD) {
+            const newRate = data.rates.AUD;
+            STATE.usdToAudRate = newRate;
+            console.log(`✅ Success! Updated STATE.usdToAudRate to: ${newRate}`);
+        } else {
+            console.warn("API response was not in the expected format. Using default rate.");
+        }
+    } catch (error) {
+        // This catches network errors (e.g., user is offline, CORS issues, etc.)
+        console.error("❌ CRITICAL ERROR: Could not fetch conversion rate. Check network connection or for errors in the Network tab.", error);
+    }
+}
             
             async function fetchEmaData() {
                 try {
