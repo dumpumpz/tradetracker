@@ -1452,6 +1452,7 @@
 
             // --- DATA FETCHING ---
             // --- DATA FETCHING ---
+// --- DATA FETCHING ---
 async function fetchLiveConversionRate() {
     console.log("Attempting to fetch live conversion rate...");
     const apiUrl = 'https://api.exchangerate.host/latest?base=USD&symbols=AUD';
@@ -1466,18 +1467,19 @@ async function fetchLiveConversionRate() {
         }
 
         const data = await response.json();
-        console.log("API Data Parsed:", data); // Log the entire data object to inspect it
+        console.log("API Data Parsed:", data); 
 
-        // Check if the API call was successful and the data is valid
-        if (data && data.success && data.rates && data.rates.AUD) {
+        // --- THE FIX IS HERE ---
+        // We will now check directly for the data we need, ignoring the 'success' field.
+        if (data && data.rates && data.rates.AUD) {
             const newRate = data.rates.AUD;
             STATE.usdToAudRate = newRate;
             console.log(`✅ Success! Updated STATE.usdToAudRate to: ${newRate}`);
         } else {
-            console.warn("API response was not in the expected format. Using default rate.");
+            // This will now only trigger if the 'rates' or 'AUD' property is truly missing.
+            console.warn("API response did not contain the expected 'rates.AUD' property. Using default rate.");
         }
     } catch (error) {
-        // This catches network errors (e.g., user is offline, CORS issues, etc.)
         console.error("❌ CRITICAL ERROR: Could not fetch conversion rate. Check network connection or for errors in the Network tab.", error);
     }
 }
