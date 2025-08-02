@@ -1632,6 +1632,18 @@
                 });
 
                 button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
+
+                // --- THE FIX ---
+                // Find the parent collapsible content area
+                const content = button.closest('.collapsible-content');
+                if (content) {
+                    // Check if the section is currently open (its max-height is not 0)
+                    const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
+                    if (isOpen) {
+                        // Re-calculate and set the max-height to smoothly expand/contract
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                    }
+                }
             }
 
 
@@ -2501,6 +2513,8 @@
                         
                         section.classList.toggle('is-open');
                         toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
+                        toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+
 
                         if (section.classList.contains('is-open')) {
                             content.style.maxHeight = content.scrollHeight + 'px';
