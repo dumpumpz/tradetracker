@@ -165,6 +165,13 @@
             border-radius: 6px;
             background-color: var(--bg-color);
         }
+        .ema-summary-container h4 {
+            font-size: 14px;
+            text-align: center;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            color: var(--subtle-text);
+        }
         .ema-level-summary {
             line-height: 1.5;
         }
@@ -2124,9 +2131,9 @@
                 const symbolEmaData = STATE.emaData.data[safeSymbol] || {};
                 const currentPrice = symbolEmaData['15min']?.price || 0;
 
-                const keyHtmlLowerTf = `
+                const keyHtml = `
                     <div id="ema-key-container" style="max-width: 100%; margin: 0 auto 20px auto;">
-                        <h4>EMA Key (1H, 30m, 15m)</h4>
+                        <h4>Chart Key</h4>
                         <div class="ema-key-list">
                             <div class="key-item"><span class="key-color-swatch" style="background-color: #FFFFFF;"></span><span class="key-label">13 EMA/SMA</span></div>
                             <div class="key-item"><span class="key-color-swatch" style="background-color: #000000;"></span><span class="key-label">49 EMA/SMA</span></div>
@@ -2134,15 +2141,6 @@
                             <div class="key-item"><span class="key-color-swatch" style="background-color: #008000;"></span><span class="key-label">200 EMA</span></div>
                             <div class="key-item"><span class="key-color-swatch" style="background-color: #800080;"></span><span class="key-label">500 EMA</span></div>
                             <div class="key-item"><span class="key-color-swatch" style="background-color: #0000FF;"></span><span class="key-label">1000 EMA</span></div>
-                        </div>
-                    </div>`;
-                
-                const keyHtmlHigherTf = `
-                     <div id="sr-key-container-htf" style="max-width: 100%; margin: 20px auto 20px auto; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--card-bg);">
-                         <h4>S/R Key (Daily, 4H, 2H)</h4>
-                         <div class="ema-key-list">
-                            <div class="key-item"><span class="key-color-swatch" style="background-color: #28a745;"></span><span class="key-label">Support</span></div>
-                            <div class="key-item"><span class="key-color-swatch" style="background-color: #dc3545;"></span><span class="key-label">Resistance</span></div>
                         </div>
                     </div>`;
 
@@ -2153,25 +2151,52 @@
                         </div>
                     </div>`;
                 
-                let summaryHtml = '';
+                let summaryHtmlAllTf = '';
+                let summaryHtmlHtf = '';
+
                 if (currentPrice > 0) {
-                    const levels = [];
+                    const formatLevel = (level) => `<li>${level.label} (${Math.round(level.value).toLocaleString()})</li>`;
+
+                    // --- Summary for Higher Timeframes (Daily, 4H, 2H) ---
+                    const htfForSummary = ['daily', '4hour', '2hour'];
+                    const levelsHtf = [];
+                    htfForSummary.forEach(tf => {
+                        const tfData = symbolEmaData[tf];
+                        if (tfData) {
+                            PERIODS.forEach(period => ['EMA', 'SMA'].forEach(type => {
+                                const val = tfData[`${type}_${period}`];
+                                if (val !== undefined) levelsHtf.push({ label: `${SHORT_NAMES[tf]} ${type} ${period}`, value: val, isSupport: val < currentPrice, distance: Math.abs(currentPrice - val) });
+                            }));
+                        }
+                    });
+                    const supportsHtf = levelsHtf.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
+                    const resistancesHtf = levelsHtf.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
+                    summaryHtmlHtf = `
+                        <div class="ema-summary-container">
+                            <h4>Closest S/R (Daily, 4H, 2H)</h4>
+                            <div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supportsHtf.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
+                            <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistancesHtf.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
+                        </div>`;
+
+
+                    // --- Summary for All Timeframes ---
+                    const levelsAll = [];
                     TIMEFRAMES.forEach(tf => {
                         const tfData = symbolEmaData[tf];
                         if (tfData) {
                             PERIODS.forEach(period => ['EMA', 'SMA'].forEach(type => {
                                 const val = tfData[`${type}_${period}`];
-                                if (val !== undefined) levels.push({ label: `${SHORT_NAMES[tf]} ${type} ${period}`, value: val, isSupport: val < currentPrice, distance: Math.abs(currentPrice - val) });
+                                if (val !== undefined) levelsAll.push({ label: `${SHORT_NAMES[tf]} ${type} ${period}`, value: val, isSupport: val < currentPrice, distance: Math.abs(currentPrice - val) });
                             }));
                         }
                     });
-                    const supports = levels.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
-                    const resistances = levels.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
-                    const formatLevel = (level) => `<li>${level.label} (${Math.round(level.value).toLocaleString()})</li>`;
-                    summaryHtml = `
+                    const supportsAll = levelsAll.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
+                    const resistancesAll = levelsAll.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
+                    summaryHtmlAllTf = `
                         <div class="ema-summary-container">
-                            <div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supports.map(formatLevel).join('') || 'None found.'}</ul></div>
-                            <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistances.map(formatLevel).join('') || 'None found.'}</ul></div>
+                            <h4>Closest S/R (All Timeframes)</h4>
+                            <div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supportsAll.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
+                            <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistancesAll.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
                         </div>`;
                 }
                 
@@ -2196,7 +2221,7 @@
                         </table>
                     </div>`;
 
-                container.innerHTML = keyHtmlLowerTf + keyHtmlHigherTf + priceDisplayHtml + summaryHtml + tableHtml;
+                container.innerHTML = keyHtml + priceDisplayHtml + summaryHtmlHtf + summaryHtmlAllTf + tableHtml;
             }
 
             function renderSetupsTable(tableElement, data) {
