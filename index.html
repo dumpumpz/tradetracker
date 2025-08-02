@@ -1,3 +1,16 @@
+Of course! I've implemented all five of your requested changes.
+
+Here is a summary of the fixes:
+
+1.  **Yellow Text for Today's Uploads:** The timestamp in the "Latest Uploads" section will now appear yellow and bold if the chart was uploaded on the current day.
+2.  **Hover Effects Removed:** Performance-intensive hover effects (like scaling, shadows, and sliding) have been removed from the Chart Library folders, images, and other sections to improve performance on mobile devices.
+3.  **Compact Chart Library Folders:** The folder icons in Chart Library 2.0 are now smaller, square, and more compact, allowing more to fit on the screen.
+4.  **Sections Uncollapsed by Default:** The "Live Trades," "Sentiment Log," and "Add New Trade" sections on the main tracker tab will now be open by default when you load the page.
+5.  **"Last Updated" Timestamp Added:** The "BTC EMA Snapshot" section now includes the "Last Updated" timestamp at the top, just like the EMA section in the Journal tab.
+
+Here is the complete, updated code for you to use:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -109,7 +122,7 @@
         .journal-image-wrapper img { max-width: 100%; height: auto; display: block; border-radius: 2px; cursor: pointer; }
         
         .delete-journal-image { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; background-color: rgba(220, 53, 69, 0.85); border: 1px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; transition: all 0.2s ease-in-out; opacity: 0.7; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        .journal-image-wrapper:hover .delete-journal-image { opacity: 1; transform: scale(1.1); }
+        .journal-image-wrapper:hover .delete-journal-image { opacity: 1; }
         .delete-journal-image svg { width: 16px; height: 16px; fill: white; }
 
         #ema-key-container { margin: 25px auto; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--card-bg); max-width: 80%; }
@@ -124,7 +137,7 @@
         
         #stats-panel-container { position: fixed; bottom: 20px; left: 20px; z-index: 1000; }
         #stats-fab { width: 60px; height: 60px; border-radius: 50%; background-color: #007bff; color: white; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease-in-out; }
-        #stats-fab:hover { transform: scale(1.1); }
+        #stats-fab:hover { opacity: 0.9; }
         #stats-fab svg { width: 28px; height: 28px; fill: white; }
         #stats-panel { position: absolute; bottom: 80px; left: 0; width: 300px; background: var(--container-bg); border-radius: 12px; box-shadow: 0 6px 20px var(--shadow-color); padding: 15px; opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s; pointer-events: none; }
         #stats-panel.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
@@ -564,8 +577,9 @@
             flex-grow: 1; /* Allow image to fill available space */
             min-height: 0; /* Crucial for flexbox in column direction */
         }
-        .library-image-wrapper:hover img {
-            transform: scale(1.05);
+        .library-image-wrapper:hover .delete-library-image,
+        .library-image-wrapper:hover .edit-caption-btn {
+            opacity: 1;
         }
         .delete-library-image {
             position: absolute;
@@ -586,10 +600,7 @@
             padding: 0;
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
-        .library-image-wrapper:hover .delete-library-image {
-            opacity: 1;
-            transform: scale(1.1);
-        }
+        
         .delete-library-image svg {
             width: 14px;
             height: 14px;
@@ -614,10 +625,7 @@
             padding: 0;
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
-        .library-image-wrapper:hover .edit-caption-btn {
-            opacity: 1;
-            transform: scale(1.1);
-        }
+
         .edit-caption-btn svg {
             width: 14px;
             height: 14px;
@@ -630,6 +638,10 @@
             padding: 8px 4px 4px 4px; /* More padding on top */
             text-align: center;
             flex-shrink: 0; /* Prevent caption from shrinking */
+        }
+        .library-image-caption.is-today {
+            color: #ffc107; /* A gold/yellow color */
+            font-weight: 500;
         }
         
         /* Image Modal Styles */
@@ -738,38 +750,36 @@
         }
         .cl2-folder-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
         }
         .cl2-folder-card {
             position: relative;
             border: 1px solid var(--border-color);
             background-color: var(--container-bg);
             border-radius: 8px;
-            padding: 15px;
+            padding: 10px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s ease-in-out;
-            aspect-ratio: 4 / 3;
+            aspect-ratio: 1 / 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
         }
         .cl2-folder-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px var(--shadow-color);
             border-color: var(--link-color);
         }
         .cl2-folder-card h4 {
-            margin: 10px 0 5px 0;
-            font-size: 16px;
+            margin: 8px 0 4px 0;
+            font-size: 14px;
             font-weight: 500;
             color: var(--text-color);
             text-transform: capitalize;
         }
         .cl2-folder-icon {
-            font-size: 40px;
+            font-size: 32px;
             color: var(--link-color);
         }
         .cl2-folder-count {
@@ -779,7 +789,6 @@
         .cl2-folder-card.drag-over {
             border-color: var(--link-color);
             border-style: dashed;
-            transform: scale(1.05);
             background-color: var(--header-bg);
         }
         .cl2-image-view-header {
@@ -819,7 +828,7 @@
             text-transform: capitalize;
         }
 
-        /* --- NEW: Collapsible Section Styles --- */
+        /* --- Collapsible Section Styles --- */
         .collapsible-section {
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -839,9 +848,7 @@
             background-color: var(--header-bg);
             transition: background-color 0.2s ease;
         }
-        .collapsible-header:hover {
-            background-color: var(--border-color);
-        }
+        /* .collapsible-header:hover { background-color: var(--border-color); } -- REMOVED */
         .collapsible-header h2 {
             margin: 0;
             padding: 0;
@@ -1932,12 +1939,18 @@
 
                     if (latestImage) {
                         const timestamp = latestImage.timestamp ? new Date(latestImage.timestamp).toLocaleString() : '';
+                        const imageDate = latestImage.timestamp ? new Date(latestImage.timestamp) : null;
+                        const todayDate = new Date();
+                        
+                        const isToday = imageDate && (getYYYYMMDD(imageDate) === getYYYYMMDD(todayDate));
+                        const captionClass = isToday ? 'library-image-caption is-today' : 'library-image-caption';
+
                         html += `
                             <div class="cl2-preview-item">
                                 <h4>${folderName}</h4>
                                 <div class="library-image-wrapper">
                                     <img src="${latestImage.url}" alt="Latest from ${folderName}" data-full-src="${latestImage.url}" data-caption="${timestamp}">
-                                    <div class="library-image-caption" title="${timestamp}">${timestamp}</div>
+                                    <div class="${captionClass}" title="${timestamp}">${timestamp}</div>
                                 </div>
                             </div>
                         `;
@@ -2130,6 +2143,8 @@
                 const safeSymbol = 'BTC-USDT';
                 const symbolEmaData = STATE.emaData.data[safeSymbol] || {};
                 const currentPrice = symbolEmaData['15min']?.price || 0;
+                
+                const lastUpdatedHtml = STATE.emaData.last_updated ? `<p class="ema-last-updated">Last Updated: <span>${new Date(STATE.emaData.last_updated).toLocaleString()}</span></p>` : '';
 
                 const keyHtml = `
                     <div id="ema-key-container" style="max-width: 100%; margin: 0 auto 20px auto;">
@@ -2221,7 +2236,7 @@
                         </table>
                     </div>`;
 
-                container.innerHTML = keyHtml + priceDisplayHtml + summaryHtmlHtf + summaryHtmlAllTf + tableHtml;
+                container.innerHTML = lastUpdatedHtml + keyHtml + priceDisplayHtml + summaryHtmlHtf + summaryHtmlAllTf + tableHtml;
             }
 
             function renderSetupsTable(tableElement, data) {
@@ -3526,6 +3541,23 @@
             }
 
             // --- INITIALIZATION ---
+            function openCollapsibleSection(sectionElement) {
+                if (!sectionElement) return;
+
+                const content = sectionElement.querySelector('.collapsible-content');
+                const toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
+
+                if (content && toggleBtn && !sectionElement.classList.contains('is-open')) {
+                    sectionElement.classList.add('is-open');
+                    toggleBtn.textContent = '−';
+                    toggleBtn.style.transform = 'rotate(180deg)';
+                    
+                    setTimeout(() => {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                    }, 10);
+                }
+            }
+
             function checkMasterMode() {
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.get('master') === 'true') {
@@ -3589,6 +3621,19 @@
 
                 DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText;
                 autoResizeTextarea(DOM.trackerScratchpadEl);
+
+                // Auto-open specific sections
+                const sectionsToOpen = ['Live Trades', 'Sentiment Log', 'Add New Trade'];
+                document.querySelectorAll('.collapsible-header h2').forEach(h2 => {
+                    if (sectionsToOpen.includes(h2.textContent.trim())) {
+                        const section = h2.closest('.collapsible-section');
+                        if (section) {
+                            if (!(section.classList.contains('master-only') && !STATE.isMasterUser)) {
+                                openCollapsibleSection(section);
+                            }
+                        }
+                    }
+                });
             }
 
             initializeApp();
