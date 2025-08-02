@@ -1314,6 +1314,9 @@
                             <span class="metadata-label">Source Weights</span>
                             <span class="metadata-value">Wick (1.0), Close (1.5)</span>
                         </div>
+                        <div class="metadata-item" id="sr-closest-ema-levels">
+                            <!-- JS will populate this -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1584,6 +1587,7 @@
                     STATE.emaData = await response.json();
                     renderEmaData();
                     renderBtcEmaSnapshot();
+                    renderClosestSrEmas();
                 } catch (error) {
                     console.error("Could not fetch ma_analysis.json:", error);
                     DOM.emaTablesContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading EMA data.</p>';
@@ -2238,6 +2242,8 @@
                 DOM.srMetadataDates.textContent = (analysisParams.oldest_pivot_date && analysisParams.newest_pivot_date) 
                     ? `${analysisParams.oldest_pivot_date} to ${analysisParams.newest_pivot_date}` : '--';
 
+                renderClosestSrEmas(); // Render the EMA levels in the key
+
                 const buildLevelCard = (level) => `
                     <div class="sr-level-card">
                         <div class="sr-level-header">
@@ -2266,6 +2272,50 @@
                 } else {
                     DOM.resistanceSummary.innerHTML = '';
                 }
+            }
+            
+            function renderClosestSrEmas() {
+                const container = document.getElementById('sr-closest-ema-levels');
+                if (!container || !STATE.emaData.data) {
+                    if(container) container.innerHTML = '';
+                    return;
+                }
+
+                const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
+                const symbolEmaData = STATE.emaData.data[selectedSymbol];
+                const currentPrice = symbolEmaData?.['15min']?.price;
+
+                if (!symbolEmaData || !currentPrice) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                const targetTimeframes = ['daily', '4hour', '2hour', '1hour'];
+                let closestSupport = { distance: Infinity, label: 'N/A', value: 0 };
+                let closestResistance = { distance: Infinity, label: 'N/A', value: 0 };
+
+                targetTimeframes.forEach(tf => {
+                    const tfData = symbolEmaData[tf];
+                    if (tfData) {
+                        CONFIG.EMA_ANALYSIS.PERIODS.forEach(period => {
+                            ['EMA', 'SMA'].forEach(type => {
+                                const value = tfData[`${type}_${period}`];
+                                if (value !== undefined) {
+                                    const distance = Math.abs(currentPrice - value);
+                                    if (value < currentPrice && distance < closestSupport.distance) {
+                                        closestSupport = { distance, label: `${CONFIG.EMA_ANALYSIS.SHORT_NAMES[tf]} ${type} ${period}`, value };
+                                    } else if (value >= currentPrice && distance < closestResistance.distance) {
+                                        closestResistance = { distance, label: `${CONFIG.EMA_ANALYSIS.SHORT_NAMES[tf]} ${type} ${period}`, value };
+                                    }
+                                }
+                            });
+                        });
+                    }
+                });
+
+                const supportHtml = `<span class="metadata-label" style="color:var(--green-text);">Closest EMA Support (HTF)</span><span class="metadata-value">${closestSupport.label} @ ${Math.round(closestSupport.value).toLocaleString()}</span>`;
+                const resistanceHtml = `<span class="metadata-label" style="margin-top: 10px; color:var(--red-text);">Closest EMA Resistance (HTF)</span><span class="metadata-value">${closestResistance.label} @ ${Math.round(closestResistance.value).toLocaleString()}</span>`;
+                container.innerHTML = supportHtml + resistanceHtml;
             }
 
 
@@ -2568,7 +2618,9 @@
                     
                     if (tabId === 'journal') updateJournalView();
                     if (tabId === 'snapshot') renderSnapshotView();
-                    if (tabId === 'sr-levels') renderSrLevels();
+                    if (tabId === 'sr-levels') {
+                        renderSrLevels();
+                    }
                 });
                 
                 DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
@@ -2739,7 +2791,9 @@
                 DOM.saveSetups1Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1));
                 DOM.saveSetups2Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2));
 
-                DOM.srSymbolEl.addEventListener('change', renderSrLevels);
+                DOM.srSymbolEl.addEventListener('change', () => {
+                    renderSrLevels();
+                });
                 DOM.srLookbackEl.addEventListener('change', renderSrLevels);
 
                 DOM.srLegendHeader.addEventListener('click', () => {
@@ -3508,4 +3562,3 @@
     </script>
 </body>
 </html>
-```
