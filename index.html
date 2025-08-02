@@ -549,20 +549,19 @@
             padding: 5px;
             background: var(--container-bg);
             border-radius: 4px;
-            aspect-ratio: 16 / 9;
             overflow: hidden;
             display: flex;
             flex-direction: column;
         }
         .library-image-wrapper img {
             width: 100%;
-            object-fit: cover;
+            object-fit: contain; /* Changed from cover */
+            aspect-ratio: 16 / 9; /* Moved from wrapper to img */
             display: block;
             border-radius: 2px;
             cursor: pointer;
-            transition: transform 0.2s ease-in-out;
-            flex-grow: 1; /* Allow image to fill available space */
-            min-height: 0; /* Crucial for flexbox in column direction */
+            flex-grow: 1; 
+            min-height: 0;
         }
         .library-image-wrapper:hover .delete-library-image,
         .library-image-wrapper:hover .edit-caption-btn {
@@ -625,6 +624,7 @@
             padding: 8px 4px 4px 4px; /* More padding on top */
             text-align: center;
             flex-shrink: 0; /* Prevent caption from shrinking */
+            word-wrap: break-word; /* Added for safety */
         }
         .library-image-caption.is-today {
             color: #ffc107; /* A gold/yellow color */
@@ -748,7 +748,7 @@
             padding: 10px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s ease-in-out;
+            transition: border-color 0.2s ease-in-out;
             aspect-ratio: 1 / 1;
             display: flex;
             flex-direction: column;
@@ -835,7 +835,6 @@
             background-color: var(--header-bg);
             transition: background-color 0.2s ease;
         }
-        /* .collapsible-header:hover { background-color: var(--border-color); } -- REMOVED */
         .collapsible-header h2 {
             margin: 0;
             padding: 0;
@@ -2172,7 +2171,7 @@
                         }
                     });
                     const supportsHtf = levelsHtf.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
-                    const resistancesHtf = levelsHtf.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
+                    const resistancesHtf = levelsHtf.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance); // REMOVED .slice(0, 10)
                     summaryHtmlHtf = `
                         <div class="ema-summary-container">
                             <h4>Closest S/R (Daily, 4H, 2H)</h4>
