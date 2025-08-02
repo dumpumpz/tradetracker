@@ -937,7 +937,7 @@
                     <div class="stat-item"><span class="stat-label">Open Trades</span><span id="stat-open-trades" class="stat-value">0</span></div>
                 </div>
             </div>
-            <button id="stats-fab" title="Show Stats"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M32 32c17.7 0 32 14.3 32 32V400c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V64C32 46.3 46.3 32 64 32H160c17.7 0 32 14.3 32 32s-14.3 32-32 32H96v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96H64V64zM256 224c0-17.7-14.3-32-32-32H160c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32V224zM352 288c-17.7 0-32 14.3-32 32v64H256c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32zM480 32c17.7 0 32 14.3 32 32s-14.3 32-32 32H416v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96h-1.5c-16.3 0-30.8-12.4-32-28.5c-.2-2.1-.2-4.2-.2-6.4V64c0-17.7 14.3-32 32-32H480z"/></svg></button>
+            <button id="stats-fab" title="Show Stats"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M32 32c17.7 0 32 14.3 32 32V400c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V64C32 46.3 46.3 32 64 32H160c17.7 0 32 14.3 32 32s-14.3 32-32 32H96v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96H64V64zM256 224c0-17.7-14.3-32-32-32H160c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7-14.3 32 32 32s32-14.3 32-32V224zM352 288c-17.7 0-32 14.3-32 32v64H256c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32zM480 32c17.7 0 32 14.3 32 32s-14.3 32-32 32H416v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96h-1.5c-16.3 0-30.8-12.4-32-28.5c-.2-2.1-.2-4.2-.2-6.4V64c0-17.7 14.3-32 32-32H480z"/></svg></button>
         </div>
 
     
@@ -1702,6 +1702,15 @@
 
                 tbody.innerHTML = rowsHtml;
                 updateToggleButtonsVisibility();
+
+                // After updating the content, check if the parent section is open and resize it.
+                const section = tbody.closest('.collapsible-section');
+                if (section && section.classList.contains('is-open')) {
+                    const content = section.querySelector('.collapsible-content');
+                    if (content) {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                    }
+                }
             }
             
             function renderLiveTable(data) {
@@ -1752,6 +1761,15 @@
                     }).join('');
                 
                 DOM.tradesTbody.innerHTML = rowsHtml;
+
+                // After updating the content, check if the parent section is open and resize it.
+                const section = DOM.tradesTbody.closest('.collapsible-section');
+                if (section && section.classList.contains('is-open')) {
+                    const content = section.querySelector('.collapsible-content');
+                    if (content) {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                    }
+                }
             }
 
             function renderCompletedTable(data) {
@@ -2170,9 +2188,8 @@
                             }));
                         }
                     });
-                    // Change the line above to look like this:
-const supportsHtf = levelsHtf.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance);
-                    const resistancesHtf = levelsHtf.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance); // REMOVED .slice(0, 10)
+                    const supportsHtf = levelsHtf.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance); 
+                    const resistancesHtf = levelsHtf.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance);
                     summaryHtmlHtf = `
                         <div class="ema-summary-container">
                             <h4>Closest S/R (Daily, 4H, 2H)</h4>
