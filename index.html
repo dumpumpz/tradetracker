@@ -549,12 +549,13 @@
         }
         .library-image-wrapper img {
             width: 100%;
-            height: 100%;
             object-fit: cover;
             display: block;
             border-radius: 2px;
             cursor: pointer;
             transition: transform 0.2s ease-in-out;
+            flex-grow: 1; /* Allow image to fill available space */
+            min-height: 0; /* Crucial for flexbox in column direction */
         }
         .library-image-wrapper:hover img {
             transform: scale(1.05);
@@ -619,8 +620,9 @@
             font-size: 12px;
             line-height: 1.4;
             color: var(--subtle-text);
-            padding: 4px;
+            padding: 8px 4px 4px 4px; /* More padding on top */
             text-align: center;
+            flex-shrink: 0; /* Prevent caption from shrinking */
         }
         
         /* Image Modal Styles */
@@ -1090,6 +1092,7 @@
                             </div>
                             <!-- PREVIEW SECTION -->
                             <div id="chart-library-2-preview-section">
+                                <h3 style="text-align: center; margin-top: 0; padding-top: 20px; border-top: 1px dashed var(--border-color);">Latest Uploads</h3>
                                 <div id="chart-library-2-preview-container">
                                     <!-- JS will render preview items here -->
                                 </div>
@@ -1819,10 +1822,8 @@
                         if (!imgData?.url) return '';
                         return `
                             <div class="library-image-wrapper">
-                                <div style="position: relative; flex-grow: 1;">
-                                    ${masterButtonsHtml(id, imgData.fileName)}
-                                    <img src="${imgData.url}" alt="Library Image" data-full-src="${imgData.url}" data-caption="${imgData.caption || 'Library Image'}">
-                                </div>
+                                ${masterButtonsHtml(id, imgData.fileName)}
+                                <img src="${imgData.url}" alt="Library Image" data-full-src="${imgData.url}" data-caption="${imgData.caption || 'Library Image'}">
                                 <div class="library-image-caption" title="${imgData.caption || ''}">${imgData.caption || ' '}</div>
                             </div>`;
                     }).join('');
@@ -1893,10 +1894,12 @@
                     .map(id => {
                         const imgData = imagesForFolder[id];
                         if (!imgData?.url) return '';
+                        const timestamp = imgData.timestamp ? new Date(imgData.timestamp).toLocaleString() : '';
                         return `
                             <div class="library-image-wrapper">
                                 ${masterDeleteButtonHtml(id, imgData.fileName)}
-                                <img src="${imgData.url}" alt="Image from ${folderName}" data-full-src="${imgData.url}" data-caption="${folderName}">
+                                <img src="${imgData.url}" alt="Image from ${folderName}" data-full-src="${imgData.url}" data-caption="${timestamp}">
+                                <div class="library-image-caption" title="${timestamp}">${timestamp}</div>
                             </div>`;
                     }).join('');
                 
@@ -1919,11 +1922,13 @@
                     const latestImage = Object.values(imagesInFolder).sort((a, b) => b.timestamp - a.timestamp)[0];
 
                     if (latestImage) {
+                        const timestamp = latestImage.timestamp ? new Date(latestImage.timestamp).toLocaleString() : '';
                         html += `
                             <div class="cl2-preview-item">
                                 <h4>${folderName}</h4>
                                 <div class="library-image-wrapper">
-                                    <img src="${latestImage.url}" alt="Latest from ${folderName}" data-full-src="${latestImage.url}" data-caption="${folderName}">
+                                    <img src="${latestImage.url}" alt="Latest from ${folderName}" data-full-src="${latestImage.url}" data-caption="${timestamp}">
+                                    <div class="library-image-caption" title="${timestamp}">${timestamp}</div>
                                 </div>
                             </div>
                         `;
@@ -2336,7 +2341,8 @@
                                 const imageData = {
                                     url: downloadURL,
                                     fileName: fileName,
-                                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                                    caption: '' // Initialize with empty caption
                                 };
                                 dbRefs.imageLibrary.push(imageData);
                                 if (index === files.length - 1) {
