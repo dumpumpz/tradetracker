@@ -1,3 +1,33 @@
+
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+Of course! That's a fantastic idea to distill the most important, high-timeframe EMA levels for a quick glance.
+
+I've implemented this by adding a new "Closest HTF EMAs" section directly into the S/R Levels Key.
+
+Here’s a summary of the changes:
+
+1.  **New "Closest HTF EMAs" Section:** A new block has been added to the right side of the S/R Levels Key.
+2.  **Smart Filtering:** This new block **only** analyzes the `daily`, `4hour`, `2hour`, and `1hour` timeframes from your EMA data.
+3.  **Closest Level Identification:** It automatically calculates and displays the single closest EMA/SMA that is acting as **support** (below the current price) and the single closest one acting as **resistance** (above the current price).
+4.  **Dynamic Updates:** This information updates automatically whenever you switch the symbol on the S/R Levels tab.
+5.  **Unchanged Functionality:** The more comprehensive S/R & Resistance lists on the Journal tab (which include the lower timeframes) remain completely untouched.
+
+This gives you an immediate, high-signal view of the most critical nearby EMA levels without leaving the S/R tab.
+
+Here is the complete, updated code. You can replace your entire HTML file with this new version.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1314,6 +1344,9 @@
                             <span class="metadata-label">Source Weights</span>
                             <span class="metadata-value">Wick (1.0), Close (1.5)</span>
                         </div>
+                        <div class="metadata-item" id="sr-closest-ema-levels">
+                            <!-- JS will populate this -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1559,25 +1592,21 @@
 
             // --- DATA FETCHING ---
             async function fetchLiveConversionRate() {
-                console.log("Attempting to fetch live conversion rate from new provider...");
-                const apiUrl = 'https://open.er-api.com/v6/latest/USD';
-
                 try {
-                    const response = await fetch(apiUrl);
+                    const response = await fetch('https://open.er-api.com/v6/latest/USD');
                     if (!response.ok) {
                         console.warn(`API responded with an error. Status: ${response.status}. Using default rate.`);
                         return;
                     }
                     const data = await response.json();
                     if (data && data.result === "success" && data.rates && data.rates.AUD) {
-                        const newRate = data.rates.AUD;
-                        STATE.usdToAudRate = newRate;
-                        console.log(`✅ Success! Updated STATE.usdToAudRate to: ${newRate}`);
+                        STATE.usdToAudRate = data.rates.AUD;
+                        console.log(`✅ Success! Updated STATE.usdToAudRate to: ${STATE.usdToAudRate}`);
                     } else {
                         console.warn("API response did not contain the expected data. Using default rate.", data);
                     }
                 } catch (error) {
-                    console.error("❌ CRITICAL ERROR: Could not fetch conversion rate. Check network connection or for errors in the Network tab.", error);
+                    console.error("❌ CRITICAL ERROR: Could not fetch conversion rate.", error);
                 }
             }
             
@@ -1587,7 +1616,8 @@
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     STATE.emaData = await response.json();
                     renderEmaData();
-                    renderBtcEmaSnapshot(); // NEW: Render the snapshot on the tracker tab
+                    renderBtcEmaSnapshot();
+                    renderClosestSrEmas();
                 } catch (error) {
                     console.error("Could not fetch ma_analysis.json:", error);
                     DOM.emaTablesContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading EMA data.</p>';
@@ -1686,7 +1716,7 @@
                         isHistorical = receiptDateStr !== todayStr;
                     } else {
                         displayTimestamp = receipt.timestamp || '--';
-                        isHistorical = true; // Assume old if timestamp is malformed
+                        isHistorical = true;
                     }
 
                     return `
@@ -2115,7 +2145,6 @@
                 DOM.emaTablesContainer.innerHTML = tablesHtml;
             }
             
-            // NEW FUNCTION FOR BTC SNAPSHOT on TRACKER TAB
             function renderBtcEmaSnapshot() {
                 const container = DOM.btcEmaSnapshotContainer;
                 if (!container || !STATE.emaData.data) return;
@@ -2271,6 +2300,51 @@
                 } else {
                     DOM.resistanceSummary.innerHTML = '';
                 }
+            }
+            
+            // NEW: Renders closest HTF S/R EMAs to the S/R Key
+            function renderClosestSrEmas() {
+                const container = document.getElementById('sr-closest-ema-levels');
+                if (!container || !STATE.emaData.data) {
+                    if(container) container.innerHTML = '';
+                    return;
+                }
+
+                const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
+                const symbolEmaData = STATE.emaData.data[selectedSymbol];
+                const currentPrice = symbolEmaData?.['15min']?.price;
+
+                if (!symbolEmaData || !currentPrice) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                const targetTimeframes = ['daily', '4hour', '2hour', '1hour'];
+                let closestSupport = { distance: Infinity, label: 'N/A', value: 0 };
+                let closestResistance = { distance: Infinity, label: 'N/A', value: 0 };
+
+                targetTimeframes.forEach(tf => {
+                    const tfData = symbolEmaData[tf];
+                    if (tfData) {
+                        CONFIG.EMA_ANALYSIS.PERIODS.forEach(period => {
+                            ['EMA', 'SMA'].forEach(type => {
+                                const value = tfData[`${type}_${period}`];
+                                if (value !== undefined) {
+                                    const distance = Math.abs(currentPrice - value);
+                                    if (value < currentPrice && distance < closestSupport.distance) {
+                                        closestSupport = { distance, label: `${CONFIG.EMA_ANALYSIS.SHORT_NAMES[tf]} ${type} ${period}`, value };
+                                    } else if (value >= currentPrice && distance < closestResistance.distance) {
+                                        closestResistance = { distance, label: `${CONFIG.EMA_ANALYSIS.SHORT_NAMES[tf]} ${type} ${period}`, value };
+                                    }
+                                }
+                            });
+                        });
+                    }
+                });
+
+                const supportHtml = `<span class="metadata-label" style="color:var(--green-text);">Closest EMA Support (HTF)</span><span class="metadata-value">${closestSupport.label} @ ${Math.round(closestSupport.value).toLocaleString()}</span>`;
+                const resistanceHtml = `<span class="metadata-label" style="margin-top: 10px; color:var(--red-text);">Closest EMA Resistance (HTF)</span><span class="metadata-value">${closestResistance.label} @ ${Math.round(closestResistance.value).toLocaleString()}</span>`;
+                container.innerHTML = supportHtml + resistanceHtml;
             }
 
 
@@ -2573,7 +2647,10 @@
                     
                     if (tabId === 'journal') updateJournalView();
                     if (tabId === 'snapshot') renderSnapshotView();
-                    if (tabId === 'sr-levels') renderSrLevels();
+                    if (tabId === 'sr-levels') {
+                        renderSrLevels();
+                        renderClosestSrEmas();
+                    }
                 });
                 
                 DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
@@ -2596,7 +2673,6 @@
                         section.classList.toggle('is-open');
                         toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
                         toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
-
 
                         if (section.classList.contains('is-open')) {
                             content.style.maxHeight = content.scrollHeight + 'px';
@@ -2745,8 +2821,12 @@
                 DOM.saveSetups1Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1));
                 DOM.saveSetups2Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2));
 
-                DOM.srSymbolEl.addEventListener('change', renderSrLevels);
+                DOM.srSymbolEl.addEventListener('change', () => {
+                    renderSrLevels();
+                    renderClosestSrEmas();
+                });
                 DOM.srLookbackEl.addEventListener('change', renderSrLevels);
+
                 DOM.srLegendHeader.addEventListener('click', () => {
                     const isCollapsed = DOM.srLegendContent.style.display === 'none';
                     DOM.srLegendContent.style.display = isCollapsed ? 'block' : 'none';
