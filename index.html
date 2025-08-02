@@ -2124,9 +2124,9 @@
                 const symbolEmaData = STATE.emaData.data[safeSymbol] || {};
                 const currentPrice = symbolEmaData['15min']?.price || 0;
 
-                const keyHtml = `
+                const keyHtmlLowerTf = `
                     <div id="ema-key-container" style="max-width: 100%; margin: 0 auto 20px auto;">
-                        <h4>Chart Key</h4>
+                        <h4>EMA Key (1H, 30m, 15m)</h4>
                         <div class="ema-key-list">
                             <div class="key-item"><span class="key-color-swatch" style="background-color: #FFFFFF;"></span><span class="key-label">13 EMA/SMA</span></div>
                             <div class="key-item"><span class="key-color-swatch" style="background-color: #000000;"></span><span class="key-label">49 EMA/SMA</span></div>
@@ -2134,6 +2134,15 @@
                             <div class="key-item"><span class="key-color-swatch" style="background-color: #008000;"></span><span class="key-label">200 EMA</span></div>
                             <div class="key-item"><span class="key-color-swatch" style="background-color: #800080;"></span><span class="key-label">500 EMA</span></div>
                             <div class="key-item"><span class="key-color-swatch" style="background-color: #0000FF;"></span><span class="key-label">1000 EMA</span></div>
+                        </div>
+                    </div>`;
+                
+                const keyHtmlHigherTf = `
+                     <div id="sr-key-container-htf" style="max-width: 100%; margin: 20px auto 20px auto; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--card-bg);">
+                         <h4>S/R Key (Daily, 4H, 2H)</h4>
+                         <div class="ema-key-list">
+                            <div class="key-item"><span class="key-color-swatch" style="background-color: #28a745;"></span><span class="key-label">Support</span></div>
+                            <div class="key-item"><span class="key-color-swatch" style="background-color: #dc3545;"></span><span class="key-label">Resistance</span></div>
                         </div>
                     </div>`;
 
@@ -2187,7 +2196,7 @@
                         </table>
                     </div>`;
 
-                container.innerHTML = keyHtml + priceDisplayHtml + summaryHtml + tableHtml;
+                container.innerHTML = keyHtmlLowerTf + keyHtmlHigherTf + priceDisplayHtml + summaryHtml + tableHtml;
             }
 
             function renderSetupsTable(tableElement, data) {
