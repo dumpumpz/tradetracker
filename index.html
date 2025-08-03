@@ -2228,16 +2228,17 @@
                     if(maxSupportRows === 0) {
                         tableRowsHtml += '<tr><td colspan="4" style="text-align:center; color: var(--green-text);">No Support Levels Found</td></tr>';
                     } else {
-                        for (let i = 0; i < maxSupportRows; i++) {
-                            const supClosest = supportsClosestAll[i];
-                            const supHtf = supportsHtfAll[i];
-                            tableRowsHtml += `<tr style="color: var(--green-text);">
-                                <td>${supClosest ? supClosest.label : '---'}</td>
-                                <td>${supClosest ? Math.round(supClosest.value).toLocaleString() : '---'}</td>
-                                <td>${supHtf ? supHtf.label : '---'}</td>
-                                <td>${supHtf ? Math.round(supHtf.value).toLocaleString() : '---'}</td>
-                            </tr>`;
-                        }
+                        // AFTER
+for (let i = 0; i < maxSupportRows; i++) {
+    const supClosest = supportsClosestAll[i];
+    const supHtf = supportsHtfAll[i];
+    tableRowsHtml += `<tr>
+        <td>${supClosest ? supClosest.label : '---'}</td>
+        <td style="color: var(--green-text);">${supClosest ? Math.round(supClosest.value).toLocaleString() : '---'}</td>
+        <td>${supHtf ? supHtf.label : '---'}</td>
+        <td style="color: var(--green-text);">${supHtf ? Math.round(supHtf.value).toLocaleString() : '---'}</td>
+    </tr>`;
+}
                     }
 
                     // Separator Row
@@ -2246,16 +2247,17 @@
                     if (maxResistanceRows === 0) {
                          tableRowsHtml += '<tr><td colspan="4" style="text-align:center; color: var(--red-text);">No Resistance Levels Found</td></tr>';
                     } else {
-                        for (let i = 0; i < maxResistanceRows; i++) {
-                            const resClosest = resistancesClosestAll[i];
-                            const resHtf = resistancesHtfAll[i];
-                            tableRowsHtml += `<tr style="color: var(--red-text);">
-                                <td>${resClosest ? resClosest.label : '---'}</td>
-                                <td>${resClosest ? Math.round(resClosest.value).toLocaleString() : '---'}</td>
-                                <td>${resHtf ? resHtf.label : '---'}</td>
-                                <td>${resHtf ? Math.round(resHtf.value).toLocaleString() : '---'}</td>
-                            </tr>`;
-                        }
+                        // AFTER
+for (let i = 0; i < maxResistanceRows; i++) {
+    const resClosest = resistancesClosestAll[i];
+    const resHtf = resistancesHtfAll[i];
+    tableRowsHtml += `<tr>
+        <td>${resClosest ? resClosest.label : '---'}</td>
+        <td style="color: var(--red-text);">${resClosest ? Math.round(resClosest.value).toLocaleString() : '---'}</td>
+        <td>${resHtf ? resHtf.label : '---'}</td>
+        <td style="color: var(--red-text);">${resHtf ? Math.round(resHtf.value).toLocaleString() : '---'}</td>
+    </tr>`;
+}
                     }
                     
                     summaryTableHtml = `
