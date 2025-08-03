@@ -1577,10 +1577,22 @@
 
             // --- HELPER FUNCTIONS ---
             const formatCurrency = (num, symbol = '$') => `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            function autoResizeTextarea(element) {
+                        function autoResizeTextarea(element) {
                 if (!element) return;
-                element.style.height = 'auto';
-                element.style.height = `${element.scrollHeight}px`;
+                element.style.height = 'auto'; // Reset height
+                element.style.height = `${element.scrollHeight}px`; // Set to content height
+
+                // --- THIS IS THE CRUCIAL ADDITION ---
+                // Find the parent collapsible content area
+                const content = element.closest('.collapsible-content');
+                if (content) {
+                    // Check if the section is actually open before trying to resize
+                    const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
+                    if (isOpen) {
+                        // Update the parent's max-height to fit the new textarea size
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                    }
+                }
             }
             const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
             const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
