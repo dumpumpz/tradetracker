@@ -85,7 +85,7 @@
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
         .controls-container > div { display: flex; align-items: center; gap: 8px; }
         
-        #journal-entry, #persistent-notes-entry, #tracker-scratchpad {
+        #journal-entry, #persistent-notes-entry, #tracker-scratchpad, #trade-reminders-scratchpad {
             width: 100%; 
             resize: vertical;
             line-height: 1.6;
@@ -93,9 +93,9 @@
             overflow-y: hidden; 
             min-height: 120px; 
         }
-        #tracker-scratchpad { margin: 0; }
+        #tracker-scratchpad, #trade-reminders-scratchpad { margin: 0; }
         
-        #journal-entry:read-only, #persistent-notes-entry:read-only, #tracker-scratchpad:read-only { 
+        #journal-entry:read-only, #persistent-notes-entry:read-only, #tracker-scratchpad:read-only, #trade-reminders-scratchpad:read-only { 
             background-color: var(--card-bg); 
             cursor: not-allowed; 
         }
@@ -961,6 +961,19 @@
         </div>
         
         <div id="tracker-tab" class="tab-content active">
+
+            <!-- Reminders Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Reminders</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <textarea id="trade-reminders-scratchpad" placeholder="General reminders for the day..."></textarea>
+                    </div>
+                </div>
+            </div>
             
             <!-- Live Trades Section -->
             <div class="collapsible-section">
@@ -1400,6 +1413,7 @@
                     SETUPS_2: 'current_setups_2',
                     PERSISTENT_NOTES: 'persistent_notes',
                     TRACKER_SCRATCHPAD: 'tracker_scratchpad',
+                    TRADE_REMINDERS: 'trade_reminders',
                     SENTIMENT_RECEIPTS: 'sentiment_receipts'
                 },
                 TRADE_SETTINGS: {
@@ -1442,6 +1456,7 @@
                 statRewardRisk: document.getElementById('stat-reward-risk'),
                 statOpenTrades: document.getElementById('stat-open-trades'),
                 // Trade Tracker
+                tradeRemindersScratchpadEl: document.getElementById('trade-reminders-scratchpad'),
                 trackerScratchpadEl: document.getElementById('tracker-scratchpad'),
                 addTradeForm: document.getElementById('add-trade-form'),
                 tradesTbody: document.getElementById('trades-tbody'),
@@ -1523,6 +1538,7 @@
                 favouriteEntries: {},
                 persistentNotes: '',
                 trackerScratchpadText: '',
+                tradeRemindersText: '',
                 setupsData1: {},
                 setupsData2: {},
                 selectedDate: null,
@@ -1530,6 +1546,7 @@
                 journalSaveTimer: null,
                 notesSaveTimer: null,
                 trackerSaveTimer: null,
+                remindersSaveTimer: null,
                 isMerging: false,
                 mergeBaseTradeId: null,
                 modalImageGallery: [],
@@ -1554,6 +1571,7 @@
                 setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2),
                 persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES),
                 trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD),
+                tradeReminders: database.ref(CONFIG.DB_PATHS.TRADE_REMINDERS),
                 sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS)
             };
 
@@ -2511,6 +2529,17 @@ for (let i = 0; i < maxResistanceRows; i++) {
                         .catch(e => console.error("Error saving tracker scratchpad:", e));
                 }, 750);
             };
+
+            const saveTradeReminders = () => {
+                clearTimeout(STATE.remindersSaveTimer);
+                STATE.remindersSaveTimer = setTimeout(() => {
+                    if (!STATE.isMasterUser) return;
+                    const text = DOM.tradeRemindersScratchpadEl.value;
+                    STATE.tradeRemindersText = text;
+                    dbRefs.tradeReminders.set(text)
+                        .catch(e => console.error("Error saving trade reminders:", e));
+                }, 750);
+            };
             
             function handleFileUpload(files) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
@@ -2790,6 +2819,11 @@ for (let i = 0; i < maxResistanceRows; i++) {
                 DOM.trackerScratchpadEl.addEventListener('input', () => {
                     autoResizeTextarea(DOM.trackerScratchpadEl);
                     saveTrackerScratchpad();
+                });
+
+                DOM.tradeRemindersScratchpadEl.addEventListener('input', () => {
+                    autoResizeTextarea(DOM.tradeRemindersScratchpadEl);
+                    saveTradeReminders();
                 });
                 
                 DOM.libraryImageUpload.addEventListener('change', (e) => handleLibraryImageUpload(e.target.files));
@@ -3605,6 +3639,14 @@ for (let i = 0; i < maxResistanceRows; i++) {
                     }
                 });
 
+                dbRefs.tradeReminders.on('value', (s) => {
+                    STATE.tradeRemindersText = s.val() || '';
+                    if (DOM.trackerTab.classList.contains('active')) {
+                         DOM.tradeRemindersScratchpadEl.value = STATE.tradeRemindersText;
+                         autoResizeTextarea(DOM.tradeRemindersScratchpadEl);
+                    }
+                });
+
                 dbRefs.sentimentReceipts.on('value', (s) => renderSentimentReceipts(s.val()));
             }
 
@@ -3649,6 +3691,7 @@ for (let i = 0; i < maxResistanceRows; i++) {
                         DOM.journalEntryEl.readOnly = false;
                         DOM.persistentNotesEl.readOnly = false;
                         DOM.trackerScratchpadEl.readOnly = false;
+                        DOM.tradeRemindersScratchpadEl.readOnly = false;
                         document.querySelectorAll('.setups-table td').forEach(cell => {
                             cell.setAttribute('contenteditable', 'true');
                         });
@@ -3658,6 +3701,7 @@ for (let i = 0; i < maxResistanceRows; i++) {
                     DOM.journalEntryEl.readOnly = true;
                     DOM.persistentNotesEl.readOnly = true;
                     DOM.trackerScratchpadEl.readOnly = true;
+                    DOM.tradeRemindersScratchpadEl.readOnly = true;
                 }
             }
 
@@ -3689,10 +3733,11 @@ for (let i = 0; i < maxResistanceRows; i++) {
 
                 DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText;
                 autoResizeTextarea(DOM.trackerScratchpadEl);
+                DOM.tradeRemindersScratchpadEl.value = STATE.tradeRemindersText;
+                autoResizeTextarea(DOM.tradeRemindersScratchpadEl);
 
                 // Auto-open specific sections
-                // AFTER
-const sectionsToOpen = ['Live Trades', 'Sentiment Log', 'Add New Trade', 'Notes'];
+                const sectionsToOpen = ['Reminders', 'Live Trades', 'Sentiment Log', 'Add New Trade', 'Notes'];
                 document.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                     if (sectionsToOpen.includes(h2.textContent.trim())) {
                         const section = h2.closest('.collapsible-section');
