@@ -165,6 +165,11 @@
             border-radius: 6px;
             background-color: var(--bg-color);
         }
+        .ema-level-summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
         .ema-summary-container h4 {
             font-size: 14px;
             text-align: center;
@@ -899,6 +904,7 @@
             .collapsible-content-inner { padding: 15px 10px; }
             .collapsible-header { padding: 10px 15px; }
             .collapsible-header h2 { font-size: 1em; }
+            .ema-level-summary-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -1423,6 +1429,13 @@
                 statTotalPl: document.getElementById('stat-total-pl'),
                 statTotalPlAud: document.getElementById('stat-total-pl-aud'),
                 statCompletedTrades: document.getElementById('stat-completed-trades'),
+                statWins: document.getElementById('stat-wins'),
+                statLosses: document.getElementById('stat-losses'),
+                statWinRate: document.getElementById('stat-win-rate'),
+                statProfitFactor: document.getElementById('stat-profit-factor'),
+                statAvgWin: document.getElementById('stat-avg-win'),
+                statAvgLoss: document.getElementById('stat-avg-loss'),
+                statRewardRisk: document.getElementById('stat-reward-risk'),
                 statOpenTrades: document.getElementById('stat-open-trades'),
                 // Trade Tracker
                 trackerScratchpadEl: document.getElementById('tracker-scratchpad'),
@@ -2122,8 +2135,10 @@
                         
                         summaryHtml = `
                             <div class="ema-summary-container">
-                                <div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supports.map(formatLevel).join('') || 'None found.'}</ul></div>
-                                <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistances.map(formatLevel).join('') || 'None found.'}</ul></div>
+                                <div class="ema-level-summary-grid">
+                                    <div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supports.map(formatLevel).join('') || 'None found.'}</ul></div>
+                                    <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistances.map(formatLevel).join('') || 'None found.'}</ul></div>
+                                </div>
                             </div>`;
                     }
                     
@@ -2151,19 +2166,6 @@
                 
                 const lastUpdatedHtml = STATE.emaData.last_updated ? `<p class="ema-last-updated">Last Updated: <span>${new Date(STATE.emaData.last_updated).toLocaleString()}</span></p>` : '';
 
-                const keyHtml = `
-                    <div id="ema-key-container" style="max-width: 100%; margin: 0 auto 20px auto;">
-                        <h4>Chart Key</h4>
-                        <div class="ema-key-list">
-                            <div class="key-item"><span class="key-color-swatch" style="background-color: #FFFFFF;"></span><span class="key-label">13 EMA/SMA</span></div>
-                            <div class="key-item"><span class="key-color-swatch" style="background-color: #000000;"></span><span class="key-label">49 EMA/SMA</span></div>
-                            <div class="key-item"><span class="key-color-swatch" style="background-color: #FF0000;"></span><span class="key-label">100 EMA/SMA</span></div>
-                            <div class="key-item"><span class="key-color-swatch" style="background-color: #008000;"></span><span class="key-label">200 EMA</span></div>
-                            <div class="key-item"><span class="key-color-swatch" style="background-color: #800080;"></span><span class="key-label">500 EMA</span></div>
-                            <div class="key-item"><span class="key-color-swatch" style="background-color: #0000FF;"></span><span class="key-label">1000 EMA</span></div>
-                        </div>
-                    </div>`;
-
                 const priceDisplayHtml = `
                     <div class="ema-table-container">
                         <div class="current-price-display" style="font-size: 14px; margin-bottom: 15px;">
@@ -2171,7 +2173,6 @@
                         </div>
                     </div>`;
                 
-                let summaryHtmlAllTf = '';
                 let summaryHtmlHtf = '';
 
                 if (currentPrice > 0) {
@@ -2194,29 +2195,10 @@
                     summaryHtmlHtf = `
                         <div class="ema-summary-container">
                             <h4>Closest S/R (Daily, 4H, 2H)</h4>
-                            <div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supportsHtf.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
-                            <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistancesHtf.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
-                        </div>`;
-
-
-                    // --- Summary for All Timeframes ---
-                    const levelsAll = [];
-                    TIMEFRAMES.forEach(tf => {
-                        const tfData = symbolEmaData[tf];
-                        if (tfData) {
-                            PERIODS.forEach(period => ['EMA', 'SMA'].forEach(type => {
-                                const val = tfData[`${type}_${period}`];
-                                if (val !== undefined) levelsAll.push({ label: `${SHORT_NAMES[tf]} ${type} ${period}`, value: val, isSupport: val < currentPrice, distance: Math.abs(currentPrice - val) });
-                            }));
-                        }
-                    });
-                    const supportsAll = levelsAll.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
-                    const resistancesAll = levelsAll.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
-                    summaryHtmlAllTf = `
-                        <div class="ema-summary-container">
-                            <h4>Closest S/R (All Timeframes)</h4>
-                            <div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supportsAll.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
-                            <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistancesAll.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
+                            <div class="ema-level-summary-grid">
+                                <div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supportsHtf.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
+                                <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistancesHtf.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
+                            </div>
                         </div>`;
                 }
                 
@@ -2241,7 +2223,7 @@
                         </table>
                     </div>`;
 
-                container.innerHTML = lastUpdatedHtml + keyHtml + priceDisplayHtml + summaryHtmlHtf + summaryHtmlAllTf + tableHtml;
+                container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryHtmlHtf + tableHtml;
             }
 
             function renderSetupsTable(tableElement, data) {
@@ -3628,7 +3610,7 @@
                 autoResizeTextarea(DOM.trackerScratchpadEl);
 
                 // Auto-open specific sections
-                const sectionsToOpen = ['Live Trades', 'Sentiment Log', 'Add New Trade'];
+                const sectionsToOpen = ['Live Trades', 'Sentiment Log', 'Add New Trade', 'Tracker Scratchpad'];
                 document.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                     if (sectionsToOpen.includes(h2.textContent.trim())) {
                         const section = h2.closest('.collapsible-section');
