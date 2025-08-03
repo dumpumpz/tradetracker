@@ -156,6 +156,11 @@
         .ema-table th, .ema-table td { font-family: inherit; font-size: 11px; padding: 10px 8px; }
         .ema-table th { font-weight: bold; background-color: var(--header-bg); color: var(--subtle-text); }
         .ema-table td:first-child { font-weight: bold; text-align: left; color: var(--link-color); padding-left: 15px; }
+        .ema-table .separator-row td {
+            border-top: 2px solid var(--border-color);
+            padding: 2px;
+            background-color: var(--bg-color);
+        }
 
         .ema-summary-container {
             font-size: 13px;
@@ -2183,13 +2188,24 @@
                         </div>
                     </div>`;
                 
-                let summaryHtmlHtf = '';
-                let summaryTableHtmlAllTf = '';
+                let summaryTableHtml = '';
 
                 if (currentPrice > 0) {
-                    const formatLevel = (level) => `<li>${level.label} (${Math.round(level.value).toLocaleString()})</li>`;
+                    // --- Data for Left Side: Closest S/R from All Timeframes ---
+                    const levelsAll = [];
+                    TIMEFRAMES.forEach(tf => {
+                        const tfData = symbolEmaData[tf];
+                        if (tfData) {
+                            PERIODS.forEach(period => ['EMA', 'SMA'].forEach(type => {
+                                const val = tfData[`${type}_${period}`];
+                                if (val !== undefined) levelsAll.push({ label: `${SHORT_NAMES[tf]} ${type} ${period}`, value: val, isSupport: val < currentPrice, distance: Math.abs(currentPrice - val) });
+                            }));
+                        }
+                    });
+                    const supportsClosestAll = levelsAll.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
+                    const resistancesClosestAll = levelsAll.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
 
-                    // --- Summary for Higher Timeframes (Daily, 4H, 2H) ---
+                    // --- Data for Right Side: All Major S/R from HTF ---
                     const htfForSummary = ['daily', '4hour', '2hour'];
                     const levelsHtf = [];
                     htfForSummary.forEach(tf => {
@@ -2201,59 +2217,59 @@
                             }));
                         }
                     });
-                    const supportsHtf = levelsHtf.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance); 
-                    const resistancesHtf = levelsHtf.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance);
-                    summaryHtmlHtf = `
-                        <div class="ema-summary-container">
-                            <h4>Closest S/R (Daily, 4H, 2H)</h4>
-                            <div class="ema-level-summary-grid">
-                                <div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supportsHtf.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
-                                <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistancesHtf.map(formatLevel).join('') || '<li>None found.</li>'}</ul></div>
-                            </div>
-                        </div>`;
-
-
-                    // --- 4-Column Table Summary for All Timeframes ---
-                    const levelsAll = [];
-                    TIMEFRAMES.forEach(tf => {
-                        const tfData = symbolEmaData[tf];
-                        if (tfData) {
-                            PERIODS.forEach(period => ['EMA', 'SMA'].forEach(type => {
-                                const val = tfData[`${type}_${period}`];
-                                if (val !== undefined) levelsAll.push({ label: `${SHORT_NAMES[tf]} ${type} ${period}`, value: val, isSupport: val < currentPrice, distance: Math.abs(currentPrice - val) });
-                            }));
-                        }
-                    });
-                    const supportsAll = levelsAll.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 5);
-                    const resistancesAll = levelsAll.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 5);
+                    const supportsHtfAll = levelsHtf.filter(l => l.isSupport).sort((a,b) => b.value - a.value); // Sort descending by value
+                    const resistancesHtfAll = levelsHtf.filter(l => !l.isSupport).sort((a,b) => a.value - b.value); // Sort ascending by value
                     
+                    // --- Build the 4-Column Table HTML ---
                     let tableRowsHtml = '';
-                    const maxRows = Math.max(supportsAll.length, resistancesAll.length);
-                    for (let i = 0; i < maxRows; i++) {
-                        const support = supportsAll[i];
-                        const resistance = resistancesAll[i];
-                        tableRowsHtml += `<tr>
-                            <td>${support ? support.label : '---'}</td>
-                            <td>${support ? Math.round(support.value).toLocaleString() : '---'}</td>
-                            <td>${resistance ? resistance.label : '---'}</td>
-                            <td>${resistance ? Math.round(resistance.value).toLocaleString() : '---'}</td>
-                        </tr>`;
-                    }
-                     if (maxRows === 0) {
-                        tableRowsHtml = '<tr><td colspan="4" style="text-align:center;">No significant levels found nearby.</td></tr>';
+                    const maxSupportRows = Math.max(supportsClosestAll.length, supportsHtfAll.length);
+                    const maxResistanceRows = Math.max(resistancesClosestAll.length, resistancesHtfAll.length);
+
+                    if(maxSupportRows === 0) {
+                        tableRowsHtml += '<tr><td colspan="4" style="text-align:center; color: var(--green-text);">No Support Levels Found</td></tr>';
+                    } else {
+                        for (let i = 0; i < maxSupportRows; i++) {
+                            const supClosest = supportsClosestAll[i];
+                            const supHtf = supportsHtfAll[i];
+                            tableRowsHtml += `<tr style="color: var(--green-text);">
+                                <td>${supClosest ? supClosest.label : '---'}</td>
+                                <td>${supClosest ? Math.round(supClosest.value).toLocaleString() : '---'}</td>
+                                <td>${supHtf ? supHtf.label : '---'}</td>
+                                <td>${supHtf ? Math.round(supHtf.value).toLocaleString() : '---'}</td>
+                            </tr>`;
+                        }
                     }
 
-                    summaryTableHtmlAllTf = `
+                    // Separator Row
+                    tableRowsHtml += '<tr class="separator-row"><td colspan="4"></td></tr>';
+                    
+                    if (maxResistanceRows === 0) {
+                         tableRowsHtml += '<tr><td colspan="4" style="text-align:center; color: var(--red-text);">No Resistance Levels Found</td></tr>';
+                    } else {
+                        for (let i = 0; i < maxResistanceRows; i++) {
+                            const resClosest = resistancesClosestAll[i];
+                            const resHtf = resistancesHtfAll[i];
+                            tableRowsHtml += `<tr style="color: var(--red-text);">
+                                <td>${resClosest ? resClosest.label : '---'}</td>
+                                <td>${resClosest ? Math.round(resClosest.value).toLocaleString() : '---'}</td>
+                                <td>${resHtf ? resHtf.label : '---'}</td>
+                                <td>${resHtf ? Math.round(resHtf.value).toLocaleString() : '---'}</td>
+                            </tr>`;
+                        }
+                    }
+                    
+                    summaryTableHtml = `
                         <div class="ema-summary-container">
-                             <h4>Closest S/R (All Timeframes)</h4>
                              <div class="table-wrapper">
                                 <table class="ema-table" style="font-size: 11px; margin-top:0;">
                                     <thead>
                                         <tr>
-                                            <th style="color:var(--green-text);">Support Level</th>
-                                            <th style="color:var(--green-text);">Value</th>
-                                            <th style="color:var(--red-text);">Resistance Level</th>
-                                            <th style="color:var(--red-text);">Value</th>
+                                            <th colspan="2">Closest S/R (All TFs)</th>
+                                            <th colspan="2">Major S/R (D, 4H, 2H)</th>
+                                        </tr>
+                                         <tr>
+                                            <th>Level</th><th>Value</th>
+                                            <th>Level</th><th>Value</th>
                                         </tr>
                                     </thead>
                                     <tbody>${tableRowsHtml}</tbody>
@@ -2284,7 +2300,7 @@
                         </table>
                     </div>`;
 
-                container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryHtmlHtf + summaryTableHtmlAllTf + tableHtml;
+                container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
             }
 
             function renderSetupsTable(tableElement, data) {
@@ -3689,4 +3705,3 @@
     </script>
 </body>
 </html>
-```
