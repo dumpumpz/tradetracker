@@ -2219,9 +2219,9 @@
                             }));
                         }
                     });
-                    // AFTER
-const supportsClosestAll = levelsAll.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance);
-const resistancesClosestAll = levelsAll.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance);
+
+                    const supportsClosestAll = levelsAll.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance);
+                    const resistancesClosestAll = levelsAll.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance);
 
                     // --- Data for Right Side: All Major S/R from HTF ---
                     const htfForSummary = ['daily', '4hour', '2hour'];
@@ -2246,18 +2246,16 @@ const resistancesClosestAll = levelsAll.filter(l => !l.isSupport).sort((a,b) => 
                     if(maxSupportRows === 0) {
                         tableRowsHtml += '<tr><td colspan="4" style="text-align:center; color: var(--green-text);">No Support Levels Found</td></tr>';
                     } else {
-                        // AFTER
-// AFTER
-for (let i = 0; i < maxSupportRows; i++) {
-    const supClosest = supportsClosestAll[i];
-    const supHtf = supportsHtfAll[i];
-    tableRowsHtml += `<tr>
-        <td style="color: var(--text-color);">${supClosest ? supClosest.label : '---'}</td>
-        <td style="color: var(--green-text);">${supClosest ? Math.round(supClosest.value).toLocaleString() : '---'}</td>
-        <td style="color: var(--text-color);">${supHtf ? supHtf.label : '---'}</td>
-        <td style="color: var(--green-text);">${supHtf ? Math.round(supHtf.value).toLocaleString() : '---'}</td>
-    </tr>`;
-}
+                        for (let i = 0; i < maxSupportRows; i++) {
+                            const supClosest = supportsClosestAll[i];
+                            const supHtf = supportsHtfAll[i];
+                            tableRowsHtml += `<tr>
+                                <td style="color: var(--text-color);">${supClosest ? supClosest.label : '---'}</td>
+                                <td style="color: var(--green-text);">${supClosest ? Math.round(supClosest.value).toLocaleString() : '---'}</td>
+                                <td style="color: var(--text-color);">${supHtf ? supHtf.label : '---'}</td>
+                                <td style="color: var(--green-text);">${supHtf ? Math.round(supHtf.value).toLocaleString() : '---'}</td>
+                            </tr>`;
+                        }
                     }
 
                     // Separator Row
@@ -2266,18 +2264,16 @@ for (let i = 0; i < maxSupportRows; i++) {
                     if (maxResistanceRows === 0) {
                          tableRowsHtml += '<tr><td colspan="4" style="text-align:center; color: var(--red-text);">No Resistance Levels Found</td></tr>';
                     } else {
-                        // AFTER
-// AFTER
-for (let i = 0; i < maxResistanceRows; i++) {
-    const resClosest = resistancesClosestAll[i];
-    const resHtf = resistancesHtfAll[i];
-    tableRowsHtml += `<tr>
-        <td style="color: var(--text-color);">${resClosest ? resClosest.label : '---'}</td>
-        <td style="color: var(--red-text);">${resClosest ? Math.round(resClosest.value).toLocaleString() : '---'}</td>
-        <td style="color: var(--text-color);">${resHtf ? resHtf.label : '---'}</td>
-        <td style="color: var(--red-text);">${resHtf ? Math.round(resHtf.value).toLocaleString() : '---'}</td>
-    </tr>`;
-}
+                        for (let i = 0; i < maxResistanceRows; i++) {
+                            const resClosest = resistancesClosestAll[i];
+                            const resHtf = resistancesHtfAll[i];
+                            tableRowsHtml += `<tr>
+                                <td style="color: var(--text-color);">${resClosest ? resClosest.label : '---'}</td>
+                                <td style="color: var(--red-text);">${resClosest ? Math.round(resClosest.value).toLocaleString() : '---'}</td>
+                                <td style="color: var(--text-color);">${resHtf ? resHtf.label : '---'}</td>
+                                <td style="color: var(--red-text);">${resHtf ? Math.round(resHtf.value).toLocaleString() : '---'}</td>
+                            </tr>`;
+                        }
                     }
                     
                     summaryTableHtml = `
@@ -2816,10 +2812,9 @@ for (let i = 0; i < maxResistanceRows; i++) {
                     if (e.target.id === 'toggle-old-trades') toggleHistoricalRows('completed-trades-tbody', e.target);
                 });
 
-                               // <<< ADD THIS EVENT LISTENER
-                DOM.tradeRemindersScratchpadEl.addEventListener('input', () => {
-                    autoResizeTextarea(DOM.tradeRemindersScratchpadEl);
-                    saveTradeReminders();
+                DOM.trackerScratchpadEl.addEventListener('input', () => {
+                    autoResizeTextarea(DOM.trackerScratchpadEl);
+                    saveTrackerScratchpad();
                 });
 
                 DOM.tradeRemindersScratchpadEl.addEventListener('input', () => {
@@ -3652,6 +3647,8 @@ for (let i = 0; i < maxResistanceRows; i++) {
             }
 
             // --- INITIALIZATION ---
+
+            // THIS IS THE CORRECTED FUNCTION
             function openCollapsibleSection(sectionElement) {
                 if (!sectionElement) return;
 
@@ -3663,11 +3660,21 @@ for (let i = 0; i < maxResistanceRows; i++) {
                     toggleBtn.textContent = '−';
                     toggleBtn.style.transform = 'rotate(180deg)';
                     
-                    setTimeout(() => {
-                        content.style.maxHeight = content.scrollHeight + 'px';
-                    }, 10);
+                    // Set a temporary large max-height to ensure the content is rendered
+                    // and its scrollHeight is correctly calculated.
+                    content.style.maxHeight = '5000px'; 
+
+                    // Find and resize any textarea(s) within this section
+                    const textarea = content.querySelector('textarea');
+                    if(textarea) {
+                        autoResizeTextarea(textarea);
+                    }
+
+                    // Now, set the final, correct max-height for a smooth CSS transition
+                    content.style.maxHeight = content.scrollHeight + 'px';
                 }
             }
+
 
             function checkMasterMode() {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -3731,11 +3738,6 @@ for (let i = 0; i < maxResistanceRows; i++) {
                 renderDateNavigation();
                 renderChartLibrary2Folders();
                 renderChartLibrary2Preview();
-
-                DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText;
-                autoResizeTextarea(DOM.trackerScratchpadEl);
-                DOM.tradeRemindersScratchpadEl.value = STATE.tradeRemindersText;
-                autoResizeTextarea(DOM.tradeRemindersScratchpadEl);
 
                 // Auto-open specific sections
                 const sectionsToOpen = ['Reminders', 'Live Trades', 'Sentiment Log', 'Add New Trade', 'Notes'];
