@@ -884,6 +884,52 @@
         }
         /* End Collapsible Section Styles */
 
+        /* Styles for Trade Attachment Thumbnails */
+        .trade-image-thumbnails {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            max-width: 150px;
+        }
+        .trade-image-thumbnails .thumbnail-wrapper {
+            position: relative;
+            width: 40px;
+            height: 40px;
+        }
+        .trade-image-thumbnails img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+        .trade-image-thumbnails .delete-trade-image {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 16px;
+            height: 16px;
+            background-color: rgba(220, 53, 69, 0.9);
+            color: white;
+            border: 1px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            line-height: 10px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            padding: 0;
+            z-index: 1;
+        }
+        .trade-image-thumbnails .thumbnail-wrapper:hover .delete-trade-image {
+            opacity: 1;
+        }
+        /* End Trade Attachment Styles */
+
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -986,7 +1032,7 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th class="master-only">Actions</th></tr>
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
                                 </thead>
                                 <tbody id="trades-tbody"></tbody>
                             </table>
@@ -1006,7 +1052,7 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th class="master-only">Actions</th></tr>
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
                                 </thead>
                                 <tbody id="completed-trades-tbody"></tbody>
                             </table>
@@ -1382,6 +1428,9 @@
         <div id="modal-caption"></div>
     </div>
     
+    <!-- Hidden file input for trade image uploads -->
+    <input type="file" id="trade-image-uploader" accept="image/*" style="display:none;" multiple>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
@@ -1437,6 +1486,7 @@
                 tabs: document.querySelector('.tabs'),
                 themeToggle: document.getElementById('theme-checkbox'),
                 trackerTab: document.getElementById('tracker-tab'),
+                tradeImageUploader: document.getElementById('trade-image-uploader'),
                 // Stats Panel
                 statsPanelContainer: document.getElementById('stats-panel-container'),
                 statsFab: document.getElementById('stats-fab'),
@@ -1551,6 +1601,10 @@
                 mergeBaseTradeId: null,
                 modalImageGallery: [],
                 modalImageIndex: -1,
+                tradeImageUploadContext: {
+                    tradeId: null,
+                    tradeType: null // 'live' or 'completed'
+                },
             };
 
             // --- INITIALIZE FIREBASE ---
@@ -1765,11 +1819,42 @@
                     }
                 }
             }
+
+            function renderTradeThumbnails(trade, tradeId, tradeType) {
+                if (!trade.attachedImages) {
+                    return '<td class="trade-image-thumbnails"></td>';
+                }
+
+                const images = trade.attachedImages || {};
+                const masterDeleteBtn = (imageId, fileName) => (STATE.isMasterUser) ? `
+                    <button class="delete-trade-image" title="Delete Attachment" 
+                        data-trade-id="${tradeId}" 
+                        data-trade-type="${tradeType}" 
+                        data-image-id="${imageId}" 
+                        data-filename="${fileName}">×</button>
+                ` : '';
+
+                const thumbnailsHtml = Object.keys(images).sort((a, b) => images[b].timestamp - images[a].timestamp).map(imageId => {
+                    const imgData = images[imageId];
+                    if (!imgData?.url) return '';
+                    return `
+                        <div class="thumbnail-wrapper">
+                            ${masterDeleteBtn(imageId, imgData.fileName)}
+                            <img src="${imgData.url}" alt="Trade attachment" 
+                                 data-full-src="${imgData.url}" 
+                                 data-caption="Attachment for trade ${tradeId}">
+                        </div>
+                    `;
+                }).join('');
+                
+                return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
+            }
             
             function renderLiveTable(data) {
                 const trades = data || {};
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
                     <td class="action-buttons">
+                        <button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button>
                         <button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button>
                         <button class="win-btn" data-id="${id}">Win</button>
                         <button class="loss-btn" data-id="${id}">Loss</button>
@@ -1809,6 +1894,7 @@
                                 <td style="color: #dc3545;">${lossString}</td>
                                 <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
                                 <td class="note-cell" title="${noteText}">${noteText}</td>
+                                ${renderTradeThumbnails(trade, id, 'live')}
                                 ${masterButtonsHtml(id)}
                             </tr>`;
                     }).join('');
@@ -1836,6 +1922,7 @@
 
                 const masterButtonsHtml = (id) => STATE.isMasterUser ? `
                     <td class="action-buttons">
+                        <button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button>
                         <button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button>
                         <button class="note-btn-completed" data-id="${id}">Edit</button>
                         <button class="delete-btn-completed" data-id="${id}">Delete</button>
@@ -1873,6 +1960,7 @@
                                 <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
                                 <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
                                 <td class="note-cell" title="${noteText}">${noteText}</td>
+                                ${renderTradeThumbnails(trade, id, 'completed')}
                                 ${masterButtonsHtml(id)}
                             </tr>`;
                     }).join('');
@@ -2819,7 +2907,7 @@
                     if (e.target.matches('.edit-sentiment-note-btn')) handleSentimentNoteEdit(e);
                     if (e.target.closest('#trades-tbody')) handleTradeAction(e);
                     if (e.target.closest('#completed-trades-tbody')) handleTradeAction(e);
-                    if (e.target.closest('#image-library-container, #chart-library-2-container, #chart-library-2-preview-container')) handleGenericImageLibraryClick(e);
+                    if (e.target.closest('#image-library-container, #chart-library-2-container, #chart-library-2-preview-container, .trade-image-thumbnails')) handleGenericImageLibraryClick(e);
                     if (e.target.id === 'toggle-old-sentiments') toggleHistoricalRows('sentiment-receipts-tbody', e.target);
                     if (e.target.id === 'toggle-old-trades') toggleHistoricalRows('completed-trades-tbody', e.target);
                 });
@@ -2835,6 +2923,7 @@
                 });
                 
                 DOM.libraryImageUpload.addEventListener('change', (e) => handleLibraryImageUpload(e.target.files));
+                DOM.tradeImageUploader.addEventListener('change', (e) => handleTradeImageUpload(e.target.files));
                 
                 DOM.modalClose.addEventListener('click', closeModal);
                 DOM.imageModal.addEventListener('click', (e) => { if (e.target.id === 'image-modal') closeModal(); });
@@ -3255,7 +3344,7 @@
             function handleGenericImageLibraryClick(e) {
                 const clickedImg = e.target.closest('img');
                 if (clickedImg && clickedImg.dataset.fullSrc) {
-                    const galleryContainer = clickedImg.closest('#image-library-container, .cl2-image-grid, #chart-library-2-preview-container');
+                    const galleryContainer = clickedImg.closest('#image-library-container, .cl2-image-grid, #chart-library-2-preview-container, .trade-image-thumbnails');
                     if (galleryContainer) {
                         const allImageElements = galleryContainer.querySelectorAll('img');
                         const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption }));
@@ -3357,6 +3446,13 @@
             function handleTradeAction(e) {
                 if (!STATE.isMasterUser) return;
 
+                const delImgButton = e.target.closest('.delete-trade-image');
+                if (delImgButton) {
+                    const { tradeId, tradeType, imageId, filename } = delImgButton.dataset;
+                    handleDeleteTradeImage(tradeId, tradeType, imageId, filename);
+                    return;
+                }
+
                 if (STATE.isMerging) {
                     const targetRow = e.target.closest('tr');
                     if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody' && !e.target.closest('button')) {
@@ -3375,7 +3471,8 @@
                 const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
                 const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
 
-                if (button.matches('.win-btn')) completeTrade(id, 'win');
+                if (button.matches('.attach-image-btn')) handleAttachImageClick(button.dataset.id, button.dataset.type);
+                else if (button.matches('.win-btn')) completeTrade(id, 'win');
                 else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
                 else if (button.matches('.add-to-position-btn')) handleAddStaggeredEntry(id);
                 else if (button.matches('.merge-btn-completed')) initiateMerge(id);
@@ -3390,6 +3487,70 @@
                         const newNote = prompt("Enter note:", snapshot.val() || "");
                         if (newNote !== null) tradeRef.update({ note: newNote });
                     });
+                }
+            }
+
+            function handleAttachImageClick(tradeId, tradeType) {
+                if (!STATE.isMasterUser) return;
+                STATE.tradeImageUploadContext = { tradeId, tradeType };
+                DOM.tradeImageUploader.value = null; // Reset file input to allow re-selecting same file
+                DOM.tradeImageUploader.click();
+            }
+
+            function handleTradeImageUpload(files) {
+                if (!STATE.isMasterUser || !files || files.length === 0) return;
+
+                const { tradeId, tradeType } = STATE.tradeImageUploadContext;
+                if (!tradeId || !tradeType) return console.error("No trade context for image upload.");
+
+                const dbRefPath = (tradeType === 'live') ? CONFIG.DB_PATHS.TRADES : CONFIG.DB_PATHS.COMPLETED_TRADES;
+                const tradeDbRef = database.ref(dbRefPath).child(tradeId);
+
+                Array.from(files).forEach((file) => {
+                    if (!file.type.startsWith('image/')) return;
+
+                    const fileName = `${Date.now()}_${file.name}`;
+                    const storagePath = `trade_attachments/${tradeId}/${fileName}`;
+                    const fileRef = storage.ref(storagePath);
+                    const uploadTask = fileRef.put(file);
+
+                    uploadTask.on('state_changed', null, 
+                        (error) => {
+                            console.error("Trade image upload failed:", error);
+                            alert(`Upload failed for ${file.name}.`);
+                        },
+                        () => {
+                            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                                const imageData = {
+                                    url: downloadURL,
+                                    fileName: fileName,
+                                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                                };
+                                tradeDbRef.child('attachedImages').push(imageData);
+                            });
+                        }
+                    );
+                });
+            }
+
+            function handleDeleteTradeImage(tradeId, tradeType, imageId, fileName) {
+                if (!STATE.isMasterUser || !tradeId || !tradeType || !imageId || !fileName) return;
+
+                if (confirm(`Delete this attachment?\n\n${fileName}`)) {
+                    const storagePath = `trade_attachments/${tradeId}/${fileName}`;
+                    const dbRefPath = (tradeType === 'live') ? CONFIG.DB_PATHS.TRADES : CONFIG.DB_PATHS.COMPLETED_TRADES;
+                    const imageDbRef = database.ref(dbRefPath).child(tradeId).child('attachedImages').child(imageId);
+
+                    storage.ref(storagePath).delete()
+                        .then(() => imageDbRef.remove())
+                        .catch((err) => {
+                            console.warn("Storage deletion failed, maybe already gone. Deleting DB entry.", err.code);
+                            if (err.code === 'storage/object-not-found') {
+                                imageDbRef.remove();
+                            } else {
+                                alert('Error deleting image attachment.');
+                            }
+                        });
                 }
             }
             
