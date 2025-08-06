@@ -486,12 +486,11 @@
             transform: scale(0.95);
             background-color: var(--header-bg);
         }
-/* Change the rule to this: */
-.sentiment-note-cell {
-    white-space: normal;
-    min-width: 300px; /* Changed from max-width and increased the value */
-    font-size: 13px;
-}
+        .sentiment-note-cell {
+            white-space: normal;
+            min-width: 300px;
+            font-size: 13px;
+        }
         #sentiment-receipts-table td:nth-child(2) {
             text-transform: capitalize;
             font-weight: bold;
@@ -566,8 +565,8 @@
         }
         .library-image-wrapper img {
             width: 100%;
-            object-fit: contain; /* Changed from cover */
-            aspect-ratio: 16 / 9; /* Moved from wrapper to img */
+            object-fit: contain;
+            aspect-ratio: 16 / 9;
             display: block;
             border-radius: 2px;
             cursor: pointer;
@@ -632,13 +631,13 @@
             font-size: 12px;
             line-height: 1.4;
             color: var(--subtle-text);
-            padding: 8px 4px 4px 4px; /* More padding on top */
+            padding: 8px 4px 4px 4px;
             text-align: center;
-            flex-shrink: 0; /* Prevent caption from shrinking */
-            word-wrap: break-word; /* Added for safety */
+            flex-shrink: 0;
+            word-wrap: break-word;
         }
         .library-image-caption.is-today {
-            color: #ffc107; /* A gold/yellow color */
+            color: #ffc107;
             font-weight: 500;
         }
         
@@ -1441,13 +1440,13 @@
             // --- CONFIGURATION ---
             const CONFIG = {
                 FIREBASE: {
-                    apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
-                    authDomain: "journal-a003f.firebaseapp.com",
-                    databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
-                    projectId: "journal-a003f",
-                    storageBucket: "journal-a003f.firebasestorage.app",
-                    messagingSenderId: "1038636626553",
-                    appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
+                    apiKey: "YOUR_API_KEY",
+                    authDomain: "YOUR_AUTH_DOMAIN",
+                    databaseURL: "YOUR_DATABASE_URL",
+                    projectId: "YOUR_PROJECT_ID",
+                    storageBucket: "YOUR_STORAGE_BUCKET",
+                    messagingSenderId: "YOUR_SENDER_ID",
+                    appId: "YOUR_APP_ID"
                 },
                 DB_PATHS: {
                     TRADES: 'trades',
@@ -1482,12 +1481,10 @@
 
             // --- DOM ELEMENT CACHE ---
             const DOM = {
-                // General
                 tabs: document.querySelector('.tabs'),
                 themeToggle: document.getElementById('theme-checkbox'),
                 trackerTab: document.getElementById('tracker-tab'),
                 tradeImageUploader: document.getElementById('trade-image-uploader'),
-                // Stats Panel
                 statsPanelContainer: document.getElementById('stats-panel-container'),
                 statsFab: document.getElementById('stats-fab'),
                 statsPanel: document.getElementById('stats-panel'),
@@ -1505,7 +1502,6 @@
                 statAvgLoss: document.getElementById('stat-avg-loss'),
                 statRewardRisk: document.getElementById('stat-reward-risk'),
                 statOpenTrades: document.getElementById('stat-open-trades'),
-                // Trade Tracker
                 tradeRemindersScratchpadEl: document.getElementById('trade-reminders-scratchpad'),
                 trackerScratchpadEl: document.getElementById('tracker-scratchpad'),
                 addTradeForm: document.getElementById('add-trade-form'),
@@ -1514,10 +1510,8 @@
                 assetSentimentContainer: document.getElementById('asset-sentiment-container'),
                 sentimentReceiptsTbody: document.getElementById('sentiment-receipts-tbody'),
                 btcEmaSnapshotContainer: document.getElementById('btc-ema-snapshot-container'),
-                // Chart Library 2
                 chartLibrary2Container: document.getElementById('chart-library-2-container'),
                 chartLibrary2PreviewContainer: document.getElementById('chart-library-2-preview-container'),
-                // Image Library
                 imageLibraryContainer: document.getElementById('image-library-container'),
                 libraryImageUpload: document.getElementById('library-image-upload'),
                 libraryUploadProgress: document.getElementById('library-upload-progress'),
@@ -1527,7 +1521,6 @@
                 modalCaption: document.getElementById('modal-caption'),
                 modalPrevBtn: document.getElementById('modal-prev'),
                 modalNextBtn: document.getElementById('modal-next'),
-                // Journal & Setups
                 journalTab: document.getElementById('journal-tab'),
                 persistentNotesEl: document.getElementById('persistent-notes-entry'),
                 setupsTable1: document.getElementById('current-setups-table-1'),
@@ -1552,11 +1545,9 @@
                 journalImagesContainer: document.getElementById('journal-images-container'),
                 emaLastUpdatedTime: document.getElementById('ema-last-updated-time'),
                 emaTablesContainer: document.getElementById('ema-tables-container'),
-                // Snapshot
                 snapshotTab: document.getElementById('snapshot-tab'),
                 snapshotSymbolEl: document.getElementById('snapshot-symbol'),
                 snapshotImagesContainer: document.getElementById('snapshot-images-container'),
-                // S/R Levels
                 srLevelsTab: document.getElementById('sr-levels-tab'),
                 srLegendHeader: document.getElementById('sr-legend-header'),
                 srLegendContent: document.getElementById('sr-legend-content'),
@@ -1578,7 +1569,7 @@
                 isMasterUser: false,
                 masterPassword: null,
                 viewerId: null,
-                usdToAudRate: 1.53, // A fallback default rate
+                usdToAudRate: 1.53,
                 journalText: {},
                 journalImages: {},
                 chartLibrary2Data: {}, 
@@ -1603,7 +1594,7 @@
                 modalImageIndex: -1,
                 tradeImageUploadContext: {
                     tradeId: null,
-                    tradeType: null // 'live' or 'completed'
+                    tradeType: null 
                 },
             };
 
@@ -1630,20 +1621,21 @@
             };
 
             // --- HELPER FUNCTIONS ---
-            const formatCurrency = (num, symbol = '$') => `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                        function autoResizeTextarea(element) {
+            const formatCurrency = (num, symbol = '$') => {
+                if (typeof num !== 'number' || isNaN(num)) {
+                    return '--';
+                }
+                return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            };
+            function autoResizeTextarea(element) {
                 if (!element) return;
-                element.style.height = 'auto'; // Reset height
-                element.style.height = `${element.scrollHeight}px`; // Set to content height
+                element.style.height = 'auto';
+                element.style.height = `${element.scrollHeight}px`;
 
-                // --- THIS IS THE CRUCIAL ADDITION ---
-                // Find the parent collapsible content area
                 const content = element.closest('.collapsible-content');
                 if (content) {
-                    // Check if the section is actually open before trying to resize
                     const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
                     if (isOpen) {
-                        // Update the parent's max-height to fit the new textarea size
                         content.style.maxHeight = content.scrollHeight + 'px';
                     }
                 }
@@ -1673,12 +1665,11 @@
                     const data = await response.json();
                     if (data && data.result === "success" && data.rates && data.rates.AUD) {
                         STATE.usdToAudRate = data.rates.AUD;
-                        console.log(`✅ Success! Updated STATE.usdToAudRate to: ${STATE.usdToAudRate}`);
                     } else {
                         console.warn("API response did not contain the expected data. Using default rate.", data);
                     }
                 } catch (error) {
-                    console.error("❌ CRITICAL ERROR: Could not fetch conversion rate.", error);
+                    console.error("CRITICAL ERROR: Could not fetch conversion rate.", error);
                 }
             }
             
@@ -1810,7 +1801,6 @@
                 tbody.innerHTML = rowsHtml;
                 updateToggleButtonsVisibility();
 
-                // After updating the content, check if the parent section is open and resize it.
                 const section = tbody.closest('.collapsible-section');
                 if (section && section.classList.contains('is-open')) {
                     const content = section.querySelector('.collapsible-content');
@@ -1863,12 +1853,11 @@
                     </td>` : '';
                 
                 const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => {
-                    // This now handles both numbers and text strings
                     let formattedValue;
                     if (typeof value === 'number') {
                         formattedValue = value.toFixed(digits);
                     } else {
-                        formattedValue = value; // Use the string as-is for the entry list
+                        formattedValue = value; 
                     }
 
                     if (isMaster) {
@@ -1886,7 +1875,6 @@
                         const profitString = `$${parseFloat(trade.expected_profit || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent || 0).toFixed(2)}%)`;
                         const lossString = `$${parseFloat(trade.expected_loss || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent || 0).toFixed(2)}%)`;
                         
-                        // Use join without toLocaleString for easier editing
                         const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
 
                         return `
@@ -1910,7 +1898,6 @@
                 
                 DOM.tradesTbody.innerHTML = rowsHtml;
 
-                // After updating the content, check if the parent section is open and resize it.
                 const section = DOM.tradesTbody.closest('.collapsible-section');
                 if (section && section.classList.contains('is-open')) {
                     const content = section.querySelector('.collapsible-content');
@@ -1946,9 +1933,8 @@
                         const noteText = trade.note || '';
                         const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
                         
-                        // Robustly handle and format the estimated profit/loss
-                        const estProfitString = trade.hasOwnProperty('expected_profit') ? formatCurrency(trade.expected_profit) : '--';
-                        const estLossString = trade.hasOwnProperty('expected_loss') ? formatCurrency(trade.expected_loss) : '--';
+                        const estProfitString = formatCurrency(trade.expected_profit);
+                        const estLossString = formatCurrency(trade.expected_loss);
 
                         let closedDateStr, isHistorical;
                         if (trade.closed_date) {
@@ -1956,7 +1942,7 @@
                             closedDateStr = getYYYYMMDD(closedDate);
                             isHistorical = (closedDateStr !== todayStr && closedDateStr !== yesterdayStr);
                         } else {
-                            isHistorical = true; // Assume old if no close date
+                            isHistorical = true;
                         }
 
                         return `
@@ -2323,7 +2309,6 @@
                 let summaryTableHtml = '';
 
                 if (currentPrice > 0) {
-                    // --- Data for Left Side: Closest S/R from All Timeframes ---
                     const levelsAll = [];
                     TIMEFRAMES.forEach(tf => {
                         const tfData = symbolEmaData[tf];
@@ -2338,7 +2323,6 @@
                     const supportsClosestAll = levelsAll.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance);
                     const resistancesClosestAll = levelsAll.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance);
 
-                    // --- Data for Right Side: All Major S/R from HTF ---
                     const htfForSummary = ['daily', '4hour', '2hour'];
                     const levelsHtf = [];
                     htfForSummary.forEach(tf => {
@@ -2350,10 +2334,9 @@
                             }));
                         }
                     });
-                    const supportsHtfAll = levelsHtf.filter(l => l.isSupport).sort((a,b) => b.value - a.value); // Sort descending by value
-                    const resistancesHtfAll = levelsHtf.filter(l => !l.isSupport).sort((a,b) => a.value - b.value); // Sort ascending by value
+                    const supportsHtfAll = levelsHtf.filter(l => l.isSupport).sort((a,b) => b.value - a.value);
+                    const resistancesHtfAll = levelsHtf.filter(l => !l.isSupport).sort((a,b) => a.value - b.value);
                     
-                    // --- Build the 4-Column Table HTML ---
                     let tableRowsHtml = '';
                     const maxSupportRows = Math.max(supportsClosestAll.length, supportsHtfAll.length);
                     const maxResistanceRows = Math.max(resistancesClosestAll.length, resistancesHtfAll.length);
@@ -2373,7 +2356,6 @@
                         }
                     }
 
-                    // Separator Row
                     tableRowsHtml += '<tr class="separator-row"><td colspan="4"></td></tr>';
                     
                     if (maxResistanceRows === 0) {
@@ -2488,7 +2470,7 @@
                 DOM.srMetadataDates.textContent = (analysisParams.oldest_pivot_date && analysisParams.newest_pivot_date) 
                     ? `${analysisParams.oldest_pivot_date} to ${analysisParams.newest_pivot_date}` : '--';
 
-                renderClosestSrEmas(); // Render the EMA levels in the key
+                renderClosestSrEmas();
 
                 const buildLevelCard = (level) => `
                     <div class="sr-level-card">
@@ -2813,21 +2795,42 @@
                     const exitPrice = parseFloat(exitPriceStr);
                     if (isNaN(exitPrice)) return alert("Invalid exit price.");
 
-                    // Calculate the ACTUAL net result based on the final exit price.
+                    // *** FIX: Check if expected profit/loss exists. If not, calculate it. ***
+                    if (!trade.hasOwnProperty('expected_profit') || !trade.hasOwnProperty('expected_loss')) {
+                        console.log("Legacy trade detected. Calculating estimated P/L before completion.");
+                        const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+                        const positionQty = trade.size / trade.entry;
+                        
+                        const entryFee = trade.size * FEE_RATE;
+                        const exitValueAtTarget = (trade.target / trade.entry) * trade.size;
+                        const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
+                        const totalFeeAtTarget = entryFee + exitFeeAtTarget;
+                        const exitValueAtStop = (trade.stoploss / trade.entry) * trade.size;
+                        const exitFeeAtStop = exitValueAtStop * FEE_RATE;
+                        const totalFeeAtStop = entryFee + exitFeeAtStop;
+
+                        let potentialProfit, potentialLoss;
+                        if (trade.type === 'Long') {
+                            potentialProfit = positionQty * (trade.target - trade.entry);
+                            potentialLoss = positionQty * (trade.entry - trade.stoploss);
+                        } else {
+                            potentialProfit = positionQty * (trade.entry - trade.target);
+                            potentialLoss = positionQty * (trade.stoploss - trade.entry);
+                        }
+                        
+                        trade.estimated_total_fee = totalFeeAtTarget;
+                        trade.expected_profit = potentialProfit - totalFeeAtTarget;
+                        trade.expected_loss = potentialLoss + totalFeeAtStop;
+                    }
+
                     const result = calculateNetResult(trade, exitPrice);
                     
-                    // Create the completed trade object.
-                    // We spread the original `trade` object first, which carries over all its
-                    // properties, INCLUDING the original `expected_profit` and `expected_loss`.
                     const completedTrade = {
                         ...trade,
-                        ...result, // Add the calculated net result and fees
+                        ...result,
                         closed_date: firebase.database.ServerValue.TIMESTAMP,
                         exit_price: exitPrice,
                     };
-
-                    // There's no need to recalculate or change any of the `expected_` fields.
-                    // They are preserved from the original live trade object.
                     
                     dbRefs.completedTrades.push(completedTrade)
                         .then(() => dbRefs.trades.child(tradeId).remove());
@@ -3059,9 +3062,7 @@
                 DOM.saveSetups1Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1));
                 DOM.saveSetups2Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2));
 
-                DOM.srSymbolEl.addEventListener('change', () => {
-                    renderSrLevels();
-                });
+                DOM.srSymbolEl.addEventListener('change', renderSrLevels);
                 DOM.srLookbackEl.addEventListener('change', renderSrLevels);
 
                 DOM.srLegendHeader.addEventListener('click', () => {
@@ -3141,17 +3142,14 @@
                 const fieldToUpdate = cell.dataset.field;
                 const tradeRef = dbRefs.trades.child(tradeId);
 
-                // --- NEW: Handle the entry_prices list specifically ---
                 if (fieldToUpdate === 'entry_prices') {
                     const newPricesStr = cell.textContent;
-                    // Parse the comma-separated string into an array of numbers
                     const newPricesArray = newPricesStr.split(',')
                                                     .map(s => parseFloat(s.trim()))
                                                     .filter(n => !isNaN(n) && n > 0);
 
                     if (newPricesArray.length === 0) {
                         alert("Invalid entry prices list. Please enter comma-separated numbers.");
-                        // Revert the cell content to its original state
                         tradeRef.once('value', snapshot => {
                             const trade = snapshot.val();
                             cell.textContent = (trade.entry_prices || [trade.entry]).join(', ');
@@ -3167,11 +3165,9 @@
                     tradeRef.update(updates).catch(error => {
                         alert('Failed to update entry list: ' + error.message);
                     });
-                    // Important: Exit so the numeric parsing below doesn't run for this field
                     return; 
                 }
                 
-                // --- Existing logic for all other numeric fields ---
                 let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, ''));
 
                 if (isNaN(newValue)) {
@@ -3190,7 +3186,7 @@
                     const precision = isPriceField ? 4 : 2;
 
                     if (parseFloat(trade[fieldToUpdate]).toFixed(precision) === newValue.toFixed(precision)) {
-                        cell.textContent = newValue.toFixed(precision); // Reformat to correct precision but don't update DB
+                        cell.textContent = newValue.toFixed(precision);
                         return;
                     }
                     
@@ -3199,7 +3195,6 @@
 
                     const tempTrade = { ...trade, ...updates };
 
-                    // --- Validation ---
                     if (tempTrade.type === 'Long') {
                         if (tempTrade.target <= tempTrade.entry) { 
                             alert('Validation Error: For a Long trade, the Target must be higher than the Entry Price.');
@@ -3211,7 +3206,7 @@
                             cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision);
                             return;
                         }
-                    } else { // Short
+                    } else { 
                         if (tempTrade.target >= tempTrade.entry) { 
                             alert('Validation Error: For a Short trade, the Target must be lower than the Entry Price.'); 
                             cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision);
@@ -3224,7 +3219,6 @@
                         }
                     }
 
-                    // --- Recalculate Trade Metrics ---
                     const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
                     const positionQty = tempTrade.size / tempTrade.entry;
                     
@@ -3553,7 +3547,7 @@
             function handleAttachImageClick(tradeId, tradeType) {
                 if (!STATE.isMasterUser) return;
                 STATE.tradeImageUploadContext = { tradeId, tradeType };
-                DOM.tradeImageUploader.value = null; // Reset file input to allow re-selecting same file
+                DOM.tradeImageUploader.value = null; 
                 DOM.tradeImageUploader.click();
             }
 
@@ -3966,7 +3960,6 @@
                 renderChartLibrary2Folders();
                 renderChartLibrary2Preview();
 
-                // Auto-open specific sections
                 const sectionsToOpen = ['Reminders', 'Live Trades', 'Sentiment Log', 'Add New Trade', 'Notes'];
                 document.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                     if (sectionsToOpen.includes(h2.textContent.trim())) {
@@ -3985,4 +3978,3 @@
     </script>
 </body>
 </html>
-```
