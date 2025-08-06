@@ -1052,7 +1052,7 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
                                 </thead>
                                 <tbody id="completed-trades-tbody"></tbody>
                             </table>
@@ -1945,6 +1945,8 @@
                         const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                         const noteText = trade.note || '';
                         const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
+                        const estProfit = trade.expected_profit ? parseFloat(trade.expected_profit).toFixed(2) : '--';
+                        const estLoss = trade.expected_loss ? parseFloat(trade.expected_loss).toFixed(2) : '--';
 
                         let closedDateStr, isHistorical;
                         if (trade.closed_date) {
@@ -1961,9 +1963,10 @@
                                 <td>${trade.type}</td>
                                 <td>${parseFloat(trade.entry).toFixed(4)}</td>
                                 <td class="note-cell">${entriesList}</td>
-                                <td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td>
                                 <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
                                 <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
+                                <td style="color: #28a745;">${estProfit}</td>
+                                <td style="color: #dc3545;">${estLoss}</td>
                                 <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
                                 <td>${totalFees.toFixed(2)}</td>
                                 <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
@@ -2814,8 +2817,8 @@
                         closed_date: firebase.database.ServerValue.TIMESTAMP,
                         exit_price: exitPrice,
                     };
-                    delete completedTrade.expected_profit;
-                    delete completedTrade.expected_loss;
+                    
+                    // Keep expected_profit and expected_loss, delete percentage versions.
                     delete completedTrade.expected_profit_percent;
                     delete completedTrade.expected_loss_percent;
 
