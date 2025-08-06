@@ -1863,7 +1863,14 @@
                     </td>` : '';
                 
                 const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => {
-                    const formattedValue = parseFloat(value).toFixed(digits);
+                    // This now handles both numbers and text strings
+                    let formattedValue;
+                    if (typeof value === 'number') {
+                        formattedValue = value.toFixed(digits);
+                    } else {
+                        formattedValue = value; // Use the string as-is for the entry list
+                    }
+
                     if (isMaster) {
                         return `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>`;
                     } else {
@@ -1878,14 +1885,16 @@
                         const noteText = trade.note || '';
                         const profitString = `$${parseFloat(trade.expected_profit || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent || 0).toFixed(2)}%)`;
                         const lossString = `$${parseFloat(trade.expected_loss || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent || 0).toFixed(2)}%)`;
-                        const entriesList = (trade.entry_prices || [trade.entry]).map(p => p.toLocaleString()).join(', ');
+                        
+                        // Use join without toLocaleString for easier editing
+                        const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
 
                         return `
                             <tr>
                                 <td>${trade.symbol}</td>
                                 <td>${trade.type}</td>
                                 ${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}
-                                <td class="note-cell">${entriesList}</td>
+                                ${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}
                                 ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}
                                 ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}
                                 ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
@@ -1935,7 +1944,7 @@
                         const resultColor = trade.net_result >= 0 ? '#28a745' : '#dc3545';
                         const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                         const noteText = trade.note || '';
-                        const entriesList = (trade.entry_prices || [trade.entry]).map(p => p.toLocaleString()).join(', ');
+                        const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
 
                         let closedDateStr, isHistorical;
                         if (trade.closed_date) {
@@ -3119,15 +3128,45 @@
 
                 const tradeId = cell.dataset.id;
                 const fieldToUpdate = cell.dataset.field;
+                const tradeRef = dbRefs.trades.child(tradeId);
+
+                // --- NEW: Handle the entry_prices list specifically ---
+                if (fieldToUpdate === 'entry_prices') {
+                    const newPricesStr = cell.textContent;
+                    // Parse the comma-separated string into an array of numbers
+                    const newPricesArray = newPricesStr.split(',')
+                                                    .map(s => parseFloat(s.trim()))
+                                                    .filter(n => !isNaN(n) && n > 0);
+
+                    if (newPricesArray.length === 0) {
+                        alert("Invalid entry prices list. Please enter comma-separated numbers.");
+                        // Revert the cell content to its original state
+                        tradeRef.once('value', snapshot => {
+                            const trade = snapshot.val();
+                            cell.textContent = (trade.entry_prices || [trade.entry]).join(', ');
+                        });
+                        return;
+                    }
+
+                    const updates = {
+                        entry_prices: newPricesArray,
+                        note: (cell.closest('tr').querySelector('td.note-cell[title]')?.title || '') + `\nEntry list manually updated on ${new Date().toLocaleString()}`
+                    };
+                    
+                    tradeRef.update(updates).catch(error => {
+                        alert('Failed to update entry list: ' + error.message);
+                    });
+                    // Important: Exit so the numeric parsing below doesn't run for this field
+                    return; 
+                }
                 
+                // --- Existing logic for all other numeric fields ---
                 let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, ''));
 
                 if (isNaN(newValue)) {
                     alert('Invalid number format.');
                     return;
                 }
-
-                const tradeRef = dbRefs.trades.child(tradeId);
                 
                 tradeRef.once('value', snapshot => {
                     const trade = snapshot.val();
@@ -3176,10 +3215,9 @@
 
                     // --- Recalculate Trade Metrics ---
                     const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
-                    const positionQty = tempTrade.size / tempTrade.entry; // This is the key recalculation based on potentially new size/entry
+                    const positionQty = tempTrade.size / tempTrade.entry;
                     
-                    // Fees for profit calc
-                    const entryFeeForProfit = tempTrade.size * FEE_RATE; // Using total size
+                    const entryFeeForProfit = tempTrade.size * FEE_RATE;
                     const exitValueAtTarget = (tempTrade.target / tempTrade.entry) * tempTrade.size;
                     const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
                     const totalFeeAtTarget = entryFeeForProfit + exitFeeAtTarget;
@@ -3191,7 +3229,6 @@
                         potentialProfit = positionQty * (tempTrade.entry - tempTrade.target);
                     }
 
-                    // Fees for loss calc
                     const entryFeeForLoss = tempTrade.size * FEE_RATE;
                     const exitValueAtStop = (tempTrade.stoploss / tempTrade.entry) * tempTrade.size;
                     const exitFeeAtStop = exitValueAtStop * FEE_RATE;
@@ -3943,4 +3980,3 @@
     </script>
 </body>
 </html>
-```
