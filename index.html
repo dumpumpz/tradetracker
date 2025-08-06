@@ -2800,6 +2800,7 @@
                 };
             }
             
+            // --- THIS IS THE CORRECTED FUNCTION ---
             function completeTrade(tradeId, outcome) {
                 dbRefs.trades.child(tradeId).once('value', snapshot => {
                     const trade = snapshot.val();
@@ -2812,20 +2813,22 @@
                     const exitPrice = parseFloat(exitPriceStr);
                     if (isNaN(exitPrice)) return alert("Invalid exit price.");
 
+                    // Calculate the ACTUAL net result based on the final exit price.
                     const result = calculateNetResult(trade, exitPrice);
                     
-                    // The completedTrade object now inherits everything from the live trade,
-                    // including expected_profit and expected_loss.
+                    // Create the completed trade object.
+                    // We spread the original `trade` object first, which carries over all its
+                    // properties, INCLUDING the original `expected_profit` and `expected_loss`.
                     const completedTrade = {
                         ...trade,
-                        ...result,
+                        ...result, // Add the calculated net result and fees
                         closed_date: firebase.database.ServerValue.TIMESTAMP,
                         exit_price: exitPrice,
                     };
 
-                    // We no longer need to delete any properties.
-                    // The percentage versions will just be carried over, which is fine.
-
+                    // There's no need to recalculate or change any of the `expected_` fields.
+                    // They are preserved from the original live trade object.
+                    
                     dbRefs.completedTrades.push(completedTrade)
                         .then(() => dbRefs.trades.child(tradeId).remove());
                 });
@@ -3877,8 +3880,6 @@
             }
 
             // --- INITIALIZATION ---
-
-            // THIS IS THE CORRECTED FUNCTION
             function openCollapsibleSection(sectionElement) {
                 if (!sectionElement) return;
 
@@ -3890,17 +3891,13 @@
                     toggleBtn.textContent = '−';
                     toggleBtn.style.transform = 'rotate(180deg)';
                     
-                    // Set a temporary large max-height to ensure the content is rendered
-                    // and its scrollHeight is correctly calculated.
                     content.style.maxHeight = '5000px'; 
 
-                    // Find and resize any textarea(s) within this section
                     const textarea = content.querySelector('textarea');
                     if(textarea) {
                         autoResizeTextarea(textarea);
                     }
 
-                    // Now, set the final, correct max-height for a smooth CSS transition
                     content.style.maxHeight = content.scrollHeight + 'px';
                 }
             }
@@ -3988,3 +3985,4 @@
     </script>
 </body>
 </html>
+```
