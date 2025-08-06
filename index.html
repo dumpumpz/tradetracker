@@ -1941,12 +1941,14 @@
                     .sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date))
                     .map(id => {
                         const trade = trades[id];
-                        const resultColor = trade.net_result >= 0 ? '#28a745' : '#dc3545';
+                        const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                         const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                         const noteText = trade.note || '';
                         const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
-                        const estProfit = trade.expected_profit ? parseFloat(trade.expected_profit).toFixed(2) : '--';
-                        const estLoss = trade.expected_loss ? parseFloat(trade.expected_loss).toFixed(2) : '--';
+                        
+                        // Robustly handle and format the estimated profit/loss
+                        const estProfitString = trade.hasOwnProperty('expected_profit') ? formatCurrency(trade.expected_profit) : '--';
+                        const estLossString = trade.hasOwnProperty('expected_loss') ? formatCurrency(trade.expected_loss) : '--';
 
                         let closedDateStr, isHistorical;
                         if (trade.closed_date) {
@@ -1965,8 +1967,8 @@
                                 <td class="note-cell">${entriesList}</td>
                                 <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
                                 <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
-                                <td style="color: #28a745;">${estProfit}</td>
-                                <td style="color: #dc3545;">${estLoss}</td>
+                                <td style="color: var(--green-text);">${estProfitString}</td>
+                                <td style="color: var(--red-text);">${estLossString}</td>
                                 <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
                                 <td>${totalFees.toFixed(2)}</td>
                                 <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
@@ -2811,16 +2813,18 @@
                     if (isNaN(exitPrice)) return alert("Invalid exit price.");
 
                     const result = calculateNetResult(trade, exitPrice);
+                    
+                    // The completedTrade object now inherits everything from the live trade,
+                    // including expected_profit and expected_loss.
                     const completedTrade = {
                         ...trade,
                         ...result,
                         closed_date: firebase.database.ServerValue.TIMESTAMP,
                         exit_price: exitPrice,
                     };
-                    
-                    // Keep expected_profit and expected_loss, delete percentage versions.
-                    delete completedTrade.expected_profit_percent;
-                    delete completedTrade.expected_loss_percent;
+
+                    // We no longer need to delete any properties.
+                    // The percentage versions will just be carried over, which is fine.
 
                     dbRefs.completedTrades.push(completedTrade)
                         .then(() => dbRefs.trades.child(tradeId).remove());
