@@ -1920,6 +1920,7 @@
                 }
             }
 
+            // --- THIS IS THE CORRECTED FUNCTION ---
             function renderCompletedTable(data) {
                 const trades = data || {};
 
@@ -1946,9 +1947,42 @@
                         const noteText = trade.note || '';
                         const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
 
-                        // Robustly handle and format the estimated profit/loss
-                        const estProfitString = trade.hasOwnProperty('expected_profit') ? formatCurrency(trade.expected_profit) : '--';
-                        const estLossString = trade.hasOwnProperty('expected_loss') ? formatCurrency(trade.expected_loss) : '--';
+                        // --- DEFINITIVE FIX FOR OLD TRADES ---
+                        let expectedProfit = trade.expected_profit;
+                        let expectedLoss = trade.expected_loss;
+
+                        // If the expected values are missing from the database record (i.e., it's an old trade),
+                        // calculate them now, just for display purposes.
+                        if (expectedProfit == null || expectedLoss == null) {
+                            // This logic is the same as in the add/complete trade functions.
+                            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+                            const positionQty = trade.size / trade.entry;
+
+                            // Calculate expected profit at target
+                            const entryFeeForProfit = trade.size * FEE_RATE;
+                            const exitValueAtTarget = (trade.target / trade.entry) * trade.size;
+                            const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
+                            const totalFeeAtTarget = entryFeeForProfit + exitFeeAtTarget;
+                            let potentialProfit = (trade.type === 'Long')
+                                ? positionQty * (trade.target - trade.entry)
+                                : positionQty * (trade.entry - trade.target);
+                            expectedProfit = potentialProfit - totalFeeAtTarget;
+
+                            // Calculate expected loss at stoploss
+                            const entryFeeForLoss = trade.size * FEE_RATE;
+                            const exitValueAtStop = (trade.stoploss / trade.entry) * trade.size;
+                            const exitFeeAtStop = exitValueAtStop * FEE_RATE;
+                            const totalFeeAtStop = entryFeeForLoss + exitFeeAtStop;
+                            let potentialLoss = (trade.type === 'Long')
+                                ? positionQty * (trade.entry - trade.stoploss)
+                                : positionQty * (trade.stoploss - trade.entry);
+                            expectedLoss = potentialLoss + totalFeeAtStop;
+                        }
+
+                        // Now, we are guaranteed to have a numeric value. Format it.
+                        const estProfitString = formatCurrency(expectedProfit);
+                        const estLossString = formatCurrency(expectedLoss);
+                        // --- END FIX ---
 
                         let closedDateStr, isHistorical;
                         if (trade.closed_date) {
@@ -2800,7 +2834,6 @@
                 };
             }
 
-            // --- THIS IS THE FIXED FUNCTION ---
             function completeTrade(tradeId, outcome) {
                 dbRefs.trades.child(tradeId).once('value', snapshot => {
                     const trade = snapshot.val();
@@ -4029,4 +4062,3 @@
     </script>
 </body>
 </html>
-```
