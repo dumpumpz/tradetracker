@@ -2800,7 +2800,7 @@
                 };
             }
 
-            // --- THIS IS THE CORRECTED FUNCTION ---
+            // --- THIS IS THE FIXED FUNCTION ---
             function completeTrade(tradeId, outcome) {
                 dbRefs.trades.child(tradeId).once('value', snapshot => {
                     const trade = snapshot.val();
@@ -2816,29 +2816,61 @@
                     // Calculate the ACTUAL net result based on the final exit price.
                     const result = calculateNetResult(trade, exitPrice);
 
-                    // The completedTrade object now inherits everything from the live trade,
-                    // including expected_profit and expected_loss.
+                    // --- FIX: Check for and calculate missing expected P/L for older trades ---
+                    // This ensures that all completed trades have these values for consistent display.
+                    if (!trade.hasOwnProperty('expected_profit') || !trade.hasOwnProperty('expected_loss')) {
+                        console.log(`Calculating missing expected P/L for old trade ID: ${tradeId}`);
+                        
+                        const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+                        const positionQty = trade.size / trade.entry;
+
+                        // Calculate expected profit
+                        const entryFeeForProfit = trade.size * FEE_RATE;
+                        const exitValueAtTarget = (trade.target / trade.entry) * trade.size;
+                        const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
+                        const totalFeeAtTarget = entryFeeForProfit + exitFeeAtTarget;
+
+                        let potentialProfit;
+                        if (trade.type === 'Long') {
+                            potentialProfit = positionQty * (trade.target - trade.entry);
+                        } else { 
+                            potentialProfit = positionQty * (trade.entry - trade.target);
+                        }
+                        // Add the calculated value to the trade object before it's used
+                        trade.expected_profit = potentialProfit - totalFeeAtTarget;
+
+                        // Calculate expected loss
+                        const entryFeeForLoss = trade.size * FEE_RATE;
+                        const exitValueAtStop = (trade.stoploss / trade.entry) * trade.size;
+                        const exitFeeAtStop = exitValueAtStop * FEE_RATE;
+                        const totalFeeAtStop = entryFeeForLoss + exitFeeAtStop;
+                        
+                        let potentialLoss;
+                        if (trade.type === 'Long') {
+                            potentialLoss = positionQty * (trade.entry - trade.stoploss);
+                        } else { 
+                            potentialLoss = positionQty * (trade.stoploss - trade.entry);
+                        }
+                        // Add the calculated value to the trade object before it's used
+                        trade.expected_loss = potentialLoss + totalFeeAtStop;
+                    }
+                    // --- END FIX ---
+
                     // Create the completed trade object.
-                    // We spread the original `trade` object first, which carries over all its
-                    // properties, INCLUDING the original `expected_profit` and `expected_loss`.
+                    // By spreading `trade` now, we include the original expected values
+                    // for new trades, and the just-calculated values for old trades.
                     const completedTrade = {
                         ...trade,
-                        ...result,
                         ...result, // Add the calculated net result and fees
                         closed_date: firebase.database.ServerValue.TIMESTAMP,
                         exit_price: exitPrice,
                     };
-
-                    // We no longer need to delete any properties.
-                    // The percentage versions will just be carried over, which is fine.
-
-                    // There's no need to recalculate or change any of the `expected_` fields.
-                    // They are preserved from the original live trade object.
                     
                     dbRefs.completedTrades.push(completedTrade)
                         .then(() => dbRefs.trades.child(tradeId).remove());
                 });
             }
+
 
             // --- MODAL LOGIC ---
             function openImageModal(imageArray, clickedIndex) {
@@ -3997,3 +4029,4 @@
     </script>
 </body>
 </html>
+```
