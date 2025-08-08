@@ -1705,19 +1705,15 @@
                 }
                 return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             };
-            function autoResizeTextarea(element) {
-                if (!element) return;
-                element.style.height = 'auto';
-                element.style.height = `${element.scrollHeight}px`;
+// AFTER THE FIX
+function autoResizeTextarea(element) {
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
 
-                const content = element.closest('.collapsible-content');
-                if (content) {
-                    const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
-                    if (isOpen) {
-                        content.style.maxHeight = content.scrollHeight + 'px';
-                    }
-                }
-            }
+    // The code that was here has been removed.
+    // We no longer need to update the parent container's max-height.
+}
             const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
             const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
             
