@@ -175,29 +175,33 @@ def generate_pivots_for_timeframe(symbol, timeframe, lookback_days):
 
 def find_clusters(pivots_df, threshold_percent):
     if pivots_df.empty: return []
+
+    # Create a new, sorted DataFrame to work with, which resolves the warning.
+    sorted_pivots = pivots_df.sort_values(by='Price').copy()
+    
     clusters, current_cluster_pivots = [], []
-    pivots_df.sort_values(by='Price', inplace=True)
-    for _, pivot in pivots_df.iterrows():
+    
+    # Iterate over the new sorted_pivots DataFrame
+    for _, pivot in sorted_pivots.iterrows():
         if not current_cluster_pivots:
             current_cluster_pivots.append(pivot)
             continue
+            
         cluster_start_price = current_cluster_pivots[0]['Price']
-        price_diff_percent = (pivot[
-                                  'Price'] - cluster_start_price) / \
-                             cluster_start_price * 100
+        price_diff_percent = (pivot['Price'] - cluster_start_price) / cluster_start_price * 100
+        
         if abs(price_diff_percent) <= threshold_percent:
             current_cluster_pivots.append(pivot)
         else:
             if current_cluster_pivots:
                 cluster_df = pd.DataFrame(current_cluster_pivots)
                 clusters.append({'Type': str(cluster_df['Type'].iloc[0]),
-                                 'Price Start': float(
-                                     cluster_df['Price'].min()),
+                                 'Price Start': float(cluster_df['Price'].min()),
                                  'Price End': float(cluster_df['Price'].max()),
-                                 'Strength Score': int(
-                                     cluster_df['Strength'].sum()),
+                                 'Strength Score': int(cluster_df['Strength'].sum()),
                                  'Pivot Count': len(cluster_df)})
             current_cluster_pivots = [pivot]
+            
     if current_cluster_pivots:
         cluster_df = pd.DataFrame(current_cluster_pivots)
         clusters.append({'Type': str(cluster_df['Type'].iloc[0]),
@@ -205,6 +209,7 @@ def find_clusters(pivots_df, threshold_percent):
                          'Price End': float(cluster_df['Price'].max()),
                          'Strength Score': int(cluster_df['Strength'].sum()),
                          'Pivot Count': len(cluster_df)})
+                         
     return clusters
 
 
