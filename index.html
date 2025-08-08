@@ -851,6 +851,9 @@
             border: none;
             font-size: 1.1em;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
         .collapsible-toggle-btn {
             background: none;
@@ -882,6 +885,38 @@
             border-top: 1px solid var(--border-color);
         }
         /* End Collapsible Section Styles */
+
+        /* Pill Button Styles */
+        .pill-button-group {
+            display: inline-flex;
+            vertical-align: middle;
+        }
+        .ema-pill-btn {
+            font-size: 11px;
+            padding: 4px 10px;
+            margin: 0;
+            border: 1px solid var(--border-color);
+            background-color: transparent;
+            color: var(--subtle-text);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .ema-pill-btn:first-of-type {
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+            border-right: 0.5px solid var(--border-color);
+        }
+        .ema-pill-btn:last-of-type {
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+            border-left: 0.5px solid var(--border-color);
+        }
+        .ema-pill-btn.active {
+            background-color: var(--link-color);
+            color: white;
+            border-color: var(--link-color);
+            font-weight: bold;
+        }
 
         /* Styles for Trade Attachment Thumbnails */
         .trade-image-thumbnails {
@@ -1069,8 +1104,8 @@
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
-                        <div class="table-wrapper" id="setups-table-wrapper-1">
-                            <table id="current-setups-table-1" class="setups-table">
+                        <div class="table-wrapper">
+                            <table id="primary-setups-table-tracker" class="setups-table">
                                 <thead>
                                     <tr>
                                         <th rowspan="2">TF</th>
@@ -1107,14 +1142,20 @@
                 </div>
             </div>
 
-            <!-- BTC EMA Snapshot Section -->
+            <!-- EMA Snapshot Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
-                    <h2>BTC EMAs</h2>
+                    <h2>
+                        EMA Snapshot
+                        <div class="pill-button-group">
+                            <button class="ema-pill-btn active" data-symbol="BTC-USDT">BTC</button>
+                            <button class="ema-pill-btn" data-symbol="ETH-USDT">ETH</button>
+                        </div>
+                    </h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
-                    <div class="collapsible-content-inner" id="btc-ema-snapshot-container">
+                    <div class="collapsible-content-inner" id="ema-snapshot-container">
                         <p>Loading EMA data...</p>
                     </div>
                 </div>
@@ -1279,12 +1320,12 @@
             </div>
 
             <div class="setups-container">
-                <div class="setups-header" data-target="#setups-table-wrapper-2">
+                <div class="setups-header" data-target="#setups-table-wrapper-2-journal">
                     <h2>Secondary Setups</h2>
                     <button class="setups-toggle-btn">−</button>
                 </div>
-                <div class="table-wrapper" id="setups-table-wrapper-2">
-                     <table id="current-setups-table-2" class="setups-table">
+                <div class="table-wrapper" id="setups-table-wrapper-2-journal">
+                     <table id="secondary-setups-table-journal" class="setups-table">
                         <thead>
                             <tr>
                                 <th rowspan="2">TF</th>
@@ -1536,17 +1577,15 @@
                 completedTradesTbody: document.getElementById('completed-trades-tbody'),
                 assetSentimentContainer: document.getElementById('asset-sentiment-container'),
                 sentimentReceiptsTbody: document.getElementById('sentiment-receipts-tbody'),
-                btcEmaSnapshotContainer: document.getElementById('btc-ema-snapshot-container'),
+                emaSnapshotContainer: document.getElementById('ema-snapshot-container'),
                 chartLibrary2Container: document.getElementById('chart-library-2-container'),
                 chartLibrary2PreviewContainer: document.getElementById('chart-library-2-preview-container'),
                 imageLibraryContainer: document.getElementById('image-library-container'),
                 libraryImageUpload: document.getElementById('library-image-upload'),
                 libraryUploadProgress: document.getElementById('library-upload-progress'),
-                // NEW
                 setupsImageContainer: document.getElementById('setups-image-container'),
                 setupsImageUpload: document.getElementById('setups-image-upload'),
                 setupsUploadProgress: document.getElementById('setups-upload-progress'),
-
                 imageModal: document.getElementById('image-modal'),
                 modalImageContent: document.getElementById('modal-image-content'),
                 modalClose: document.querySelector('.modal-close'),
@@ -1555,8 +1594,8 @@
                 modalNextBtn: document.getElementById('modal-next'),
                 journalTab: document.getElementById('journal-tab'),
                 persistentNotesEl: document.getElementById('persistent-notes-entry'),
-                setupsTable1: document.getElementById('current-setups-table-1'),
-                setupsTable2: document.getElementById('current-setups-table-2'),
+                setupsTable1: document.getElementById('primary-setups-table-tracker'),
+                setupsTable2: document.getElementById('secondary-setups-table-journal'),
                 saveSetups1Btn: document.getElementById('save-setups-1-btn'),
                 saveSetups2Btn: document.getElementById('save-setups-2-btn'),
                 setupsSaveStatus1: document.getElementById('setups-save-status-1'),
@@ -1642,7 +1681,7 @@
                 journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT),
                 journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES),
                 imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY),
-                setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), // NEW
+                setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), 
                 chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2),
                 favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES),
                 setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1),
@@ -1712,12 +1751,12 @@
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     STATE.emaData = await response.json();
                     renderEmaData();
-                    renderBtcEmaSnapshot();
+                    renderEmaSnapshot('BTC-USDT');
                     renderClosestSrEmas();
                 } catch (error) {
                     console.error("Could not fetch ma_analysis.json:", error);
                     DOM.emaTablesContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading EMA data.</p>';
-                    if (DOM.btcEmaSnapshotContainer) DOM.btcEmaSnapshotContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading EMA data.</p>';
+                    if (DOM.emaSnapshotContainer) DOM.emaSnapshotContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading EMA data.</p>';
                 }
             }
 
@@ -2003,7 +2042,6 @@
                 updateToggleButtonsVisibility();
             }
             
-            // NEW: Generic function to render an image library
             function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
                  const images = imagesData || {};
                 if (!containerElement) return;
@@ -2322,12 +2360,11 @@
                 DOM.emaTablesContainer.innerHTML = tablesHtml;
             }
             
-            function renderBtcEmaSnapshot() {
-                const container = DOM.btcEmaSnapshotContainer;
+            function renderEmaSnapshot(safeSymbol) {
+                const container = DOM.emaSnapshotContainer;
                 if (!container || !STATE.emaData.data) return;
 
                 const { TIMEFRAMES, PERIODS, SHORT_NAMES } = CONFIG.EMA_ANALYSIS;
-                const safeSymbol = 'BTC-USDT';
                 const symbolEmaData = STATE.emaData.data[safeSymbol] || {};
                 const currentPrice = symbolEmaData['15min']?.price || 0;
                 
@@ -2710,7 +2747,6 @@
                 });
             }
 
-            // NEW: Generic upload handler for simple libraries
             function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
                 
@@ -2957,12 +2993,20 @@
                         }
                     }
 
+                    if (e.target.matches('.ema-pill-btn')) {
+                        const pillBtn = e.target;
+                        const group = pillBtn.closest('.pill-button-group');
+                        group.querySelectorAll('.ema-pill-btn').forEach(btn => btn.classList.remove('active'));
+                        pillBtn.classList.add('active');
+                        renderEmaSnapshot(pillBtn.dataset.symbol);
+                    }
+
                     if (e.target.closest('.sentiment-buttons button')) handleSentimentLog(e);
                     if (e.target.matches('.delete-sentiment-btn')) handleSentimentDelete(e);
                     if (e.target.matches('.edit-sentiment-note-btn')) handleSentimentNoteEdit(e);
                     if (e.target.closest('#trades-tbody')) handleTradeAction(e);
                     if (e.target.closest('#completed-trades-tbody')) handleTradeAction(e);
-                    if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container, .trade-image-thumbnails, #current-setups-table-1')) handleGenericImageLibraryClick(e); // NEW
+                    if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container, .trade-image-thumbnails')) handleGenericImageLibraryClick(e);
                     if (e.target.id === 'toggle-old-sentiments') toggleHistoricalRows('sentiment-receipts-tbody', e.target);
                     if (e.target.id === 'toggle-old-trades') toggleHistoricalRows('completed-trades-tbody', e.target);
                 });
@@ -2978,7 +3022,7 @@
                 });
                 
                 DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
-                DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages)); // NEW
+                DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
                 DOM.tradeImageUploader.addEventListener('change', (e) => handleTradeImageUpload(e.target.files));
                 
                 DOM.modalClose.addEventListener('click', closeModal);
@@ -3452,7 +3496,6 @@
                 }
             }
             
-            // NEW: Generic handler for simple library actions (delete/edit caption)
             function handleLibraryActions(e, libraryType, dbRef) {
                 const deleteBtn = e.target.closest('.delete-library-image');
                 const editBtn = e.target.closest('.edit-caption-btn');
@@ -3851,7 +3894,7 @@
                 });
 
                 dbRefs.imageLibrary.on('value', (s) => renderGenericImageLibrary(s.val(), DOM.imageLibraryContainer, 'image_library'));
-                dbRefs.setupsImages.on('value', (s) => renderGenericImageLibrary(s.val(), DOM.setupsImageContainer, 'setups_images')); // NEW
+                dbRefs.setupsImages.on('value', (s) => renderGenericImageLibrary(s.val(), DOM.setupsImageContainer, 'setups_images'));
 
                 dbRefs.chartLibrary2.on('value', snapshot => {
                     STATE.chartLibrary2Data = snapshot.val() || {};
