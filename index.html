@@ -1061,6 +1061,52 @@
                 </div>
             </div>
 
+            <!-- Primary Setups Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Primary Setups</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div class="table-wrapper" id="setups-table-wrapper-1">
+                            <table id="current-setups-table-1" class="setups-table">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2">TF</th>
+                                        <th colspan="3">0-Candle</th>
+                                        <th colspan="3">4-Candle</th>
+                                    </tr>
+                                    <tr>
+                                        <th>Entry</th>
+                                        <th>Target</th>
+                                        <th>Stoploss</th>
+                                        <th>Entry</th>
+                                        <th>Target</th>
+                                        <th>Stoploss</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="setups-controls">
+                            <button id="save-setups-1-btn" class="master-only">Save Primary Setups</button>
+                            <p id="setups-save-status-1" class="setups-save-status"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- BTC EMA Snapshot Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -1230,47 +1276,6 @@
         
             <div style="margin-bottom: 25px;">
                 <textarea id="persistent-notes-entry" placeholder="Persistent scratchpad..."></textarea>
-            </div>
-
-            <div class="setups-container">
-                <div class="setups-header" data-target="#setups-table-wrapper-1">
-                    <h2>Primary Setups</h2>
-                    <button class="setups-toggle-btn">−</button>
-                </div>
-                <div class="table-wrapper" id="setups-table-wrapper-1">
-                    <table id="current-setups-table-1" class="setups-table">
-                        <thead>
-                            <tr>
-                                <th rowspan="2">TF</th>
-                                <th colspan="3">0-Candle</th>
-                                <th colspan="3">4-Candle</th>
-                            </tr>
-                            <tr>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
-                                <th>Entry</th>
-                                <th>Target</th>
-                                <th>Stoploss</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                            <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="setups-controls">
-                    <button id="save-setups-1-btn" class="master-only">Save Primary Setups</button>
-                    <p id="setups-save-status-1" class="setups-save-status"></p>
-                </div>
             </div>
 
             <div class="setups-container">
@@ -2957,7 +2962,7 @@
                     if (e.target.matches('.edit-sentiment-note-btn')) handleSentimentNoteEdit(e);
                     if (e.target.closest('#trades-tbody')) handleTradeAction(e);
                     if (e.target.closest('#completed-trades-tbody')) handleTradeAction(e);
-                    if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container, .trade-image-thumbnails')) handleGenericImageLibraryClick(e); // NEW
+                    if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container, .trade-image-thumbnails, #current-setups-table-1')) handleGenericImageLibraryClick(e); // NEW
                     if (e.target.id === 'toggle-old-sentiments') toggleHistoricalRows('sentiment-receipts-tbody', e.target);
                     if (e.target.id === 'toggle-old-trades') toggleHistoricalRows('completed-trades-tbody', e.target);
                 });
