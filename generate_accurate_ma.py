@@ -42,6 +42,7 @@ def get_safe_symbol(symbol):
 
 # --- DataHandler Class ---
 class DataHandler:
+    # Kept as Binance.US per your request
     BASE_URL = "https://api.binance.us/api/v3"
 
     @staticmethod
@@ -76,6 +77,9 @@ class DataHandler:
             logging.info(f"[{symbol}/{interval}] Loading data from: {file_path}")
             df = pd.read_parquet(file_path)
             if df.empty: return None
+            # Ensure loaded data is clean and doesn't contain old indicator columns
+            required_cols = ['open', 'high', 'low', 'close', 'volume']
+            df = df[[col for col in required_cols if col in df.columns]]
             if not isinstance(df.index, pd.DatetimeIndex): raise TypeError("Cache data has no DatetimeIndex.")
             if df.index.tz is None: df.index = df.index.tz_localize('UTC')
             logging.info(f"[{symbol}/{interval}] Loaded {len(df)} candles from cache.")
@@ -93,9 +97,11 @@ class DataHandler:
         cache_filename = f"{symbol.upper()}_{interval}_mastercache.parquet"
         file_path = os.path.join(CACHE_DATA_DIR, cache_filename)
         try:
-            df_to_save = df.tail(MAX_ROWS_TO_KEEP_IN_CACHE)
+            # Only save essential columns to prevent cache contamination
+            columns_to_save = ['open', 'high', 'low', 'close', 'volume']
+            df_to_save = df[columns_to_save].tail(MAX_ROWS_TO_KEEP_IN_CACHE)
             df_to_save.to_parquet(file_path)
-            logging.info(f"[{symbol}/{interval}] Successfully saved {len(df_to_save)} candles to cache: {file_path}")
+            logging.info(f"[{symbol}/{interval}] Successfully saved {len(df_to_save)} clean candles to cache: {file_path}")
         except Exception as e:
             logging.error(f"[{symbol}/{interval}] CRITICAL: Could not save cache to {file_path}. Error: {e}")
 
@@ -130,7 +136,8 @@ class DataHandler:
 # --- Indicator Calculation ---
 def add_indicators(df: pd.DataFrame, periods: list[int]) -> pd.DataFrame:
     if df.empty: return df
-    df_res = df.copy()
+    # Ensure we are calculating on a clean copy
+    df_res = df[['open', 'high', 'low', 'close', 'volume']].copy()
     logging.info(f"Calculating indicators for {len(df_res)} candles...")
     for period in periods:
         df_res[f'SMA_{period}'] = df_res['close'].rolling(window=period).mean()
@@ -156,7 +163,7 @@ if __name__ == "__main__":
                 start_fetch_dt = df_cache.index[-1] + timedelta(milliseconds=1)
             else:
                 start_fetch_dt = datetime.now(timezone.utc) - timedelta(days=365 * 4)
-                logging.warning(f"[{symbol}/{tf_api}] No cache found. Performing a large historical fetch. This may take a moment.")
+                logging.warning(f"[{symbol}/{tf_api}] No valid cache found. Performing a large historical fetch. This may take a moment.")
 
             df_new = DataHandler.fetch_new_data(symbol, tf_api, start_dt=start_fetch_dt)
 
@@ -168,9 +175,21 @@ if __name__ == "__main__":
             df_combined = pd.concat(df_list)
             df_combined = df_combined[~df_combined.index.duplicated(keep='last')].sort_index()
             
+            # ================================================================= #
+            # === CRITICAL FIX: The order of operations is changed here ===
+            # ================================================================= #
+
+            # STEP 1: Save the CLEAN, COMBINED, RAW data to the cache.
+            # This prevents calculated indicators from being saved and corrupting the next run.
+            DataHandler.save_ohlc_to_cache(df_combined, symbol.replace('/',''), tf_api)
+            
+            # STEP 2: NOW, calculate indicators on the in-memory dataframe for this run's output.
+            # This result is used to generate the JSON but is NOT saved back to the cache.
             data_with_indicators = add_indicators(df_combined, MA_PERIODS)
             
-            DataHandler.save_ohlc_to_cache(data_with_indicators, symbol.replace('/',''), tf_api)
+            # ================================================================= #
+            # ======================= End of Fix ============================== #
+            # ================================================================= #
 
             latest_row = data_with_indicators.iloc[-1]
             indicator_values = {}
