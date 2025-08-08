@@ -385,6 +385,19 @@
             box-shadow: 0 0 5px var(--shadow-color);
         }
         
+        /* --- NEW: Styles for Setups Table Highlighting --- */
+        .setups-table td.highlight-long {
+            background-color: var(--green-bg);
+            color: var(--green-text);
+            font-weight: bold;
+        }
+        .setups-table td.highlight-short {
+            background-color: var(--red-bg);
+            color: var(--red-text);
+            font-weight: bold;
+        }
+        /* --- End of New Styles --- */
+
         .setups-container {
             margin-bottom: 30px; 
             border: 1px solid var(--border-color);
@@ -1705,14 +1718,22 @@
                 }
                 return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             };
-// AFTER THE FIX
-function autoResizeTextarea(element) {
+           function autoResizeTextarea(element) {
     if (!element) return;
+    // This part is fine, it resizes the textarea itself
     element.style.height = 'auto';
     element.style.height = `${element.scrollHeight}px`;
 
-    // The code that was here has been removed.
-    // We no longer need to update the parent container's max-height.
+    // THIS IS THE PROBLEM:
+    const content = element.closest('.collapsible-content');
+    if (content) {
+        const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
+        if (isOpen) {
+            // This line re-calculates and re-sets the max-height of the parent
+            // on EVERY keystroke, triggering the CSS animation.
+            content.style.maxHeight = content.scrollHeight + 'px';
+        }
+    }
 }
             const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
             const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
@@ -2490,14 +2511,25 @@ function autoResizeTextarea(element) {
 
                 container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
             }
-
+            
+            // --- MODIFIED: This function now also handles the static highlighting ---
             function renderSetupsTable(tableElement, data) {
                 if (!tableElement) return;
                 const tbody = tableElement.querySelector('tbody');
+
+                // Define the prefixes for the data keys and their cell group start index
+                const setupTypes = [
+                    { prefix: 'zero', baseIndex: 0 },
+                    { prefix: 'four', baseIndex: 3 },
+                    { prefix: 'bounce', baseIndex: 6 }
+                ];
+
                 tbody.querySelectorAll('tr').forEach(row => {
                     const timeframe = row.firstElementChild.textContent.trim();
                     const rowData = data[timeframe] || {};
                     const cells = row.querySelectorAll('td');
+
+                    // First, populate all cell text content from the data
                     cells[0].textContent = rowData.zero_entry || '';
                     cells[1].textContent = rowData.zero_target || '';
                     cells[2].textContent = rowData.zero_stoploss || '';
@@ -2507,6 +2539,34 @@ function autoResizeTextarea(element) {
                     cells[6].textContent = rowData.bounce_entry || '';
                     cells[7].textContent = rowData.bounce_target || '';
                     cells[8].textContent = rowData.bounce_stoploss || '';
+
+                    // Now, iterate through the three setup groups to apply styling
+                    setupTypes.forEach(setup => {
+                        const entryCell = cells[setup.baseIndex];
+                        const targetCell = cells[setup.baseIndex + 1];
+                        const stoplossCell = cells[setup.baseIndex + 2];
+                        
+                        // Get the values for comparison
+                        const entryValue = parseFloat(entryCell.textContent);
+                        const targetValue = parseFloat(targetCell.textContent);
+
+                        const groupCells = [entryCell, targetCell, stoplossCell];
+
+                        // Always clear previous styling first before applying new logic
+                        groupCells.forEach(cell => cell.classList.remove('highlight-long', 'highlight-short'));
+
+                        // Check for valid numbers before applying new styling
+                        if (isNaN(entryValue) || isNaN(targetValue) || entryValue === 0 || targetValue === 0) {
+                            return; // Skip this group if data is invalid/empty
+                        }
+
+                        // Apply new styling based on the long/short logic
+                        if (targetValue > entryValue) {
+                            groupCells.forEach(cell => cell.classList.add('highlight-long'));
+                        } else if (entryValue > targetValue) {
+                            groupCells.forEach(cell => cell.classList.add('highlight-short'));
+                        }
+                    });
                 });
             }
             
