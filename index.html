@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -385,6 +385,7 @@
             box-shadow: 0 0 5px var(--shadow-color);
         }
         
+        /* --- NEW: Styles for Setups Table Highlighting --- */
         .setups-table td.highlight-long {
             background-color: var(--green-bg);
             color: var(--green-text);
@@ -395,6 +396,7 @@
             color: var(--red-text);
             font-weight: bold;
         }
+        /* --- End of New Styles --- */
 
         .setups-container {
             margin-bottom: 30px; 
@@ -977,49 +979,6 @@
             opacity: 1;
         }
         /* End Trade Attachment Styles */
-
-
-  /* --- Styles for Setups Table --- */
-
-/* Yellow borders to group setup types */
-.setups-table thead tr:first-of-type th:nth-child(3),
-.setups-table thead tr:first-of-type th:nth-child(4),
-.setups-table thead tr:last-of-type th:nth-child(4),
-.setups-table thead tr:last-of-type th:nth-child(7),
-.setups-table tbody td:nth-child(5),
-.setups-table tbody td:nth-child(8) {
-    border-left: 2px solid gold;
-}
-
-/* FINAL CORRECTED Style for the double-clicked "resistance" cell */
-.setups-table td.is-resistance-split {
-    position: relative;
-    background-color: #ff9500; /* Right side background */
-    color: #000;
-    font-weight: bold;
-    text-align: left; /* Align text to the start of the new content area */
-    padding-left: calc(50% + 8px) !important; /* Push content past the 50% mark with a buffer */
-    box-sizing: border-box; /* Ensures padding is calculated correctly */
-}
-
-.setups-table td.is-resistance-split::before {
-    content: "Resistance:";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 50%;
-    height: 100%;
-    background-color: #ffb700; /* Left side background */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-    border-right: 1px solid rgba(0,0,0,0.2);
-    /* The color below needs to match the cell's text color */
-    color: #000; 
-}
-/* --- END OF Styles for Setups Table --- */
-
 
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
@@ -2553,10 +2512,12 @@
                 container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
             }
             
+            // --- MODIFIED: This function now also handles the static highlighting ---
             function renderSetupsTable(tableElement, data) {
                 if (!tableElement) return;
                 const tbody = tableElement.querySelector('tbody');
 
+                // Define the prefixes for the data keys and their cell group start index
                 const setupTypes = [
                     { prefix: 'zero', baseIndex: 0 },
                     { prefix: 'four', baseIndex: 3 },
@@ -2568,6 +2529,7 @@
                     const rowData = data[timeframe] || {};
                     const cells = row.querySelectorAll('td');
 
+                    // First, populate all cell text content from the data
                     cells[0].textContent = rowData.zero_entry || '';
                     cells[1].textContent = rowData.zero_target || '';
                     cells[2].textContent = rowData.zero_stoploss || '';
@@ -2578,22 +2540,27 @@
                     cells[7].textContent = rowData.bounce_target || '';
                     cells[8].textContent = rowData.bounce_stoploss || '';
 
+                    // Now, iterate through the three setup groups to apply styling
                     setupTypes.forEach(setup => {
                         const entryCell = cells[setup.baseIndex];
                         const targetCell = cells[setup.baseIndex + 1];
                         const stoplossCell = cells[setup.baseIndex + 2];
                         
+                        // Get the values for comparison
                         const entryValue = parseFloat(entryCell.textContent);
                         const targetValue = parseFloat(targetCell.textContent);
 
                         const groupCells = [entryCell, targetCell, stoplossCell];
 
+                        // Always clear previous styling first before applying new logic
                         groupCells.forEach(cell => cell.classList.remove('highlight-long', 'highlight-short'));
 
+                        // Check for valid numbers before applying new styling
                         if (isNaN(entryValue) || isNaN(targetValue) || entryValue === 0 || targetValue === 0) {
-                            return; 
+                            return; // Skip this group if data is invalid/empty
                         }
 
+                        // Apply new styling based on the long/short logic
                         if (targetValue > entryValue) {
                             groupCells.forEach(cell => cell.classList.add('highlight-long'));
                         } else if (entryValue > targetValue) {
@@ -3031,25 +2998,6 @@
                 STATE.modalImageIndex = -1;
             }
 
-            // --- NEW FUNCTION for Setups Table Interaction ---
-            function setupSetupsTableInteraction(tableElement) {
-                tableElement.addEventListener('dblclick', (e) => {
-                    // Only allow this for master users
-                    if (!STATE.isMasterUser) return;
-
-                    const cell = e.target.closest('td');
-                    if (!cell) return;
-                    
-                    // Column indices for "Entry" cells are 1, 4, 7
-                    const colIndex = cell.cellIndex;
-                    const isEntryCell = colIndex === 1 || colIndex === 4 || colIndex === 7;
-
-                    if (isEntryCell) {
-                        cell.classList.toggle('is-resistance-split');
-                    }
-                });
-            }
-
 
             // --- EVENT LISTENERS ---
             function setupEventListeners() {
@@ -3131,10 +3079,6 @@
                     if (e.target.id === 'toggle-old-trades') toggleHistoricalRows('completed-trades-tbody', e.target);
                 });
 
-                // --- ADDED: Set up interactions for both setups tables ---
-                setupSetupsTableInteraction(DOM.setupsTable1);
-                setupSetupsTableInteraction(DOM.setupsTable2);
-                
                 DOM.trackerScratchpadEl.addEventListener('input', () => {
                     autoResizeTextarea(DOM.trackerScratchpadEl);
                     saveTrackerScratchpad();
