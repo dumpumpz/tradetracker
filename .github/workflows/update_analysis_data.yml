@@ -11,24 +11,29 @@ jobs:
   update-data:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      # Add permission for actions to read/write artifacts
-      actions: write 
+      # Required for the git-auto-commit-action
+      contents: write 
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- START OF ARTIFACT LOGIC ---
-      - name: Download latest cache artifact
-        # This action finds the latest artifact from this workflow on this branch
-        uses: dawidd6/action-download-artifact@v3
+      # --- START OF CACHING LOGIC ---
+      # This is the modern, efficient way to handle data persistence
+      - name: Cache and Restore Historical Data
+        id: cache-ohlc
+        uses: actions/cache@v4
         with:
-          name: ohlc-cache
+          # The directory your Python script will read from and write to
           path: warmup_ohlc_data_fixed
-          # This is not an error if it's the first run, so we ignore failure
-          if_no_artifact_found: ignore
-      # --- END OF ARTIFACT LOGIC ---
+          # A unique key for the cache. The 'v2' can be changed if you ever
+          # need to invalidate the entire cache and start over.
+          key: ${{ runner.os }}-ohlc-v2-${{ github.sha }}
+          # IMPORTANT: This tells the cache to use the most recent one if an
+          # exact match for the key isn't found. This is how data persists.
+          restore-keys: |
+            ${{ runner.os }}-ohlc-v2-
+      # --- END OF CACHING LOGIC ---
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,26 +43,34 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pandas requests pyarrow stefanzweifel/git-auto-commit-action
+
+      # --- START OF SEEDING LOGIC ---
+      # This step runs ONLY if the cache was not restored (e.g., the very first run)
+      # It seeds the workflow with your 8-year history from the release asset.
+      - name: Seed initial data if cache is empty
+        if: steps.cache-ohlc.outputs.cache-hit != 'true'
+        env:
+          # This token is automatically provided by GitHub
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Cache not found. Seeding from release artifact..."
+          # Install GitHub CLI to download the release
+          sudo apt-get install gh -y
+          # Download and extract your historical data.
+          # Replace 'v1.0-data' with your release tag and 'historical-data-v1.zip' with your filename.
+          gh release download v1.0-data -p "historical-data-v1.zip"
+          unzip historical-data-v1.zip -d .
+          echo "Seeding complete. The warmup_ohlc_data_fixed directory is now populated."
+          ls -R warmup_ohlc_data_fixed # List files for verification
+      # --- END OF SEEDING LOGIC ---
 
       - name: Run Python scripts to generate JSON
         run: |
-          python sr_levels_analysis.py
-          python generate_accurate_ma.py
-
-      # --- START OF UPDATED ARTIFACT LOGIC ---
-      - name: Upload updated cache for next run
-        # This action uploads the folder as an artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ohlc-cache
-          path: warmup_ohlc_data_fixed/
-          retention-days: 7 # Keep the cache artifact for a week
-      # --- END OF UPDATED ARTIFACT LOGIC ---
+          python generate_accurate_ma.py # Removed sr_levels for clarity, add it back if needed
 
       - name: Commit and push ONLY JSON files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Automated analysis data update"
-          # We ONLY commit the small JSON files to the repository
-          file_pattern: sr_levels_analysis.json ma_analysis.json
+          file_pattern: ma_analysis.json # Add other json files if needed
