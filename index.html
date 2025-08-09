@@ -1469,11 +1469,8 @@
                 </div>
             </div>
             
-            <div id="ema-data-section">
-                
-                <p class="ema-last-updated">Last Updated: <span id="ema-last-updated-time">--</span></p>
-                <div id="ema-tables-container"></div>
-            </div>
+            <!-- EMA DATA SECTION REMOVED FROM HERE -->
+
         </div>
         
         <div id="snapshot-tab" class="tab-content">
@@ -1671,8 +1668,6 @@
                 journalImageUpload: document.getElementById('journal-image-upload'),
                 uploadProgress: document.getElementById('upload-progress'),
                 journalImagesContainer: document.getElementById('journal-images-container'),
-                emaLastUpdatedTime: document.getElementById('ema-last-updated-time'),
-                emaTablesContainer: document.getElementById('ema-tables-container'),
                 snapshotTab: document.getElementById('snapshot-tab'),
                 snapshotSymbolEl: document.getElementById('snapshot-symbol'),
                 snapshotImagesContainer: document.getElementById('snapshot-images-container'),
@@ -1758,17 +1753,13 @@
             };
            function autoResizeTextarea(element) {
     if (!element) return;
-    // This part is fine, it resizes the textarea itself
     element.style.height = 'auto';
     element.style.height = `${element.scrollHeight}px`;
 
-    // THIS IS THE PROBLEM:
     const content = element.closest('.collapsible-content');
     if (content) {
         const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
         if (isOpen) {
-            // This line re-calculates and re-sets the max-height of the parent
-            // on EVERY keystroke, triggering the CSS animation.
             content.style.maxHeight = content.scrollHeight + 'px';
         }
     }
@@ -1811,12 +1802,10 @@
                     const response = await fetch(`ma_analysis.json?cache_bust=${new Date().getTime()}`);
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     STATE.emaData = await response.json();
-                    renderEmaData();
                     renderEmaSnapshot('BTC-USDT');
                     renderClosestSrEmas();
                 } catch (error) {
                     console.error("Could not fetch ma_analysis.json:", error);
-                    DOM.emaTablesContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading EMA data.</p>';
                     if (DOM.emaSnapshotContainer) DOM.emaSnapshotContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading EMA data.</p>';
                 }
             }
@@ -2336,90 +2325,6 @@
 
                 DOM.journalImagesContainer.innerHTML = imagesHtml;
             }
-
-            function renderEmaData() {
-                if (!STATE.emaData.data) return;
-                
-                const lastUpdated = STATE.emaData.last_updated ? new Date(STATE.emaData.last_updated).toLocaleString() : '--';
-                DOM.emaLastUpdatedTime.textContent = lastUpdated;
-
-                const { SYMBOLS, TIMEFRAMES, PERIODS, SHORT_NAMES } = CONFIG.EMA_ANALYSIS;
-                
-                const tablesHtml = SYMBOLS.map(safeSymbol => {
-                    const symbolEmaData = STATE.emaData.data[safeSymbol] || {};
-                    const currentPrice = symbolEmaData['15min']?.price || 0;
-                    
-                    const priceDisplayHtml = `
-                        <div class="current-price-display">
-                            Current Price (15m): <span class="price-value">${currentPrice > 0 ? formatCurrency(currentPrice) : '--'}</span>
-                        </div>`;
-
-                    const tableRowsHtml = TIMEFRAMES.map(tf => {
-                        const tfData = symbolEmaData[tf];
-                        const cellsHtml = PERIODS.flatMap(period => ['EMA', 'SMA'].map(type => {
-                            const value = tfData?.[`${type}_${period}`];
-                            if (value !== undefined) {
-                                const priceClass = currentPrice > 0 ? (value > currentPrice ? 'price-above' : 'price-below') : '';
-                                return `<td class="${priceClass}">${Math.round(value).toLocaleString()}</td>`;
-                            }
-                            return '<td>...</td>';
-                        })).join('');
-                        return `<tr><td>${SHORT_NAMES[tf] || tf}</td>${cellsHtml}</tr>`;
-                    }).join('');
-
-                    const tableHtml = `
-                        <div class="table-wrapper">
-                            <table class="ema-table">
-                                <thead><tr><th>TF</th>${PERIODS.flatMap(p => [`<th>EMA ${p}</th>`, `<th>SMA ${p}</th>`]).join('')}</tr></thead>
-                                <tbody>${tableRowsHtml}</tbody>
-                            </table>
-                        </div>`;
-
-                    let summaryHtml = '';
-                    if (currentPrice > 0) {
-                        const levels = [];
-                        TIMEFRAMES.forEach(tf => {
-                            const tfData = symbolEmaData[tf];
-                            if (tfData) {
-                                PERIODS.forEach(period => ['EMA', 'SMA'].forEach(type => {
-                                    const val = tfData[`${type}_${period}`];
-                                    if (val !== undefined) {
-                                        levels.push({
-                                            label: `${SHORT_NAMES[tf]} ${type} ${period}`,
-                                            value: val,
-                                            isSupport: val < currentPrice,
-                                            distance: Math.abs(currentPrice - val)
-                                        });
-                                    }
-                                }));
-                            }
-                        });
-
-                        const supports = levels.filter(l => l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
-                        const resistances = levels.filter(l => !l.isSupport).sort((a,b) => a.distance - b.distance).slice(0, 10);
-                        const formatLevel = (level) => `<li>${level.label} (${Math.round(level.value).toLocaleString()})</li>`;
-                        
-                        summaryHtml = `
-                            <div class="ema-summary-container">
-                                <div class="ema-level-summary-grid">
-                                    <div class="ema-level-summary"><strong><span class="support">Support:</span></strong><ul>${supports.map(formatLevel).join('') || 'None found.'}</ul></div>
-                                    <div class="ema-level-summary"><strong><span class="resistance">Resistance:</span></strong><ul>${resistances.map(formatLevel).join('') || 'None found.'}</ul></div>
-                                </div>
-                            </div>`;
-                    }
-                    
-                    const symbolHtml = `
-                        <div class="ema-table-container">
-                            <h4>${safeSymbol.replace('-', '/')} Snapshot</h4>
-                            ${priceDisplayHtml}
-                            ${safeSymbol === 'ETH-USDT' ? tableHtml + summaryHtml : summaryHtml + tableHtml}
-                        </div>`;
-                    
-                    return symbolHtml;
-                }).join('');
-                
-                DOM.emaTablesContainer.innerHTML = tablesHtml;
-            }
             
             function renderEmaSnapshot(safeSymbol) {
                 const container = DOM.emaSnapshotContainer;
@@ -2550,7 +2455,6 @@
                 container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
             }
             
-            // --- MODIFIED: This function now correctly handles non-numeric text in cells ---
             function renderSetupsTable(tableElement, data) {
                 if (!tableElement) return;
                 const tbody = tableElement.querySelector('tbody');
@@ -2566,7 +2470,6 @@
                     const rowData = data[timeframe] || {};
                     const cells = row.querySelectorAll('td');
 
-                    // Populate cell text content from the data (this part is fine)
                     cells[0].textContent = rowData.zero_entry || '';
                     cells[1].textContent = rowData.zero_target || '';
                     cells[2].textContent = rowData.zero_stoploss || '';
@@ -2577,30 +2480,24 @@
                     cells[7].textContent = rowData.bounce_target || '';
                     cells[8].textContent = rowData.bounce_stoploss || '';
 
-                    // Iterate through the three setup groups to apply styling
                     setupTypes.forEach(setup => {
                         const entryCell = cells[setup.baseIndex];
                         const targetCell = cells[setup.baseIndex + 1];
                         const stoplossCell = cells[setup.baseIndex + 2];
                         const groupCells = [entryCell, targetCell, stoplossCell];
 
-                        // Always clear previous styling first
                         groupCells.forEach(cell => cell.classList.remove('highlight-long', 'highlight-short'));
 
                         const entryText = entryCell.textContent.trim();
                         const targetText = targetCell.textContent.trim();
 
-                        // Use Number() for a strict check. It returns NaN if the string contains non-numeric characters.
                         const entryValue = Number(entryText);
                         const targetValue = Number(targetText);
 
-                        // Check if BOTH are valid numbers and not zero. isNaN() will now correctly catch "3939 hit profit".
                         if (isNaN(entryValue) || isNaN(targetValue) || entryValue === 0 || targetValue === 0) {
-                            // If inputs are invalid, empty, or contain text, do nothing. The cells remain uncolored.
-                            return; // This acts like 'continue' in a forEach loop
+                            return;
                         }
 
-                        // Apply new styling only if both values are valid numbers
                         if (targetValue > entryValue) {
                             groupCells.forEach(cell => cell.classList.add('highlight-long'));
                         } else if (entryValue > targetValue) {
@@ -3075,18 +2972,13 @@
                 DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
                 
                 DOM.trackerTab.addEventListener('click', (e) => {
-                    // Check for the most specific element first: the pill button
                     if (e.target.matches('.ema-pill-btn')) {
-                        // This is the important part: stop the event from being processed further.
                         e.stopPropagation(); 
-                        
                         const pillBtn = e.target;
                         const group = pillBtn.closest('.pill-button-group');
                         group.querySelectorAll('.ema-pill-btn').forEach(btn => btn.classList.remove('active'));
                         pillBtn.classList.add('active');
                         renderEmaSnapshot(pillBtn.dataset.symbol);
-
-                    // Then check for other specific buttons
                     } else if (e.target.closest('.sentiment-buttons button')) {
                         handleSentimentLog(e);
                     } else if (e.target.matches('.delete-sentiment-btn')) {
@@ -3103,8 +2995,6 @@
                         toggleHistoricalRows('sentiment-receipts-tbody', e.target);
                     } else if (e.target.id === 'toggle-old-trades') {
                         toggleHistoricalRows('completed-trades-tbody', e.target);
-                    
-                    // Finally, if nothing more specific was clicked, check if it was a header
                     } else {
                         const header = e.target.closest('.collapsible-header');
                         if (header) {
