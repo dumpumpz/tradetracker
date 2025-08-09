@@ -4,7 +4,9 @@ name: Update Accurate Analysis Data Files
 
 on:
   schedule:
-    - cron: "0,30 * * * *"
+    # The '*/15' means "every 15 minutes", but the '2' shifts the start time.
+    # So it runs at 2, 17, 32, 47 minutes past the hour.
+    - cron: '2-59/15 * * * *'
   workflow_dispatch:
 
 jobs:
