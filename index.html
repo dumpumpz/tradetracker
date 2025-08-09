@@ -397,14 +397,14 @@
             font-weight: bold;
         }
         
-        /* --- NEW: Yellow borders for setup sections --- */
+        /* --- Yellow borders for setup sections --- */
         /* Top Borders */
         .setups-table thead tr:first-child th:nth-child(n+2) {
             border-top: 2px solid yellow;
         }
 
         /* Bottom Borders */
-        .setups-table tbody tr:last-child td:nth-child(n+2),
+        .setups-table tbody tr:last-child td:nth-child(n+1),
         .setups-table thead tr:last-child th:nth-child(n+1) {
             border-bottom: 2px solid yellow;
         }
@@ -434,7 +434,7 @@
         .setups-table tbody td:nth-child(10) {             /* Bounce Data */
             border-right: 2px solid yellow;
         }
-        /* --- End of New Styles --- */
+        /* --- End of Styles --- */
 
         .setups-container {
             margin-bottom: 30px; 
@@ -2550,7 +2550,6 @@
                 container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
             }
             
-            // --- MODIFIED: This function now also handles the static highlighting ---
             // --- MODIFIED: This function now correctly handles non-numeric text in cells ---
             function renderSetupsTable(tableElement, data) {
                 if (!tableElement) return;
@@ -3076,49 +3075,63 @@
                 DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
                 
                 DOM.trackerTab.addEventListener('click', (e) => {
-                    const header = e.target.closest('.collapsible-header');
-                    if (header) {
-                        const section = header.parentElement;
-                        const content = section.querySelector('.collapsible-content');
-                        const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+                    // Check for the most specific element first: the pill button
+                    if (e.target.matches('.ema-pill-btn')) {
+                        // This is the important part: stop the event from being processed further.
+                        e.stopPropagation(); 
                         
-                        section.classList.toggle('is-open');
-                        toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
-                        toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                        const pillBtn = e.target;
+                        const group = pillBtn.closest('.pill-button-group');
+                        group.querySelectorAll('.ema-pill-btn').forEach(btn => btn.classList.remove('active'));
+                        pillBtn.classList.add('active');
+                        renderEmaSnapshot(pillBtn.dataset.symbol);
 
-                        if (section.classList.contains('is-open')) {
-                            content.style.maxHeight = content.scrollHeight + 'px';
-                            const textarea = content.querySelector('textarea');
-                            if(textarea) {
-                                autoResizeTextarea(textarea);
-                                setTimeout(() => {
-                                   if (section.classList.contains('is-open')) {
-                                      content.style.maxHeight = content.scrollHeight + 'px';
-                                   }
-                                }, 150);
+                    // Then check for other specific buttons
+                    } else if (e.target.closest('.sentiment-buttons button')) {
+                        handleSentimentLog(e);
+                    } else if (e.target.matches('.delete-sentiment-btn')) {
+                        handleSentimentDelete(e);
+                    } else if (e.target.matches('.edit-sentiment-note-btn')) {
+                        handleSentimentNoteEdit(e);
+                    } else if (e.target.closest('#trades-tbody')) {
+                        handleTradeAction(e);
+                    } else if (e.target.closest('#completed-trades-tbody')) {
+                        handleTradeAction(e);
+                    } else if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container, .trade-image-thumbnails')) {
+                        handleGenericImageLibraryClick(e);
+                    } else if (e.target.id === 'toggle-old-sentiments') {
+                        toggleHistoricalRows('sentiment-receipts-tbody', e.target);
+                    } else if (e.target.id === 'toggle-old-trades') {
+                        toggleHistoricalRows('completed-trades-tbody', e.target);
+                    
+                    // Finally, if nothing more specific was clicked, check if it was a header
+                    } else {
+                        const header = e.target.closest('.collapsible-header');
+                        if (header) {
+                            const section = header.parentElement;
+                            const content = section.querySelector('.collapsible-content');
+                            const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+                            
+                            section.classList.toggle('is-open');
+                            toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
+                            toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+
+                            if (section.classList.contains('is-open')) {
+                                content.style.maxHeight = content.scrollHeight + 'px';
+                                const textarea = content.querySelector('textarea');
+                                if(textarea) {
+                                    autoResizeTextarea(textarea);
+                                    setTimeout(() => {
+                                       if (section.classList.contains('is-open')) {
+                                          content.style.maxHeight = content.scrollHeight + 'px';
+                                       }
+                                    }, 150);
+                                }
+                            } else {
+                                content.style.maxHeight = '0px';
                             }
-                        } else {
-                            content.style.maxHeight = '0px';
                         }
                     }
-
-                    if (e.target.matches('.ema-pill-btn')) {
-    e.stopPropagation(); // <-- This is the new line that fixes the issue.
-    const pillBtn = e.target;
-    const group = pillBtn.closest('.pill-button-group');
-    group.querySelectorAll('.ema-pill-btn').forEach(btn => btn.classList.remove('active'));
-    pillBtn.classList.add('active');
-    renderEmaSnapshot(pillBtn.dataset.symbol);
-}
-
-                    if (e.target.closest('.sentiment-buttons button')) handleSentimentLog(e);
-                    if (e.target.matches('.delete-sentiment-btn')) handleSentimentDelete(e);
-                    if (e.target.matches('.edit-sentiment-note-btn')) handleSentimentNoteEdit(e);
-                    if (e.target.closest('#trades-tbody')) handleTradeAction(e);
-                    if (e.target.closest('#completed-trades-tbody')) handleTradeAction(e);
-                    if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container, .trade-image-thumbnails')) handleGenericImageLibraryClick(e);
-                    if (e.target.id === 'toggle-old-sentiments') toggleHistoricalRows('sentiment-receipts-tbody', e.target);
-                    if (e.target.id === 'toggle-old-trades') toggleHistoricalRows('completed-trades-tbody', e.target);
                 });
 
                 DOM.trackerScratchpadEl.addEventListener('input', () => {
