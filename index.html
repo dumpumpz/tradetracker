@@ -3103,12 +3103,13 @@
                     }
 
                     if (e.target.matches('.ema-pill-btn')) {
-                        const pillBtn = e.target;
-                        const group = pillBtn.closest('.pill-button-group');
-                        group.querySelectorAll('.ema-pill-btn').forEach(btn => btn.classList.remove('active'));
-                        pillBtn.classList.add('active');
-                        renderEmaSnapshot(pillBtn.dataset.symbol);
-                    }
+    e.stopPropagation(); // <-- This is the new line that fixes the issue.
+    const pillBtn = e.target;
+    const group = pillBtn.closest('.pill-button-group');
+    group.querySelectorAll('.ema-pill-btn').forEach(btn => btn.classList.remove('active'));
+    pillBtn.classList.add('active');
+    renderEmaSnapshot(pillBtn.dataset.symbol);
+}
 
                     if (e.target.closest('.sentiment-buttons button')) handleSentimentLog(e);
                     if (e.target.matches('.delete-sentiment-btn')) handleSentimentDelete(e);
