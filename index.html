@@ -979,42 +979,46 @@
         /* End Trade Attachment Styles */
 
 
-        /* --- Styles for Setups Table --- */
+  /* --- Styles for Setups Table --- */
 
-        /* Yellow borders to group setup types */
-        .setups-table thead tr:first-of-type th:nth-child(3),
-        .setups-table thead tr:first-of-type th:nth-child(4),
-        .setups-table thead tr:last-of-type th:nth-child(4),
-        .setups-table thead tr:last-of-type th:nth-child(7),
-        .setups-table tbody td:nth-child(5),
-        .setups-table tbody td:nth-child(8) {
-            border-left: 2px solid gold;
-        }
+/* Yellow borders to group setup types */
+.setups-table thead tr:first-of-type th:nth-child(3),
+.setups-table thead tr:first-of-type th:nth-child(4),
+.setups-table thead tr:last-of-type th:nth-child(4),
+.setups-table thead tr:last-of-type th:nth-child(7),
+.setups-table tbody td:nth-child(5),
+.setups-table tbody td:nth-child(8) {
+    border-left: 2px solid gold;
+}
 
-        /* CORRECTED Style for the double-clicked "resistance" cell */
-        .setups-table td.is-resistance-split {
-            position: relative; /* Needed for the ::before pseudo-element */
-            background-color: #ff9500; /* This is the background for the RIGHT side */
-            color: #000;
-            font-weight: bold;
-            text-align: center; /* This correctly centers the editable text */
-        }
+/* FINAL CORRECTED Style for the double-clicked "resistance" cell */
+.setups-table td.is-resistance-split {
+    position: relative;
+    background-color: #ff9500; /* Right side background */
+    color: #000;
+    font-weight: bold;
+    text-align: left; /* Align text to the start of the new content area */
+    padding-left: calc(50% + 8px) !important; /* Push content past the 50% mark with a buffer */
+    box-sizing: border-box; /* Ensures padding is calculated correctly */
+}
 
-        .setups-table td.is-resistance-split::before {
-            content: "Resistance:";
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 50%;
-            height: 100%;
-            background-color: #ffb700; /* This is the background for the LEFT side */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none; /* Allows clicks to go "through" it to the cell */
-            border-right: 1px solid rgba(0,0,0,0.2);
-        }
-        /* --- END OF Styles for Setups Table --- */
+.setups-table td.is-resistance-split::before {
+    content: "Resistance:";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    background-color: #ffb700; /* Left side background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    border-right: 1px solid rgba(0,0,0,0.2);
+    /* The color below needs to match the cell's text color */
+    color: #000; 
+}
+/* --- END OF Styles for Setups Table --- */
 
 
         @media (max-width: 768px) { 
