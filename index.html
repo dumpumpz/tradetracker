@@ -3056,6 +3056,8 @@ if (content) {
 
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
 
+            // --- START: FIX ---
+            // Reordered the event listener logic to prioritize more specific checks (like image clicks) first.
             DOM.trackerTab.addEventListener('click', (e) => {
                 if (e.target.matches('.ema-pill-btn')) {
                     e.stopPropagation(); 
@@ -3070,12 +3072,12 @@ if (content) {
                     handleSentimentDelete(e);
                 } else if (e.target.matches('.edit-sentiment-note-btn')) {
                     handleSentimentNoteEdit(e);
+                } else if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container, .trade-image-thumbnails')) {
+                    handleGenericImageLibraryClick(e);
                 } else if (e.target.closest('#trades-tbody')) {
                     handleTradeAction(e);
                 } else if (e.target.closest('#completed-trades-tbody')) {
                     handleTradeAction(e);
-                } else if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container, .trade-image-thumbnails')) {
-                    handleGenericImageLibraryClick(e);
                 } else if (e.target.id === 'toggle-old-sentiments') {
                     toggleHistoricalRows('sentiment-receipts-tbody', e.target);
                 } else if (e.target.id === 'toggle-old-trades') {
@@ -3108,20 +3110,16 @@ if (content) {
                     }
                 }
             });
+            // --- END: FIX ---
 
-            // --- START: FIX ---
-            // Event listener for when you finish editing a setups cell.
             DOM.trackerTab.addEventListener('blur', (e) => {
-                // Check if the event target is a cell inside any setups table
                 if (e.target.matches('.setups-table td[contenteditable="true"]')) {
                     const tableElement = e.target.closest('.setups-table');
                     if (tableElement) {
-                        // Re-run the highlighting on the entire table that was edited
                         applyHighlightingToSetupsTable(tableElement);
                     }
                 }
-            }, true); // Use 'capture' phase to ensure this event is caught.
-            // --- END: FIX ---
+            }, true);
 
             DOM.trackerScratchpadEl.addEventListener('input', () => {
                 autoResizeTextarea(DOM.trackerScratchpadEl);
