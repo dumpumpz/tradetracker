@@ -1171,6 +1171,93 @@
     display: none;
 }
 /* --- END: New Compact S/R View for Mobile --- */
+
+
+
+
+
+
+                /* --- START: Styles for the new S/R Key --- */
+
+        #sr-legend-content {
+            padding: 20px;
+            display: block;
+            background-color: var(--bg-color); /* Subtle background difference */
+        }
+
+        #sr-metadata-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 0;
+            margin: 0;
+            background-color: transparent;
+            border: none;
+            justify-content: center;
+        }
+
+        .metadata-group {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            background-color: var(--card-bg);
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Space between items in a group */
+        }
+
+        .metadata-group-title {
+            margin: 0 0 5px 0;
+            padding-bottom: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--subtle-text);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .metadata-item { 
+            font-size: 14px; 
+            line-height: 1.5;
+        }
+
+        .metadata-label { 
+            font-weight: 500; 
+            font-size: 12px;
+            color: var(--subtle-text); 
+            display: block; 
+            margin-bottom: 5px; 
+        }
+
+        .metadata-value { 
+            font-family: 'Courier New', Courier, monospace; 
+            color: var(--text-color); 
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        /* New styles for the weight lists */
+        .weight-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .weight-list span {
+            background-color: var(--header-bg);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Use system font for these */
+        }
+
+        /* Remove old rule */
+        .rating-explanation {
+           display: none;
+        }
+
+        /* --- END: S/R Key styles --- */
     </style>
 </head>
 <body>
@@ -1595,7 +1682,6 @@
             </div>
 
         </div>
-
         <div id="sr-levels-tab" class="tab-content">
             <div id="sr-legend-container">
                 <div id="sr-legend-header">
@@ -1610,22 +1696,16 @@
                             <div class="metadata-item"><span class="metadata-label">Lookback Period</span><span id="sr-metadata-dates" class="metadata-value">--</span></div>
                             <div class="metadata-item"><span class="metadata-label">Timeframes Analyzed</span><span id="sr-metadata-timeframes" class="metadata-value">--</span></div>
                             <div class="metadata-item"><span class="metadata-label">Pivot Windows</span><span id="sr-metadata-windows" class="metadata-value">--</span></div>
-
-
                         </div>
 
                         <!-- Group 2: Scoring Methodology -->
                         <div class="metadata-group">
-    
-                            <h4 class="metadata-group-title">Scoring Method</h4>
+                            <h4 class="metadata-group-title">Scoring Methodology</h4>
                              <div class="metadata-item">
                                 <span class="metadata-label">Pivot Sources</span>
                                 <div class="metadata-value weight-list">
                                     <span>Wick High</span>
                                     <span>Wick Low</span>
-                                              <span>Close High</span>
-                                        <span>Close Low</span>
-                              
                                 </div>
                             </div>
                             <div class="metadata-item">
@@ -1675,7 +1755,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <!-- IMAGE MODAL -->
