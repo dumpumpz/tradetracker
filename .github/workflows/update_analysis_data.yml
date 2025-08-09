@@ -11,66 +11,53 @@ jobs:
   update-data:
     runs-on: ubuntu-latest
     permissions:
-      # Required for the git-auto-commit-action
       contents: write 
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- START OF CACHING LOGIC ---
-      # This is the modern, efficient way to handle data persistence
       - name: Cache and Restore Historical Data
         id: cache-ohlc
         uses: actions/cache@v4
         with:
-          # The directory your Python script will read from and write to
           path: warmup_ohlc_data_fixed
-          # A unique key for the cache. The 'v2' can be changed if you ever
-          # need to invalidate the entire cache and start over.
           key: ${{ runner.os }}-ohlc-v2-${{ github.sha }}
-          # IMPORTANT: This tells the cache to use the most recent one if an
-          # exact match for the key isn't found. This is how data persists.
           restore-keys: |
             ${{ runner.os }}-ohlc-v2-
-      # --- END OF CACHING LOGIC ---
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # --- CORRECTED STEP ---
+      # Removed 'stefanzweifel/git-auto-commit-action' from the pip command
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests pyarrow stefanzweifel/git-auto-commit-action
+          pip install pandas requests pyarrow
 
-      # --- START OF SEEDING LOGIC ---
-      # This step runs ONLY if the cache was not restored (e.g., the very first run)
-      # It seeds the workflow with your 8-year history from the release asset.
       - name: Seed initial data if cache is empty
         if: steps.cache-ohlc.outputs.cache-hit != 'true'
         env:
-          # This token is automatically provided by GitHub
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Cache not found. Seeding from release artifact..."
-          # Install GitHub CLI to download the release
-          sudo apt-get install gh -y
-          # Download and extract your historical data.
-          # Replace 'v1.0-data' with your release tag and 'historical-data-v1.zip' with your filename.
+          # The GitHub CLI 'gh' is pre-installed on ubuntu-latest runners now
+          # so we don't need to install it.
           gh release download v1.0-data -p "historical-data-v1.zip"
           unzip historical-data-v1.zip -d .
           echo "Seeding complete. The warmup_ohlc_data_fixed directory is now populated."
-          ls -R warmup_ohlc_data_fixed # List files for verification
-      # --- END OF SEEDING LOGIC ---
+          ls -R warmup_ohlc_data_fixed
 
       - name: Run Python scripts to generate JSON
         run: |
-          python generate_accurate_ma.py # Removed sr_levels for clarity, add it back if needed
+          python generate_accurate_ma.py
 
+      # This step uses the Action correctly and does NOT require a pip install
       - name: Commit and push ONLY JSON files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Automated analysis data update"
-          file_pattern: ma_analysis.json # Add other json files if needed
+          file_pattern: ma_analysis.json
