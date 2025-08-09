@@ -5,37 +5,37 @@ name: Update Accurate Analysis Data Files
 on:
   schedule:
     # Run every 15 minutes, with a 2-minute offset to ensure candles are closed.
-    # This will trigger at approx. :02, :17, :32, :47 past the hour.
     - cron: '2-59/15 * * * *'
   workflow_dispatch:
+
+# --- SOLUTION: ADD THIS CONCURRENCY GROUP ---
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+# --- END OF SOLUTION ---
 
 jobs:
   update-data:
     runs-on: ubuntu-latest
     permissions:
-      # Required for the git-auto-commit-action to push changes
       contents: write 
 
     steps:
       - name: Checkout repository
+        # We add fetch-depth: 0 to get the full git history,
+        # which can help the commit action.
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # --- START OF CACHING LOGIC ---
-      # This is the modern, efficient way to handle data persistence
       - name: Cache and Restore Historical Data
         id: cache-ohlc
         uses: actions/cache@v4
         with:
-          # The directory your Python script will read from and write to
           path: warmup_ohlc_data_fixed
-          # A unique key for the cache. The 'v2' can be changed if you ever
-          # need to invalidate the entire cache and start over.
           key: ${{ runner.os }}-ohlc-v2-${{ github.sha }}
-          # IMPORTANT: This tells the cache to use the most recent one if an
-          # exact match for the key isn't found. This is how data persists.
           restore-keys: |
             ${{ runner.os }}-ohlc-v2-
-      # --- END OF CACHING LOGIC ---
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -47,33 +47,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas requests pyarrow
 
-      # --- START OF SEEDING LOGIC ---
-      # This step runs ONLY if the cache was not restored (e.g., the very first run).
-      # It seeds the workflow with your 8-year history from the release asset.
       - name: Seed initial data if cache is empty
         if: steps.cache-ohlc.outputs.cache-hit != 'true'
         env:
-          # This token is automatically provided by GitHub
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Cache not found. Seeding from release artifact..."
-          # The GitHub CLI 'gh' is pre-installed on ubuntu-latest runners.
-          # We use the correct tag 'v1.0-data' and your confirmed filename.
           gh release download v1.0-data -p "warmup_ohlc_data_fixed.zip"
-          # Unzip the file using its correct name.
           unzip warmup_ohlc_data_fixed.zip -d .
           echo "Seeding complete. The warmup_ohlc_data_fixed directory is now populated."
-          ls -R warmup_ohlc_data_fixed # List files for verification
-      # --- END OF SEEDING LOGIC ---
+          ls -R warmup_ohlc_data_fixed
 
       - name: Run Python scripts to generate JSON
         run: |
-          # Add back any other scripts you need to run here
           python generate_accurate_ma.py
 
       - name: Commit and push ONLY JSON files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Automated analysis data update"
-          # Add back any other .json files you want to commit
           file_pattern: ma_analysis.json
