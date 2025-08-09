@@ -979,9 +979,9 @@
         /* End Trade Attachment Styles */
 
 
-        /* --- NEW STYLES for Setups Table --- */
+        /* --- Styles for Setups Table --- */
 
-        /* Part 2: Yellow borders to group setup types */
+        /* Yellow borders to group setup types */
         .setups-table thead tr:first-of-type th:nth-child(3),
         .setups-table thead tr:first-of-type th:nth-child(4),
         .setups-table thead tr:last-of-type th:nth-child(4),
@@ -991,15 +991,14 @@
             border-left: 2px solid gold;
         }
 
-        /* Part 1: Style for the double-clicked "resistance" cell */
-.setups-table td.is-resistance-split {
-    background: linear-gradient(to right, #ffb700 50%, #ff9500 50%);
-    position: relative;
-    color: #000;
-    font-weight: bold;
-    padding-left: 50% !important; /* Force text content into the right half */
-    box-sizing: border-box; /* <-- THIS IS THE FIX */
-}
+        /* CORRECTED Style for the double-clicked "resistance" cell */
+        .setups-table td.is-resistance-split {
+            position: relative; /* Needed for the ::before pseudo-element */
+            background-color: #ff9500; /* This is the background for the RIGHT side */
+            color: #000;
+            font-weight: bold;
+            text-align: center; /* This correctly centers the editable text */
+        }
 
         .setups-table td.is-resistance-split::before {
             content: "Resistance:";
@@ -1008,13 +1007,14 @@
             top: 0;
             width: 50%;
             height: 100%;
+            background-color: #ffb700; /* This is the background for the LEFT side */
             display: flex;
             align-items: center;
             justify-content: center;
-            pointer-events: none; /* Allows clicks to go through to the cell */
+            pointer-events: none; /* Allows clicks to go "through" it to the cell */
             border-right: 1px solid rgba(0,0,0,0.2);
         }
-        /* --- END OF NEW STYLES --- */
+        /* --- END OF Styles for Setups Table --- */
 
 
         @media (max-width: 768px) { 
