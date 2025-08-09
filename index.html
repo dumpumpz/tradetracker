@@ -1641,7 +1641,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
-      <script>
+          <script>
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- CONFIGURATION ---
@@ -2536,22 +2536,66 @@
 
                 container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
             }
-
-            function renderSetupsTable(tableElement, data) {
+            
+            // --- START: FIX ---
+            // NEW, DEDICATED FUNCTION FOR APPLYING HIGHLIGHTS
+            // This function reads directly from the table, so it works for manual edits.
+            function applyHighlightingToSetupsTable(tableElement) {
                 if (!tableElement) return;
                 const tbody = tableElement.querySelector('tbody');
 
                 const setupTypes = [
-                    { prefix: 'zero', baseIndex: 0 },
-                    { prefix: 'four', baseIndex: 3 },
-                    { prefix: 'bounce', baseIndex: 6 }
+                    { baseIndex: 0 }, // 0-Candle
+                    { baseIndex: 3 }, // 4-Candle
+                    { baseIndex: 6 }  // 0-Candle Bounce
                 ];
+
+                tbody.querySelectorAll('tr').forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length === 0) return; // Skip header rows if any are queried
+
+                    setupTypes.forEach(setup => {
+                        const entryCell = cells[setup.baseIndex];
+                        const targetCell = cells[setup.baseIndex + 1];
+                        const stoplossCell = cells[setup.baseIndex + 2];
+                        const groupCells = [entryCell, targetCell, stoplossCell];
+
+                        // Reset any existing highlighting first
+                        groupCells.forEach(cell => cell.classList.remove('highlight-long', 'highlight-short'));
+
+                        const entryText = entryCell.textContent.trim();
+                        const targetText = targetCell.textContent.trim();
+                        
+                        // Robustly parse numbers, removing characters like '$' or ','
+                        const entryValue = parseFloat(String(entryText).replace(/[^0-9.-]/g, ''));
+                        const targetValue = parseFloat(String(targetText).replace(/[^0-9.-]/g, ''));
+
+                        // Check if values are valid numbers before comparing
+                        if (isNaN(entryValue) || isNaN(targetValue) || entryValue === 0 || targetValue === 0) {
+                            return; // Skip this group if data is invalid or empty
+                        }
+
+                        // Apply new highlighting
+                        if (targetValue > entryValue) {
+                            groupCells.forEach(cell => cell.classList.add('highlight-long'));
+                        } else if (entryValue > targetValue) {
+                            groupCells.forEach(cell => cell.classList.add('highlight-short'));
+                        }
+                    });
+                });
+            }
+
+            // MODIFIED FUNCTION TO POPULATE DATA AND THEN CALL THE HIGHLIGHTER
+            function renderSetupsTable(tableElement, data) {
+                if (!tableElement) return;
+                const tbody = tableElement.querySelector('tbody');
 
                 tbody.querySelectorAll('tr').forEach(row => {
                     const timeframe = row.firstElementChild.textContent.trim();
                     const rowData = data[timeframe] || {};
                     const cells = row.querySelectorAll('td');
 
+                    // Populate cells with data from Firebase
                     cells[0].textContent = rowData.zero_entry || '';
                     cells[1].textContent = rowData.zero_target || '';
                     cells[2].textContent = rowData.zero_stoploss || '';
@@ -2561,33 +2605,12 @@
                     cells[6].textContent = rowData.bounce_entry || '';
                     cells[7].textContent = rowData.bounce_target || '';
                     cells[8].textContent = rowData.bounce_stoploss || '';
-
-                    setupTypes.forEach(setup => {
-                        const entryCell = cells[setup.baseIndex];
-                        const targetCell = cells[setup.baseIndex + 1];
-                        const stoplossCell = cells[setup.baseIndex + 2];
-                        const groupCells = [entryCell, targetCell, stoplossCell];
-
-                        groupCells.forEach(cell => cell.classList.remove('highlight-long', 'highlight-short'));
-
-                        const entryText = entryCell.textContent.trim();
-                        const targetText = targetCell.textContent.trim();
-
-                        const entryValue = Number(entryText);
-                        const targetValue = Number(targetText);
-
-                        if (isNaN(entryValue) || isNaN(targetValue) || entryValue === 0 || targetValue === 0) {
-                            return;
-                        }
-
-                        if (targetValue > entryValue) {
-                            groupCells.forEach(cell => cell.classList.add('highlight-long'));
-                        } else if (entryValue > targetValue) {
-                            groupCells.forEach(cell => cell.classList.add('highlight-short'));
-                        }
-                    });
                 });
+
+                // After populating, apply the visual highlighting
+                applyHighlightingToSetupsTable(tableElement);
             }
+            // --- END: FIX ---
 
             function renderSrLevels() {
                 const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
@@ -3080,6 +3103,22 @@
                         }
                     }
                 });
+
+                // --- START: FIX ---
+                // NEW EVENT LISTENER for manual edits to the setups tables.
+                // It listens for the 'blur' event, which fires when you click away from a cell.
+                DOM.trackerTab.addEventListener('blur', (e) => {
+                    // Check if the blurred element is a cell inside any setups table
+                    if (e.target.matches('.setups-table td[contenteditable="true"]')) {
+                        // Find the specific table that was edited
+                        const tableElement = e.target.closest('.setups-table');
+                        if (tableElement) {
+                            // Re-run the highlighting logic on the entire table
+                            applyHighlightingToSetupsTable(tableElement);
+                        }
+                    }
+                }, true); // Use capture phase to ensure it fires
+                // --- END: FIX ---
 
                 DOM.trackerScratchpadEl.addEventListener('input', () => {
                     autoResizeTextarea(DOM.trackerScratchpadEl);
@@ -4109,5 +4148,7 @@
             initializeApp();
         });
     </script>
+```
+
 </body>
 </html>
