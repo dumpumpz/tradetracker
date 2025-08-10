@@ -85,7 +85,7 @@
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
         .controls-container > div { display: flex; align-items: center; gap: 8px; }
 
-        #journal-entry, #persistent-notes-entry, #tracker-scratchpad, #trade-reminders-scratchpad {
+        #journal-entry, #persistent-notes-entry, #tracker-scratchpad, #trade-reminders-scratchpad, .setups-notes-area {
             width: 100%; 
             resize: vertical;
             line-height: 1.6;
@@ -94,8 +94,12 @@
             min-height: 120px; 
         }
         #tracker-scratchpad, #trade-reminders-scratchpad { margin: 0; }
+        .setups-notes-area {
+            margin-top: 15px;
+            min-height: 80px;
+        }
 
-        #journal-entry:read-only, #persistent-notes-entry:read-only, #tracker-scratchpad:read-only, #trade-reminders-scratchpad:read-only { 
+        #journal-entry:read-only, #persistent-notes-entry:read-only, #tracker-scratchpad:read-only, #trade-reminders-scratchpad:read-only, .setups-notes-area:read-only { 
             background-color: var(--card-bg); 
             cursor: not-allowed; 
         }
@@ -391,9 +395,9 @@
             font-weight: bold;
         }
 
-        /* --- Yellow borders for setup sections --- */
+        /* --- START: CSS Change for Yellow Borders (Indices Shifted) --- */
         /* Top Borders */
-        .setups-table thead tr:first-child th:nth-child(n+3) {
+        .setups-table thead tr:first-child th:nth-child(n+2) {
             border-top: 2px solid yellow;
         }
 
@@ -404,58 +408,31 @@
         }
 
         /* Left Borders for each section */
-        .setups-table thead tr:first-child th:nth-child(3), /* 0-Candle Main */
+        .setups-table thead tr:first-child th:nth-child(2), /* 0-Candle Main */
         .setups-table thead tr:last-child th:nth-child(1),  /* 0-Candle Sub */
-        .setups-table tbody td:nth-child(3),               /* 0-Candle Data */
-        .setups-table thead tr:first-child th:nth-child(4), /* 4-Candle Main */
+        .setups-table tbody td:nth-child(2),               /* 0-Candle Data */
+        .setups-table thead tr:first-child th:nth-child(3), /* 4-Candle Main */
         .setups-table thead tr:last-child th:nth-child(4),  /* 4-Candle Sub */
-        .setups-table tbody td:nth-child(6),               /* 4-Candle Data */
-        .setups-table thead tr:first-child th:nth-child(5), /* Bounce Main */
+        .setups-table tbody td:nth-child(5),               /* 4-Candle Data */
+        .setups-table thead tr:first-child th:nth-child(4), /* Bounce Main */
         .setups-table thead tr:last-child th:nth-child(7),  /* Bounce Sub */
-        .setups-table tbody td:nth-child(9) {              /* Bounce Data */
+        .setups-table tbody td:nth-child(8) {              /* Bounce Data */
             border-left: 2px solid yellow;
         }
 
         /* Right Borders for each section */
-        .setups-table thead tr:first-child th:nth-child(3), /* 0-Candle Main */
+        .setups-table thead tr:first-child th:nth-child(2), /* 0-Candle Main */
         .setups-table thead tr:last-child th:nth-child(3),  /* 0-Candle Sub */
-        .setups-table tbody td:nth-child(5),               /* 0-Candle Data */
-        .setups-table thead tr:first-child th:nth-child(4), /* 4-Candle Main */
+        .setups-table tbody td:nth-child(4),               /* 0-Candle Data */
+        .setups-table thead tr:first-child th:nth-child(3), /* 4-Candle Main */
         .setups-table thead tr:last-child th:nth-child(6),  /* 4-Candle Sub */
-        .setups-table tbody td:nth-child(8),               /* 4-Candle Data */
-        .setups-table thead tr:first-child th:nth-child(5), /* Bounce Main */
+        .setups-table tbody td:nth-child(7),               /* 4-Candle Data */
+        .setups-table thead tr:first-child th:nth-child(4), /* Bounce Main */
         .setups-table thead tr:last-child th:nth-child(9),  /* Bounce Sub */
-        .setups-table tbody td:nth-child(11) {             /* Bounce Data */
+        .setups-table tbody td:nth-child(10) {             /* Bounce Data */
             border-right: 2px solid yellow;
         }
-        /* --- End of Styles --- */
-
-        /* --- START: Styles for Notes in Setups Table --- */
-        .setups-table .notes-cell {
-            width: 80px;
-            min-width: 80px;
-            text-align: center;
-            vertical-align: middle;
-        }
-        .note-icon-container {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-        }
-        .note-icon {
-            font-size: 16px;
-            cursor: pointer;
-            opacity: 0.5;
-            transition: opacity 0.2s, color 0.2s;
-        }
-        .note-icon:hover {
-            opacity: 1;
-        }
-        .note-icon.has-note {
-            opacity: 1;
-            color: #ffc107; /* Gold color for notes */
-        }
-        /* --- END: Styles for Notes in Setups Table --- */
+        /* --- END: CSS Change for Yellow Borders --- */
 
         .setups-container {
             margin-bottom: 30px; 
@@ -1296,11 +1273,11 @@
                     <div class="collapsible-content-inner">
                         <h3>Primary</h3>
                         <div class="table-wrapper">
+                            <!-- START: HTML Change for Primary Setups Table (Notes column removed) -->
                             <table id="primary-setups-table" class="setups-table">
                                 <thead>
                                     <tr>
                                         <th rowspan="2">TF</th>
-                                        <th rowspan="2">Notes</th>
                                         <th colspan="3">0-Candle</th>
                                         <th colspan="3">4-Candle</th>
                                         <th colspan="3">0-Candle Bounce</th>
@@ -1318,62 +1295,30 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <th>5min</th>
-                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                    </tr>
-                                    <tr>
-                                        <th>15min</th>
-                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                    </tr>
-                                    <tr>
-                                        <th>30min</th>
-                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                    </tr>
-                                    <tr>
-                                        <th>1hour</th>
-                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                    </tr>
-                                    <tr>
-                                        <th>2hour</th>
-                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                    </tr>
-                                    <tr>
-                                        <th>4hour</th>
-                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                    </tr>
-                                    <tr>
-                                        <th>daily</th>
-                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                    </tr>
-                                    <tr>
-                                        <th>weekly</th>
-                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                    </tr>
-                                    <tr>
-                                        <th>monthly</th>
-                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                    </tr>
+                                    <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
                                 </tbody>
                             </table>
+                            <!-- END: HTML Change for Primary Setups Table -->
                         </div>
+                        <!-- START: HTML Change - Added Notes Textarea -->
+                        <textarea id="primary-setups-notes" class="setups-notes-area" placeholder="Notes for Primary Setups..."></textarea>
+                        <!-- END: HTML Change -->
 
                         <h3 style="margin-top: 25px;">Secondary</h3>
                         <div class="table-wrapper">
+                            <!-- START: HTML Change for Secondary Setups Table (Notes column removed) -->
                             <table id="secondary-setups-table" class="setups-table">
                                <thead>
                                    <tr>
                                         <th rowspan="2">TF</th>
-                                        <th rowspan="2">Notes</th>
                                         <th colspan="3">0-Candle</th>
                                         <th colspan="3">4-Candle</th>
                                         <th colspan="3">0-Candle Bounce</th>
@@ -1391,54 +1336,22 @@
                                    </tr>
                                </thead>
                                <tbody>
-                                   <tr>
-                                       <th>5min</th>
-                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                   </tr>
-                                   <tr>
-                                       <th>15min</th>
-                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                   </tr>
-                                   <tr>
-                                       <th>30min</th>
-                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                   </tr>
-                                   <tr>
-                                       <th>1hour</th>
-                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                   </tr>
-                                   <tr>
-                                       <th>2hour</th>
-                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                   </tr>
-                                   <tr>
-                                       <th>4hour</th>
-                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                   </tr>
-                                   <tr>
-                                       <th>daily</th>
-                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                   </tr>
-                                   <tr>
-                                       <th>weekly</th>
-                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                   </tr>
-                                   <tr>
-                                       <th>monthly</th>
-                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
-                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                                   </tr>
+                                   <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                   <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                   <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                   <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                   <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                   <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                   <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                   <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                   <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
                                </tbody>
                            </table>
+                           <!-- END: HTML Change for Secondary Setups Table -->
                        </div>
+                       <!-- START: HTML Change - Added Notes Textarea -->
+                       <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder="Notes for Secondary Setups..."></textarea>
+                       <!-- END: HTML Change -->
 
                         <div class="setups-controls">
                             <button id="save-setups-1-btn" class="master-only">Save Primary Setups</button>
@@ -1533,7 +1446,6 @@
                         </div>
                         <h4 style="text-align:center; margin-top:30px;">Sentiment History</h4>
                         <div class="table-wrapper">
-                            <!-- START: HTML Change for Sentiment Table Header -->
                             <table id="sentiment-receipts-table">
                                 <thead>
                                     <tr>
@@ -1547,7 +1459,6 @@
                                 </thead>
                                 <tbody id="sentiment-receipts-tbody"></tbody>
                             </table>
-                            <!-- END: HTML Change for Sentiment Table Header -->
                         </div>
                         <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
                     </div>
@@ -1870,6 +1781,8 @@
             persistentNotesEl: document.getElementById('persistent-notes-entry'),
             setupsTable1: document.getElementById('primary-setups-table'),
             setupsTable2: document.getElementById('secondary-setups-table'),
+            primarySetupsNotes: document.getElementById('primary-setups-notes'),
+            secondarySetupsNotes: document.getElementById('secondary-setups-notes'),
             saveSetups1Btn: document.getElementById('save-setups-1-btn'),
             saveSetups2Btn: document.getElementById('save-setups-2-btn'),
             setupsSaveStatus1: document.getElementById('setups-save-status-1'),
@@ -1928,11 +1841,13 @@
             notesSaveTimer: null,
             trackerSaveTimer: null,
             remindersSaveTimer: null,
+            setups1NotesTimer: null,
+            setups2NotesTimer: null,
             isMerging: false,
             mergeBaseTradeId: null,
             modalImageGallery: [],
             modalImageIndex: -1,
-            imageUploadContext: { // <-- Renamed from tradeImageUploadContext
+            imageUploadContext: {
                 id: null,
                 type: null 
             },
@@ -2085,7 +2000,6 @@ if (content) {
 
 
         // --- RENDERING FUNCTIONS ---
-        // START: Generic thumbnail renderer
         function renderAttachmentThumbnails(entry, entryId, entryType) {
             if (!entry.attachedImages) {
                 return `<td class="trade-image-thumbnails"></td>`;
@@ -2115,7 +2029,6 @@ if (content) {
 
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
-        // END: Generic thumbnail renderer
 
         function renderSentimentReceipts(receiptsData) {
             const tbody = DOM.sentimentReceiptsTbody;
@@ -2142,13 +2055,11 @@ if (content) {
                 if (sentimentClass === 'long') sentimentColor = 'var(--green-text)';
                 if (sentimentClass === 'short') sentimentColor = 'var(--red-text)';
 
-                // START: Modified owner actions to include attach pic button
                 const ownerActionsHtml = (receipt.viewerId === currentViewerId && STATE.isMasterUser)
                     ? `<button class="attach-image-btn" data-id="${id}" data-type="sentiment" title="Attach Picture" style="background-color: #17a2b8;">Pic</button>
                        <button class="edit-sentiment-note-btn" data-id="${id}">Note</button>
                        <button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">×</button>`
                     : '';
-                // END: Modified owner actions
 
                 let displayTimestamp, receiptDateStr, isHistorical;
                 if (typeof receipt.timestamp === 'number') {
@@ -2161,7 +2072,6 @@ if (content) {
                     isHistorical = true;
                 }
 
-                // START: Modified row HTML to include charts cell
                 return `
                     <tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${receiptDateStr || ''}">
                         <td>${receipt.asset || '--'}</td>
@@ -2172,7 +2082,6 @@ if (content) {
                         <td class="action-buttons">${ownerActionsHtml}</td>
                     </tr>
                 `;
-                // END: Modified row HTML
             }).join('');
 
             tbody.innerHTML = rowsHtml;
@@ -2686,9 +2595,9 @@ if (content) {
             const letterCheckRegex = /[a-zA-Z]/; 
 
             const setupTypes = [
-                { baseIndex: 1 }, // 0-Candle (index shifted by 1 due to Notes column)
-                { baseIndex: 4 }, // 4-Candle
-                { baseIndex: 7 }  // 0-Candle Bounce
+                { baseIndex: 0 }, // 0-Candle
+                { baseIndex: 3 }, // 4-Candle
+                { baseIndex: 6 }  // 0-Candle Bounce
             ];
 
             tbody.querySelectorAll('tr').forEach(row => {
@@ -2726,7 +2635,8 @@ if (content) {
             });
         }
         
-        function renderSetupsTable(tableElement, data) {
+        // --- START: JS Change for renderSetupsTable with notes area ---
+        function renderSetupsTable(tableElement, data, notesTextareaId) {
             if (!tableElement) return;
             const tbody = tableElement.querySelector('tbody');
 
@@ -2734,35 +2644,27 @@ if (content) {
                 const timeframe = row.firstElementChild.textContent.trim();
                 const rowData = data[timeframe] || {};
                 const cells = row.querySelectorAll('td');
-
-                const notesCell = cells[0];
-                const noteIcons = notesCell.querySelectorAll('.note-icon');
                 
-                const zeroNote = rowData.zero_note || '';
-                noteIcons[0].title = zeroNote;
-                noteIcons[0].classList.toggle('has-note', !!zeroNote);
-
-                const fourNote = rowData.four_note || '';
-                noteIcons[1].title = fourNote;
-                noteIcons[1].classList.toggle('has-note', !!fourNote);
-                
-                const bounceNote = rowData.bounce_note || '';
-                noteIcons[2].title = bounceNote;
-                noteIcons[2].classList.toggle('has-note', !!bounceNote);
-
-                cells[1].textContent = rowData.zero_entry || '';
-                cells[2].textContent = rowData.zero_target || '';
-                cells[3].textContent = rowData.zero_stoploss || '';
-                cells[4].textContent = rowData.four_entry || '';
-                cells[5].textContent = rowData.four_target || '';
-                cells[6].textContent = rowData.four_stoploss || '';
-                cells[7].textContent = rowData.bounce_entry || '';
-                cells[8].textContent = rowData.bounce_target || '';
-                cells[9].textContent = rowData.bounce_stoploss || '';
+                cells[0].textContent = rowData.zero_entry || '';
+                cells[1].textContent = rowData.zero_target || '';
+                cells[2].textContent = rowData.zero_stoploss || '';
+                cells[3].textContent = rowData.four_entry || '';
+                cells[4].textContent = rowData.four_target || '';
+                cells[5].textContent = rowData.four_stoploss || '';
+                cells[6].textContent = rowData.bounce_entry || '';
+                cells[7].textContent = rowData.bounce_target || '';
+                cells[8].textContent = rowData.bounce_stoploss || '';
             });
+
+            const notesTextarea = document.getElementById(notesTextareaId);
+            if (notesTextarea) {
+                notesTextarea.value = data.global_notes || '';
+                autoResizeTextarea(notesTextarea);
+            }
 
             applyHighlightingToSetupsTable(tableElement);
         }
+        // --- END: JS Change ---
 
         function renderSrLevels() {
             const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
@@ -2854,7 +2756,8 @@ if (content) {
 
 
         // --- DATA HANDLING AND SAVING ---
-        function saveSetupsTable(tableElement, dbRef, statusElement) {
+        // --- START: JS Change for saveSetupsTable with notes area ---
+        function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
             if (!STATE.isMasterUser) return;
             const dataToSave = {};
             const tbody = tableElement.querySelector('tbody');
@@ -2863,24 +2766,23 @@ if (content) {
                 const timeframe = row.firstElementChild.textContent.trim();
                 const cells = row.querySelectorAll('td');
 
-                const noteIcons = cells[0].querySelectorAll('.note-icon');
-
                 dataToSave[timeframe] = {
-                    zero_note: noteIcons[0].title || '',
-                    four_note: noteIcons[1].title || '',
-                    bounce_note: noteIcons[2].title || '',
-                    
-                    zero_entry: cells[1].textContent.trim(),
-                    zero_target: cells[2].textContent.trim(),
-                    zero_stoploss: cells[3].textContent.trim(),
-                    four_entry: cells[4].textContent.trim(),
-                    four_target: cells[5].textContent.trim(),
-                    four_stoploss: cells[6].textContent.trim(),
-                    bounce_entry: cells[7].textContent.trim(),
-                    bounce_target: cells[8].textContent.trim(),
-                    bounce_stoploss: cells[9].textContent.trim()
+                    zero_entry: cells[0].textContent.trim(),
+                    zero_target: cells[1].textContent.trim(),
+                    zero_stoploss: cells[2].textContent.trim(),
+                    four_entry: cells[3].textContent.trim(),
+                    four_target: cells[4].textContent.trim(),
+                    four_stoploss: cells[5].textContent.trim(),
+                    bounce_entry: cells[6].textContent.trim(),
+                    bounce_target: cells[7].textContent.trim(),
+                    bounce_stoploss: cells[8].textContent.trim()
                 };
             });
+
+            const notesTextarea = document.getElementById(notesTextareaId);
+            if (notesTextarea) {
+                dataToSave.global_notes = notesTextarea.value;
+            }
 
             statusElement.textContent = 'Saving...';
             dbRef.set(dataToSave).then(() => {
@@ -2891,6 +2793,7 @@ if (content) {
                 console.error("Error saving setups table:", e);
             });
         }
+        // --- END: JS Change ---
 
         const saveJournalEntry = () => {
             clearTimeout(STATE.journalSaveTimer);
@@ -2947,6 +2850,20 @@ if (content) {
                 STATE.tradeRemindersText = text;
                 dbRefs.tradeReminders.set(text)
                     .catch(e => console.error("Error saving trade reminders:", e));
+            }, 750);
+        };
+
+        const savePrimarySetupsNotes = () => {
+            clearTimeout(STATE.setups1NotesTimer);
+            STATE.setups1NotesTimer = setTimeout(() => {
+                saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
+            }, 750);
+        };
+        
+        const saveSecondarySetupsNotes = () => {
+            clearTimeout(STATE.setups2NotesTimer);
+            STATE.setups2NotesTimer = setTimeout(() => {
+                saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
             }, 750);
         };
 
@@ -3211,12 +3128,6 @@ if (content) {
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
 
             DOM.trackerTab.addEventListener('click', (e) => {
-                const noteIcon = e.target.closest('.note-icon');
-                if (noteIcon) {
-                    handleSetupNoteClick(noteIcon);
-                    return; 
-                }
-
                 if (handleAttachmentActions(e)) {
                     return;
                 }
@@ -3291,6 +3202,17 @@ if (content) {
                 autoResizeTextarea(DOM.tradeRemindersScratchpadEl);
                 saveTradeReminders();
             });
+
+            // --- START: JS Change - Add event listeners for new textareas ---
+            DOM.primarySetupsNotes.addEventListener('input', () => {
+                autoResizeTextarea(DOM.primarySetupsNotes);
+                savePrimarySetupsNotes();
+            });
+            DOM.secondarySetupsNotes.addEventListener('input', () => {
+                autoResizeTextarea(DOM.secondarySetupsNotes);
+                saveSecondarySetupsNotes();
+            });
+            // --- END: JS Change ---
 
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
@@ -3397,8 +3319,8 @@ if (content) {
                 }
             });
 
-            DOM.saveSetups1Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1));
-            DOM.saveSetups2Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2));
+            DOM.saveSetups1Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'));
+            DOM.saveSetups2Btn.addEventListener('click', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'));
 
             DOM.srSymbolEl.addEventListener('change', renderSrLevels);
             DOM.srLookbackEl.addEventListener('change', renderSrLevels);
@@ -3413,25 +3335,6 @@ if (content) {
         }
 
         // --- EVENT HANDLER LOGIC ---
-        function handleSetupNoteClick(noteIcon) {
-            if (!STATE.isMasterUser) return;
-
-            const currentNote = noteIcon.title || '';
-            const newNote = prompt(`Edit note for ${noteIcon.dataset.noteType.replace('_note', '')} setup:`, currentNote);
-
-            if (newNote !== null) {
-                noteIcon.title = newNote;
-                noteIcon.classList.toggle('has-note', !!newNote.trim());
-                
-                const table = noteIcon.closest('.setups-table');
-                if (table.id === 'primary-setups-table') {
-                    saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1);
-                } else if (table.id === 'secondary-setups-table') {
-                    saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2);
-                }
-            }
-        }
-
         function handleAddTradeSubmit(e) {
             e.preventDefault();
             if (!STATE.isMasterUser) return alert('You do not have permission to add trades.');
@@ -3755,7 +3658,6 @@ if (content) {
         function handleGenericImageLibraryClick(e) {
             const clickedImg = e.target.closest('img');
             if (clickedImg && clickedImg.dataset.fullSrc) {
-                // Modified the selector to include .trade-image-thumbnails
                 const galleryContainer = clickedImg.closest('#image-library-container, #setups-image-container, .cl2-image-grid, #chart-library-2-preview-container, .trade-image-thumbnails');
                 if (galleryContainer) {
                     const allImageElements = galleryContainer.querySelectorAll('img');
@@ -3871,7 +3773,7 @@ if (content) {
             const { id } = button.dataset;
             const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
             const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
-
+            
             if (button.matches('.win-btn')) completeTrade(id, 'win');
             else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
             else if (button.matches('.add-to-position-btn')) handleAddStaggeredEntry(id);
@@ -3889,7 +3791,7 @@ if (content) {
                 });
             }
         }
-
+        
         // START: Generic attachment functions
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn');
@@ -4242,11 +4144,11 @@ if (content) {
 
             dbRefs.setups1.on('value', (s) => {
                 STATE.setupsData1 = s.val() || {};
-                renderSetupsTable(DOM.setupsTable1, STATE.setupsData1);
+                renderSetupsTable(DOM.setupsTable1, STATE.setupsData1, 'primary-setups-notes');
             });
             dbRefs.setups2.on('value', (s) => {
                 STATE.setupsData2 = s.val() || {};
-                renderSetupsTable(DOM.setupsTable2, STATE.setupsData2);
+                renderSetupsTable(DOM.setupsTable2, STATE.setupsData2, 'secondary-setups-notes');
             });
 
             dbRefs.persistentNotes.on('value', (s) => {
@@ -4327,6 +4229,9 @@ if (content) {
                     document.querySelectorAll('.setups-table td').forEach(cell => {
                         cell.setAttribute('contenteditable', 'true');
                     });
+                     // Make setup notes editable
+                    DOM.primarySetupsNotes.readOnly = false;
+                    DOM.secondarySetupsNotes.readOnly = false;
                 }
             }
              if (!STATE.isMasterUser) {
@@ -4334,6 +4239,9 @@ if (content) {
                 DOM.persistentNotesEl.readOnly = true;
                 DOM.trackerScratchpadEl.readOnly = true;
                 DOM.tradeRemindersScratchpadEl.readOnly = true;
+                // Make setup notes read-only for viewers
+                DOM.primarySetupsNotes.readOnly = true;
+                DOM.secondarySetupsNotes.readOnly = true;
             }
         }
 
