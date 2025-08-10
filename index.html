@@ -1686,7 +1686,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-
 <script>
     document.addEventListener('DOMContentLoaded', () => {
 
@@ -2635,7 +2634,6 @@ if (content) {
             });
         }
         
-        // --- START: JS Change for renderSetupsTable with notes area ---
         function renderSetupsTable(tableElement, data, notesTextareaId) {
             if (!tableElement) return;
             const tbody = tableElement.querySelector('tbody');
@@ -2664,7 +2662,6 @@ if (content) {
 
             applyHighlightingToSetupsTable(tableElement);
         }
-        // --- END: JS Change ---
 
         function renderSrLevels() {
             const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
@@ -2756,7 +2753,6 @@ if (content) {
 
 
         // --- DATA HANDLING AND SAVING ---
-        // --- START: JS Change for saveSetupsTable with notes area ---
         function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
             if (!STATE.isMasterUser) return;
             const dataToSave = {};
@@ -2765,7 +2761,6 @@ if (content) {
             tbody.querySelectorAll('tr').forEach(row => {
                 const timeframe = row.firstElementChild.textContent.trim();
                 const cells = row.querySelectorAll('td');
-
                 dataToSave[timeframe] = {
                     zero_entry: cells[0].textContent.trim(),
                     zero_target: cells[1].textContent.trim(),
@@ -2793,7 +2788,6 @@ if (content) {
                 console.error("Error saving setups table:", e);
             });
         }
-        // --- END: JS Change ---
 
         const saveJournalEntry = () => {
             clearTimeout(STATE.journalSaveTimer);
@@ -3126,12 +3120,15 @@ if (content) {
             });
 
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
-
+            
+            // --- START: Main Click Handler (Refactored for clarity) ---
             DOM.trackerTab.addEventListener('click', (e) => {
+                // Priority 1: Handle attachment-related clicks (add, delete, view)
                 if (handleAttachmentActions(e)) {
                     return;
                 }
                 
+                // Priority 2: Handle other specific button clicks
                 if (e.target.matches('.ema-pill-btn')) {
                     e.stopPropagation(); 
                     const pillBtn = e.target;
@@ -3141,17 +3138,19 @@ if (content) {
                     renderEmaSnapshot(pillBtn.dataset.symbol);
                 } else if (e.target.closest('.sentiment-buttons button')) {
                     handleSentimentLog(e);
-                } else if (e.target.matches('.delete-sentiment-btn')) {
-                    handleSentimentDelete(e);
-                } else if (e.target.matches('.edit-sentiment-note-btn')) {
-                    handleSentimentNoteEdit(e);
                 } else if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container')) {
                     handleGenericImageLibraryClick(e);
-                } else if (e.target.closest('#trades-tbody')) {
+                } 
+                // Priority 3: Handle table-wide actions
+                else if (e.target.closest('#trades-tbody')) {
                     handleTradeAction(e);
                 } else if (e.target.closest('#completed-trades-tbody')) {
                     handleTradeAction(e);
-                } else if (e.target.id === 'toggle-old-sentiments') {
+                } else if (e.target.closest('#sentiment-receipts-tbody')) {
+                    handleSentimentAction(e);
+                }
+                // Priority 4: Handle generic UI toggles
+                else if (e.target.id === 'toggle-old-sentiments') {
                     toggleHistoricalRows('sentiment-receipts-tbody', e.target);
                 } else if (e.target.id === 'toggle-old-trades') {
                     toggleHistoricalRows('completed-trades-tbody', e.target);
@@ -3183,12 +3182,18 @@ if (content) {
                     }
                 }
             });
+            // --- END: Main Click Handler ---
 
             DOM.trackerTab.addEventListener('blur', (e) => {
                 if (e.target.matches('.setups-table td[contenteditable="true"]')) {
                     const tableElement = e.target.closest('.setups-table');
                     if (tableElement) {
                         applyHighlightingToSetupsTable(tableElement);
+                        if (tableElement.id === 'primary-setups-table') {
+                           saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
+                        } else {
+                           saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
+                        }
                     }
                 }
             }, true);
@@ -3203,7 +3208,6 @@ if (content) {
                 saveTradeReminders();
             });
 
-            // --- START: JS Change - Add event listeners for new textareas ---
             DOM.primarySetupsNotes.addEventListener('input', () => {
                 autoResizeTextarea(DOM.primarySetupsNotes);
                 savePrimarySetupsNotes();
@@ -3212,7 +3216,6 @@ if (content) {
                 autoResizeTextarea(DOM.secondarySetupsNotes);
                 saveSecondarySetupsNotes();
             });
-            // --- END: JS Change ---
 
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
@@ -3547,8 +3550,24 @@ if (content) {
                 });
         }
 
-        function handleSentimentDelete(e) {
-            const button = e.target;
+        // --- START: New dedicated handler for Sentiment table actions ---
+        function handleSentimentAction(e) {
+            if (!STATE.isMasterUser) return;
+            
+            const editBtn = e.target.closest('.edit-sentiment-note-btn');
+            if (editBtn) {
+                handleSentimentNoteEdit(editBtn);
+                return;
+            }
+            
+            const deleteBtn = e.target.closest('.delete-sentiment-btn');
+            if (deleteBtn) {
+                handleSentimentDelete(deleteBtn);
+                return;
+            }
+        }
+
+        function handleSentimentDelete(button) {
             const receiptId = button.dataset.id;
             if (!receiptId) return;
 
@@ -3561,8 +3580,7 @@ if (content) {
             }
         }
 
-        function handleSentimentNoteEdit(e) {
-            const button = e.target;
+        function handleSentimentNoteEdit(button) {
             const receiptId = button.dataset.id;
             if (!receiptId) return;
 
@@ -3580,6 +3598,7 @@ if (content) {
                 }
             });
         }
+        // --- END: New dedicated handler ---
 
         function handleAddStaggeredEntry(tradeId) {
             if (!STATE.isMasterUser) return;
@@ -3655,6 +3674,7 @@ if (content) {
             });
         }
 
+        // --- START: Corrected Image Click Handler ---
         function handleGenericImageLibraryClick(e) {
             const clickedImg = e.target.closest('img');
             if (clickedImg && clickedImg.dataset.fullSrc) {
@@ -3678,6 +3698,7 @@ if (content) {
                 handleChartLibrary2Click(e);
             }
         }
+        // --- END: Corrected Image Click Handler ---
 
         function handleLibraryActions(e, libraryType, dbRef) {
             const deleteBtn = e.target.closest('.delete-library-image');
@@ -3806,6 +3827,14 @@ if (content) {
                 handleDeleteAttachmentImage(entryId, entryType, imageId, filename);
                 return true;
             }
+
+            // This is the new part: handle clicks on the image itself to open the modal
+            const img = e.target.closest('.trade-image-thumbnails img');
+            if (img) {
+                handleGenericImageLibraryClick(e);
+                return true;
+            }
+
             return false;
         }
 
@@ -4287,6 +4316,7 @@ if (content) {
         initializeApp();
     });
 </script>
+```
 
 </body>
 </html>
