@@ -393,7 +393,7 @@
 
         /* --- Yellow borders for setup sections --- */
         /* Top Borders */
-        .setups-table thead tr:first-child th:nth-child(n+2) {
+        .setups-table thead tr:first-child th:nth-child(n+3) {
             border-top: 2px solid yellow;
         }
 
@@ -404,31 +404,58 @@
         }
 
         /* Left Borders for each section */
-        .setups-table thead tr:first-child th:nth-child(2), /* 0-Candle Main */
+        .setups-table thead tr:first-child th:nth-child(3), /* 0-Candle Main */
         .setups-table thead tr:last-child th:nth-child(1),  /* 0-Candle Sub */
-        .setups-table tbody td:nth-child(2),               /* 0-Candle Data */
-        .setups-table thead tr:first-child th:nth-child(3), /* 4-Candle Main */
+        .setups-table tbody td:nth-child(3),               /* 0-Candle Data */
+        .setups-table thead tr:first-child th:nth-child(4), /* 4-Candle Main */
         .setups-table thead tr:last-child th:nth-child(4),  /* 4-Candle Sub */
-        .setups-table tbody td:nth-child(5),               /* 4-Candle Data */
-        .setups-table thead tr:first-child th:nth-child(4), /* Bounce Main */
+        .setups-table tbody td:nth-child(6),               /* 4-Candle Data */
+        .setups-table thead tr:first-child th:nth-child(5), /* Bounce Main */
         .setups-table thead tr:last-child th:nth-child(7),  /* Bounce Sub */
-        .setups-table tbody td:nth-child(8) {              /* Bounce Data */
+        .setups-table tbody td:nth-child(9) {              /* Bounce Data */
             border-left: 2px solid yellow;
         }
 
         /* Right Borders for each section */
-        .setups-table thead tr:first-child th:nth-child(2), /* 0-Candle Main */
+        .setups-table thead tr:first-child th:nth-child(3), /* 0-Candle Main */
         .setups-table thead tr:last-child th:nth-child(3),  /* 0-Candle Sub */
-        .setups-table tbody td:nth-child(4),               /* 0-Candle Data */
-        .setups-table thead tr:first-child th:nth-child(3), /* 4-Candle Main */
+        .setups-table tbody td:nth-child(5),               /* 0-Candle Data */
+        .setups-table thead tr:first-child th:nth-child(4), /* 4-Candle Main */
         .setups-table thead tr:last-child th:nth-child(6),  /* 4-Candle Sub */
-        .setups-table tbody td:nth-child(7),               /* 4-Candle Data */
-        .setups-table thead tr:first-child th:nth-child(4), /* Bounce Main */
+        .setups-table tbody td:nth-child(8),               /* 4-Candle Data */
+        .setups-table thead tr:first-child th:nth-child(5), /* Bounce Main */
         .setups-table thead tr:last-child th:nth-child(9),  /* Bounce Sub */
-        .setups-table tbody td:nth-child(10) {             /* Bounce Data */
+        .setups-table tbody td:nth-child(11) {             /* Bounce Data */
             border-right: 2px solid yellow;
         }
         /* --- End of Styles --- */
+
+        /* --- START: Styles for Notes in Setups Table --- */
+        .setups-table .notes-cell {
+            width: 80px;
+            min-width: 80px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .note-icon-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .note-icon {
+            font-size: 16px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s, color 0.2s;
+        }
+        .note-icon:hover {
+            opacity: 1;
+        }
+        .note-icon.has-note {
+            opacity: 1;
+            color: #ffc107; /* Gold color for notes */
+        }
+        /* --- END: Styles for Notes in Setups Table --- */
 
         .setups-container {
             margin-bottom: 30px; 
@@ -1269,10 +1296,12 @@
                     <div class="collapsible-content-inner">
                         <h3>Primary</h3>
                         <div class="table-wrapper">
+                            <!-- START: HTML Change for Primary Setups Table -->
                             <table id="primary-setups-table" class="setups-table">
                                 <thead>
                                     <tr>
                                         <th rowspan="2">TF</th>
+                                        <th rowspan="2">Notes</th>
                                         <th colspan="3">0-Candle</th>
                                         <th colspan="3">4-Candle</th>
                                         <th colspan="3">0-Candle Bounce</th>
@@ -1290,28 +1319,67 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr>
+                                        <th>5min</th>
+                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                    </tr>
+                                    <tr>
+                                        <th>15min</th>
+                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                    </tr>
+                                    <tr>
+                                        <th>30min</th>
+                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                    </tr>
+                                    <tr>
+                                        <th>1hour</th>
+                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                    </tr>
+                                    <tr>
+                                        <th>2hour</th>
+                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                    </tr>
+                                    <tr>
+                                        <th>4hour</th>
+                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                    </tr>
+                                    <tr>
+                                        <th>daily</th>
+                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                    </tr>
+                                    <tr>
+                                        <th>weekly</th>
+                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                    </tr>
+                                    <tr>
+                                        <th>monthly</th>
+                                        <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                    </tr>
                                 </tbody>
                             </table>
+                            <!-- END: HTML Change for Primary Setups Table -->
                         </div>
 
                         <h3 style="margin-top: 25px;">Secondary</h3>
                         <div class="table-wrapper">
+                             <!-- START: HTML Change for Secondary Setups Table -->
                             <table id="secondary-setups-table" class="setups-table">
                                <thead>
                                    <tr>
-                                       <th rowspan="2">TF</th>
-                                       <th colspan="3">0-Candle</th>
-                                       <th colspan="3">4-Candle</th>
-                                       <th colspan="3">0-Candle Bounce</th>
+                                        <th rowspan="2">TF</th>
+                                        <th rowspan="2">Notes</th>
+                                        <th colspan="3">0-Candle</th>
+                                        <th colspan="3">4-Candle</th>
+                                        <th colspan="3">0-Candle Bounce</th>
                                    </tr>
                                    <tr>
                                        <th>Entry</th>
@@ -1326,17 +1394,54 @@
                                    </tr>
                                </thead>
                                <tbody>
-                                   <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                   <tr>
+                                       <th>5min</th>
+                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                   </tr>
+                                   <tr>
+                                       <th>15min</th>
+                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                   </tr>
+                                   <tr>
+                                       <th>30min</th>
+                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                   </tr>
+                                   <tr>
+                                       <th>1hour</th>
+                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                   </tr>
+                                   <tr>
+                                       <th>2hour</th>
+                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                   </tr>
+                                   <tr>
+                                       <th>4hour</th>
+                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                   </tr>
+                                   <tr>
+                                       <th>daily</th>
+                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                   </tr>
+                                   <tr>
+                                       <th>weekly</th>
+                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                   </tr>
+                                   <tr>
+                                       <th>monthly</th>
+                                       <td class="notes-cell"><div class="note-icon-container"><span class="note-icon" data-note-type="zero_note">💬</span><span class="note-icon" data-note-type="four_note">💬</span><span class="note-icon" data-note-type="bounce_note">💬</span></div></td>
+                                       <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                   </tr>
                                </tbody>
                            </table>
+                           <!-- END: HTML Change for Secondary Setups Table -->
                        </div>
 
                         <div class="setups-controls">
@@ -2568,17 +2673,15 @@ if (content) {
             container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
         }
 
-        // --- START: CORRECTED FUNCTION ---
-        // This is the dedicated function for applying highlights.
         function applyHighlightingToSetupsTable(tableElement) {
             if (!tableElement) return;
             const tbody = tableElement.querySelector('tbody');
-            const letterCheckRegex = /[a-zA-Z]/; // This regex will find any letter.
+            const letterCheckRegex = /[a-zA-Z]/; 
 
             const setupTypes = [
-                { baseIndex: 0 }, // 0-Candle
-                { baseIndex: 3 }, // 4-Candle
-                { baseIndex: 6 }  // 0-Candle Bounce
+                { baseIndex: 1 }, // 0-Candle (index shifted by 1 due to Notes column)
+                { baseIndex: 4 }, // 4-Candle
+                { baseIndex: 7 }  // 0-Candle Bounce
             ];
 
             tbody.querySelectorAll('tr').forEach(row => {
@@ -2591,28 +2694,22 @@ if (content) {
                     const stoplossCell = cells[setup.baseIndex + 2];
                     const groupCells = [entryCell, targetCell, stoplossCell];
 
-                    // Always reset existing highlighting before re-evaluating.
                     groupCells.forEach(cell => cell.classList.remove('highlight-long', 'highlight-short'));
 
                     const entryText = entryCell.textContent.trim();
                     const targetText = targetCell.textContent.trim();
 
-                    // --- NEW, STRICTER VALIDATION ---
-                    // 1. If either cell contains any letters, it's invalid. Stop and do not highlight.
                     if (letterCheckRegex.test(entryText) || letterCheckRegex.test(targetText)) {
-                        return; // Exit for this setup group (e.g., "hit profit" fails here).
+                        return; 
                     }
-
-                    // 2. Now, parse the text into numbers. This handles commas and other symbols.
+                    
                     const entryValue = parseFloat(String(entryText).replace(/[^0-9.-]/g, ''));
                     const targetValue = parseFloat(String(targetText).replace(/[^0-9.-]/g, ''));
 
-                    // 3. Check if the results are actual numbers. This handles empty cells.
                     if (isNaN(entryValue) || isNaN(targetValue)) {
-                        return; // Exit if a cell is empty or couldn't be parsed.
+                        return;
                     }
 
-                    // 4. Only if all checks pass, apply the highlighting logic.
                     if (targetValue > entryValue) {
                         groupCells.forEach(cell => cell.classList.add('highlight-long'));
                     } else if (entryValue > targetValue) {
@@ -2621,8 +2718,8 @@ if (content) {
                 });
             });
         }
-
-        // This function now just populates data and then calls the highlighter.
+        
+        // --- START: JS Change for renderSetupsTable ---
         function renderSetupsTable(tableElement, data) {
             if (!tableElement) return;
             const tbody = tableElement.querySelector('tbody');
@@ -2632,21 +2729,37 @@ if (content) {
                 const rowData = data[timeframe] || {};
                 const cells = row.querySelectorAll('td');
 
-                cells[0].textContent = rowData.zero_entry || '';
-                cells[1].textContent = rowData.zero_target || '';
-                cells[2].textContent = rowData.zero_stoploss || '';
-                cells[3].textContent = rowData.four_entry || '';
-                cells[4].textContent = rowData.four_target || '';
-                cells[5].textContent = rowData.four_stoploss || '';
-                cells[6].textContent = rowData.bounce_entry || '';
-                cells[7].textContent = rowData.bounce_target || '';
-                cells[8].textContent = rowData.bounce_stoploss || '';
+                // Populate note icons
+                const notesCell = cells[0];
+                const noteIcons = notesCell.querySelectorAll('.note-icon');
+                
+                const zeroNote = rowData.zero_note || '';
+                noteIcons[0].title = zeroNote;
+                noteIcons[0].classList.toggle('has-note', !!zeroNote);
+
+                const fourNote = rowData.four_note || '';
+                noteIcons[1].title = fourNote;
+                noteIcons[1].classList.toggle('has-note', !!fourNote);
+                
+                const bounceNote = rowData.bounce_note || '';
+                noteIcons[2].title = bounceNote;
+                noteIcons[2].classList.toggle('has-note', !!bounceNote);
+
+                // Populate data cells (indices shifted by 1)
+                cells[1].textContent = rowData.zero_entry || '';
+                cells[2].textContent = rowData.zero_target || '';
+                cells[3].textContent = rowData.zero_stoploss || '';
+                cells[4].textContent = rowData.four_entry || '';
+                cells[5].textContent = rowData.four_target || '';
+                cells[6].textContent = rowData.four_stoploss || '';
+                cells[7].textContent = rowData.bounce_entry || '';
+                cells[8].textContent = rowData.bounce_target || '';
+                cells[9].textContent = rowData.bounce_stoploss || '';
             });
 
-            // After populating the data, apply the visual highlighting.
             applyHighlightingToSetupsTable(tableElement);
         }
-        // --- END: CORRECTED FUNCTION ---
+        // --- END: JS Change for renderSetupsTable ---
 
         function renderSrLevels() {
             const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
@@ -2738,6 +2851,7 @@ if (content) {
 
 
         // --- DATA HANDLING AND SAVING ---
+        // --- START: JS Change for saveSetupsTable ---
         function saveSetupsTable(tableElement, dbRef, statusElement) {
             if (!STATE.isMasterUser) return;
             const dataToSave = {};
@@ -2746,16 +2860,25 @@ if (content) {
             tbody.querySelectorAll('tr').forEach(row => {
                 const timeframe = row.firstElementChild.textContent.trim();
                 const cells = row.querySelectorAll('td');
+
+                // Get notes from icon titles
+                const noteIcons = cells[0].querySelectorAll('.note-icon');
+
                 dataToSave[timeframe] = {
-                    zero_entry: cells[0].textContent.trim(),
-                    zero_target: cells[1].textContent.trim(),
-                    zero_stoploss: cells[2].textContent.trim(),
-                    four_entry: cells[3].textContent.trim(),
-                    four_target: cells[4].textContent.trim(),
-                    four_stoploss: cells[5].textContent.trim(),
-                    bounce_entry: cells[6].textContent.trim(),
-                    bounce_target: cells[7].textContent.trim(),
-                    bounce_stoploss: cells[8].textContent.trim()
+                    zero_note: noteIcons[0].title || '',
+                    four_note: noteIcons[1].title || '',
+                    bounce_note: noteIcons[2].title || '',
+                    
+                    // Get data from contenteditable cells (indices shifted by 1)
+                    zero_entry: cells[1].textContent.trim(),
+                    zero_target: cells[2].textContent.trim(),
+                    zero_stoploss: cells[3].textContent.trim(),
+                    four_entry: cells[4].textContent.trim(),
+                    four_target: cells[5].textContent.trim(),
+                    four_stoploss: cells[6].textContent.trim(),
+                    bounce_entry: cells[7].textContent.trim(),
+                    bounce_target: cells[8].textContent.trim(),
+                    bounce_stoploss: cells[9].textContent.trim()
                 };
             });
 
@@ -2768,6 +2891,7 @@ if (content) {
                 console.error("Error saving setups table:", e);
             });
         }
+        // --- END: JS Change for saveSetupsTable ---
 
         const saveJournalEntry = () => {
             clearTimeout(STATE.journalSaveTimer);
@@ -3087,9 +3211,15 @@ if (content) {
 
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
 
-            // --- START: FIX ---
-            // Reordered the event listener logic to prioritize more specific checks (like image clicks) first.
             DOM.trackerTab.addEventListener('click', (e) => {
+                // --- START: JS Event Listener Change for Notes ---
+                const noteIcon = e.target.closest('.note-icon');
+                if (noteIcon) {
+                    handleSetupNoteClick(noteIcon);
+                    return; // Stop further processing
+                }
+                // --- END: JS Event Listener Change for Notes ---
+                
                 if (e.target.matches('.ema-pill-btn')) {
                     e.stopPropagation(); 
                     const pillBtn = e.target;
@@ -3141,7 +3271,6 @@ if (content) {
                     }
                 }
             });
-            // --- END: FIX ---
 
             DOM.trackerTab.addEventListener('blur', (e) => {
                 if (e.target.matches('.setups-table td[contenteditable="true"]')) {
@@ -3283,6 +3412,28 @@ if (content) {
         }
 
         // --- EVENT HANDLER LOGIC ---
+        // --- START: JS New Function for Note Clicks ---
+        function handleSetupNoteClick(noteIcon) {
+            if (!STATE.isMasterUser) return;
+
+            const currentNote = noteIcon.title || '';
+            const newNote = prompt(`Edit note for ${noteIcon.dataset.noteType.replace('_note', '')} setup:`, currentNote);
+
+            if (newNote !== null) {
+                noteIcon.title = newNote;
+                noteIcon.classList.toggle('has-note', !!newNote.trim());
+                
+                // Automatically save the entire table when a note is changed.
+                const table = noteIcon.closest('.setups-table');
+                if (table.id === 'primary-setups-table') {
+                    saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1);
+                } else if (table.id === 'secondary-setups-table') {
+                    saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2);
+                }
+            }
+        }
+        // --- END: JS New Function for Note Clicks ---
+
         function handleAddTradeSubmit(e) {
             e.preventDefault();
             if (!STATE.isMasterUser) return alert('You do not have permission to add trades.');
@@ -4164,7 +4315,6 @@ if (content) {
             renderChartLibrary2Folders();
             renderChartLibrary2Preview();
             
-            // MODIFICATION HERE: Added 'Trading Setups' to the array
             const sectionsToOpen = ['Reminders', 'Live Trades', 'Sentiment Log', 'Add New Trade', 'Notes', 'Trading Setups'];
             document.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 if (sectionsToOpen.includes(h2.textContent.trim())) {
