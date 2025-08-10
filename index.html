@@ -1296,7 +1296,6 @@
                     <div class="collapsible-content-inner">
                         <h3>Primary</h3>
                         <div class="table-wrapper">
-                            <!-- START: HTML Change for Primary Setups Table -->
                             <table id="primary-setups-table" class="setups-table">
                                 <thead>
                                     <tr>
@@ -1366,12 +1365,10 @@
                                     </tr>
                                 </tbody>
                             </table>
-                            <!-- END: HTML Change for Primary Setups Table -->
                         </div>
 
                         <h3 style="margin-top: 25px;">Secondary</h3>
                         <div class="table-wrapper">
-                             <!-- START: HTML Change for Secondary Setups Table -->
                             <table id="secondary-setups-table" class="setups-table">
                                <thead>
                                    <tr>
@@ -1441,7 +1438,6 @@
                                    </tr>
                                </tbody>
                            </table>
-                           <!-- END: HTML Change for Secondary Setups Table -->
                        </div>
 
                         <div class="setups-controls">
@@ -1537,18 +1533,21 @@
                         </div>
                         <h4 style="text-align:center; margin-top:30px;">Sentiment History</h4>
                         <div class="table-wrapper">
+                            <!-- START: HTML Change for Sentiment Table Header -->
                             <table id="sentiment-receipts-table">
                                 <thead>
                                     <tr>
                                         <th>Asset</th>
                                         <th>Sentiment</th>
                                         <th class="note-header">Note</th>
+                                        <th>Charts</th>
                                         <th>Timestamp</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sentiment-receipts-tbody"></tbody>
                             </table>
+                            <!-- END: HTML Change for Sentiment Table Header -->
                         </div>
                         <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
                     </div>
@@ -1933,9 +1932,9 @@
             mergeBaseTradeId: null,
             modalImageGallery: [],
             modalImageIndex: -1,
-            tradeImageUploadContext: {
-                tradeId: null,
-                tradeType: null 
+            imageUploadContext: { // <-- Renamed from tradeImageUploadContext
+                id: null,
+                type: null 
             },
         };
 
@@ -2086,6 +2085,38 @@ if (content) {
 
 
         // --- RENDERING FUNCTIONS ---
+        // START: Generic thumbnail renderer
+        function renderAttachmentThumbnails(entry, entryId, entryType) {
+            if (!entry.attachedImages) {
+                return `<td class="trade-image-thumbnails"></td>`;
+            }
+
+            const images = entry.attachedImages || {};
+            const masterDeleteBtn = (imageId, fileName) => (STATE.isMasterUser) ? `
+                <button class="delete-trade-image" title="Delete Attachment" 
+                    data-entry-id="${entryId}" 
+                    data-entry-type="${entryType}" 
+                    data-image-id="${imageId}" 
+                    data-filename="${fileName}">×</button>
+            ` : '';
+
+            const thumbnailsHtml = Object.keys(images).sort((a, b) => images[b].timestamp - images[a].timestamp).map(imageId => {
+                const imgData = images[imageId];
+                if (!imgData?.url) return '';
+                return `
+                    <div class="thumbnail-wrapper">
+                        ${masterDeleteBtn(imageId, imgData.fileName)}
+                        <img src="${imgData.url}" alt="Attachment" 
+                             data-full-src="${imgData.url}" 
+                             data-caption="Attachment for ${entryType} ${entryId}">
+                    </div>
+                `;
+            }).join('');
+
+            return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
+        }
+        // END: Generic thumbnail renderer
+
         function renderSentimentReceipts(receiptsData) {
             const tbody = DOM.sentimentReceiptsTbody;
             if (!tbody) return;
@@ -2111,10 +2142,13 @@ if (content) {
                 if (sentimentClass === 'long') sentimentColor = 'var(--green-text)';
                 if (sentimentClass === 'short') sentimentColor = 'var(--red-text)';
 
-                const ownerActionsHtml = (receipt.viewerId === currentViewerId)
-                    ? `<button class="edit-sentiment-note-btn" data-id="${id}">Note</button>
+                // START: Modified owner actions to include attach pic button
+                const ownerActionsHtml = (receipt.viewerId === currentViewerId && STATE.isMasterUser)
+                    ? `<button class="attach-image-btn" data-id="${id}" data-type="sentiment" title="Attach Picture" style="background-color: #17a2b8;">Pic</button>
+                       <button class="edit-sentiment-note-btn" data-id="${id}">Note</button>
                        <button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">×</button>`
                     : '';
+                // END: Modified owner actions
 
                 let displayTimestamp, receiptDateStr, isHistorical;
                 if (typeof receipt.timestamp === 'number') {
@@ -2127,15 +2161,18 @@ if (content) {
                     isHistorical = true;
                 }
 
+                // START: Modified row HTML to include charts cell
                 return `
                     <tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${receiptDateStr || ''}">
                         <td>${receipt.asset || '--'}</td>
                         <td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td>
                         <td class="sentiment-note-cell">${receipt.note || ''}</td>
+                        ${renderAttachmentThumbnails(receipt, id, 'sentiment')}
                         <td>${displayTimestamp}</td>
                         <td class="action-buttons">${ownerActionsHtml}</td>
                     </tr>
                 `;
+                // END: Modified row HTML
             }).join('');
 
             tbody.innerHTML = rowsHtml;
@@ -2148,36 +2185,6 @@ if (content) {
                     content.style.maxHeight = content.scrollHeight + 'px';
                 }
             }
-        }
-
-        function renderTradeThumbnails(trade, tradeId, tradeType) {
-            if (!trade.attachedImages) {
-                return '<td class="trade-image-thumbnails"></td>';
-            }
-
-            const images = trade.attachedImages || {};
-            const masterDeleteBtn = (imageId, fileName) => (STATE.isMasterUser) ? `
-                <button class="delete-trade-image" title="Delete Attachment" 
-                    data-trade-id="${tradeId}" 
-                    data-trade-type="${tradeType}" 
-                    data-image-id="${imageId}" 
-                    data-filename="${fileName}">×</button>
-            ` : '';
-
-            const thumbnailsHtml = Object.keys(images).sort((a, b) => images[b].timestamp - images[a].timestamp).map(imageId => {
-                const imgData = images[imageId];
-                if (!imgData?.url) return '';
-                return `
-                    <div class="thumbnail-wrapper">
-                        ${masterDeleteBtn(imageId, imgData.fileName)}
-                        <img src="${imgData.url}" alt="Trade attachment" 
-                             data-full-src="${imgData.url}" 
-                             data-caption="Attachment for trade ${tradeId}">
-                    </div>
-                `;
-            }).join('');
-
-            return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 
         function renderLiveTable(data) {
@@ -2231,7 +2238,7 @@ if (content) {
                             <td style="color: #dc3545;">${lossString}</td>
                             <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
                             <td class="note-cell" title="${noteText}">${noteText}</td>
-                            ${renderTradeThumbnails(trade, id, 'live')}
+                            ${renderAttachmentThumbnails(trade, id, 'live')}
                             ${masterButtonsHtml(id)}
                         </tr>`;
                 }).join('');
@@ -2301,7 +2308,7 @@ if (content) {
                             <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
                             <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
                             <td class="note-cell" title="${noteText}">${noteText}</td>
-                            ${renderTradeThumbnails(trade, id, 'completed')}
+                            ${renderAttachmentThumbnails(trade, id, 'completed')}
                             ${masterButtonsHtml(id)}
                         </tr>`;
                 }).join('');
@@ -2719,7 +2726,6 @@ if (content) {
             });
         }
         
-        // --- START: JS Change for renderSetupsTable ---
         function renderSetupsTable(tableElement, data) {
             if (!tableElement) return;
             const tbody = tableElement.querySelector('tbody');
@@ -2729,7 +2735,6 @@ if (content) {
                 const rowData = data[timeframe] || {};
                 const cells = row.querySelectorAll('td');
 
-                // Populate note icons
                 const notesCell = cells[0];
                 const noteIcons = notesCell.querySelectorAll('.note-icon');
                 
@@ -2745,7 +2750,6 @@ if (content) {
                 noteIcons[2].title = bounceNote;
                 noteIcons[2].classList.toggle('has-note', !!bounceNote);
 
-                // Populate data cells (indices shifted by 1)
                 cells[1].textContent = rowData.zero_entry || '';
                 cells[2].textContent = rowData.zero_target || '';
                 cells[3].textContent = rowData.zero_stoploss || '';
@@ -2759,7 +2763,6 @@ if (content) {
 
             applyHighlightingToSetupsTable(tableElement);
         }
-        // --- END: JS Change for renderSetupsTable ---
 
         function renderSrLevels() {
             const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
@@ -2851,7 +2854,6 @@ if (content) {
 
 
         // --- DATA HANDLING AND SAVING ---
-        // --- START: JS Change for saveSetupsTable ---
         function saveSetupsTable(tableElement, dbRef, statusElement) {
             if (!STATE.isMasterUser) return;
             const dataToSave = {};
@@ -2861,7 +2863,6 @@ if (content) {
                 const timeframe = row.firstElementChild.textContent.trim();
                 const cells = row.querySelectorAll('td');
 
-                // Get notes from icon titles
                 const noteIcons = cells[0].querySelectorAll('.note-icon');
 
                 dataToSave[timeframe] = {
@@ -2869,7 +2870,6 @@ if (content) {
                     four_note: noteIcons[1].title || '',
                     bounce_note: noteIcons[2].title || '',
                     
-                    // Get data from contenteditable cells (indices shifted by 1)
                     zero_entry: cells[1].textContent.trim(),
                     zero_target: cells[2].textContent.trim(),
                     zero_stoploss: cells[3].textContent.trim(),
@@ -2891,7 +2891,6 @@ if (content) {
                 console.error("Error saving setups table:", e);
             });
         }
-        // --- END: JS Change for saveSetupsTable ---
 
         const saveJournalEntry = () => {
             clearTimeout(STATE.journalSaveTimer);
@@ -3212,13 +3211,15 @@ if (content) {
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
 
             DOM.trackerTab.addEventListener('click', (e) => {
-                // --- START: JS Event Listener Change for Notes ---
                 const noteIcon = e.target.closest('.note-icon');
                 if (noteIcon) {
                     handleSetupNoteClick(noteIcon);
-                    return; // Stop further processing
+                    return; 
                 }
-                // --- END: JS Event Listener Change for Notes ---
+
+                if (handleAttachmentActions(e)) {
+                    return;
+                }
                 
                 if (e.target.matches('.ema-pill-btn')) {
                     e.stopPropagation(); 
@@ -3233,7 +3234,7 @@ if (content) {
                     handleSentimentDelete(e);
                 } else if (e.target.matches('.edit-sentiment-note-btn')) {
                     handleSentimentNoteEdit(e);
-                } else if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container, .trade-image-thumbnails')) {
+                } else if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container')) {
                     handleGenericImageLibraryClick(e);
                 } else if (e.target.closest('#trades-tbody')) {
                     handleTradeAction(e);
@@ -3293,7 +3294,7 @@ if (content) {
 
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
-            DOM.tradeImageUploader.addEventListener('change', (e) => handleTradeImageUpload(e.target.files));
+            DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
 
             DOM.modalClose.addEventListener('click', closeModal);
             DOM.imageModal.addEventListener('click', (e) => { if (e.target.id === 'image-modal') closeModal(); });
@@ -3412,7 +3413,6 @@ if (content) {
         }
 
         // --- EVENT HANDLER LOGIC ---
-        // --- START: JS New Function for Note Clicks ---
         function handleSetupNoteClick(noteIcon) {
             if (!STATE.isMasterUser) return;
 
@@ -3423,7 +3423,6 @@ if (content) {
                 noteIcon.title = newNote;
                 noteIcon.classList.toggle('has-note', !!newNote.trim());
                 
-                // Automatically save the entire table when a note is changed.
                 const table = noteIcon.closest('.setups-table');
                 if (table.id === 'primary-setups-table') {
                     saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1);
@@ -3432,7 +3431,6 @@ if (content) {
                 }
             }
         }
-        // --- END: JS New Function for Note Clicks ---
 
         function handleAddTradeSubmit(e) {
             e.preventDefault();
@@ -3757,6 +3755,7 @@ if (content) {
         function handleGenericImageLibraryClick(e) {
             const clickedImg = e.target.closest('img');
             if (clickedImg && clickedImg.dataset.fullSrc) {
+                // Modified the selector to include .trade-image-thumbnails
                 const galleryContainer = clickedImg.closest('#image-library-container, #setups-image-container, .cl2-image-grid, #chart-library-2-preview-container, .trade-image-thumbnails');
                 if (galleryContainer) {
                     const allImageElements = galleryContainer.querySelectorAll('img');
@@ -3855,13 +3854,6 @@ if (content) {
         function handleTradeAction(e) {
             if (!STATE.isMasterUser) return;
 
-            const delImgButton = e.target.closest('.delete-trade-image');
-            if (delImgButton) {
-                const { tradeId, tradeType, imageId, filename } = delImgButton.dataset;
-                handleDeleteTradeImage(tradeId, tradeType, imageId, filename);
-                return;
-            }
-
             if (STATE.isMerging) {
                 const targetRow = e.target.closest('tr');
                 if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody' && !e.target.closest('button')) {
@@ -3880,8 +3872,7 @@ if (content) {
             const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
             const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
 
-            if (button.matches('.attach-image-btn')) handleAttachImageClick(button.dataset.id, button.dataset.type);
-            else if (button.matches('.win-btn')) completeTrade(id, 'win');
+            if (button.matches('.win-btn')) completeTrade(id, 'win');
             else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
             else if (button.matches('.add-to-position-btn')) handleAddStaggeredEntry(id);
             else if (button.matches('.merge-btn-completed')) initiateMerge(id);
@@ -3899,33 +3890,70 @@ if (content) {
             }
         }
 
-        function handleAttachImageClick(tradeId, tradeType) {
+        // START: Generic attachment functions
+        function handleAttachmentActions(e) {
+            const attachBtn = e.target.closest('.attach-image-btn');
+            if (attachBtn) {
+                handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type);
+                return true;
+            }
+
+            const delImgBtn = e.target.closest('.delete-trade-image');
+            if (delImgBtn) {
+                const { entryId, entryType, imageId, filename } = delImgBtn.dataset;
+                handleDeleteAttachmentImage(entryId, entryType, imageId, filename);
+                return true;
+            }
+            return false;
+        }
+
+        function handleAttachAttachmentClick(entryId, entryType) {
             if (!STATE.isMasterUser) return;
-            STATE.tradeImageUploadContext = { tradeId, tradeType };
+            STATE.imageUploadContext = { id: entryId, type: entryType };
             DOM.tradeImageUploader.value = null; 
             DOM.tradeImageUploader.click();
         }
 
-        function handleTradeImageUpload(files) {
+        function handleAttachmentImageUpload(files) {
             if (!STATE.isMasterUser || !files || files.length === 0) return;
 
-            const { tradeId, tradeType } = STATE.tradeImageUploadContext;
-            if (!tradeId || !tradeType) return console.error("No trade context for image upload.");
+            const { id, type } = STATE.imageUploadContext;
+            if (!id || !type) return console.error("No context for image upload.");
 
-            const dbRefPath = (tradeType === 'live') ? CONFIG.DB_PATHS.TRADES : CONFIG.DB_PATHS.COMPLETED_TRADES;
-            const tradeDbRef = database.ref(dbRefPath).child(tradeId);
+            let dbRefPath;
+            let storagePathPrefix;
+
+            switch (type) {
+                case 'live':
+                    dbRefPath = CONFIG.DB_PATHS.TRADES;
+                    storagePathPrefix = `trade_attachments/${id}/`;
+                    break;
+                case 'completed':
+                    dbRefPath = CONFIG.DB_PATHS.COMPLETED_TRADES;
+                    storagePathPrefix = `trade_attachments/${id}/`;
+                    break;
+                case 'sentiment':
+                    dbRefPath = CONFIG.DB_PATHS.SENTIMENT_RECEIPTS;
+                    storagePathPrefix = `sentiment_attachments/${id}/`;
+                    break;
+                default:
+                    console.error("Unknown attachment type:", type);
+                    return;
+            }
+
+            const entryDbRef = database.ref(dbRefPath).child(id);
 
             Array.from(files).forEach((file) => {
                 if (!file.type.startsWith('image/')) return;
 
                 const fileName = `${Date.now()}_${file.name}`;
-                const storagePath = `trade_attachments/${tradeId}/${fileName}`;
+                const storagePath = `${storagePathPrefix}${fileName}`;
                 const fileRef = storage.ref(storagePath);
                 const uploadTask = fileRef.put(file);
 
                 uploadTask.on('state_changed', null, 
                     (error) => {
-                        console.error("Trade image upload failed:", error);
+                        console.error("Attachment upload failed:", error);
                         alert(`Upload failed for ${file.name}.`);
                     },
                     () => {
@@ -3935,20 +3963,39 @@ if (content) {
                                 fileName: fileName,
                                 timestamp: firebase.database.ServerValue.TIMESTAMP
                             };
-                            tradeDbRef.child('attachedImages').push(imageData);
+                            entryDbRef.child('attachedImages').push(imageData);
                         });
                     }
                 );
             });
         }
 
-        function handleDeleteTradeImage(tradeId, tradeType, imageId, fileName) {
-            if (!STATE.isMasterUser || !tradeId || !tradeType || !imageId || !fileName) return;
+        function handleDeleteAttachmentImage(entryId, entryType, imageId, fileName) {
+            if (!STATE.isMasterUser || !entryId || !entryType || !imageId || !fileName) return;
 
             if (confirm(`Delete this attachment?\n\n${fileName}`)) {
-                const storagePath = `trade_attachments/${tradeId}/${fileName}`;
-                const dbRefPath = (tradeType === 'live') ? CONFIG.DB_PATHS.TRADES : CONFIG.DB_PATHS.COMPLETED_TRADES;
-                const imageDbRef = database.ref(dbRefPath).child(tradeId).child('attachedImages').child(imageId);
+                let dbRefPath, storagePathPrefix;
+
+                switch (entryType) {
+                    case 'live':
+                        dbRefPath = CONFIG.DB_PATHS.TRADES;
+                        storagePathPrefix = `trade_attachments/${entryId}/`;
+                        break;
+                    case 'completed':
+                        dbRefPath = CONFIG.DB_PATHS.COMPLETED_TRADES;
+                        storagePathPrefix = `trade_attachments/${entryId}/`;
+                        break;
+                    case 'sentiment':
+                        dbRefPath = CONFIG.DB_PATHS.SENTIMENT_RECEIPTS;
+                        storagePathPrefix = `sentiment_attachments/${entryId}/`;
+                        break;
+                    default:
+                        console.error("Unknown attachment type for deletion:", entryType);
+                        return;
+                }
+
+                const storagePath = `${storagePathPrefix}${fileName}`;
+                const imageDbRef = database.ref(dbRefPath).child(entryId).child('attachedImages').child(imageId);
 
                 storage.ref(storagePath).delete()
                     .then(() => imageDbRef.remove())
@@ -3962,6 +4009,7 @@ if (content) {
                     });
             }
         }
+        // END: Generic attachment functions
 
         function handleImageDelete(e) {
             const button = e.target.closest('.delete-journal-image');
