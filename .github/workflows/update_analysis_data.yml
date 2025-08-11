@@ -40,7 +40,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests pyarrow
+          # <-- THIS IS THE FIX: Added scipy and scikit-learn for the second script
+          pip install pandas requests pyarrow scipy scikit-learn
 
       - name: Seed initial data if cache is empty
         if: steps.cache-ohlc.outputs.cache-hit != 'true'
@@ -56,11 +57,10 @@ jobs:
       - name: Run Python scripts to generate JSON
         run: |
           python generate_accurate_ma.py
-          python sr_levels_analysis.py # <-- CHANGE 1: ADDED THIS LINE
+          python sr_levels_analysis.py
 
       - name: Commit and push ONLY JSON files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Automated analysis data update"
-          # <-- CHANGE 2: ADDED THE SECOND JSON FILE
-          file_pattern: ma_analysis.json sr_levels_analysis.json 
+          file_pattern: ma_analysis.json sr_levels_analysis.json
