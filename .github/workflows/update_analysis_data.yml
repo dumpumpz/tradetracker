@@ -49,7 +49,6 @@ jobs:
         run: |
           echo "Cache not found. Seeding from release artifact..."
           gh release download v1.0-data -p "warmup_ohlc_data_fixed.zip"
-          # THIS IS THE CORRECTED LINE: Added the -o flag to force overwrite
           unzip -o warmup_ohlc_data_fixed.zip -d .
           echo "Seeding complete. The warmup_ohlc_data_fixed directory is now populated."
           ls -R warmup_ohlc_data_fixed
@@ -57,9 +56,11 @@ jobs:
       - name: Run Python scripts to generate JSON
         run: |
           python generate_accurate_ma.py
+          python sr_levels_analysis.py # <-- CHANGE 1: ADDED THIS LINE
 
       - name: Commit and push ONLY JSON files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Automated analysis data update"
-          file_pattern: ma_analysis.json
+          # <-- CHANGE 2: ADDED THE SECOND JSON FILE
+          file_pattern: ma_analysis.json sr_levels_analysis.json 
