@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -970,11 +971,11 @@
         }
         /* End Collapsible Section Styles */
 
-        /* START: New Styles for Key Market Opens Section */
+        /* --- START: UPDATED Styles for Key Market Opens Section --- */
         #key-opens-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 30px;
         }
         .key-open-asset h4 {
             text-align: center;
@@ -983,18 +984,26 @@
             font-size: 16px;
             color: var(--subtle-text);
         }
-        .key-open-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
+        .key-open-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+        .key-open-table td {
             font-size: 14px;
+            padding: 4px 2px;
+            border: none;
         }
         .key-open-label {
             color: var(--subtle-text);
+            text-align: left;
+            width: 1%;
+            padding-right: 10px;
         }
         .key-open-price {
             font-weight: 600;
             font-family: 'Courier New', Courier, monospace;
+            text-align: right;
         }
         #key-opens-last-updated {
             grid-column: 1 / -1;
@@ -1005,7 +1014,11 @@
             padding-top: 10px;
             border-top: 1px dashed var(--border-color);
         }
-        /* END: New Styles for Key Market Opens Section */
+        #key-opens-last-updated.updated-today span {
+            color: #ffc107;
+            font-weight: 500;
+        }
+        /* --- END: UPDATED Styles for Key Market Opens Section --- */
 
 
         /* Pill Button Styles */
@@ -1214,6 +1227,33 @@
             }
             /* END: Mobile styles for Key Opens section */
         }
+
+
+                .key-open-table td.key-open-price {
+            width: 35%;
+        }
+        .key-open-note-cell {
+            padding-left: 15px;
+        }
+             .key-open-note {
+            width: 100%;
+            padding: 4px 6px;
+            font-size: 12px;
+            line-height: 1.4;
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            color: var(--text-color);
+            font-family: inherit;
+            resize: vertical;
+            overflow-y: hidden;
+            box-sizing: border-box;
+            vertical-align: middle;
+        }
+        .key-open-note:focus {
+            outline: 1px solid var(--link-color);
+            background-color: var(--card-bg);
+        }
     </style>
 </head>
 <body>
@@ -1264,7 +1304,7 @@
 
         <div id="tracker-tab" class="tab-content active">
 
-            <!-- START: New Key Market Opens Section -->
+            <!-- START: UPDATED Key Market Opens Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
                     <h2>Levels</h2>
@@ -1273,42 +1313,52 @@
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
                         <div id="key-opens-container">
-                            <div class="key-open-asset">
+                                                      <div class="key-open-asset">
                                 <h4>BTC/USDT</h4>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Daily:</span>
-                                    <span id="btc-daily-open" class="key-open-price">--</span>
-                                </div>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Weekly:</span>
-                                    <span id="btc-weekly-open" class="key-open-price">--</span>
-                                </div>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Monthly:</span>
-                                    <span id="btc-monthly-open" class="key-open-price">--</span>
-                                </div>
+                                <table class="key-open-table">
+                                    <tr>
+                                        <td class="key-open-label">Daily:</td>
+                                        <td id="btc-daily-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="btc-daily-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Weekly:</td>
+                                        <td id="btc-weekly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="btc-weekly-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Monthly:</td>
+                                        <td id="btc-monthly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="btc-monthly-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                </table>
                             </div>
                              <div class="key-open-asset">
                                 <h4>ETH/USDT</h4>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Daily:</span>
-                                    <span id="eth-daily-open" class="key-open-price">--</span>
-                                </div>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Weekly:</span>
-                                    <span id="eth-weekly-open" class="key-open-price">--</span>
-                                </div>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Monthly:</span>
-                                    <span id="eth-monthly-open" class="key-open-price">--</span>
-                                </div>
+                                <table class="key-open-table">
+                                    <tr>
+                                        <td class="key-open-label">Daily:</td>
+                                        <td id="eth-daily-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="eth-daily-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Weekly:</td>
+                                        <td id="eth-weekly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="eth-weekly-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Monthly:</td>
+                                        <td id="eth-monthly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="eth-monthly-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                </table>
                             </div>
                             <div id="key-opens-last-updated">Last Updated: <span>--</span></div>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- END: New Key Market Opens Section -->
+            <!-- END: UPDATED Key Market Opens Section -->
 
             <!-- Reminders Section -->
             <div class="collapsible-section">
@@ -1805,7 +1855,8 @@
                 PERSISTENT_NOTES: 'persistent_notes',
                 TRACKER_SCRATCHPAD: 'tracker_scratchpad',
                 TRADE_REMINDERS: 'trade_reminders',
-                SENTIMENT_RECEIPTS: 'sentiment_receipts'
+                SENTIMENT_RECEIPTS: 'sentiment_receipts',
+                LEVEL_NOTES: 'level_notes' // <-- ADD THIS LINE
             },
             TRADE_SETTINGS: {
                 FEE_RATE: 0.00075,
@@ -1946,6 +1997,8 @@
                 id: null,
                 type: null 
             },
+            levelNotes: {}, // <-- ADD THIS LINE
+            levelNotesSaveTimer: null, // <-- ADD THIS LINE
         };
 
         // --- INITIALIZE FIREBASE ---
@@ -1968,7 +2021,8 @@
             persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES),
             trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD),
             tradeReminders: database.ref(CONFIG.DB_PATHS.TRADE_REMINDERS),
-            sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS)
+            sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS),
+             levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES) // <-- ADD THIS LINE
         };
 
         // --- HELPER FUNCTIONS ---
@@ -2091,20 +2145,35 @@
         function renderMarketOpens() {
             const data = STATE.marketOpens;
             if (!data?.opens) return;
+        
             const btcData = data.opens['BTC-USDT'];
             if (btcData) {
                 DOM.btcDailyOpen.textContent = formatCurrency(btcData.daily);
                 DOM.btcWeeklyOpen.textContent = formatCurrency(btcData.weekly);
                 DOM.btcMonthlyOpen.textContent = formatCurrency(btcData.monthly);
             }
+        
             const ethData = data.opens['ETH-USDT'];
             if (ethData) {
                 DOM.ethDailyOpen.textContent = formatCurrency(ethData.daily);
                 DOM.ethWeeklyOpen.textContent = formatCurrency(ethData.weekly);
                 DOM.ethMonthlyOpen.textContent = formatCurrency(ethData.monthly);
             }
+        
             if (data.last_updated) {
-                DOM.keyOpensLastUpdated.textContent = new Date(data.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+                const lastUpdatedDate = new Date(data.last_updated);
+                DOM.keyOpensLastUpdated.textContent = lastUpdatedDate.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+                
+                // --- Conditional Coloring Logic ---
+                const now = new Date();
+                const todayUTCStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        
+                const containerDiv = DOM.keyOpensLastUpdated.parentElement;
+                if (lastUpdatedDate.getTime() >= todayUTCStart.getTime()) {
+                    containerDiv.classList.add('updated-today');
+                } else {
+                    containerDiv.classList.remove('updated-today');
+                }
             }
         }
 
@@ -2428,6 +2497,39 @@
             DOM.resistanceLevelsTbody.innerHTML = resistanceLevels.map(level => buildLevelRow(level, 'resistance')).join('');
         }
 
+              function renderLevelNotes(notesData) {
+            STATE.levelNotes = notesData || {};
+            for (const safeSymbol in STATE.levelNotes) {
+                if (Object.hasOwnProperty.call(STATE.levelNotes, safeSymbol)) {
+                    const symbolNotes = STATE.levelNotes[safeSymbol];
+                    const symbolPrefix = safeSymbol.split('-')[0].toLowerCase();
+                    for (const timeframe in symbolNotes) {
+                        if (Object.hasOwnProperty.call(symbolNotes, timeframe)) {
+                            const note = symbolNotes[timeframe];
+                            const textareaEl = document.getElementById(`${symbolPrefix}-${timeframe}-note`);
+                            if (textareaEl) {
+                                textareaEl.value = note;
+                                autoResizeTextarea(textareaEl); // Auto-resize on load
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        const saveLevelNotes = (inputElement) => {
+            if (!STATE.isMasterUser) return;
+            clearTimeout(STATE.levelNotesSaveTimer);
+            STATE.levelNotesSaveTimer = setTimeout(() => {
+                const idParts = inputElement.id.split('-'); // e.g., ['btc', 'daily', 'note']
+                const symbol = `${idParts[0].toUpperCase()}-USDT`;
+                const timeframe = idParts[1];
+                const value = inputElement.value;
+
+                dbRefs.levelNotes.child(getSafeSymbol(symbol)).child(timeframe).set(value)
+                    .catch(e => console.error("Error saving level note:", e));
+            }, 750);
+        };
+        
         // --- DATA HANDLING AND SAVING ---
         function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
             if (!STATE.isMasterUser) return;
@@ -2619,7 +2721,14 @@
 
 
         // --- EVENT LISTENERS ---
-        function setupEventListeners() {
+         function setupEventListeners() {
+            // Listen for input on the new level note boxes
+                      document.getElementById('key-opens-container').addEventListener('input', e => {
+                if(e.target.matches('.key-open-note')) {
+                    autoResizeTextarea(e.target);
+                    saveLevelNotes(e.target);
+                }
+            });
             DOM.themeToggle.addEventListener('change', (e) => {
                 const theme = e.target.checked ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
@@ -3075,8 +3184,7 @@
             });
         }
 
-        // --- FIREBASE DATA SUBSCRIPTIONS ---
-        function subscribeToData() {
+           function subscribeToData() {
             dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
             dbRefs.completedTrades.on('value', s => {
                 const completedData = s.val() || {}; renderCompletedTable(completedData);
@@ -3113,6 +3221,7 @@
             dbRefs.trackerScratchpad.on('value', (s) => { STATE.trackerScratchpadText = s.val() || ''; if (DOM.trackerTab.classList.contains('active')) { DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; autoResizeTextarea(DOM.trackerScratchpadEl); } });
             dbRefs.tradeReminders.on('value', (s) => { STATE.tradeRemindersText = s.val() || ''; if (DOM.trackerTab.classList.contains('active')) { DOM.tradeRemindersScratchpadEl.value = STATE.tradeRemindersText; autoResizeTextarea(DOM.tradeRemindersScratchpadEl); } });
             dbRefs.sentimentReceipts.on('value', (s) => renderSentimentReceipts(s.val()));
+            dbRefs.levelNotes.on('value', (s) => renderLevelNotes(s.val()));
         }
 
         // --- INITIALIZATION ---
@@ -3126,7 +3235,7 @@
             }
         }
 
-        function checkMasterMode() {
+              function checkMasterMode() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('master') === 'true') {
                 const password = prompt("Please enter master password:");
@@ -3147,6 +3256,15 @@
                 DOM.journalEntryEl.readOnly = true; DOM.persistentNotesEl.readOnly = true; DOM.trackerScratchpadEl.readOnly = true; DOM.tradeRemindersScratchpadEl.readOnly = true;
                 DOM.primarySetupsNotes.readOnly = true; DOM.secondarySetupsNotes.readOnly = true;
             }
+
+            // Set readOnly status for the new level note inputs
+            document.querySelectorAll('.key-open-note').forEach(input => {
+                input.readOnly = !STATE.isMasterUser;
+                if (!STATE.isMasterUser) {
+                    input.style.cursor = 'not-allowed';
+                    input.style.backgroundColor = 'transparent';
+                }
+            });
         }
 
         async function initializeApp() {

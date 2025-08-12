@@ -20,41 +20,45 @@ TOP_N_CLUSTERS_TO_SEND = 10
 SR_OUTPUT_FILENAME = "sr_levels_analysis.json"
 OPENS_OUTPUT_FILENAME = "market_opens.json"
 
-# --- NEW PARAMETERS ---
-BASE_EPS_PERCENTAGE_RANGE = 0.0007   # Base epsilon (0.07%)
-MIN_SAMPLES_FOR_CLUSTER = 3
+# --- Adaptive Clustering and Filtering Parameters ---
+BASE_EPS_PERCENTAGE_RANGE = 0.0007   # Base epsilon for clustering (0.07%)
+MIN_SAMPLES_FOR_CLUSTER = 3         # Minimum number of pivots to form a valid cluster
 ATR_LOOKBACK = 14
-ATR_VOL_MULTIPLIER = 1.5  # Expand pivots when ATR is high
-LIQUIDITY_VOLUME_MULTIPLIER = 1.2  # Above-average volume filter
+ATR_VOLATILITY_MULTIPLIER = 1.5     # Multiplier for epsilon during high volatility
+LIQUIDITY_VOLUME_MULTIPLIER = 1.2     # A pivot is considered 'high liquidity' if its volume is this much times the average
 
-# Weighting Systems
+# --- Weighting Systems ---
 TIMEFRAME_WEIGHTS = {'15m': 1.0, '30m': 1.2, '1h': 1.5, '2h': 2.0, '4h': 2.5}
 PIVOT_SOURCE_WEIGHTS = {'Wick': 1.0, 'Close': 1.5}
 STRENGTH_CONFIG = {'VOLUME_STRENGTH_FACTOR': 1.0, 'RECENCY_HALFLIFE_DAYS': 45.0}
 
+# --- API and Session Setup ---
 API_ENDPOINT = "https://api.binance.com/api/v3/klines"
-
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
-
 SESSION = requests.Session()
-SESSION.headers.update({
-    'User-Agent': 'Mozilla/5.0'
-})
+SESSION.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'})
+
 
 def get_safe_symbol(symbol):
     return symbol.replace('USDT', '-USDT') if 'USDT' in symbol else symbol
 
 def get_minutes_from_timeframe(tf_string):
-    num = int(re.search(r'\d+', tf_string).group(0))
-    unit = re.search(r'[a-zA-Z]', tf_string).group(0).lower()
-    return num if unit == 'm' else num * 60 if unit == 'h' else num * 60 * 24 if unit == 'd' else num * 60 * 24 * 7
+    num_match = re.search(r'\d+', tf_string)
+    unit_match = re.search(r'[a-zA-Z]', tf_string)
+    if not num_match or not unit_match: return 0
+    num = int(num_match.group(0))
+    unit = unit_match.group(0).lower()
+    if unit == 'm': return num
+    elif unit == 'h': return num * 60
+    elif unit == 'd': return num * 60 * 24
+    elif unit == 'w': return num * 60 * 24 * 7
+    return 0
 
 def fetch_ohlcv_paginated(symbol, interval, lookback_days=None, limit=1000):
     all_data = []
     end_time_ms = None
-    df = pd.DataFrame()
     try:
         if lookback_days:
             minutes_per_tf = get_minutes_from_timeframe(interval)
@@ -62,102 +66,123 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days=None, limit=1000):
             while len(all_data) < total_candles_needed:
                 url = f'{API_ENDPOINT}?symbol={symbol}&interval={interval}&limit={limit}'
                 if end_time_ms: url += f'&endTime={end_time_ms}'
-                r = SESSION.get(url, timeout=20)
-                r.raise_for_status()
-                data_chunk = r.json()
+                response = SESSION.get(url, timeout=20)
+                response.raise_for_status()
+                data_chunk = response.json()
                 if not data_chunk: break
                 all_data = data_chunk + all_data
                 end_time_ms = data_chunk[0][0] - 1
                 if len(data_chunk) < limit: break
                 time.sleep(0.3)
-            df = pd.DataFrame(all_data, columns=[
-                'Open time', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close time',
-                'Quote asset volume', 'Number of trades', 'Taker buy base asset volume',
-                'Taker buy quote asset volume', 'Ignore'
-            ])
+            df = pd.DataFrame(all_data, columns=['Open time', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
             df = df.tail(total_candles_needed)
-        else:
+        else: # Simple fetch, not used in main analysis but kept for utility
             url = f'{API_ENDPOINT}?symbol={symbol}&interval={interval}&limit={limit}'
-            df = pd.DataFrame(SESSION.get(url).json(), columns=[
-                'Open time', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close time',
-                'Quote asset volume', 'Number of trades', 'Taker buy base asset volume',
-                'Taker buy quote asset volume', 'Ignore'
-            ])
+            response = SESSION.get(url, timeout=10)
+            response.raise_for_status()
+            df = pd.DataFrame(response.json(), columns=['Open time', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
+
         df['Date'] = pd.to_datetime(df['Open time'], unit='ms', utc=True)
         df.set_index('Date', inplace=True)
+        df.drop_duplicates(inplace=True)
         return df[['Open', 'High', 'Low', 'Close', 'Volume']].astype(float)
-    except:
+    except requests.exceptions.RequestException as e:
+        logging.error(f"API Request Failed for {symbol} on {interval}: {e}")
+        return None
+    except Exception as e:
+        logging.error(f"An unexpected error occurred during data fetching for {symbol} on {interval}: {e}")
         return None
 
 def calc_atr(df, period=ATR_LOOKBACK):
-    hl = df['High'] - df['Low']
-    hc = abs(df['High'] - df['Close'].shift(1))
-    lc = abs(df['Low'] - df['Close'].shift(1))
-    tr = pd.concat([hl, hc, lc], axis=1).max(axis=1)
-    return tr.rolling(period).mean()
+    high_low = df['High'] - df['Low']
+    high_close = abs(df['High'] - df['Close'].shift(1))
+    low_close = abs(df['Low'] - df['Close'].shift(1))
+    tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+    return tr.rolling(window=period, min_periods=period).mean()
 
 def find_pivots_scipy(series, window, is_high):
-    comp = np.greater if is_high else np.less
-    idxs = argrelextrema(series.values, comp, order=window)[0]
-    return [(series.index[i], series.iloc[i]) for i in idxs]
+    if window == 0 or len(series) <= 2 * window: return []
+    comparator = np.greater if is_high else np.less
+    indices = argrelextrema(series.values, comparator, order=window)[0]
+    return [(series.index[i], series.iloc[i]) for i in indices]
 
-def generate_pivots_for_timeframe(symbol, timeframe, lookback_days, atr_percent):
-    df = fetch_ohlcv_paginated(symbol, timeframe, lookback_days=lookback_days)
-    if df is None or df.empty: return pd.DataFrame()
-    vol_min, vol_max = df['Volume'].min(), df['Volume'].max()
-    df['Volume_Norm'] = (df['Volume'] - vol_min) / (vol_max - vol_min) if vol_max > vol_min else 0.5
+def generate_pivots_for_timeframe(df_ohlcv, timeframe, atr_percent):
+    if df_ohlcv is None or df_ohlcv.empty: return pd.DataFrame()
+
+    vol_min, vol_max = df_ohlcv['Volume'].min(), df_ohlcv['Volume'].max()
+    df_ohlcv['Volume_Norm'] = (df_ohlcv['Volume'] - vol_min) / (vol_max - vol_min) if vol_max > vol_min else 0.5
+    
     recency_lambda = np.log(2) / STRENGTH_CONFIG['RECENCY_HALFLIFE_DAYS']
     all_pivots = []
-    # Adaptive windows
-    if atr_percent > 0.03:  # high volatility
-        pivot_windows = [int(w * ATR_VOL_MULTIPLIER) for w in BASE_PIVOT_WINDOWS]
-    else:
-        pivot_windows = BASE_PIVOT_WINDOWS
+    
+    # Adaptive pivot windows based on volatility
+    pivot_windows = BASE_PIVOT_WINDOWS
+    if atr_percent > 0.03: # Arbitrary threshold for "high volatility"
+        pivot_windows = [int(w * ATR_VOLATILITY_MULTIPLIER) for w in BASE_PIVOT_WINDOWS]
+        logging.info(f"High volatility detected on {timeframe} (ATR: {atr_percent:.2%}). Using expanded pivot windows.")
+
     pivot_defs = {
-        'High_Wick': (df['High'], True, 'Resistance', 'Wick'),
-        'Low_Wick': (df['Low'], False, 'Support', 'Wick'),
-        'Close_High': (df['Close'], True, 'Resistance', 'Close'),
-        'Close_Low': (df['Close'], False, 'Support', 'Close')
+        'High_Wick': (df_ohlcv['High'], True, 'Resistance', 'Wick'),
+        'Low_Wick': (df_ohlcv['Low'], False, 'Support', 'Wick'),
+        'Close_High': (df_ohlcv['Close'], True, 'Resistance', 'Close'),
+        'Close_Low': (df_ohlcv['Close'], False, 'Support', 'Close')
     }
+    
     tf_weight = TIMEFRAME_WEIGHTS.get(timeframe, 1.0)
     now = datetime.now(timezone.utc)
+
     for window in pivot_windows:
         for name, (series, is_high, ptype, source) in pivot_defs.items():
-            s_weight = PIVOT_SOURCE_WEIGHTS.get(source, 1.0)
+            source_weight = PIVOT_SOURCE_WEIGHTS.get(source, 1.0)
             pivots = find_pivots_scipy(series, window, is_high)
             for ts, price in pivots:
-                base_strength = window * tf_weight * s_weight
+                base_strength = window * tf_weight * source_weight
                 days_ago = (now - ts).total_seconds() / 86400
                 recency_weight = np.exp(-recency_lambda * days_ago)
-                volume_weight = 1 + (df.loc[ts]['Volume_Norm'] * STRENGTH_CONFIG['VOLUME_STRENGTH_FACTOR'])
+                volume_weight = 1 + (df_ohlcv.loc[ts, 'Volume_Norm'] * STRENGTH_CONFIG['VOLUME_STRENGTH_FACTOR'])
                 final_strength = base_strength * recency_weight * volume_weight
                 all_pivots.append({
                     'Timestamp': ts, 'Price': price, 'Strength': final_strength,
                     'Type': ptype, 'Source': source, 'Timeframe': timeframe,
-                    'Volume': df.loc[ts]['Volume'],
-                    'Close': df.loc[ts]['Close'],
-                    'Open': df.loc[ts]['Open']
+                    'Volume': df_ohlcv.loc[ts, 'Volume'], 'Close': df_ohlcv.loc[ts, 'Close'], 'Open': df_ohlcv.loc[ts, 'Open']
                 })
     return pd.DataFrame(all_pivots)
 
-def is_reversal(pivot_row):
-    return (pivot_row['Type'] == 'Resistance' and pivot_row['Close'] < pivot_row['Open']) or \
-           (pivot_row['Type'] == 'Support' and pivot_row['Close'] > pivot_row['Open'])
-
 def find_clusters_dbscan(pivots_df, symbol, atr_percent):
-    if pivots_df.empty or len(pivots_df) < MIN_SAMPLES_FOR_CLUSTER:
-        return []
+    if pivots_df.empty or len(pivots_df) < MIN_SAMPLES_FOR_CLUSTER: return []
+    
+    # Make a copy to avoid SettingWithCopyWarning
+    pivots_df = pivots_df.copy()
+
+    # Adaptive epsilon based on volatility
+    epsilon_multiplier = 1 + (atr_percent * 10) # Simple way to slightly expand epsilon in high vol
+    adaptive_eps_percentage = BASE_EPS_PERCENTAGE_RANGE * epsilon_multiplier
+    
     avg_price = np.mean(pivots_df['Price'])
-    epsilon = avg_price * (BASE_EPS_PERCENTAGE_RANGE * (atr_percent / 0.01))
+    epsilon = avg_price * adaptive_eps_percentage
+
     db = DBSCAN(eps=epsilon, min_samples=MIN_SAMPLES_FOR_CLUSTER).fit(pivots_df['Price'].values.reshape(-1, 1))
-    pivots_df['cluster_id'] = db.labels_
+    
+    # Use .loc to safely add the new column and avoid warnings
+    pivots_df.loc[:, 'cluster_id'] = db.labels_
+
     clusters = []
     for cid in sorted(pivots_df['cluster_id'].unique()):
-        if cid == -1: continue
-        cdf = pivots_df[pivots_df['cluster_id'] == cid]
+        if cid == -1: continue # Skip noise points
+
+        cdf = pivots_df[pivots_df['cluster_id'] == cid].copy()
+
+        # Filter 1: Liquidity Check (must have at least one high-volume pivot)
         avg_vol = pivots_df['Volume'].mean()
-        if not any(cdf['Volume'] > avg_vol * LIQUIDITY_VOLUME_MULTIPLIER): continue
-        if not any(cdf.apply(is_reversal, axis=1)): continue
+        if not cdf['Volume'].max() > avg_vol * LIQUIDITY_VOLUME_MULTIPLIER:
+            continue
+            
+        # Filter 2: Reversal Check (must have at least one reversal candle)
+        is_resistance_reversal = (cdf['Type'] == 'Resistance') & (cdf['Close'] < cdf['Open'])
+        is_support_reversal = (cdf['Type'] == 'Support') & (cdf['Close'] > cdf['Open'])
+        if not (is_resistance_reversal.any() or is_support_reversal.any()):
+            continue
+            
         weighted_avg_price = np.average(cdf['Price'], weights=cdf['Strength'])
         clusters.append({
             'Type': cdf['Type'].iloc[0],
@@ -170,31 +195,50 @@ def find_clusters_dbscan(pivots_df, symbol, atr_percent):
     return clusters
 
 def run_analysis_for_lookback(symbol, days):
-    df_for_atr = fetch_ohlcv_paginated(symbol, '1h', lookback_days=days)
-    if df_for_atr is None or df_for_atr.empty: return None
-    atr_val = calc_atr(df_for_atr).iloc[-1]
-    atr_percent = atr_val / df_for_atr['Close'].iloc[-1]
-    all_pivots = []
-    for tf in TIMEFRAMES_TO_ANALYZE:
-        pivots = generate_pivots_for_timeframe(symbol, tf, days, atr_percent)
-        if not pivots.empty:
-            # normalize per timeframe
-            max_s = pivots['Strength'].max()
-            pivots['Strength'] = pivots['Strength'] / max_s if max_s > 0 else pivots['Strength']
-            all_pivots.append(pivots)
-    if not all_pivots: return None
-    pivots_df = pd.concat(all_pivots, ignore_index=True)
+    logging.info(f"--- Running Analysis for {symbol} with {days}-day lookback ---")
+    all_pivots_dfs = []
+
+    # Fetch data once per timeframe and pass it down
+    timeframe_data = {tf: fetch_ohlcv_paginated(symbol, tf, lookback_days=days) for tf in TIMEFRAMES_TO_ANALYZE}
+    
+    # Use 1h ATR as the reference for volatility for this lookback period
+    df_1h = timeframe_data.get('1h')
+    if df_1h is None or df_1h.empty:
+        logging.warning(f"Cannot calculate ATR for {symbol}, 1h data is missing.")
+        return None
+    
+    atr_val = calc_atr(df_1h).iloc[-1]
+    atr_percent = atr_val / df_1h['Close'].iloc[-1] if df_1h['Close'].iloc[-1] > 0 else 0
+
+    for tf, df in timeframe_data.items():
+        if df is not None and not df.empty:
+            pivots = generate_pivots_for_timeframe(df, tf, atr_percent)
+            if not pivots.empty:
+                all_pivots_dfs.append(pivots)
+
+    if not all_pivots_dfs:
+        logging.warning(f"No pivots generated for {symbol} at {days} days.")
+        return None
+        
+    pivots_df = pd.concat(all_pivots_dfs, ignore_index=True)
+
+    # Normalize strength across the entire dataset for this lookback, AFTER concatenation
+    max_strength = pivots_df['Strength'].max()
+    if max_strength > 0:
+        pivots_df['Strength'] = pivots_df['Strength'] / max_strength
+
     support_clusters = sorted(find_clusters_dbscan(pivots_df[pivots_df['Type'] == 'Support'], symbol, atr_percent),
                                key=lambda x: x['Strength Score'], reverse=True)
     resistance_clusters = sorted(find_clusters_dbscan(pivots_df[pivots_df['Type'] == 'Resistance'], symbol, atr_percent),
                                   key=lambda x: x['Strength Score'], reverse=True)
+
     return {
         'support': support_clusters[:TOP_N_CLUSTERS_TO_SEND],
         'resistance': resistance_clusters[:TOP_N_CLUSTERS_TO_SEND],
         'analysis_params': {
             'timeframes_analyzed': TIMEFRAMES_TO_ANALYZE,
             'lookback_days': days,
-            'atr_percent': atr_percent
+            'atr_percent': round(atr_percent, 4)
         }
     }
 
@@ -203,16 +247,25 @@ def main():
     results = {}
     for symbol in SYMBOLS:
         safe_symbol = get_safe_symbol(symbol)
+        results[safe_symbol] = {}
         for days in LOOKBACK_PERIODS_DAYS:
             res = run_analysis_for_lookback(symbol, days)
             if res:
-                if safe_symbol not in results:
-                    results[safe_symbol] = {}
                 results[safe_symbol][f'{days}d'] = res
-            time.sleep(1)
-    with open(SR_OUTPUT_FILENAME, 'w') as f:
-        json.dump({'data': results, 'last_updated': datetime.now(timezone.utc).isoformat()}, f, indent=4)
-    logging.info("Analysis complete.")
+            time.sleep(1) # Be respectful to API
+
+    if results:
+        payload = {
+            'metadata': {'last_updated_utc': datetime.now(timezone.utc).isoformat()},
+            'data': results
+        }
+        with open(SR_OUTPUT_FILENAME, 'w') as f:
+            json.dump(payload, f, indent=4)
+        logging.info(f"SUCCESS: Analysis data saved to {SR_OUTPUT_FILENAME}")
+    else:
+        logging.warning("No data was generated for any symbol.")
+
+    logging.info("--- Analysis complete. ---")
 
 if __name__ == "__main__":
     main()
