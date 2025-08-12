@@ -1193,6 +1193,64 @@
     margin-bottom: 8px;
 }
 /* --- END: New S/R Methodology styles --- */
+
+        /* --- START: Add these new styles for the Detailed S/R Key --- */
+.methodology-breakdown {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed var(--border-color);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+.methodology-card {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 15px;
+}
+.methodology-card h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 15px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+.weight-group {
+    margin-bottom: 15px;
+}
+.weight-group:last-child {
+    margin-bottom: 0;
+}
+.weight-group-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--subtle-text);
+    margin: 0 0 8px 0;
+    border-bottom: 1px solid var(--header-bg);
+    padding-bottom: 4px;
+}
+.weight-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 4px 0;
+}
+.weight-item span:first-child {
+    color: var(--subtle-text);
+}
+.weight-item span:last-child {
+    font-weight: 600;
+    font-family: 'Courier New', Courier, monospace;
+}
+.card-description {
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: center;
+    margin: 0;
+}
+/* --- END: New S/R Key styles --- */
     </style>
 </head>
 <body>
@@ -1630,7 +1688,7 @@
         </div>
 
         <div id="sr-levels-tab" class="tab-content">
-    <!-- START: NEW, UPDATED S/R KEY BLOCK -->
+<!-- START: NEW, DETAILED S/R KEY BLOCK -->
 <div id="sr-legend-container">
     <div id="sr-legend-header">
         <h4>S/R Levels Key & Methodology</h4>
@@ -1644,28 +1702,51 @@
                 <span id="sr-metadata-dates" class="metadata-value">--</span>
             </div>
             <div class="metadata-item">
-                <span class="metadata-label">Timeframes:</span>
+                <span class="metadata-label">Timeframes Analyzed:</span>
                 <span id="sr-metadata-timeframes" class="metadata-value">--</span>
             </div>
             <div class="metadata-item">
-                <span class="metadata-label">Pivot Windows:</span>
+                <span class="metadata-label">Pivot Windows Used:</span>
                 <span id="sr-metadata-windows" class="metadata-value">--</span>
             </div>
         </div>
-        
-        <!-- Part 2: Static Explanation of the New, Advanced Scoring -->
-        <div class="methodology-explanation">
-            <h4>Strength Score Factors</h4>
-            <p>A composite score is calculated for each pivot based on:</p>
-            <ul>
-                <li><strong>Base Strength:</strong> Larger pivot windows (e.g., 144) and higher timeframes (e.g., 4h) have more weight. Candle Closes are stronger than Wicks.</li>
-                <li><strong>Volume:</strong> Pivots that form on high-volume candles receive a significant strength boost.</li>
-                <li><strong>Recency:</strong> Newer pivots are weighted more heavily than older ones using an exponential time-decay model.</li>
-            </ul>
+
+        <!-- Part 2: Detailed Breakdown of Strength Scoring -->
+        <div class="methodology-breakdown">
+            <div class="methodology-card">
+                <h4>Base Strength</h4>
+                <div class="weight-group">
+                    <p class="weight-group-title">Timeframe Multipliers</p>
+                    <div class="weight-item"><span>15m:</span> <span>1.0x</span></div>
+                    <div class="weight-item"><span>30m:</span> <span>1.2x</span></div>
+                    <div class="weight-item"><span>1h:</span> <span>1.5x</span></div>
+                    <div class="weight-item"><span>2h:</span> <span>2.0x</span></div>
+                    <div class="weight-item"><span>4h:</span> <span>2.5x</span></div>
+                </div>
+                <div class="weight-group">
+                    <p class="weight-group-title">Pivot Source Multipliers</p>
+                    <div class="weight-item"><span>Wick H/L:</span> <span>1.0x</span></div>
+                    <div class="weight-item"><span>Close H/L:</span> <span>1.5x</span></div>
+                </div>
+            </div>
+
+            <div class="methodology-card">
+                <h4>Volume Weight</h4>
+                <p class="card-description">
+                    Pivots on high-volume candles receive a strength boost. The multiplier ranges from <strong>1.0x</strong> (for lowest volume) to <strong>2.0x</strong> (for highest volume).
+                </p>
+            </div>
+
+            <div class="methodology-card">
+                <h4>Recency Weight</h4>
+                <p class="card-description">
+                    Newer pivots are stronger. The score decays exponentially with a <strong>45-day half-life</strong> (a 45-day-old pivot has 50% of its original recency score).
+                </p>
+            </div>
         </div>
     </div>
 </div>
-<!-- END: NEW, UPDATED S/R KEY BLOCK -->
+<!-- END: NEW, DETAILED S/R KEY BLOCK -->
 
             <div class="controls-container">
                 <div><label for="sr-symbol">Symbol:</label><select id="sr-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
