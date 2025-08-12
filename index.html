@@ -938,6 +938,44 @@
         }
         /* End Collapsible Section Styles */
 
+        /* START: New Styles for Key Market Opens Section */
+        #key-opens-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .key-open-asset h4 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--subtle-text);
+        }
+        .key-open-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 14px;
+        }
+        .key-open-label {
+            color: var(--subtle-text);
+        }
+        .key-open-price {
+            font-weight: 600;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #key-opens-last-updated {
+            grid-column: 1 / -1;
+            text-align: center;
+            font-size: 12px;
+            color: var(--subtle-text);
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+        }
+        /* END: New Styles for Key Market Opens Section */
+
+
         /* Pill Button Styles */
         .pill-button-group {
             display: inline-flex;
@@ -1048,20 +1086,19 @@
             .setups-table th,
             .setups-table td {
                 font-size: 11px;
-                padding: 5px;
+                padding: 6px 5px;
             }
 
             /* Make the first column (Timeframe) sticky when scrolling horizontally */
-            .setups-table thead th:first-child,
+            .setups-table thead tr:first-of-type th:first-child, /* This is the fix: Be more specific */
             .setups-table tbody th:first-child {
                 position: -webkit-sticky; /* For Safari */
                 position: sticky;
                 left: 0;
-                z-index: 1;
             }
 
             /* Ensure sticky header has correct background and is layered above body cells */
-            .setups-table thead th:first-child {
+            .setups-table thead tr:first-of-type th:first-child {
                 background-color: var(--header-bg);
                 z-index: 2;
             }
@@ -1069,8 +1106,16 @@
             /* Ensure sticky body cells have correct background to prevent content bleed-through */
             .setups-table tbody th:first-child {
                 background-color: var(--card-bg);
+                z-index: 1;
             }
             /* END: Mobile improvements for Setups tables */
+
+            /* START: Mobile styles for Key Opens section */
+            #key-opens-container {
+                grid-template-columns: 1fr;
+                gap: 25px;
+            }
+            /* END: Mobile styles for Key Opens section */
         }
 
                 /* --- START: Replace/Add these styles for the S/R Key --- */
@@ -1332,6 +1377,52 @@
         </div>
 
         <div id="tracker-tab" class="tab-content active">
+
+            <!-- START: New Key Market Opens Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Key Market Opens</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="key-opens-container">
+                            <div class="key-open-asset">
+                                <h4>BTC/USDT Opens</h4>
+                                <div class="key-open-item">
+                                    <span class="key-open-label">Daily:</span>
+                                    <span id="btc-daily-open" class="key-open-price">--</span>
+                                </div>
+                                <div class="key-open-item">
+                                    <span class="key-open-label">Weekly:</span>
+                                    <span id="btc-weekly-open" class="key-open-price">--</span>
+                                </div>
+                                <div class="key-open-item">
+                                    <span class="key-open-label">Monthly:</span>
+                                    <span id="btc-monthly-open" class="key-open-price">--</span>
+                                </div>
+                            </div>
+                             <div class="key-open-asset">
+                                <h4>ETH/USDT Opens</h4>
+                                <div class="key-open-item">
+                                    <span class="key-open-label">Daily:</span>
+                                    <span id="eth-daily-open" class="key-open-price">--</span>
+                                </div>
+                                <div class="key-open-item">
+                                    <span class="key-open-label">Weekly:</span>
+                                    <span id="eth-weekly-open" class="key-open-price">--</span>
+                                </div>
+                                <div class="key-open-item">
+                                    <span class="key-open-label">Monthly:</span>
+                                    <span id="eth-monthly-open" class="key-open-price">--</span>
+                                </div>
+                            </div>
+                            <div id="key-opens-last-updated">Last Updated: <span>--</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- END: New Key Market Opens Section -->
 
             <!-- Reminders Section -->
             <div class="collapsible-section">
@@ -1891,6 +1982,15 @@
             statAvgLoss: document.getElementById('stat-avg-loss'),
             statRewardRisk: document.getElementById('stat-reward-risk'),
             statOpenTrades: document.getElementById('stat-open-trades'),
+            // START: Add new DOM elements for Key Opens
+            keyOpensLastUpdated: document.querySelector('#key-opens-last-updated span'),
+            btcDailyOpen: document.getElementById('btc-daily-open'),
+            btcWeeklyOpen: document.getElementById('btc-weekly-open'),
+            btcMonthlyOpen: document.getElementById('btc-monthly-open'),
+            ethDailyOpen: document.getElementById('eth-daily-open'),
+            ethWeeklyOpen: document.getElementById('eth-weekly-open'),
+            ethMonthlyOpen: document.getElementById('eth-monthly-open'),
+            // END: Add new DOM elements
             tradeRemindersScratchpadEl: document.getElementById('trade-reminders-scratchpad'),
             trackerScratchpadEl: document.getElementById('tracker-scratchpad'),
             addTradeForm: document.getElementById('add-trade-form'),
@@ -1959,6 +2059,7 @@
             masterPassword: null,
             viewerId: null,
             usdToAudRate: 1.53,
+            marketOpens: {}, // START: New state property
             journalText: {},
             journalImages: {},
             chartLibrary2Data: {}, 
@@ -2017,7 +2118,9 @@
             if (typeof num !== 'number' || isNaN(num)) {
                 return '--';
             }
-            return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            // Dynamic formatting for crypto prices
+            const maximumFractionDigits = num > 100 ? 2 : (num > 1 ? 4 : 8);
+            return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`;
         };
        function autoResizeTextarea(element) {
 if (!element) return;
@@ -2092,6 +2195,20 @@ if (content) {
             }
         }
 
+        // START: New function to fetch market opens
+        async function fetchMarketOpens() {
+            try {
+                const response = await fetch(`market_opens.json?cache_bust=${new Date().getTime()}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                STATE.marketOpens = await response.json();
+                renderMarketOpens();
+            } catch (error) {
+                console.error("Could not fetch market_opens.json:", error);
+                // Optionally handle error in the UI
+            }
+        }
+        // END: New function
+
         // --- HISTORY TOGGLE LOGIC ---
         function updateToggleButtonsVisibility() {
             const sentimentBody = document.getElementById('sentiment-receipts-tbody');
@@ -2136,6 +2253,32 @@ if (content) {
 
 
         // --- RENDERING FUNCTIONS ---
+
+        // START: New function to render market opens
+        function renderMarketOpens() {
+            const data = STATE.marketOpens;
+            if (!data || !data.opens) return;
+
+            const btcData = data.opens['BTC-USDT'];
+            if (btcData) {
+                DOM.btcDailyOpen.textContent = formatCurrency(btcData.daily);
+                DOM.btcWeeklyOpen.textContent = formatCurrency(btcData.weekly);
+                DOM.btcMonthlyOpen.textContent = formatCurrency(btcData.monthly);
+            }
+
+            const ethData = data.opens['ETH-USDT'];
+            if (ethData) {
+                DOM.ethDailyOpen.textContent = formatCurrency(ethData.daily);
+                DOM.ethWeeklyOpen.textContent = formatCurrency(ethData.weekly);
+                DOM.ethMonthlyOpen.textContent = formatCurrency(ethData.monthly);
+            }
+
+            if (data.last_updated) {
+                DOM.keyOpensLastUpdated.textContent = new Date(data.last_updated).toLocaleString();
+            }
+        }
+        // END: New function
+
         function renderAttachmentThumbnails(entry, entryId, entryType) {
             if (!entry.attachedImages) {
                 return `<td class="trade-image-thumbnails"></td>`;
@@ -4418,6 +4561,7 @@ if (content) {
             await fetchLiveConversionRate();
             fetchEmaData();
             fetchSrData();
+            fetchMarketOpens(); // Call the new fetch function
 
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
@@ -4437,7 +4581,7 @@ if (content) {
             renderChartLibrary2Folders();
             renderChartLibrary2Preview();
             
-            const sectionsToOpen = ['Reminders', 'Live Trades', 'Sentiment Log', 'Add New Trade', 'Notes', 'Trading Setups'];
+            const sectionsToOpen = ['Key Market Opens', 'Reminders', 'Live Trades', 'Sentiment Log', 'Add New Trade', 'Notes', 'Trading Setups'];
             document.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 if (sectionsToOpen.includes(h2.textContent.trim())) {
                     const section = h2.closest('.collapsible-section');
