@@ -6,7 +6,6 @@ import requests
 import mplfinance as mpf
 import matplotlib
 
-# Use a non-GUI backend
 matplotlib.use('Agg')
 
 # --- Configuration ---
@@ -16,8 +15,10 @@ LOOKBACK_TO_CHART = '14d'
 TIMEFRAME = '1h'
 CANDLES_TO_PLOT = 240
 OUTPUT_DIR = 'charts'
-# Use the global endpoint, as you are running locally
 API_ENDPOINT = "https://api.binance.com/api/v3/klines"
+
+# ### NEW ### Number of top S/R zones to display on the chart
+TOP_N_LEVELS_TO_PLOT = 3
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO,
@@ -25,7 +26,6 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%Y-%m-%d %H:%M:%S')
 
 def fetch_ohlcv(symbol, interval, limit):
-    """Fetches a limited number of candles for plotting via a direct connection."""
     api_symbol = symbol.replace('-', '')
     url = f'{API_ENDPOINT}?symbol={api_symbol}&interval={interval}&limit={limit}'
     try:
@@ -56,36 +56,50 @@ def main():
     for symbol in SYMBOLS_TO_CHART:
         logging.info(f"--- Generating chart for {symbol} ---")
 
-        # Fetch data directly, no proxy needed
         df = fetch_ohlcv(symbol, TIMEFRAME, CANDLES_TO_PLOT)
         if df is None or df.empty:
             logging.warning(f"Could not fetch OHLCV data for {symbol}. Skipping chart.")
             continue
 
         levels = sr_data.get('data', {}).get(symbol, {}).get(LOOKBACK_TO_CHART, {})
-        support_levels = levels.get('support', [])
-        resistance_levels = levels.get('resistance', [])
+        
+        # ### MODIFIED ### Select only the top N levels based on the new config
+        support_levels = levels.get('support', [])[:TOP_N_LEVELS_TO_PLOT]
+        resistance_levels = levels.get('resistance', [])[:TOP_N_LEVELS_TO_PLOT]
 
         if not support_levels and not resistance_levels:
             logging.warning(f"No S/R levels found for {symbol}. Skipping chart.")
             continue
 
-        hlines, colors = [], []
-        for level in support_levels:
-            hlines.append((level['Price Start'] + level['Price End']) / 2)
-            colors.append('green')
-        for level in resistance_levels:
-            hlines.append((level['Price Start'] + level['Price End']) / 2)
-            colors.append('red')
+        hlines, colors, linewidths, alphas = [], [], [], []
+        
+        # Make the strongest level (first in the list) thicker and more opaque
+        def add_levels_to_plot(levels, color):
+            is_first = True
+            for level in levels:
+                hlines.append((level['Price Start'] + level['Price End']) / 2)
+                colors.append(color)
+                if is_first:
+                    linewidths.append(1.2)  # Thicker line for the strongest level
+                    alphas.append(0.9)     # More opaque
+                    is_first = False
+                else:
+                    linewidths.append(0.7)  # Standard line thickness
+                    alphas.append(0.6)     # More transparent
+
+        add_levels_to_plot(support_levels, 'green')
+        add_levels_to_plot(resistance_levels, 'red')
             
         chart_style = 'nightclouds'
-        title = f"\n{symbol} - {TIMEFRAME} Chart with {LOOKBACK_TO_CHART} S/R Zones\nLast Updated: {sr_data.get('metadata', {}).get('last_updated_utc', 'N/A').split('T')[0]}"
+        # ### MODIFIED ### Updated the chart title to be more descriptive
+        title = f"\n{symbol} | {TIMEFRAME} Chart with Top {TOP_N_LEVELS_TO_PLOT} S/R Zones ({LOOKBACK_TO_CHART} data)\nLast Updated: {sr_data.get('metadata', {}).get('last_updated_utc', 'N/A').split('T')[0]}"
         output_path = os.path.join(OUTPUT_DIR, f"{symbol}_chart.png")
 
         try:
+            # ### MODIFIED ### Pass the new line styles to the plot function
             mpf.plot(df, type='candle', style=chart_style, title=title,
                      ylabel='Price (USDT)',
-                     hlines=dict(hlines=hlines, colors=colors, linestyle='--', linewidths=0.7),
+                     hlines=dict(hlines=hlines, colors=colors, linestyle='--', linewidths=linewidths, alpha=alphas),
                      savefig=dict(fname=output_path, dpi=150, pad_inches=0.25))
             logging.info(f"SUCCESS: Chart saved to {output_path}")
         except Exception as e:
