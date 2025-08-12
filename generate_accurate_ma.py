@@ -1,5 +1,3 @@
-# generate_accurate_ma.py
-
 import pandas as pd
 import os
 import logging
@@ -42,8 +40,9 @@ def get_safe_symbol(symbol):
 
 # --- DataHandler Class ---
 class DataHandler:
-    # Kept as Binance.US per your request
-    BASE_URL = "https://api.binance.us/api/v3"
+    # ### THIS IS THE FIX ###
+    # Use the global Binance endpoint for local execution
+    BASE_URL = "https://api.binance.com/api/v3"
 
     @staticmethod
     def _make_api_request(params: Dict) -> Optional[List[Any]]:
@@ -77,7 +76,6 @@ class DataHandler:
             logging.info(f"[{symbol}/{interval}] Loading data from: {file_path}")
             df = pd.read_parquet(file_path)
             if df.empty: return None
-            # Ensure loaded data is clean and doesn't contain old indicator columns
             required_cols = ['open', 'high', 'low', 'close', 'volume']
             df = df[[col for col in required_cols if col in df.columns]]
             if not isinstance(df.index, pd.DatetimeIndex): raise TypeError("Cache data has no DatetimeIndex.")
@@ -97,7 +95,6 @@ class DataHandler:
         cache_filename = f"{symbol.upper()}_{interval}_mastercache.parquet"
         file_path = os.path.join(CACHE_DATA_DIR, cache_filename)
         try:
-            # Only save essential columns to prevent cache contamination
             columns_to_save = ['open', 'high', 'low', 'close', 'volume']
             df_to_save = df[columns_to_save].tail(MAX_ROWS_TO_KEEP_IN_CACHE)
             df_to_save.to_parquet(file_path)
@@ -136,7 +133,6 @@ class DataHandler:
 # --- Indicator Calculation ---
 def add_indicators(df: pd.DataFrame, periods: list[int]) -> pd.DataFrame:
     if df.empty: return df
-    # Ensure we are calculating on a clean copy
     df_res = df[['open', 'high', 'low', 'close', 'volume']].copy()
     logging.info(f"Calculating indicators for {len(df_res)} candles...")
     for period in periods:
@@ -175,22 +171,9 @@ if __name__ == "__main__":
             df_combined = pd.concat(df_list)
             df_combined = df_combined[~df_combined.index.duplicated(keep='last')].sort_index()
             
-            # ================================================================= #
-            # === CRITICAL FIX: The order of operations is changed here ===
-            # ================================================================= #
-
-            # STEP 1: Save the CLEAN, COMBINED, RAW data to the cache.
-            # This prevents calculated indicators from being saved and corrupting the next run.
             DataHandler.save_ohlc_to_cache(df_combined, symbol.replace('/',''), tf_api)
-            
-            # STEP 2: NOW, calculate indicators on the in-memory dataframe for this run's output.
-            # This result is used to generate the JSON but is NOT saved back to the cache.
             data_with_indicators = add_indicators(df_combined, MA_PERIODS)
             
-            # ================================================================= #
-            # ======================= End of Fix ============================== #
-            # ================================================================= #
-
             latest_row = data_with_indicators.iloc[-1]
             indicator_values = {}
             indicator_values['price'] = float(round(latest_row['close'], 4))

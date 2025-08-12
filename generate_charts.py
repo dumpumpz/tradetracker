@@ -6,7 +6,7 @@ import requests
 import mplfinance as mpf
 import matplotlib
 
-# Use a non-GUI backend, essential for running in GitHub Actions
+# Use a non-GUI backend
 matplotlib.use('Agg')
 
 # --- Configuration ---
@@ -16,6 +16,7 @@ LOOKBACK_TO_CHART = '14d'
 TIMEFRAME = '1h'
 CANDLES_TO_PLOT = 240
 OUTPUT_DIR = 'charts'
+# Use the global endpoint, as you are running locally
 API_ENDPOINT = "https://api.binance.com/api/v3/klines"
 
 # --- Logging Setup ---
@@ -24,7 +25,7 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%Y-%m-%d %H:%M:%S')
 
 def fetch_ohlcv(symbol, interval, limit):
-    """Fetches a limited number of candles for plotting."""
+    """Fetches a limited number of candles for plotting via a direct connection."""
     api_symbol = symbol.replace('-', '')
     url = f'{API_ENDPOINT}?symbol={api_symbol}&interval={interval}&limit={limit}'
     try:
@@ -55,6 +56,7 @@ def main():
     for symbol in SYMBOLS_TO_CHART:
         logging.info(f"--- Generating chart for {symbol} ---")
 
+        # Fetch data directly, no proxy needed
         df = fetch_ohlcv(symbol, TIMEFRAME, CANDLES_TO_PLOT)
         if df is None or df.empty:
             logging.warning(f"Could not fetch OHLCV data for {symbol}. Skipping chart.")
