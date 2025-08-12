@@ -1159,6 +1159,40 @@
     display: none;
 }
 /* --- END: New Compact S/R View for Mobile --- */
+
+
+
+
+
+        /* --- START: Add these new styles for the S/R Methodology Explanation --- */
+.methodology-explanation {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed var(--border-color);
+    font-size: 13px;
+    line-height: 1.5;
+}
+.methodology-explanation h4 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--subtle-text);
+    text-align: center;
+}
+.methodology-explanation p {
+    text-align: center;
+    margin: 0 0 10px 0;
+    font-style: italic;
+}
+.methodology-explanation ul {
+    margin: 0;
+    padding-left: 25px;
+    list-style-type: '✓  '; /* A nice checkmark prefix */
+}
+.methodology-explanation li {
+    margin-bottom: 8px;
+}
+/* --- END: New S/R Methodology styles --- */
     </style>
 </head>
 <body>
@@ -1596,52 +1630,42 @@
         </div>
 
         <div id="sr-levels-tab" class="tab-content">
-            <div id="sr-legend-container">
-                <div id="sr-legend-header">
-                    <h4>S/R Levels Key & Methodology</h4>
-                    <button id="sr-legend-toggle-btn" title="Toggle Details">−</button>
-                </div>
-                <div id="sr-legend-content">
-                    <div id="sr-metadata-container">
-                        <div class="metadata-item">
-                            <span class="metadata-label">Lookback:</span>
-                            <span id="sr-metadata-dates" class="metadata-value">--</span>
-                        </div>
-                        <div class="metadata-item">
-                            <span class="metadata-label">Timeframes:</span>
-                            <span id="sr-metadata-timeframes" class="metadata-value">--</span>
-                        </div>
-                        <div class="metadata-item">
-                            <span class="metadata-label">Windows:</span>
-                            <span id="sr-metadata-windows" class="metadata-value">--</span>
-                        </div>
-                        <div class="metadata-item">
-                            <span class="metadata-label">Sources:</span>
-                            <div class="metadata-value weight-list">
-                                <span>Wick H/L</span>
-                                <span>Close H/L</span>
-                            </div>
-                        </div>
-                        <div class="metadata-item">
-                            <span class="metadata-label">Weights:</span>
-                            <div class="metadata-value weight-list">
-                                <span>Wick(1.0)</span>
-                                <span>Close(1.5)</span>
-                            </div>
-                        </div>
-                        <div class="metadata-item">
-                            <span class="metadata-label">TF Strength:</span>
-                            <div class="metadata-value weight-list">
-                                <span>15m:1</span>
-                                <span>30m:1.2</span>
-                                <span>1h:1.5</span>
-                                <span>2h:2</span>
-                                <span>4h:2.5</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <!-- START: NEW, UPDATED S/R KEY BLOCK -->
+<div id="sr-legend-container">
+    <div id="sr-legend-header">
+        <h4>S/R Levels Key & Methodology</h4>
+        <button id="sr-legend-toggle-btn" title="Toggle Details">−</button>
+    </div>
+    <div id="sr-legend-content">
+        <!-- Part 1: Dynamic Data (populated by JS) -->
+        <div id="sr-metadata-container">
+            <div class="metadata-item">
+                <span class="metadata-label">Lookback:</span>
+                <span id="sr-metadata-dates" class="metadata-value">--</span>
             </div>
+            <div class="metadata-item">
+                <span class="metadata-label">Timeframes:</span>
+                <span id="sr-metadata-timeframes" class="metadata-value">--</span>
+            </div>
+            <div class="metadata-item">
+                <span class="metadata-label">Pivot Windows:</span>
+                <span id="sr-metadata-windows" class="metadata-value">--</span>
+            </div>
+        </div>
+        
+        <!-- Part 2: Static Explanation of the New, Advanced Scoring -->
+        <div class="methodology-explanation">
+            <h4>Strength Score Factors</h4>
+            <p>A composite score is calculated for each pivot based on:</p>
+            <ul>
+                <li><strong>Base Strength:</strong> Larger pivot windows (e.g., 144) and higher timeframes (e.g., 4h) have more weight. Candle Closes are stronger than Wicks.</li>
+                <li><strong>Volume:</strong> Pivots that form on high-volume candles receive a significant strength boost.</li>
+                <li><strong>Recency:</strong> Newer pivots are weighted more heavily than older ones using an exponential time-decay model.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+<!-- END: NEW, UPDATED S/R KEY BLOCK -->
 
             <div class="controls-container">
                 <div><label for="sr-symbol">Symbol:</label><select id="sr-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
