@@ -1235,15 +1235,20 @@
         .key-open-note-cell {
             padding-left: 15px;
         }
-        .key-open-note {
+             .key-open-note {
             width: 100%;
-            padding: 2px 5px;
+            padding: 4px 6px;
             font-size: 12px;
+            line-height: 1.4;
             background-color: transparent;
             border: 1px solid var(--border-color);
             border-radius: 3px;
             color: var(--text-color);
             font-family: inherit;
+            resize: vertical;
+            overflow-y: hidden;
+            box-sizing: border-box;
+            vertical-align: middle;
         }
         .key-open-note:focus {
             outline: 1px solid var(--link-color);
@@ -1308,43 +1313,43 @@
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
                         <div id="key-opens-container">
-                                                       <div class="key-open-asset">
+                                                      <div class="key-open-asset">
                                 <h4>BTC/USDT</h4>
                                 <table class="key-open-table">
                                     <tr>
                                         <td class="key-open-label">Daily:</td>
                                         <td id="btc-daily-open" class="key-open-price">--</td>
-                                        <td class="key-open-note-cell"><input type="text" id="btc-daily-note" class="key-open-note" placeholder=""></td>
+                                        <td class="key-open-note-cell"><textarea id="btc-daily-note" class="key-open-note" placeholder="Note..." rows="1"></textarea></td>
                                     </tr>
                                     <tr>
                                         <td class="key-open-label">Weekly:</td>
                                         <td id="btc-weekly-open" class="key-open-price">--</td>
-                                        <td class="key-open-note-cell"><input type="text" id="btc-weekly-note" class="key-open-note" placeholder=""></td>
+                                        <td class="key-open-note-cell"><textarea id="btc-weekly-note" class="key-open-note" placeholder="Note..." rows="1"></textarea></td>
                                     </tr>
                                     <tr>
                                         <td class="key-open-label">Monthly:</td>
                                         <td id="btc-monthly-open" class="key-open-price">--</td>
-                                        <td class="key-open-note-cell"><input type="text" id="btc-monthly-note" class="key-open-note" placeholder=""></td>
+                                        <td class="key-open-note-cell"><textarea id="btc-monthly-note" class="key-open-note" placeholder="Note..." rows="1"></textarea></td>
                                     </tr>
                                 </table>
                             </div>
-                                                        <div class="key-open-asset">
+                             <div class="key-open-asset">
                                 <h4>ETH/USDT</h4>
                                 <table class="key-open-table">
                                     <tr>
                                         <td class="key-open-label">Daily:</td>
                                         <td id="eth-daily-open" class="key-open-price">--</td>
-                                        <td class="key-open-note-cell"><input type="text" id="eth-daily-note" class="key-open-note" placeholder=""></td>
+                                        <td class="key-open-note-cell"><textarea id="eth-daily-note" class="key-open-note" placeholder="Note..." rows="1"></textarea></td>
                                     </tr>
                                     <tr>
                                         <td class="key-open-label">Weekly:</td>
                                         <td id="eth-weekly-open" class="key-open-price">--</td>
-                                        <td class="key-open-note-cell"><input type="text" id="eth-weekly-note" class="key-open-note" placeholder=""></td>
+                                        <td class="key-open-note-cell"><textarea id="eth-weekly-note" class="key-open-note" placeholder="Note..." rows="1"></textarea></td>
                                     </tr>
                                     <tr>
                                         <td class="key-open-label">Monthly:</td>
                                         <td id="eth-monthly-open" class="key-open-price">--</td>
-                                        <td class="key-open-note-cell"><input type="text" id="eth-monthly-note" class="key-open-note" placeholder=""></td>
+                                        <td class="key-open-note-cell"><textarea id="eth-monthly-note" class="key-open-note" placeholder="Note..." rows="1"></textarea></td>
                                     </tr>
                                 </table>
                             </div>
@@ -2492,7 +2497,7 @@
             DOM.resistanceLevelsTbody.innerHTML = resistanceLevels.map(level => buildLevelRow(level, 'resistance')).join('');
         }
 
-        function renderLevelNotes(notesData) {
+              function renderLevelNotes(notesData) {
             STATE.levelNotes = notesData || {};
             for (const safeSymbol in STATE.levelNotes) {
                 if (Object.hasOwnProperty.call(STATE.levelNotes, safeSymbol)) {
@@ -2501,16 +2506,16 @@
                     for (const timeframe in symbolNotes) {
                         if (Object.hasOwnProperty.call(symbolNotes, timeframe)) {
                             const note = symbolNotes[timeframe];
-                            const inputEl = document.getElementById(`${symbolPrefix}-${timeframe}-note`);
-                            if (inputEl) {
-                                inputEl.value = note;
+                            const textareaEl = document.getElementById(`${symbolPrefix}-${timeframe}-note`);
+                            if (textareaEl) {
+                                textareaEl.value = note;
+                                autoResizeTextarea(textareaEl); // Auto-resize on load
                             }
                         }
                     }
                 }
             }
         }
-
         const saveLevelNotes = (inputElement) => {
             if (!STATE.isMasterUser) return;
             clearTimeout(STATE.levelNotesSaveTimer);
@@ -2718,12 +2723,12 @@
         // --- EVENT LISTENERS ---
          function setupEventListeners() {
             // Listen for input on the new level note boxes
-            document.getElementById('key-opens-container').addEventListener('input', e => {
+                      document.getElementById('key-opens-container').addEventListener('input', e => {
                 if(e.target.matches('.key-open-note')) {
+                    autoResizeTextarea(e.target);
                     saveLevelNotes(e.target);
                 }
             });
-
             DOM.themeToggle.addEventListener('change', (e) => {
                 const theme = e.target.checked ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
