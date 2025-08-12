@@ -1227,6 +1227,28 @@
             }
             /* END: Mobile styles for Key Opens section */
         }
+
+
+                .key-open-table td.key-open-price {
+            width: 35%;
+        }
+        .key-open-note-cell {
+            padding-left: 15px;
+        }
+        .key-open-note {
+            width: 100%;
+            padding: 2px 5px;
+            font-size: 12px;
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            color: var(--text-color);
+            font-family: inherit;
+        }
+        .key-open-note:focus {
+            outline: 1px solid var(--link-color);
+            background-color: var(--card-bg);
+        }
     </style>
 </head>
 <body>
@@ -1286,37 +1308,43 @@
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
                         <div id="key-opens-container">
-                            <div class="key-open-asset">
+                                                       <div class="key-open-asset">
                                 <h4>BTC/USDT</h4>
                                 <table class="key-open-table">
                                     <tr>
                                         <td class="key-open-label">Daily:</td>
                                         <td id="btc-daily-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><input type="text" id="btc-daily-note" class="key-open-note" placeholder="Note..."></td>
                                     </tr>
                                     <tr>
                                         <td class="key-open-label">Weekly:</td>
                                         <td id="btc-weekly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><input type="text" id="btc-weekly-note" class="key-open-note" placeholder="Note..."></td>
                                     </tr>
                                     <tr>
                                         <td class="key-open-label">Monthly:</td>
                                         <td id="btc-monthly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><input type="text" id="btc-monthly-note" class="key-open-note" placeholder="Note..."></td>
                                     </tr>
                                 </table>
                             </div>
-                             <div class="key-open-asset">
+                                                        <div class="key-open-asset">
                                 <h4>ETH/USDT</h4>
                                 <table class="key-open-table">
                                     <tr>
                                         <td class="key-open-label">Daily:</td>
                                         <td id="eth-daily-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><input type="text" id="eth-daily-note" class="key-open-note" placeholder="Note..."></td>
                                     </tr>
                                     <tr>
                                         <td class="key-open-label">Weekly:</td>
                                         <td id="eth-weekly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><input type="text" id="eth-weekly-note" class="key-open-note" placeholder="Note..."></td>
                                     </tr>
                                     <tr>
                                         <td class="key-open-label">Monthly:</td>
                                         <td id="eth-monthly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><input type="text" id="eth-monthly-note" class="key-open-note" placeholder="Note..."></td>
                                     </tr>
                                 </table>
                             </div>
@@ -1822,7 +1850,8 @@
                 PERSISTENT_NOTES: 'persistent_notes',
                 TRACKER_SCRATCHPAD: 'tracker_scratchpad',
                 TRADE_REMINDERS: 'trade_reminders',
-                SENTIMENT_RECEIPTS: 'sentiment_receipts'
+                SENTIMENT_RECEIPTS: 'sentiment_receipts',
+                LEVEL_NOTES: 'level_notes' // <-- ADD THIS LINE
             },
             TRADE_SETTINGS: {
                 FEE_RATE: 0.00075,
@@ -1963,6 +1992,8 @@
                 id: null,
                 type: null 
             },
+            levelNotes: {}, // <-- ADD THIS LINE
+            levelNotesSaveTimer: null, // <-- ADD THIS LINE
         };
 
         // --- INITIALIZE FIREBASE ---
@@ -1985,7 +2016,8 @@
             persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES),
             trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD),
             tradeReminders: database.ref(CONFIG.DB_PATHS.TRADE_REMINDERS),
-            sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS)
+            sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS),
+             levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES) // <-- ADD THIS LINE
         };
 
         // --- HELPER FUNCTIONS ---
@@ -2460,6 +2492,39 @@
             DOM.resistanceLevelsTbody.innerHTML = resistanceLevels.map(level => buildLevelRow(level, 'resistance')).join('');
         }
 
+        function renderLevelNotes(notesData) {
+            STATE.levelNotes = notesData || {};
+            for (const safeSymbol in STATE.levelNotes) {
+                if (Object.hasOwnProperty.call(STATE.levelNotes, safeSymbol)) {
+                    const symbolNotes = STATE.levelNotes[safeSymbol];
+                    const symbolPrefix = safeSymbol.split('-')[0].toLowerCase();
+                    for (const timeframe in symbolNotes) {
+                        if (Object.hasOwnProperty.call(symbolNotes, timeframe)) {
+                            const note = symbolNotes[timeframe];
+                            const inputEl = document.getElementById(`${symbolPrefix}-${timeframe}-note`);
+                            if (inputEl) {
+                                inputEl.value = note;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        const saveLevelNotes = (inputElement) => {
+            if (!STATE.isMasterUser) return;
+            clearTimeout(STATE.levelNotesSaveTimer);
+            STATE.levelNotesSaveTimer = setTimeout(() => {
+                const idParts = inputElement.id.split('-'); // e.g., ['btc', 'daily', 'note']
+                const symbol = `${idParts[0].toUpperCase()}-USDT`;
+                const timeframe = idParts[1];
+                const value = inputElement.value;
+
+                dbRefs.levelNotes.child(getSafeSymbol(symbol)).child(timeframe).set(value)
+                    .catch(e => console.error("Error saving level note:", e));
+            }, 750);
+        };
+        
         // --- DATA HANDLING AND SAVING ---
         function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
             if (!STATE.isMasterUser) return;
@@ -2651,7 +2716,14 @@
 
 
         // --- EVENT LISTENERS ---
-        function setupEventListeners() {
+         function setupEventListeners() {
+            // Listen for input on the new level note boxes
+            document.getElementById('key-opens-container').addEventListener('input', e => {
+                if(e.target.matches('.key-open-note')) {
+                    saveLevelNotes(e.target);
+                }
+            });
+
             DOM.themeToggle.addEventListener('change', (e) => {
                 const theme = e.target.checked ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
@@ -3107,8 +3179,7 @@
             });
         }
 
-        // --- FIREBASE DATA SUBSCRIPTIONS ---
-        function subscribeToData() {
+           function subscribeToData() {
             dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
             dbRefs.completedTrades.on('value', s => {
                 const completedData = s.val() || {}; renderCompletedTable(completedData);
@@ -3145,6 +3216,7 @@
             dbRefs.trackerScratchpad.on('value', (s) => { STATE.trackerScratchpadText = s.val() || ''; if (DOM.trackerTab.classList.contains('active')) { DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; autoResizeTextarea(DOM.trackerScratchpadEl); } });
             dbRefs.tradeReminders.on('value', (s) => { STATE.tradeRemindersText = s.val() || ''; if (DOM.trackerTab.classList.contains('active')) { DOM.tradeRemindersScratchpadEl.value = STATE.tradeRemindersText; autoResizeTextarea(DOM.tradeRemindersScratchpadEl); } });
             dbRefs.sentimentReceipts.on('value', (s) => renderSentimentReceipts(s.val()));
+            dbRefs.levelNotes.on('value', (s) => renderLevelNotes(s.val()));
         }
 
         // --- INITIALIZATION ---
@@ -3158,7 +3230,7 @@
             }
         }
 
-        function checkMasterMode() {
+              function checkMasterMode() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('master') === 'true') {
                 const password = prompt("Please enter master password:");
@@ -3179,6 +3251,15 @@
                 DOM.journalEntryEl.readOnly = true; DOM.persistentNotesEl.readOnly = true; DOM.trackerScratchpadEl.readOnly = true; DOM.tradeRemindersScratchpadEl.readOnly = true;
                 DOM.primarySetupsNotes.readOnly = true; DOM.secondarySetupsNotes.readOnly = true;
             }
+
+            // Set readOnly status for the new level note inputs
+            document.querySelectorAll('.key-open-note').forEach(input => {
+                input.readOnly = !STATE.isMasterUser;
+                if (!STATE.isMasterUser) {
+                    input.style.cursor = 'not-allowed';
+                    input.style.backgroundColor = 'transparent';
+                }
+            });
         }
 
         async function initializeApp() {
