@@ -25,7 +25,8 @@ OPENS_OUTPUT_FILENAME = "market_opens.json" # START: ADDED FOR MARKET OPENS
 CLUSTER_THRESHOLD_PERCENT = 0.12
 
 # ### FIX 2 ### Use the more reliable international Binance API endpoint
-API_ENDPOINT = "https://api.binance.com/api/v3/klines"
+API_ENDPOINT = "https://api.binance.us/api/v3/klines" # Use the US endpoint for data-heavy requests
+
 
 # --- Weighting Systems ---
 TIMEFRAME_WEIGHTS = {'15m': 1.0, '30m': 1.2, '1h': 1.5, '2h': 2.0, '4h': 2.5}
@@ -266,3 +267,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
