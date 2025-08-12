@@ -1042,6 +1042,35 @@
             .collapsible-header { padding: 10px 15px; }
             .collapsible-header h2 { font-size: 1em; }
             .ema-level-summary-grid { grid-template-columns: 1fr; }
+
+            /* START: Mobile improvements for Setups tables */
+            /* Make text smaller and cells more compact */
+            .setups-table th,
+            .setups-table td {
+                font-size: 11px;
+                padding: 5px;
+            }
+
+            /* Make the first column (Timeframe) sticky when scrolling horizontally */
+            .setups-table thead th:first-child,
+            .setups-table tbody th:first-child {
+                position: -webkit-sticky; /* For Safari */
+                position: sticky;
+                left: 0;
+                z-index: 1;
+            }
+
+            /* Ensure sticky header has correct background and is layered above body cells */
+            .setups-table thead th:first-child {
+                background-color: var(--header-bg);
+                z-index: 2;
+            }
+
+            /* Ensure sticky body cells have correct background to prevent content bleed-through */
+            .setups-table tbody th:first-child {
+                background-color: var(--card-bg);
+            }
+            /* END: Mobile improvements for Setups tables */
         }
 
                 /* --- START: Replace/Add these styles for the S/R Key --- */
