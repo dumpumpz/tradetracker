@@ -1,4 +1,4 @@
-# .github/workflows/main.yml
+# .github/workflows/update_analysis_data.yml
 
 name: Update Accurate Analysis Data Files
 
@@ -40,7 +40,6 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # <-- THIS IS THE FIX: Added scipy and scikit-learn for the second script
           pip install pandas requests pyarrow scipy scikit-learn
 
       - name: Seed initial data if cache is empty
@@ -56,8 +55,19 @@ jobs:
 
       - name: Run Python scripts to generate JSON
         run: |
+          echo "--- Running MA script ---"
           python generate_accurate_ma.py
+          echo "--- Running S/R script ---"
           python sr_levels_analysis.py
+          echo "--- Scripts finished. Checking output files: ---"
+          ls -l *.json
+
+      # --- START: THIS IS THE NEW, CRITICAL FIX ---
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+      # --- END: NEW, CRITICAL FIX ---
 
       - name: Commit and push ONLY JSON files
         uses: stefanzweifel/git-auto-commit-action@v5
