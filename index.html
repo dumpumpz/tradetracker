@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -970,11 +971,11 @@
         }
         /* End Collapsible Section Styles */
 
-        /* START: New Styles for Key Market Opens Section */
+        /* --- START: UPDATED Styles for Key Market Opens Section --- */
         #key-opens-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 30px;
         }
         .key-open-asset h4 {
             text-align: center;
@@ -983,18 +984,26 @@
             font-size: 16px;
             color: var(--subtle-text);
         }
-        .key-open-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
+        .key-open-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+        .key-open-table td {
             font-size: 14px;
+            padding: 4px 2px;
+            border: none;
         }
         .key-open-label {
             color: var(--subtle-text);
+            text-align: left;
+            width: 1%;
+            padding-right: 10px;
         }
         .key-open-price {
             font-weight: 600;
             font-family: 'Courier New', Courier, monospace;
+            text-align: right;
         }
         #key-opens-last-updated {
             grid-column: 1 / -1;
@@ -1005,7 +1014,11 @@
             padding-top: 10px;
             border-top: 1px dashed var(--border-color);
         }
-        /* END: New Styles for Key Market Opens Section */
+        #key-opens-last-updated.updated-today span {
+            color: #ffc107;
+            font-weight: 500;
+        }
+        /* --- END: UPDATED Styles for Key Market Opens Section --- */
 
 
         /* Pill Button Styles */
@@ -1264,7 +1277,7 @@
 
         <div id="tracker-tab" class="tab-content active">
 
-            <!-- START: New Key Market Opens Section -->
+            <!-- START: UPDATED Key Market Opens Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
                     <h2>Levels</h2>
@@ -1275,40 +1288,44 @@
                         <div id="key-opens-container">
                             <div class="key-open-asset">
                                 <h4>BTC/USDT</h4>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Daily:</span>
-                                    <span id="btc-daily-open" class="key-open-price">--</span>
-                                </div>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Weekly:</span>
-                                    <span id="btc-weekly-open" class="key-open-price">--</span>
-                                </div>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Monthly:</span>
-                                    <span id="btc-monthly-open" class="key-open-price">--</span>
-                                </div>
+                                <table class="key-open-table">
+                                    <tr>
+                                        <td class="key-open-label">Daily:</td>
+                                        <td id="btc-daily-open" class="key-open-price">--</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Weekly:</td>
+                                        <td id="btc-weekly-open" class="key-open-price">--</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Monthly:</td>
+                                        <td id="btc-monthly-open" class="key-open-price">--</td>
+                                    </tr>
+                                </table>
                             </div>
                              <div class="key-open-asset">
                                 <h4>ETH/USDT</h4>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Daily:</span>
-                                    <span id="eth-daily-open" class="key-open-price">--</span>
-                                </div>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Weekly:</span>
-                                    <span id="eth-weekly-open" class="key-open-price">--</span>
-                                </div>
-                                <div class="key-open-item">
-                                    <span class="key-open-label">Monthly:</span>
-                                    <span id="eth-monthly-open" class="key-open-price">--</span>
-                                </div>
+                                <table class="key-open-table">
+                                    <tr>
+                                        <td class="key-open-label">Daily:</td>
+                                        <td id="eth-daily-open" class="key-open-price">--</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Weekly:</td>
+                                        <td id="eth-weekly-open" class="key-open-price">--</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Monthly:</td>
+                                        <td id="eth-monthly-open" class="key-open-price">--</td>
+                                    </tr>
+                                </table>
                             </div>
                             <div id="key-opens-last-updated">Last Updated: <span>--</span></div>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- END: New Key Market Opens Section -->
+            <!-- END: UPDATED Key Market Opens Section -->
 
             <!-- Reminders Section -->
             <div class="collapsible-section">
@@ -2091,20 +2108,35 @@
         function renderMarketOpens() {
             const data = STATE.marketOpens;
             if (!data?.opens) return;
+        
             const btcData = data.opens['BTC-USDT'];
             if (btcData) {
                 DOM.btcDailyOpen.textContent = formatCurrency(btcData.daily);
                 DOM.btcWeeklyOpen.textContent = formatCurrency(btcData.weekly);
                 DOM.btcMonthlyOpen.textContent = formatCurrency(btcData.monthly);
             }
+        
             const ethData = data.opens['ETH-USDT'];
             if (ethData) {
                 DOM.ethDailyOpen.textContent = formatCurrency(ethData.daily);
                 DOM.ethWeeklyOpen.textContent = formatCurrency(ethData.weekly);
                 DOM.ethMonthlyOpen.textContent = formatCurrency(ethData.monthly);
             }
+        
             if (data.last_updated) {
-                DOM.keyOpensLastUpdated.textContent = new Date(data.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+                const lastUpdatedDate = new Date(data.last_updated);
+                DOM.keyOpensLastUpdated.textContent = lastUpdatedDate.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+                
+                // --- Conditional Coloring Logic ---
+                const now = new Date();
+                const todayUTCStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        
+                const containerDiv = DOM.keyOpensLastUpdated.parentElement;
+                if (lastUpdatedDate.getTime() >= todayUTCStart.getTime()) {
+                    containerDiv.classList.add('updated-today');
+                } else {
+                    containerDiv.classList.remove('updated-today');
+                }
             }
         }
 
