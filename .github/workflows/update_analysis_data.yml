@@ -1,27 +1,30 @@
 # .github/workflows/update_analysis_data.yml
 
-name: Update Analysis Data and Charts
+name: Update Analysis Data and Deploy to Pages
 
 on:
-  schedule:
-    - cron: '2-59/15 * * * *'
-  workflow_dispatch:
+  push:
+    branches: ["main"] # Run on every push to the main branch
+  workflow_dispatch: # Allows manual runs
 
+# Set permissions for the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, cancel older runs
 concurrency:
-  group: ${{ github.workflow }}-v2
+  group: "pages"
   cancel-in-progress: true
 
 jobs:
+  # Job 1: Build the site by running Python scripts
   update-data:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write 
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,7 +34,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests pyarrow scipy scikit-learn matplotlib mplfinance
+          pip install pandas requests scipy scikit-learn matplotlib mplfinance beautifulsoup4 lxml
 
       - name: Run Analysis Scripts
         run: |
@@ -40,25 +43,27 @@ jobs:
 
       - name: Generate Chart Images
         run: python generate_charts.py
-
-      # --- START: CHANGE 1 (FOR DEBUGGING) ---
-      - name: Verify generated files
-        run: |
-          echo "Verifying contents of the workspace..."
-          ls -R
-      # --- END: CHANGE 1 ---
-
-      - name: Configure Git
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
       
-      # --- START: CHANGE 2 (THE FIX) ---
-      - name: Commit and push all changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - name: Verify generated files for artifact
+        run: ls -R
+
+      # --- THIS IS THE CRITICAL "PACKAGING" STEP ---
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          commit_message: "Automated analysis data and chart update"
-          # By REMOVING the 'file_pattern' line, this action will automatically
-          # commit ALL new and modified files. This is more robust and won't
-          # fail if the charts aren't generated for some reason.
-      # --- END: CHANGE 2 ---
+          # Upload the entire repository content. This includes index.html, the generated
+          # JSON files, and the charts folder.
+          path: '.'
+
+  # Job 2: Deploy the packaged site to GitHub Pages
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: update-data # This job will only run if the 'update-data' job succeeds
+    steps:
+      # --- THIS IS THE "DELIVERY" STEP ---
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
