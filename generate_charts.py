@@ -28,30 +28,29 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%Y-%m-%d %H:%M:%S')
 
 # ### NEW ### Copied the proxy-finding logic from the main script
+# ### NEW ### Copied the proxy-finding logic from the main script
 def get_working_proxy():
     """
-    Fetches a list of free proxies and returns the first one that works.
+    Fetches a list of free proxies from a more reliable source (proxyscrape.com)
+    and returns the first one that works.
     """
-    url = "https://free-proxy-list.net/"
+    # Using proxyscrape API, which is often more up-to-date.
+    url = "https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all"
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
         response = requests.get(url, headers=headers, timeout=15)
-        soup = BeautifulSoup(response.content, 'html.parser') # Use html.parser, no lxml needed
-        proxy_list = []
-        for row in soup.find("table", attrs={"class": "table"}).find_all("tr")[1:]:
-            tds = row.find_all("td")
-            if tds[6].text.strip() == "yes":
-                ip = tds[0].text.strip()
-                port = tds[1].text.strip()
-                proxy_list.append(f"http://{ip}:{port}")
+        response.raise_for_status()
+        
+        proxy_list = response.text.strip().split('\n')
+        proxy_list = [f"http://{proxy.strip()}" for proxy in proxy_list]
         
         random.shuffle(proxy_list)
         logging.info(f"Found {len(proxy_list)} potential proxies for charting. Testing...")
 
-        for proxy_url in proxy_list:
+        for proxy_url in proxy_list[:20]:
             proxies = {"http": proxy_url, "https": proxy_url}
             try:
-                test_response = requests.get("https://httpbin.org/ip", proxies=proxies, timeout=10)
+                test_response = requests.get("https://httpbin.org/ip", proxies=proxies, timeout=7)
                 if test_response.status_code == 200:
                     logging.info(f"SUCCESS: Charting will use proxy: {proxy_url}")
                     return proxies
@@ -62,7 +61,6 @@ def get_working_proxy():
     
     logging.error("No working proxies found for charting. Trying direct connection.")
     return None
-
 # ### MODIFIED ### Updated to accept and use the proxy
 def fetch_ohlcv(symbol, interval, limit, proxies):
     """Fetches a limited number of candles for plotting, using a proxy."""
