@@ -1,6 +1,6 @@
 # .github/workflows/update_analysis_data.yml
 
-name: Update Analysis Data and Charts # <-- 1. Renamed for clarity
+name: Update Analysis Data and Charts
 
 on:
   schedule:
@@ -23,15 +23,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache and Restore Historical Data
-        id: cache-ohlc
-        uses: actions/cache@v4
-        with:
-          path: warmup_ohlc_data_fixed
-          key: ${{ runner.os }}-ohlc-v2-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-ohlc-v2-
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -40,37 +31,34 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # <-- 2. Added matplotlib and mplfinance for the charting script
           pip install pandas requests pyarrow scipy scikit-learn matplotlib mplfinance
-
-      - name: Seed initial data if cache is empty
-        if: steps.cache-ohlc.outputs.cache-hit != 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Cache not found. Seeding from release artifact..."
-          gh release download v1.0-data -p "warmup_ohlc_data_fixed.zip"
-          unzip -o warmup_ohlc_data_fixed.zip -d .
-          echo "Seeding complete. The warmup_ohlc_data_fixed directory is now populated."
-          ls -R warmup_ohlc_data_fixed
 
       - name: Run Analysis Scripts
         run: |
           python generate_accurate_ma.py
           python sr_levels_analysis.py
 
-      # <-- 3. NEW STEP: Run the script to generate chart images from the analysis data
       - name: Generate Chart Images
         run: python generate_charts.py
+
+      # --- START: CHANGE 1 (FOR DEBUGGING) ---
+      - name: Verify generated files
+        run: |
+          echo "Verifying contents of the workspace..."
+          ls -R
+      # --- END: CHANGE 1 ---
 
       - name: Configure Git
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
       
-      - name: Commit and push data files and charts
+      # --- START: CHANGE 2 (THE FIX) ---
+      - name: Commit and push all changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Automated analysis data and chart update"
-          # <-- 4. Updated file pattern to include the new JSON files AND the chart images
-          file_pattern: ma_analysis.json sr_levels_analysis.json market_opens.json charts/*.png
+          # By REMOVING the 'file_pattern' line, this action will automatically
+          # commit ALL new and modified files. This is more robust and won't
+          # fail if the charts aren't generated for some reason.
+      # --- END: CHANGE 2 ---
