@@ -22,6 +22,8 @@
             --red-border: #f5c6cb;
             --green-text: #155724;
             --red-text: #721c24;
+            --green-bar: rgba(40, 167, 69, 0.2);
+            --red-bar: rgba(220, 53, 69, 0.2);
         
         }
 
@@ -42,6 +44,8 @@
             --red-border: #6b282e;
             --green-text: #a7d7b2;
             --red-text: #f5b7bd;
+            --green-bar: rgba(40, 167, 69, 0.4);
+            --red-bar: rgba(220, 53, 69, 0.4);
         }
 
         body { 
@@ -283,27 +287,54 @@
         .sr-column h3 { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid; }
         .sr-column.support h3 { color: #28a745; border-color: #28a745; }
         .sr-column.resistance h3 { color: #dc3545; border-color: #dc3545; }
-        .sr-level-card { border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; background-color: var(--card-bg); }
-        .sr-level-header { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--header-bg); }
-        .sr-level-price-range { font-size: 18px; font-weight: bold; font-family: 'Courier New', Courier, monospace; }
-        .sr-level-strength { font-size: 14px; font-weight: 500; color: #fff; padding: 4px 10px; border-radius: 12px; }
-        .sr-column.support .sr-level-strength { background-color: #28a745; }
-        .sr-column.resistance .sr-level-strength { background-color: #dc3545; }
-        .sr-level-pivots { padding: 15px; font-size: 13px; color: var(--subtle-text); }
-        .sr-level-pivots span { font-weight: 600; color: var(--text-color); }
-        .sr-summary {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px dashed var(--border-color);
-            text-align: center;
-            font-size: 14px;
-            color: var(--subtle-text);
+        
+        /* START: New Compact S/R Table Styles */
+        .sr-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
         }
-        .sr-summary span {
+        .sr-table th, .sr-table td {
+            font-size: 13px;
+            padding: 8px;
+            text-align: right;
+            border-bottom: 1px solid var(--border-color);
+            border-left: none;
+            border-right: none;
+        }
+        .sr-table th {
+            text-align: center;
+            font-weight: 500;
+            color: var(--subtle-text);
+            border-top: none;
+        }
+        .sr-table tr:last-child td {
+            border-bottom: none;
+        }
+        .sr-table td:first-child, .sr-table th:first-child {
+            text-align: center;
+        }
+        .sr-table .sr-center-price {
             font-weight: bold;
-            color: var(--text-color);
             font-family: 'Courier New', Courier, monospace;
         }
+        .sr-table .sr-score-cell {
+            position: relative;
+            background-repeat: no-repeat;
+            background-position: left center;
+        }
+        .sr-table .sr-score-value {
+            position: relative;
+            z-index: 1;
+            background-color: var(--container-bg); /* Opaque background to stand out from the bar */
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+        .sr-table .sr-pivots-cell {
+            color: var(--subtle-text);
+        }
+        /* END: New Compact S/R Table Styles */
+
 
         .price-above { color: #dc3545 !important; }
         .price-below { color: #28a745 !important; }
@@ -1110,9 +1141,14 @@
         .card-description {
             font-size: 13px;
             line-height: 1.6;
-            text-align: center;
+            text-align: left;
             margin: 0;
+            list-style-position: inside;
+            padding-left: 0;
         }
+         .card-description li {
+            margin-bottom: 8px;
+         }
         /* --- END: New S/R Key styles --- */
 
         @media (max-width: 768px) { 
@@ -1635,7 +1671,7 @@
                 <div id="sr-legend-content">
                     <div id="sr-metadata-container">
                         <div class="metadata-item">
-                            <span class="metadata-label">Lookback:</span>
+                            <span class="metadata-label">Lookback & Volatility:</span>
                             <span id="sr-metadata-dates" class="metadata-value">--</span>
                         </div>
                         <div class="metadata-item">
@@ -1643,34 +1679,40 @@
                             <span id="sr-metadata-timeframes" class="metadata-value">--</span>
                         </div>
                         <div class="metadata-item">
-                            <span class="metadata-label">Pivot Windows Used:</span>
+                            <span class="metadata-label">Base Pivot Windows:</span>
                             <span id="sr-metadata-windows" class="metadata-value">--</span>
                         </div>
                     </div>
                     <div class="methodology-breakdown">
                         <div class="methodology-card">
-                            <h4>Base Strength</h4>
-                            <div class="weight-group">
-                                <p class="weight-group-title">Timeframe Multipliers</p>
-                                <div class="weight-item"><span>15m:</span> <span>1.0x</span></div>
-                                <div class="weight-item"><span>30m:</span> <span>1.2x</span></div>
-                                <div class="weight-item"><span>1h:</span> <span>1.5x</span></div>
-                                <div class="weight-item"><span>2h:</span> <span>2.0x</span></div>
-                                <div class="weight-item"><span>4h:</span> <span>2.5x</span></div>
+                            <h4>1. Pivot Scoring</h4>
+                             <div class="weight-group">
+                                <p class="weight-group-title">Base Score Factors</p>
+                                <div class="weight-item"><span>Timeframe:</span> <span>1.0x to 2.5x</span></div>
+                                <div class="weight-item"><span>Pivot Source (Close):</span> <span>1.5x</span></div>
+                                <div class="weight-item"><span>Pivot Source (Wick):</span> <span>1.0x</span></div>
                             </div>
                             <div class="weight-group">
-                                <p class="weight-group-title">Pivot Source Multipliers</p>
-                                <div class="weight-item"><span>Wick H/L:</span> <span>1.0x</span></div>
-                                <div class="weight-item"><span>Close H/L:</span> <span>1.5x</span></div>
+                                <p class="weight-group-title">Strength Modifiers</p>
+                                <div class="weight-item"><span>Recency Weight:</span> <span>45-Day Half-Life</span></div>
+                                <div class="weight-item"><span>Volume Weight:</span> <span>1.0x to 2.0x</span></div>
                             </div>
                         </div>
                         <div class="methodology-card">
-                            <h4>Volume Weight</h4>
-                            <p class="card-description">Pivots on high-volume candles receive a strength boost. The multiplier ranges from <strong>1.0x</strong> (for lowest volume) to <strong>2.0x</strong> (for highest volume).</p>
+                            <h4>2. Clustering & Filtering</h4>
+                            <ul class="card-description">
+                                <li>Pivots are grouped into price clusters using DBSCAN.</li>
+                                <li>The pivot-finding windows adapt to recent volatility (ATR).</li>
+                                <li>A cluster is only considered valid if it passes two key filters:</li>
+                                <li style="margin-left: 20px;"><strong>Liquidity:</strong> Must contain at least one pivot with high volume (>1.2x average).</li>
+                                <li style="margin-left: 20px;"><strong>Reversal:</strong> Must contain at least one pivot candle that shows a price rejection.</li>
+                            </ul>
                         </div>
-                        <div class="methodology-card">
-                            <h4>Recency Weight</h4>
-                            <p class="card-description">Newer pivots are stronger. The score decays exponentially with a <strong>45-day half-life</strong> (a 45-day-old pivot has 50% of its original recency score).</p>
+                         <div class="methodology-card">
+                            <h4>3. Final Zone Score</h4>
+                             <p class="card-description" style="text-align: center;">
+                                The final "Score" for each zone is the sum of the weighted strength scores of all individual pivots within that valid cluster.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -1691,13 +1733,25 @@
             <div id="sr-levels-container">
                 <div class="sr-column support">
                     <h3>Top Support Zones</h3>
-                    <div id="support-levels-container"></div>
-                    <div id="support-summary" class="sr-summary"></div>
+                    <div class="table-wrapper">
+                        <table class="sr-table">
+                            <thead>
+                                <tr><th>Zone ($)</th><th>Center ($)</th><th>Score</th><th>Pivots</th></tr>
+                            </thead>
+                            <tbody id="support-levels-tbody"></tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="sr-column resistance">
                     <h3>Top Resistance Zones</h3>
-                    <div id="resistance-levels-container"></div>
-                    <div id="resistance-summary" class="sr-summary"></div>
+                     <div class="table-wrapper">
+                        <table class="sr-table">
+                            <thead>
+                                <tr><th>Zone ($)</th><th>Center ($)</th><th>Score</th><th>Pivots</th></tr>
+                            </thead>
+                            <tbody id="resistance-levels-tbody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             
@@ -1853,10 +1907,8 @@
             srMetadataWindows: document.getElementById('sr-metadata-windows'),
             srSymbolEl: document.getElementById('sr-symbol'),
             srLookbackEl: document.getElementById('sr-lookback'),
-            supportLevelsContainer: document.getElementById('support-levels-container'),
-            resistanceLevelsContainer: document.getElementById('resistance-levels-container'),
-            supportSummary: document.getElementById('support-summary'),
-            resistanceSummary: document.getElementById('resistance-summary'),
+            supportLevelsTbody: document.getElementById('support-levels-tbody'),
+            resistanceLevelsTbody: document.getElementById('resistance-levels-tbody'),
         };
 
         // --- APPLICATION STATE ---
@@ -1990,7 +2042,7 @@
                 }
             } catch (error) {
                 console.error("Could not fetch sr_levels_analysis.json:", error);
-                DOM.supportLevelsContainer.parentElement.innerHTML = '<p style="color: red; text-align: center;">Error loading S/R data.</p>';
+                DOM.supportLevelsTbody.parentElement.innerHTML = '<p style="color: red; text-align: center;">Error loading S/R data.</p>';
             }
         }
 
@@ -2335,18 +2387,13 @@
             const lookbackData = STATE.srData.data?.[selectedSymbol]?.[selectedLookback] || {};
             const analysisParams = lookbackData.analysis_params || {};
 
-            // Correctly get last updated time from the new JSON structure
             DOM.srLastUpdatedTime.textContent = STATE.srData.last_updated 
                 ? new Date(STATE.srData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) 
                 : '--';
-
-            // Update metadata display based on new script's output
+                
             DOM.srMetadataTimeframes.textContent = (analysisParams.timeframes_analyzed || []).join(', ') || '--';
-            
-            // Hardcode base pivot windows as they are a constant in the script
-            DOM.srMetadataWindows.textContent = '5, 8, 13, 21, 34 (Base)';
+            DOM.srMetadataWindows.textContent = '5, 8, 13, 21, 34'; // From script config
 
-            // Repurpose the date element to show current lookback and volatility
             if (analysisParams.lookback_days) {
                 const atrText = analysisParams.atr_percent ? ` / ATR: ${(analysisParams.atr_percent * 100).toFixed(2)}%` : '';
                 DOM.srMetadataDates.textContent = `${analysisParams.lookback_days} Days${atrText}`;
@@ -2354,43 +2401,31 @@
                 DOM.srMetadataDates.textContent = '--';
             }
 
-            // Update the card to display new information like 'Center Price'
-            const buildLevelCard = (level) => {
-                const centerPrice = level['Center Price'] !== undefined ? `$${level['Center Price'].toFixed(2)}` : 'N/A';
+            const supportLevels = lookbackData.support || [];
+            const resistanceLevels = lookbackData.resistance || [];
+            
+            const allScores = [...supportLevels, ...resistanceLevels].map(l => l['Strength Score']);
+            const maxScore = allScores.length > 0 ? Math.max(...allScores) : 1;
+
+            const buildLevelRow = (level, type) => {
                 const priceStart = level['Price Start'] !== undefined ? Math.round(level['Price Start']) : 'N/A';
                 const priceEnd = level['Price End'] !== undefined ? Math.round(level['Price End']) : 'N/A';
+                const centerPrice = level['Center Price'] !== undefined ? Math.round(level['Center Price']) : 'N/A';
+                const score = level['Strength Score'] || 0;
+                const scoreWidth = (score / maxScore) * 100;
+                const barColor = type === 'support' ? 'var(--green-bar)' : 'var(--red-bar)';
                 
                 return `
-                <div class="sr-level-card">
-                    <div class="sr-level-header">
-                        <span class="sr-level-price-range">$${priceStart} - $${priceEnd}</span>
-                        <span class="sr-level-strength">Score: ${level['Strength Score']}</span>
-                    </div>
-                    <div class="sr-level-pivots">
-                        Center: <span>${centerPrice}</span> | Pivots: <span>${level['Pivot Count']}</span>
-                    </div>
-                </div>`;
+                    <tr>
+                        <td>${priceStart} - ${priceEnd}</td>
+                        <td class="sr-center-price">${centerPrice}</td>
+                        <td class="sr-score-cell" style="background-image: linear-gradient(to right, ${barColor} ${scoreWidth}%, transparent ${scoreWidth}%);"><span class="sr-score-value">${score}</span></td>
+                        <td class="sr-pivots-cell">${level['Pivot Count']}</td>
+                    </tr>`;
             };
 
-            const supportLevels = lookbackData.support || [];
-            DOM.supportLevelsContainer.innerHTML = supportLevels.map(buildLevelCard).join('');
-            if (supportLevels.length > 0 && supportLevels.every(l => l['Price Start'] !== undefined)) {
-                const lowest = Math.min(...supportLevels.map(l => l['Price Start']));
-                const highest = Math.max(...supportLevels.map(l => l['Price End']));
-                DOM.supportSummary.innerHTML = `Full Range: <span>$${Math.round(lowest)}</span> - <span>$${Math.round(highest)}</span>`;
-            } else { 
-                DOM.supportSummary.innerHTML = ''; 
-            }
-
-            const resistanceLevels = lookbackData.resistance || [];
-            DOM.resistanceLevelsContainer.innerHTML = resistanceLevels.map(buildLevelCard).join('');
-            if (resistanceLevels.length > 0 && resistanceLevels.every(l => l['Price Start'] !== undefined)) {
-                const lowest = Math.min(...resistanceLevels.map(l => l['Price Start']));
-                const highest = Math.max(...resistanceLevels.map(l => l['Price End']));
-                DOM.resistanceSummary.innerHTML = `Full Range: <span>$${Math.round(lowest)}</span> - <span>$${Math.round(highest)}</span>`;
-            } else { 
-                DOM.resistanceSummary.innerHTML = ''; 
-            }
+            DOM.supportLevelsTbody.innerHTML = supportLevels.map(level => buildLevelRow(level, 'support')).join('');
+            DOM.resistanceLevelsTbody.innerHTML = resistanceLevels.map(level => buildLevelRow(level, 'resistance')).join('');
         }
 
         // --- DATA HANDLING AND SAVING ---
@@ -3141,4 +3176,3 @@
 
 </body>
 </html>
-```
