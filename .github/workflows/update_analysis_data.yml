@@ -24,16 +24,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
-      # --- START: NEW, SIMPLER, AND MORE RELIABLE VPN sACTION ---
-      # This action connects the runner to a VPN from a list of public servers.
-      # It's much cleaner as it doesn't require embedding certificates.
+      # --- START: NEW, VERIFIED, AND SIMPLER VPN ACTION ---
+      # This action connects to a free public VPN in Germany.
+      # It downloads the configuration file directly, so no secrets are needed.
       - name: Setup VPN Connection
-        uses: INSA-CVL/setup-openvpn@v2
+        uses: h3poteto/github-action-openvpn@v1.1.0
         with:
-          # This points to a list of free, public VPN servers
-          ovpn-config: https://raw.githubusercontent.com/INSA-CVL/setup-openvpn/main/examples/public.vpnbook.com/tcp80.ovpn
-          ca-crt: ${{ secrets.VPN_CA_CRT }}
-          auth-user-pass: ${{ secrets.VPN_AUTH }}
+          config_file: .github/vpn/de1.vpnbook.com_tcp80.ovpn
+          username: vpnbook
+          password: ${{ secrets.VPN_PASSWORD }} # You will need to create this one secret
+
       # --- END: NEW VPN ACTION ---
 
       - name: Checkout repository
