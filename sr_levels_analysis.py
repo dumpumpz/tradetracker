@@ -11,7 +11,7 @@ from typing import Optional, List, Any, Dict
 import random
 
 # ### NEW ### Import new libraries for proxy fetching
-from bs4 import BeautifulSoup
+
 from scipy.signal import argrelextrema
 from sklearn.cluster import DBSCAN
 
@@ -284,4 +284,5 @@ def find_clusters_dbscan(pivots_df: pd.DataFrame, threshold_percent: float):
 
 if __name__ == "__main__":
     main()
+
 
