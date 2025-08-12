@@ -2335,29 +2335,62 @@
             const lookbackData = STATE.srData.data?.[selectedSymbol]?.[selectedLookback] || {};
             const analysisParams = lookbackData.analysis_params || {};
 
-            DOM.srLastUpdatedTime.textContent = STATE.srData.metadata?.last_updated_utc ? new Date(STATE.srData.metadata.last_updated_utc).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--';
-            DOM.srMetadataTimeframes.textContent = (analysisParams.timeframes_analyzed || []).join(', ') || '--';
-            DOM.srMetadataWindows.textContent = (analysisParams.pivot_windows || []).join(', ') || '--';
-            DOM.srMetadataDates.textContent = (analysisParams.oldest_pivot_date && analysisParams.newest_pivot_date) 
-                ? `${analysisParams.oldest_pivot_date} to ${analysisParams.newest_pivot_date}` : '--';
+            // Correctly get last updated time from the new JSON structure
+            DOM.srLastUpdatedTime.textContent = STATE.srData.last_updated 
+                ? new Date(STATE.srData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) 
+                : '--';
 
-            const buildLevelCard = (level) => `<div class="sr-level-card"><div class="sr-level-header"><span class="sr-level-price-range">$${Math.round(level['Price Start'])} - $${Math.round(level['Price End'])}</span><span class="sr-level-strength">Score: ${level['Strength Score']}</span></div><div class="sr-level-pivots">Based on <span>${level['Pivot Count']}</span> pivots.</div></div>`;
+            // Update metadata display based on new script's output
+            DOM.srMetadataTimeframes.textContent = (analysisParams.timeframes_analyzed || []).join(', ') || '--';
+            
+            // Hardcode base pivot windows as they are a constant in the script
+            DOM.srMetadataWindows.textContent = '5, 8, 13, 21, 34 (Base)';
+
+            // Repurpose the date element to show current lookback and volatility
+            if (analysisParams.lookback_days) {
+                const atrText = analysisParams.atr_percent ? ` / ATR: ${(analysisParams.atr_percent * 100).toFixed(2)}%` : '';
+                DOM.srMetadataDates.textContent = `${analysisParams.lookback_days} Days${atrText}`;
+            } else {
+                DOM.srMetadataDates.textContent = '--';
+            }
+
+            // Update the card to display new information like 'Center Price'
+            const buildLevelCard = (level) => {
+                const centerPrice = level['Center Price'] !== undefined ? `$${level['Center Price'].toFixed(2)}` : 'N/A';
+                const priceStart = level['Price Start'] !== undefined ? Math.round(level['Price Start']) : 'N/A';
+                const priceEnd = level['Price End'] !== undefined ? Math.round(level['Price End']) : 'N/A';
+                
+                return `
+                <div class="sr-level-card">
+                    <div class="sr-level-header">
+                        <span class="sr-level-price-range">$${priceStart} - $${priceEnd}</span>
+                        <span class="sr-level-strength">Score: ${level['Strength Score']}</span>
+                    </div>
+                    <div class="sr-level-pivots">
+                        Center: <span>${centerPrice}</span> | Pivots: <span>${level['Pivot Count']}</span>
+                    </div>
+                </div>`;
+            };
 
             const supportLevels = lookbackData.support || [];
             DOM.supportLevelsContainer.innerHTML = supportLevels.map(buildLevelCard).join('');
-            if (supportLevels.length > 0) {
+            if (supportLevels.length > 0 && supportLevels.every(l => l['Price Start'] !== undefined)) {
                 const lowest = Math.min(...supportLevels.map(l => l['Price Start']));
                 const highest = Math.max(...supportLevels.map(l => l['Price End']));
                 DOM.supportSummary.innerHTML = `Full Range: <span>$${Math.round(lowest)}</span> - <span>$${Math.round(highest)}</span>`;
-            } else { DOM.supportSummary.innerHTML = ''; }
+            } else { 
+                DOM.supportSummary.innerHTML = ''; 
+            }
 
             const resistanceLevels = lookbackData.resistance || [];
             DOM.resistanceLevelsContainer.innerHTML = resistanceLevels.map(buildLevelCard).join('');
-            if (resistanceLevels.length > 0) {
+            if (resistanceLevels.length > 0 && resistanceLevels.every(l => l['Price Start'] !== undefined)) {
                 const lowest = Math.min(...resistanceLevels.map(l => l['Price Start']));
                 const highest = Math.max(...resistanceLevels.map(l => l['Price End']));
                 DOM.resistanceSummary.innerHTML = `Full Range: <span>$${Math.round(lowest)}</span> - <span>$${Math.round(highest)}</span>`;
-            } else { DOM.resistanceSummary.innerHTML = ''; }
+            } else { 
+                DOM.resistanceSummary.innerHTML = ''; 
+            }
         }
 
         // --- DATA HANDLING AND SAVING ---
@@ -3108,3 +3141,4 @@
 
 </body>
 </html>
+```
