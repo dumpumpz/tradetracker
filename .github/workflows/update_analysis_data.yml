@@ -1,41 +1,25 @@
 # .github/workflows/update_analysis_data.yml
 
-name: Update Analysis Data and Deploy to Pages
+name: Update Analysis Data via Local Script
 
 on:
+  schedule:
+    - cron: '2-59/15 * * * *'
   push:
     branches: ["main"]
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: write # This is essential to allow the script to push back
 
 concurrency:
-  group: "pages"
+  group: ${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  update-data:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
     steps:
-      # --- START: NEW, VERIFIED, AsND SIMPLER VPN ACTION ---
-      # This action connects to a free public VPN in Germany.
-      # It downloads the configuration file directly, so no secrets are needed.
-      - name: Setup VPN Connection
-        uses: h3poteto/github-action-openvpn@v1.1.0
-        with:
-          config_file: .github/vpn/de1.vpnbook.com_tcp80.ovpn
-          username: vpnbook
-          password: ${{ secrets.VPN_PASSWORD }} # You will need to create this one secret
-
-      # --- END: NEW VPN ACTION ---
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -49,24 +33,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas requests pyarrow scipy scikit-learn matplotlib mplfinance
 
-      - name: Run Analysis and Charting Scripts
+      - name: Run the master update script
         run: |
-          python generate_accurate_ma.py
-          python sr_levels_analysis.py
-          python generate_charts.py
-
-      - name: Verify generated files
-        run: ls -R
-
-      # Use the official actions to build and deploy the site
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: '.'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          chmod +x run_update.sh
+          ./run_update.sh
