@@ -38,32 +38,31 @@ STRENGTH_CONFIG = {'VOLUME_STRENGTH_FACTOR': 1.0, 'RECENCY_HALFLIFE_DAYS': 45.0}
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 # ### NEW PROXY LOGIC ###
+# ### NEW PROXY LOGIC (MORE RELIABLE) ###
 def get_working_proxy():
     """
-    Fetches a list of free proxies and returns the first one that works.
-    This is a resilient way to bypass geo-blocking.
+    Fetches a list of free proxies from a more reliable source (proxyscrape.com)
+    and returns the first one that works.
     """
-    url = "https://free-proxy-list.net/"
+    # Using proxyscrape API, which is often more up-to-date.
+    url = "https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all"
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
         response = requests.get(url, headers=headers, timeout=15)
-        soup = BeautifulSoup(response.content, 'lxml')
-        proxy_list = []
-        for row in soup.find("table", attrs={"class": "table"}).find_all("tr")[1:]:
-            tds = row.find_all("td")
-            if tds[6].text.strip() == "yes": # Only use HTTPS proxies
-                ip = tds[0].text.strip()
-                port = tds[1].text.strip()
-                proxy_list.append(f"http://{ip}:{port}")
+        response.raise_for_status()
+        
+        # The response is a simple text file with one proxy per line
+        proxy_list = response.text.strip().split('\n')
+        proxy_list = [f"http://{proxy.strip()}" for proxy in proxy_list]
         
         random.shuffle(proxy_list)
-        logging.info(f"Found {len(proxy_list)} potential proxies. Testing...")
+        logging.info(f"Found {len(proxy_list)} potential proxies from proxyscrape. Testing...")
 
-        for proxy_url in proxy_list:
+        for proxy_url in proxy_list[:20]: # Test a maximum of 20 to save time
             proxies = {"http": proxy_url, "https": proxy_url}
             try:
                 # Test the proxy by trying to connect to a reliable service
-                test_response = requests.get("https://httpbin.org/ip", proxies=proxies, timeout=10)
+                test_response = requests.get("https://httpbin.org/ip", proxies=proxies, timeout=7)
                 if test_response.status_code == 200:
                     logging.info(f"SUCCESS: Found working proxy: {proxy_url}")
                     return proxies
@@ -285,3 +284,4 @@ def find_clusters_dbscan(pivots_df: pd.DataFrame, threshold_percent: float):
 
 if __name__ == "__main__":
     main()
+
