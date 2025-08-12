@@ -2486,27 +2486,12 @@
             DOM.srMetadataTimeframes.textContent = (analysisParams.timeframes_analyzed || []).join(', ') || '--';
             DOM.srMetadataWindows.textContent = '5, 8, 13, 21, 34'; // From script config
 
-           // --- AFTER ---
-
-if (analysisParams.lookback_days) {
-    let volatilityText = '';
-    // Check for the new detailed ATR data
-    if (analysisParams.atr_by_timeframe && typeof analysisParams.atr_by_timeframe === 'object' && Object.keys(analysisParams.atr_by_timeframe).length > 0) {
-        // Build the string like "15m: 0.12%, 30m: 0.20%, ..."
-        const atrString = Object.entries(analysisParams.atr_by_timeframe)
-            .map(([tf, atr]) => `${tf}: ${(atr * 100).toFixed(2)}%`)
-            .join(', ');
-        volatilityText = ` / ATRs: ${atrString}`;
-    } 
-    // Fallback to the old, single ATR if the new data isn't present
-    else if (analysisParams.atr_percent) {
-        volatilityText = ` / ATR: ${(analysisParams.atr_percent * 100).toFixed(2)}%`;
-    }
-    
-    DOM.srMetadataDates.textContent = `${analysisParams.lookback_days} Days${volatilityText}`;
-} else {
-    DOM.srMetadataDates.textContent = '--';
-}
+            if (analysisParams.lookback_days) {
+                const atrText = analysisParams.atr_percent ? ` / ATR: ${(analysisParams.atr_percent * 100).toFixed(2)}%` : '';
+                DOM.srMetadataDates.textContent = `${analysisParams.lookback_days} Days${atrText}`;
+            } else {
+                DOM.srMetadataDates.textContent = '--';
+            }
 
             const supportLevels = lookbackData.support || [];
             const resistanceLevels = lookbackData.resistance || [];
