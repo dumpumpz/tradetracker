@@ -5,10 +5,6 @@ import logging
 import requests
 import mplfinance as mpf
 import matplotlib
-import random
-
-# ### NEW ### Import BeautifulSoup for proxy scraping
-from bs4 import BeautifulSoup
 
 # Use a non-GUI backend, essential for running in GitHub Actions
 matplotlib.use('Agg')
@@ -20,54 +16,19 @@ LOOKBACK_TO_CHART = '14d'
 TIMEFRAME = '1h'
 CANDLES_TO_PLOT = 240
 OUTPUT_DIR = 'charts'
-API_ENDPOINT = "https://api3.binance.com/api/v3/klines" # Use a resilient endpoint
+API_ENDPOINT = "https://api.binance.com/api/v3/klines"
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 
-# ### NEW ### Copied the proxy-finding logic from the main script
-# ### NEW ### Copied the proxy-finding logic from the main script
-def get_working_proxy():
-    """
-    Fetches a list of free proxies from a more reliable source (proxyscrape.com)
-    and returns the first one that works.
-    """
-    # Using proxyscrape API, which is often more up-to-date.
-    url = "https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    try:
-        response = requests.get(url, headers=headers, timeout=15)
-        response.raise_for_status()
-        
-        proxy_list = response.text.strip().split('\n')
-        proxy_list = [f"http://{proxy.strip()}" for proxy in proxy_list]
-        
-        random.shuffle(proxy_list)
-        logging.info(f"Found {len(proxy_list)} potential proxies for charting. Testing...")
-
-        for proxy_url in proxy_list[:20]:
-            proxies = {"http": proxy_url, "https": proxy_url}
-            try:
-                test_response = requests.get("https://httpbin.org/ip", proxies=proxies, timeout=7)
-                if test_response.status_code == 200:
-                    logging.info(f"SUCCESS: Charting will use proxy: {proxy_url}")
-                    return proxies
-            except requests.exceptions.RequestException:
-                continue
-    except Exception as e:
-        logging.warning(f"Could not fetch or validate proxies for charting: {e}")
-    
-    logging.error("No working proxies found for charting. Trying direct connection.")
-    return None
-# ### MODIFIED ### Updated to accept and use the proxy
-def fetch_ohlcv(symbol, interval, limit, proxies):
-    """Fetches a limited number of candles for plotting, using a proxy."""
+def fetch_ohlcv(symbol, interval, limit):
+    """Fetches a limited number of candles for plotting."""
     api_symbol = symbol.replace('-', '')
     url = f'{API_ENDPOINT}?symbol={api_symbol}&interval={interval}&limit={limit}'
     try:
-        response = requests.get(url, timeout=20, proxies=proxies)
+        response = requests.get(url, timeout=20)
         response.raise_for_status()
         data = response.json()
         df = pd.DataFrame(data, columns=['Open time', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
@@ -83,24 +44,18 @@ def main():
     
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
-        logging.info(f"Created output directory: {OUTPUT_DIR}")
 
     try:
         with open(SR_DATA_FILE, 'r') as f:
             sr_data = json.load(f)
-        logging.info(f"Successfully loaded data from {SR_DATA_FILE}")
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        logging.error(f"FATAL: Could not read or parse '{SR_DATA_FILE}'. Error: {e}")
+        logging.error(f"FATAL: Could not read S/R data file '{SR_DATA_FILE}'. Error: {e}")
         return
-
-    # ### NEW ### Get a proxy before starting the loop
-    proxies = get_working_proxy()
 
     for symbol in SYMBOLS_TO_CHART:
         logging.info(f"--- Generating chart for {symbol} ---")
 
-        # ### MODIFIED ### Pass the proxy to the fetch function
-        df = fetch_ohlcv(symbol, TIMEFRAME, CANDLES_TO_PLOT, proxies)
+        df = fetch_ohlcv(symbol, TIMEFRAME, CANDLES_TO_PLOT)
         if df is None or df.empty:
             logging.warning(f"Could not fetch OHLCV data for {symbol}. Skipping chart.")
             continue
