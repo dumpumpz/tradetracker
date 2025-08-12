@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # Change back to write to allow the auto-commit action
+  contents: write
   pages: write
   id-token: write
 
@@ -17,80 +17,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # JOB 1: Connect to VPN, run scripts, commit files, and build the artifact
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
     steps:
-      # --- This is the new, more reliable VPN action ---
+      # --- START: NEW, SIMPLER, AND MORE RELIABLE VPN ACTION ---
+      # This action connects the runner to a VPN from a list of public servers.
+      # It's much cleaner as it doesn't require embedding certificates.
       - name: Setup VPN Connection
-        uses: dsvpn/github-action-dsvpn@v1.1.2
+        uses: INSA-CVL/setup-openvpn@v2
         with:
-          # This config file is pre-configured for public European servers
-          config: |
-            client
-            dev tun
-            proto udp
-            remote-random
-            remote de.vpn.dovpn.com 1194
-            remote nl.vpn.dovpn.com 1194
-            remote fr.vpn.dovpn.com 1194
-            resolv-retry infinite
-            nobind
-            persist-key
-            persist-tun
-            remote-cert-tls server
-            auth-user-pass
-            comp-lzo
-            verb 1
-            reneg-sec 0
-            <ca>
-            -----BEGIN CERTIFICATE-----
-            MIIDPzCCAiegAwIBAgIJANdwaHjWXl3vMA0GCSqGSIb3DQEBCwUAMBgxFjAUBgNV
-            BAMMDWRzLnZwbi5kb3Zwbi5jb20wHhcNMTcwOTE4MTExMjQyWhcNMjcwOTE2MTEx
-            MjQyWjAYMRYwFAYDVQQDDA1kcy52cG4uZG92cG4uY29tMIIBIjANBgkqhkiG9w0B
-            AQEFAAOCAQ8AMIIBCgKCAQEAzwL6eaceg3o4y/6K0g1F4xJFPp20pSo5d8z736JV
-            G0j2e2tqPE3g47MvAdvudt8d4LcbB8L/GZ2k3Dq9qM/p/cHL3aK3kHO/Y9bI4E6q
-            OKX/q4YcIZiO332N6ufm5N6/V7Dudn53BqqECz4oFHvjQl9v6S07Hl4SjFNngv2h
-            vE2d5dSHY/A/2wEnnaPS9w2E22T3AOX3d23x+gO8MvjZnEtK4bL8bVfppZ7Z272S
-            VSAQfV3o2rV2aq7zEvFg2h89y3w+m2D15qH3fQx3b/iF2Nn55r2cgLnkCn5cO8v5
-            c1q/YdI4a8/l2wXk8H5eY/5e7X3yXQIDAQABo3wwejAdBgNVHQ4EFgQU2JpB4aFQ
-            e8f6eYIp2F9K8P/a0uIwNAYDVR0jBC0wK4AU2JpB4aFQe8f6eYIp2F9K8P/a0uKh
-            GqQYMBYxFDASBgNVBAMMC2Vhc3lyc2EtY2GC CQDXcGg8ZZeXe8wDAYDVR0TBAUw
-            AwEB/zALBgNVHQ8EBAMCAQYwDQYJKoZIhvcNAQELBQADggEBAKxQnAV33C/V7h2F
-            iR4f38Iqe01c++CS4M/PzM05s5W4mII5k+YqG0iMc3LqJ2A3bzl0zEd7lAOD54t8
-            2T10z5hWdygVq81d3q2h2R6uC8V9yIp40L5kImHjTDP70D9hgpPKA9hZupmB2d5o
-            V2w0nS23G0j85l69vzl433c2JqR1oPnbhywMKE0wYfIs4jKIU28y7vQv97+qMSPd
-            Jbb5d+a3a/7j2xLh3tZ2qa+5t25l/zFkY2MvJ8yXUV4V5oF+/z2zGPVl5hSvxLhH
-            i4YNc6a44l3uL0bTH2wTNhEu43L5T0TXW1fJ4xM=
-            -----END CERTIFICATE-----
-            </ca>
-            <cert>
-            -----BEGIN CERTIFICATE-----
-            MIIDhDCCAmwCCQDqXvY9wB/6UTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDDA1k
-            cy52cG4uZG92cG4uY29tMB4XDTIyMDgwNDE1MTY0NloXDTMyMDgwMzE1MTY0Nlow
-            FzEVMBMGA1UEAwwMdGVzdC5kb3Zwbi5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IB
-            DwAwggEKAoIBAQDEd7Fp25yE/DqU0tXg0vLWs36LnvtS6dD9YI5OQkM5D5z5U4y/
-            p/28kSHx2gQ4FcyfR3qF5wQ4u2Hl/eFBCg4g/5a77f/tDq2n8jZajw5K+R3/rM9v
-            9tP2S5f4u+ZgXw+T36f7y9M1s1A0g9wV7t7H6D+aP1x9x7f9a8f2t6x2H/c+ePz6
-            X2p9y2Z5y7a+c8f4H6b+d/k3X7e+a/k9H9w/t9d8X6X8Z4D7F5r2a5c4D9h7t8a+
-            e6b8H9v+f/a3Z6p+a/g8H9f+c/d2b5v/g/f7V5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/
-            h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/
-            h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/
-            h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/h/d6Z5v/
-//... (rest of the certificate)
-            -----END CERTIFICATE-----
-            </cert>
-            <key>
-            -----BEGIN PRIVATE KEY-----
-//... (your private key would be here, but this example uses a public VPN so it's handled by the action)
-            -----END PRIVATE KEY-----
-            </key>
-          user: free
-          pass: free
-          auth-retry: 'interact'
-          auth-nocache: ''
-          connect-retry-max: '5'
-          connect-retry: '2'
+          # This points to a list of free, public VPN servers
+          ovpn-config: https://raw.githubusercontent.com/INSA-CVL/setup-openvpn/main/examples/public.vpnbook.com/tcp80.ovpn
+          ca-crt: ${{ secrets.VPN_CA_CRT }}
+          auth-user-pass: ${{ secrets.VPN_AUTH }}
+      # --- END: NEW VPN ACTION ---
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -100,42 +44,29 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install all dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests pyarrow scipy scikit-learn matplotlib mplfinance beautifulsoup4 lxml
+          pip install pandas requests pyarrow scipy scikit-learn matplotlib mplfinance
 
       - name: Run Analysis and Charting Scripts
         run: |
           python generate_accurate_ma.py
           python sr_levels_analysis.py
           python generate_charts.py
-      
+
       - name: Verify generated files
         run: ls -R
 
-      # Re-added auto-commit to save the generated files back to the repo
-      - name: Commit and push analysis files
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Automated analysis data and chart update"
-          # This will commit all new/modified files
-          
+      # Use the official actions to build and deploy the site
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload artifact for deployment
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
