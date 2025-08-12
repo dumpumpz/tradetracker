@@ -1115,43 +1115,6 @@
         }
         /* --- END: New S/R Key styles --- */
 
-        /* START: New styles for S/R Chart Display */
-        #sr-chart-container {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-color);
-        }
-        #sr-chart-container h3 {
-            text-align: center;
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-weight: 500;
-            color: var(--subtle-text);
-        }
-        #sr-chart-image-wrapper {
-            width: 100%;
-            max-width: 900px; /* Limit chart width on large screens */
-            margin: 0 auto;
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px;
-            box-shadow: 0 1px 4px var(--shadow-color);
-        }
-        #sr-chart-image-wrapper img {
-            width: 100%;
-            height: auto;
-            display: block; /* Removes bottom margin/space */
-        }
-        #sr-chart-image-wrapper p {
-            text-align: center;
-            padding: 40px;
-            font-style: italic;
-            color: var(--subtle-text);
-        }
-        /* --- END: New S/R Chart styles --- */
-
-
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -1737,15 +1700,7 @@
                     <div id="resistance-summary" class="sr-summary"></div>
                 </div>
             </div>
-
-            <!-- START: NEW CHART IMAGE CONTAINER -->
-            <div id="sr-chart-container">
-                <h3>S/R Zones Chart (1h Timeframe)</h3>
-                <div id="sr-chart-image-wrapper">
-                    <p>Select a symbol to view the chart.</p>
-                </div>
-            </div>
-            <!-- END: NEW CHART IMAGE CONTAINER -->
+            
         </div>
 
     </div>
@@ -1769,13 +1724,15 @@
     document.addEventListener('DOMContentLoaded', () => {
 
         // --- CONFIGURATION ---
+        // IMPORTANT: Regenerate and replace your Firebase API keys.
+        // The ones you posted are public and compromised.
         const CONFIG = {
             FIREBASE: {
-                apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
+                apiKey: "YOUR_NEW_API_KEY", // <-- REPLACE THIS
                 authDomain: "journal-a003f.firebaseapp.com",
                 databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
                 projectId: "journal-a003f",
-                storageBucket: "journal-a003f.firebasestorage.app",
+                storageBucket: "journal-a003f.appspot.com", // Corrected domain
                 messagingSenderId: "1038636626553",
                 appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
             },
@@ -1900,9 +1857,6 @@
             resistanceLevelsContainer: document.getElementById('resistance-levels-container'),
             supportSummary: document.getElementById('support-summary'),
             resistanceSummary: document.getElementById('resistance-summary'),
-            // START: ADD THIS LINE
-            srChartImageWrapper: document.getElementById('sr-chart-image-wrapper'),
-            // END: ADD THIS LINE
         };
 
         // --- APPLICATION STATE ---
@@ -2299,8 +2253,7 @@
             const { TIMEFRAMES, PERIODS, SHORT_NAMES } = CONFIG.EMA_ANALYSIS;
             const symbolEmaData = STATE.emaData.data[safeSymbol] || {};
             const currentPrice = symbolEmaData['15min']?.price || 0;
-           // Inside the renderEmaSnapshot function...
-const lastUpdatedHtml = STATE.emaData.last_updated ? `<p class="ema-last-updated">Last Updated: <span>${new Date(STATE.emaData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span></p>` : '';
+            const lastUpdatedHtml = STATE.emaData.last_updated ? `<p class="ema-last-updated">Last Updated: <span>${new Date(STATE.emaData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span></p>` : '';
             const priceDisplayHtml = `<div class="ema-table-container"><div class="current-price-display" style="font-size: 14px; margin-bottom: 15px;">Current Price (15m): <span class="price-value">${currentPrice > 0 ? formatCurrency(currentPrice) : '--'}</span></div></div>`;
             let summaryTableHtml = '';
             if (currentPrice > 0) {
@@ -2376,34 +2329,6 @@ const lastUpdatedHtml = STATE.emaData.last_updated ? `<p class="ema-last-updated
             applyHighlightingToSetupsTable(tableElement);
         }
 
-        // START: NEW FUNCTION TO RENDER THE CHART IMAGE
-        function renderSrChartImage() {
-            const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value); // e.g., "BTC-USDT"
-            const chartImageWrapper = DOM.srChartImageWrapper;
-
-            if (!chartImageWrapper) return;
-
-            // Add a cache-busting query string to ensure the latest image is loaded
-            const cacheBust = new Date().getTime();
-            const imageUrl = `charts/${selectedSymbol}_chart.png?v=${cacheBust}`;
-
-            const img = document.createElement('img');
-            img.src = imageUrl;
-            img.alt = `${selectedSymbol} S/R Chart`;
-            
-            chartImageWrapper.innerHTML = `<p>Loading chart for ${selectedSymbol}...</p>`;
-
-            img.onload = () => {
-                chartImageWrapper.innerHTML = '';
-                chartImageWrapper.appendChild(img);
-            };
-
-            img.onerror = () => {
-                chartImageWrapper.innerHTML = `<p>Chart image for ${selectedSymbol} not available.</p>`;
-            };
-        }
-        // END: NEW FUNCTION
-
         function renderSrLevels() {
             const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
             const selectedLookback = DOM.srLookbackEl.value;
@@ -2433,10 +2358,6 @@ const lastUpdatedHtml = STATE.emaData.last_updated ? `<p class="ema-last-updated
                 const highest = Math.max(...resistanceLevels.map(l => l['Price End']));
                 DOM.resistanceSummary.innerHTML = `Full Range: <span>$${Math.round(lowest)}</span> - <span>$${Math.round(highest)}</span>`;
             } else { DOM.resistanceSummary.innerHTML = ''; }
-
-            // START: ADD THIS LINE AT THE END OF THE FUNCTION
-            renderSrChartImage();
-            // END: ADD THIS LINE
         }
 
         // --- DATA HANDLING AND SAVING ---
