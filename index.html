@@ -21,7 +21,8 @@
             --green-border: #c3e6cb;
             --red-border: #f5c6cb;
             --green-text: #155724;
-            --red-text: #721c24;
+            --red-text: #721c24;F
+        
         }
 
         [data-theme="dark"] {
@@ -2097,7 +2098,7 @@
                 DOM.ethMonthlyOpen.textContent = formatCurrency(ethData.monthly);
             }
             if (data.last_updated) {
-                DOM.keyOpensLastUpdated.textContent = new Date(data.last_updated).toLocaleString();
+                DOM.keyOpensLastUpdated.textContent = new Date(data.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
             }
         }
 
@@ -2298,7 +2299,7 @@
             const { TIMEFRAMES, PERIODS, SHORT_NAMES } = CONFIG.EMA_ANALYSIS;
             const symbolEmaData = STATE.emaData.data[safeSymbol] || {};
             const currentPrice = symbolEmaData['15min']?.price || 0;
-            const lastUpdatedHtml = STATE.emaData.last_updated ? `<p class="ema-last-updated">Last Updated: <span>${new Date(STATE.emaData.last_updated).toLocaleString()}</span></p>` : '';
+            const lastUpdatedHtml = STATE.emaData.last_updated ? `<p class="ema-last-updated">Last Updated: <span>${new Date(STATE.emaData.last_updated)..toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })</span></p>` : '';
             const priceDisplayHtml = `<div class="ema-table-container"><div class="current-price-display" style="font-size: 14px; margin-bottom: 15px;">Current Price (15m): <span class="price-value">${currentPrice > 0 ? formatCurrency(currentPrice) : '--'}</span></div></div>`;
             let summaryTableHtml = '';
             if (currentPrice > 0) {
@@ -2408,7 +2409,7 @@
             const lookbackData = STATE.srData.data?.[selectedSymbol]?.[selectedLookback] || {};
             const analysisParams = lookbackData.analysis_params || {};
 
-            DOM.srLastUpdatedTime.textContent = STATE.srData.last_updated ? new Date(STATE.srData.last_updated).toLocaleString() : '--';
+            DOM.srLastUpdatedTime.textContent = STATE.srData.metadata?.last_updated_utc ? new Date(STATE.srData.metadata.last_updated_utc).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--';
             DOM.srMetadataTimeframes.textContent = (analysisParams.timeframes_analyzed || []).join(', ') || '--';
             DOM.srMetadataWindows.textContent = (analysisParams.pivot_windows || []).join(', ') || '--';
             DOM.srMetadataDates.textContent = (analysisParams.oldest_pivot_date && analysisParams.newest_pivot_date) 
