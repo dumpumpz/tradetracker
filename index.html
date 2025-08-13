@@ -1017,6 +1017,10 @@
             color: #ffc107;
             font-weight: 500;
         }
+        /* <!-- ADDED --> This style will make the daily open price text yellow when applied */
+        .key-open-price.updated-today-value {
+            color: #ffc107;
+        }
         /* --- END: UPDATED Styles for Key Market Opens Section --- */
 
 
@@ -2132,7 +2136,7 @@
             const isCurrentlyHidden = historicalRows[0].style.display === 'none';
             const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
             historicalRows.forEach(row => { row.style.display = displayStyle; });
-            button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
+            button.textContent = isCurrentlyHidden ? 'Show All' : 'Hide Older';
             const content = button.closest('.collapsible-content');
             if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
                 content.style.maxHeight = content.scrollHeight + 'px';
@@ -2141,6 +2145,7 @@
 
 
         // --- RENDERING FUNCTIONS ---
+        // MODIFIED: This function now also styles the daily open prices
         function renderMarketOpens() {
             const data = STATE.marketOpens;
             if (!data?.opens) return;
@@ -2163,15 +2168,24 @@
                 const lastUpdatedDate = new Date(data.last_updated);
                 DOM.keyOpensLastUpdated.textContent = lastUpdatedDate.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
                 
-                // --- Conditional Coloring Logic ---
                 const now = new Date();
                 const todayUTCStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                
+                const lastUpdatedContainer = DOM.keyOpensLastUpdated.parentElement;
         
-                const containerDiv = DOM.keyOpensLastUpdated.parentElement;
+                // This condition checks if the update is from today (since 00:00 UTC)
                 if (lastUpdatedDate.getTime() >= todayUTCStart.getTime()) {
-                    containerDiv.classList.add('updated-today');
+                    // Apply yellow color to "Last Updated" text
+                    lastUpdatedContainer.classList.add('updated-today');
+                    // ADDED: Apply yellow color to the daily open prices
+                    DOM.btcDailyOpen.classList.add('updated-today-value');
+                    DOM.ethDailyOpen.classList.add('updated-today-value');
                 } else {
-                    containerDiv.classList.remove('updated-today');
+                    // Remove yellow color if data is from a previous day
+                    lastUpdatedContainer.classList.remove('updated-today');
+                    // ADDED: Remove yellow color from the daily open prices
+                    DOM.btcDailyOpen.classList.remove('updated-today-value');
+                    DOM.ethDailyOpen.classList.remove('updated-today-value');
                 }
             }
         }
