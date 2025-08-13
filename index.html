@@ -1982,6 +1982,12 @@
             setupsData2: {},
             selectedDate: null,
             centerDate: null,
+            journalSaveTimer: null,
+            notesSaveTimer: null,
+            trackerSaveTimer: null,
+            remindersSaveTimer: null,
+            setups1NotesTimer: null,
+            setups2NotesTimer: null,
             isMerging: false,
             mergeBaseTradeId: null,
             modalImageGallery: [],
@@ -1990,7 +1996,8 @@
                 id: null,
                 type: null 
             },
-            levelNotes: {},
+            levelNotes: {}, // <-- ADD THIS LINE
+            levelNotesSaveTimer: null, // <-- ADD THIS LINE
         };
 
         // --- INITIALIZE FIREBASE ---
@@ -2014,7 +2021,7 @@
             trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD),
             tradeReminders: database.ref(CONFIG.DB_PATHS.TRADE_REMINDERS),
             sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS),
-             levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES)
+             levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES) // <-- ADD THIS LINE
         };
 
         // --- HELPER FUNCTIONS ---
@@ -2051,75 +2058,6 @@
             STATE.viewerId = id;
             return id;
         }
-
-        // --- REFACTOR START: UTILITY FUNCTIONS ---
-        /**
-         * Creates a debounced function that delays invoking `func` until after `wait` milliseconds
-         * have elapsed since the last time the debounced function was invoked.
-         * @param {Function} func The function to debounce.
-         * @param {number} wait The number of milliseconds to delay.
-         * @returns {Function} Returns the new debounced function.
-         */
-        function debounce(func, wait = 750) {
-            let timeout;
-            return function(...args) {
-                const context = this;
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(context, args), wait);
-            };
-        }
-
-        /**
-         * Uploads a file to Firebase Storage and optionally saves its metadata to the Realtime Database.
-         * @param {File} file The file to upload.
-         * @param {string} storagePath The base path in Firebase Storage.
-         * @param {firebase.database.Reference} dbRef The Realtime Database reference to save metadata to.
-         * @param {Object} [metadata={}] Extra metadata to save to the database.
-         * @param {Function} [onProgress=()=>{}] A callback function for upload progress.
-         * @returns {Promise<Object>} A promise that resolves with the uploaded file's data.
-         */
-        function uploadFile(file, storagePath, dbRef, metadata = {}, onProgress = () => {}) {
-            if (!STATE.isMasterUser || !file.type.startsWith('image/')) {
-                return Promise.reject(new Error("Invalid file type or user permissions."));
-            }
-            const fileName = `${Date.now()}_${file.name.replace(/\s/g, '_')}`;
-            const fullStoragePath = `${storagePath}/${fileName}`;
-            const uploadTask = storage.ref(fullStoragePath).put(file);
-
-            return new Promise((resolve, reject) => {
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        onProgress(progress, snapshot.totalBytes);
-                    },
-                    (error) => {
-                        console.error("Upload Failed:", error);
-                        reject(error);
-                    },
-                    async () => {
-                        try {
-                            const url = await uploadTask.snapshot.ref.getDownloadURL();
-                            const fileData = {
-                                url,
-                                fileName,
-                                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                                ...metadata
-                            };
-                            if (dbRef) {
-                                const newEntryRef = await dbRef.push(fileData);
-                                resolve({ ...fileData, id: newEntryRef.key });
-                            } else {
-                                resolve(fileData); // Resolve without saving to DB if dbRef is null
-                            }
-                        } catch (error) {
-                            reject(error);
-                        }
-                    }
-                );
-            });
-        }
-        // --- REFACTOR END: UTILITY FUNCTIONS ---
-
 
         // --- DATA FETCHING ---
         async function fetchLiveConversionRate() {
@@ -2601,67 +2539,21 @@
                 }
             }
         }
-
-        // --- DATA HANDLING AND SAVING ---
-        // --- REFACTOR START: DEBOUNCED SAVE FUNCTIONS ---
-
-        const saveJournalEntry = debounce(() => {
+        const saveLevelNotes = (inputElement) => {
             if (!STATE.isMasterUser) return;
-            const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
-            const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
-            const timeframe = DOM.journalTimeframeEl.value;
-            const text = DOM.journalEntryEl.value;
-            DOM.saveStatus.textContent = 'Saving...';
-            if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {};
-            if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {};
-            STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text;
-            dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text)
-                .then(() => {
-                    DOM.saveStatus.textContent = 'Saved.';
-                    renderDateNavigation();
-                    setTimeout(() => DOM.saveStatus.textContent = '', 2000);
-                })
-                .catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`);
-        });
+            clearTimeout(STATE.levelNotesSaveTimer);
+            STATE.levelNotesSaveTimer = setTimeout(() => {
+                const idParts = inputElement.id.split('-'); // e.g., ['btc', 'daily', 'note']
+                const symbol = `${idParts[0].toUpperCase()}-USDT`;
+                const timeframe = idParts[1];
+                const value = inputElement.value;
 
-        const savePersistentNotes = debounce(() => {
-            if (!STATE.isMasterUser) return;
-            dbRefs.persistentNotes.set(DOM.persistentNotesEl.value)
-                .catch(e => console.error("Error saving persistent notes:", e));
-        });
-
-        const saveTrackerScratchpad = debounce(() => {
-            if (!STATE.isMasterUser) return;
-            dbRefs.trackerScratchpad.set(DOM.trackerScratchpadEl.value)
-                .catch(e => console.error("Error saving tracker scratchpad:", e));
-        });
-
-        const saveTradeReminders = debounce(() => {
-            if (!STATE.isMasterUser) return;
-            dbRefs.tradeReminders.set(DOM.tradeRemindersScratchpadEl.value)
-                .catch(e => console.error("Error saving trade reminders:", e));
-        });
-
-        const saveLevelNotes = debounce((inputElement) => {
-            if (!STATE.isMasterUser) return;
-            const idParts = inputElement.id.split('-'); // e.g., ['btc', 'daily', 'note']
-            const symbol = `${idParts[0].toUpperCase()}-USDT`;
-            const timeframe = idParts[1];
-            const value = inputElement.value;
-            dbRefs.levelNotes.child(getSafeSymbol(symbol)).child(timeframe).set(value)
-                .catch(e => console.error("Error saving level note:", e));
-        });
-
-        const savePrimarySetupsNotes = debounce(() => {
-            saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
-        });
-
-        const saveSecondarySetupsNotes = debounce(() => {
-            saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
-        });
+                dbRefs.levelNotes.child(getSafeSymbol(symbol)).child(timeframe).set(value)
+                    .catch(e => console.error("Error saving level note:", e));
+            }, 750);
+        };
         
-        // --- REFACTOR END: DEBOUNCED SAVE FUNCTIONS ---
-
+        // --- DATA HANDLING AND SAVING ---
         function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
             if (!STATE.isMasterUser) return;
             const dataToSave = {};
@@ -2683,93 +2575,125 @@
             }).catch(e => { statusElement.textContent = `Error: ${e.message}`; console.error("Error saving setups table:", e); });
         }
 
-        // --- REFACTOR START: REFACTORED UPLOAD HANDLERS ---
-        function handleFileUpload(files) {
-            if (!files || files.length === 0) return;
-            DOM.uploadProgress.style.display = 'block';
-            DOM.uploadProgress.textContent = `Uploading ${files.length} file(s)...`;
+        const saveJournalEntry = () => {
+            clearTimeout(STATE.journalSaveTimer);
+            STATE.journalSaveTimer = setTimeout(() => {
+                if (!STATE.isMasterUser) return;
+                const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
+                const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
+                const timeframe = DOM.journalTimeframeEl.value;
+                const text = DOM.journalEntryEl.value;
+                DOM.saveStatus.textContent = 'Saving...';
+                if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {};
+                if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {};
+                STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text;
+                dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text)
+                    .then(() => { DOM.saveStatus.textContent = 'Saved.'; renderDateNavigation(); setTimeout(() => DOM.saveStatus.textContent = '', 2000); })
+                    .catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`);
+            }, 750);
+        };
 
+        const savePersistentNotes = () => {
+            clearTimeout(STATE.notesSaveTimer);
+            STATE.notesSaveTimer = setTimeout(() => {
+                if (!STATE.isMasterUser) return;
+                dbRefs.persistentNotes.set(DOM.persistentNotesEl.value).catch(e => console.error("Error saving persistent notes:", e));
+            }, 750);
+        };
+
+        const saveTrackerScratchpad = () => {
+            clearTimeout(STATE.trackerSaveTimer);
+            STATE.trackerSaveTimer = setTimeout(() => {
+                if (!STATE.isMasterUser) return;
+                dbRefs.trackerScratchpad.set(DOM.trackerScratchpadEl.value).catch(e => console.error("Error saving tracker scratchpad:", e));
+            }, 750);
+        };
+
+        const saveTradeReminders = () => {
+            clearTimeout(STATE.remindersSaveTimer);
+            STATE.remindersSaveTimer = setTimeout(() => {
+                if (!STATE.isMasterUser) return;
+                dbRefs.tradeReminders.set(DOM.tradeRemindersScratchpadEl.value).catch(e => console.error("Error saving trade reminders:", e));
+            }, 750);
+        };
+
+        const savePrimarySetupsNotes = () => {
+            clearTimeout(STATE.setups1NotesTimer);
+            STATE.setups1NotesTimer = setTimeout(() => { saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); }, 750);
+        };
+        
+        const saveSecondarySetupsNotes = () => {
+            clearTimeout(STATE.setups2NotesTimer);
+            STATE.setups2NotesTimer = setTimeout(() => { saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'); }, 750);
+        };
+
+        function handleFileUpload(files) {
+            if (!STATE.isMasterUser || !files || files.length === 0) return;
+            DOM.uploadProgress.style.display = 'block';
             const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
             const timeframe = DOM.journalTimeframeEl.value;
-            const storagePath = `journal_images/${safeSymbol}/${timeframe}`;
-            const dbRef = dbRefs.journalImages.child(safeSymbol).child(timeframe);
-
-            const uploadPromises = Array.from(files).map((file, index) => {
-                return uploadFile(file, storagePath, dbRef, {}, (progress) => {
-                    DOM.uploadProgress.textContent = `Uploading ${index + 1}/${files.length}: ${Math.round(progress)}%`;
-                });
-            });
-
-            Promise.all(uploadPromises).then(() => {
-                DOM.uploadProgress.textContent = 'Upload Complete!';
-                setTimeout(() => { DOM.uploadProgress.textContent = ''; }, 2000);
-            }).catch(error => {
-                console.error("Upload Failed:", error);
-                DOM.uploadProgress.textContent = `Upload Failed: ${error.code || error.message}`;
+            Array.from(files).forEach((file, index) => {
+                if (!file.type.startsWith('image/')) return;
+                const fileName = `${Date.now()}_${file.name}`;
+                const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
+                const uploadTask = storage.ref(storagePath).put(file);
+                uploadTask.on('state_changed', 
+                    (s) => { DOM.uploadProgress.textContent = `Uploading ${index + 1}/${files.length}: ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; },
+                    (e) => { console.error("Upload Failed:", e); DOM.uploadProgress.textContent = `Upload Failed: ${e.code}`; },
+                    () => {
+                        uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+                            const imageData = { url, fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
+                            dbRefs.journalImages.child(safeSymbol).child(timeframe).push(imageData);
+                            if (index === files.length - 1) { DOM.uploadProgress.textContent = 'Upload Complete!'; setTimeout(() => { DOM.uploadProgress.textContent = ''; }, 2000); }
+                        });
+                    }
+                );
             });
         }
 
         function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
-            if (!files || files.length === 0) return;
+            if (!STATE.isMasterUser || !files || files.length === 0) return;
             progressElement.style.display = 'block';
-            progressElement.textContent = `Uploading ${files.length} file(s)...`;
-            
-            const storagePath = libraryType; // e.g., 'image_library'
-            const uploadPromises = Array.from(files).map((file, index) => {
-                return uploadFile(file, storagePath, dbRef, { caption: '' }, (progress) => {
-                     progressElement.textContent = `Uploading ${index + 1}/${files.length}: ${Math.round(progress)}%`;
-                });
-            });
-
-            Promise.all(uploadPromises).then(() => {
-                progressElement.textContent = 'Upload Complete!';
-                setTimeout(() => { progressElement.textContent = ''; }, 2000);
-            }).catch(error => {
-                console.error(`${libraryType} Upload Failed:`, error);
-                progressElement.textContent = `Upload Failed: ${error.code || error.message}`;
+            Array.from(files).forEach((file, index) => {
+                if (!file.type.startsWith('image/')) return;
+                const fileName = `${Date.now()}_${file.name}`;
+                const storagePath = `${libraryType}/${fileName}`;
+                const uploadTask = storage.ref(storagePath).put(file);
+                uploadTask.on('state_changed', 
+                    (s) => { progressElement.textContent = `Uploading ${index + 1}/${files.length}: ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; },
+                    (e) => { console.error(`${libraryType} Upload Failed:`, e); progressElement.textContent = `Upload Failed: ${e.code}`; },
+                    () => {
+                        uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+                            const imageData = { url, fileName, timestamp: firebase.database.ServerValue.TIMESTAMP, caption: '' };
+                            dbRef.push(imageData);
+                            if (index === files.length - 1) { progressElement.textContent = 'Upload Complete!'; setTimeout(() => { progressElement.textContent = ''; }, 2000); }
+                        });
+                    }
+                );
             });
         }
 
         function handleChartLibrary2Upload(files, folderName) {
-            if (!files || files.length === 0) return;
+            if (!STATE.isMasterUser || !files || files.length === 0) return;
             const folderCard = document.querySelector(`.cl2-folder-card[data-folder="${folderName}"]`);
-            if (folderCard) folderCard.style.outline = '2px solid var(--link-color)';
-            
-            const storagePath = `chart_library_2/${folderName}`;
-            const dbRef = dbRefs.chartLibrary2.child(folderName);
-            
-            const uploadPromises = Array.from(files).map(file => uploadFile(file, storagePath, dbRef));
-            
-            Promise.all(uploadPromises).then(() => {
-                 if (folderCard) folderCard.style.outline = 'none';
-            }).catch(error => {
-                console.error(`Upload to ${folderName} Failed:`, error);
-                alert(`Upload failed for a file in ${folderName}.`);
-                if (folderCard) folderCard.style.outline = 'none';
+            if(folderCard) folderCard.style.outline = '2px solid var(--link-color)';
+            Array.from(files).forEach((file, index) => {
+                if (!file.type.startsWith('image/')) return;
+                const fileName = `${Date.now()}_${file.name}`;
+                const storagePath = `chart_library_2/${folderName}/${fileName}`;
+                const uploadTask = storage.ref(storagePath).put(file);
+                uploadTask.on('state_changed', null, 
+                    (e) => { console.error(`Upload to ${folderName} Failed:`, e); alert(`Upload failed for ${file.name}.`); if(folderCard) folderCard.style.outline = 'none'; },
+                    () => {
+                        uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+                            const imageData = { url, fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
+                            dbRefs.chartLibrary2.child(folderName).push(imageData);
+                            if (index === files.length - 1 && folderCard) folderCard.style.outline = 'none';
+                        });
+                    }
+                );
             });
         }
-
-        function handleAttachmentImageUpload(files) {
-            if (!files || files.length === 0) return;
-            const { id, type } = STATE.imageUploadContext;
-            if (!id || !type) return;
-
-            let dbRefPath, storagePathPrefix;
-            switch (type) {
-                case 'live': dbRefPath = CONFIG.DB_PATHS.TRADES; storagePathPrefix = `trade_attachments/${id}/`; break;
-                case 'completed': dbRefPath = CONFIG.DB_PATHS.COMPLETED_TRADES; storagePathPrefix = `trade_attachments/${id}/`; break;
-                case 'sentiment': dbRefPath = CONFIG.DB_PATHS.SENTIMENT_RECEIPTS; storagePathPrefix = `sentiment_attachments/${id}/`; break;
-                default: return;
-            }
-            
-            const dbRef = database.ref(dbRefPath).child(id).child('attachedImages');
-            const uploadPromises = Array.from(files).map(file => uploadFile(file, storagePathPrefix, dbRef));
-
-            Promise.all(uploadPromises).catch(error => {
-                alert(`Attachment upload failed: ${error.message}`);
-            });
-        }
-        // --- REFACTOR END: REFACTORED UPLOAD HANDLERS ---
 
         function calculateNetResult(trade, exitPrice) {
             const entry = parseFloat(trade.entry), posValue = parseFloat(trade.size), exit = parseFloat(exitPrice);
@@ -2821,7 +2745,8 @@
 
         // --- EVENT LISTENERS ---
          function setupEventListeners() {
-            DOM.keyOpensContainer.addEventListener('input', e => {
+            // Listen for input on the new level note boxes
+                      document.getElementById('key-opens-container').addEventListener('input', e => {
                 if(e.target.matches('.key-open-note')) {
                     autoResizeTextarea(e.target);
                     saveLevelNotes(e.target);
@@ -2901,19 +2826,13 @@
                 }
             }, true);
 
-            // --- REFACTOR: Use debounced functions in event listeners ---
             DOM.trackerScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
             DOM.tradeRemindersScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.tradeRemindersScratchpadEl); saveTradeReminders(); });
             DOM.primarySetupsNotes.addEventListener('input', () => { autoResizeTextarea(DOM.primarySetupsNotes); savePrimarySetupsNotes(); });
             DOM.secondarySetupsNotes.addEventListener('input', () => { autoResizeTextarea(DOM.secondarySetupsNotes); saveSecondarySetupsNotes(); });
-            DOM.journalEntryEl.addEventListener('input', () => { autoResizeTextarea(DOM.journalEntryEl); saveJournalEntry(); });
-            DOM.persistentNotesEl.addEventListener('input', () => { autoResizeTextarea(DOM.persistentNotesEl); savePersistentNotes(); });
-            
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
             DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
-            DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
-            // --- END REFACTOR ---
 
             DOM.modalClose.addEventListener('click', closeModal);
             DOM.imageModal.addEventListener('click', (e) => { if (e.target.id === 'image-modal') closeModal(); });
@@ -2933,8 +2852,11 @@
             });
             DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
             DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
-            
+
+            DOM.journalEntryEl.addEventListener('input', () => { autoResizeTextarea(DOM.journalEntryEl); saveJournalEntry(); });
+            DOM.persistentNotesEl.addEventListener('input', () => { autoResizeTextarea(DOM.persistentNotesEl); savePersistentNotes(); });
             DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
+            DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
 
             DOM.journalTab.addEventListener('click', (e) => {
                 if (e.target.closest('.delete-journal-image')) { handleImageDelete(e); return; }
@@ -3178,6 +3100,30 @@
             if (!STATE.isMasterUser) return;
             STATE.imageUploadContext = { id: entryId, type: entryType };
             DOM.tradeImageUploader.value = null; DOM.tradeImageUploader.click();
+        }
+
+        function handleAttachmentImageUpload(files) {
+            if (!STATE.isMasterUser || !files || files.length === 0) return;
+            const { id, type } = STATE.imageUploadContext; if (!id || !type) return;
+            let dbRefPath, storagePathPrefix;
+            switch (type) {
+                case 'live': dbRefPath = CONFIG.DB_PATHS.TRADES; storagePathPrefix = `trade_attachments/${id}/`; break;
+                case 'completed': dbRefPath = CONFIG.DB_PATHS.COMPLETED_TRADES; storagePathPrefix = `trade_attachments/${id}/`; break;
+                case 'sentiment': dbRefPath = CONFIG.DB_PATHS.SENTIMENT_RECEIPTS; storagePathPrefix = `sentiment_attachments/${id}/`; break;
+                default: return;
+            }
+            const entryDbRef = database.ref(dbRefPath).child(id);
+            Array.from(files).forEach((file) => {
+                if (!file.type.startsWith('image/')) return;
+                const fileName = `${Date.now()}_${file.name}`;
+                const storagePath = `${storagePathPrefix}${fileName}`;
+                const uploadTask = storage.ref(storagePath).put(file);
+                uploadTask.on('state_changed', null, (e) => { alert(`Upload failed for ${file.name}.`); }, () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+                        entryDbRef.child('attachedImages').push({ url, fileName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+                    });
+                });
+            });
         }
 
         function handleDeleteAttachmentImage(entryId, entryType, imageId, fileName) {
