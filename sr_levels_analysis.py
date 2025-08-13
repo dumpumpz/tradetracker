@@ -109,6 +109,38 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days=None, limit=1000):
         logging.error(f'Error fetching {symbol} {interval}: {e}')
         return None
 
+# <<< NEW FUNCTION START >>>
+def get_market_opens(symbols_list: List[str]) -> Dict[str, Dict[str, float]]:
+    """
+    Fetches the current daily, weekly, and monthly open prices for a list of symbols.
+    """
+    opens_data = {}
+    timeframes_map = {'daily': '1d', 'weekly': '1w', 'monthly': '1M'}
+
+    for symbol in symbols_list:
+        logging.info(f"Fetching D/W/M opens for {symbol}...")
+        symbol_opens = {}
+        safe_symbol = get_safe_symbol(symbol)
+        
+        for name, tf in timeframes_map.items():
+            # We only need the most recent candle to get the open price
+            df = fetch_ohlcv_paginated(symbol, tf, limit=2) 
+            if df is not None and not df.empty:
+                # The last row is the current, forming candle. Its 'Open' is what we need.
+                current_open = df['Open'].iloc[-1]
+                symbol_opens[name] = float(current_open)
+                logging.info(f"  {symbol} {name} ({tf}) open: {current_open}")
+            else:
+                logging.warning(f"  Could not fetch {name} open for {symbol}")
+                symbol_opens[name] = None # Or handle as an error
+            time.sleep(0.5) # Be nice to the API
+
+        if symbol_opens:
+            opens_data[safe_symbol] = symbol_opens
+            
+    return opens_data
+# <<< NEW FUNCTION END >>>
+
 
 def calc_atr(df, period=ATR_LOOKBACK):
     if df is None or df.empty:
@@ -191,13 +223,11 @@ def find_clusters_dbscan(pivots_df, symbol, atr_percent):
     # Adaptive epsilon; keep a reasonable floor to avoid epsilon=0
     eps_pct = BASE_EPS_PERCENTAGE_RANGE * max(0.25, (atr_percent / 0.01))  # floor at 0.25x base
     epsilon = max(1e-6, avg_price * eps_pct)
-
+    
+    pivots_df = pivots_df.copy()
     db = DBSCAN(eps=epsilon, min_samples=MIN_SAMPLES_FOR_CLUSTER).fit(
         pivots_df['Price'].values.reshape(-1, 1)
     )
-
-    pivots_df = pivots_df.copy()
-    # >>> FIXED INDENTATION HERE <<<
     pivots_df['cluster_id'] = db.labels_
 
     clusters = []
@@ -218,7 +248,7 @@ def find_clusters_dbscan(pivots_df, symbol, atr_percent):
             'Price Start': float(cdf['Price'].min()),
             'Price End': float(cdf['Price'].max()),
             'Center Price': float(round(weighted_avg_price, 2)),
-            'Strength Score': float(cdf['Strength'].sum()),  # keep float for fidelity
+            'Strength Score': float(cdf['Strength'].sum()),
             'Pivot Count': int(len(cdf))
         })
     return clusters
@@ -242,7 +272,6 @@ def run_analysis_for_lookback(symbol, days):
     for tf in TIMEFRAMES_TO_ANALYZE:
         pivots = generate_pivots_for_timeframe(symbol, tf, days, atr_percent)
         if not pivots.empty:
-            # normalize per timeframe
             max_s = pivots['Strength'].max()
             if max_s and max_s > 0:
                 pivots['Strength'] = pivots['Strength'] / max_s
@@ -273,7 +302,9 @@ def run_analysis_for_lookback(symbol, days):
     }
 
 
+# <<< MODIFIED MAIN FUNCTION >>>
 def main():
+    # --- Part 1: S/R Level Analysis ---
     logging.info("===== STARTING ADAPTIVE S/R ANALYSIS =====")
     results = {}
     for symbol in SYMBOLS:
@@ -286,10 +317,27 @@ def main():
                 results[safe_symbol][f'{days}d'] = res
             time.sleep(1)
 
-    payload = {'data': results, 'last_updated': datetime.now(timezone.utc).isoformat()}
+    sr_payload = {'data': results, 'last_updated': datetime.now(timezone.utc).isoformat()}
     with open(SR_OUTPUT_FILENAME, 'w') as f:
-        json.dump(payload, f, indent=4)
-    logging.info("Analysis complete.")
+        json.dump(sr_payload, f, indent=4)
+    logging.info(f"S/R analysis complete. Saved to {SR_OUTPUT_FILENAME}")
+
+    # --- Part 2: Market Opens Analysis ---
+    logging.info("===== STARTING MARKET OPENS ANALYSIS =====")
+    market_opens_data = get_market_opens(SYMBOLS)
+    
+    if market_opens_data:
+        opens_payload = {
+            'last_updated': datetime.now(timezone.utc).isoformat(),
+            'opens': market_opens_data
+        }
+        with open(OPENS_OUTPUT_FILENAME, 'w') as f:
+            json.dump(opens_payload, f, indent=4)
+        logging.info(f"Market opens data saved to {OPENS_OUTPUT_FILENAME}")
+    else:
+        logging.error("Failed to fetch any market open data. File not written.")
+
+    logging.info("===== ALL ANALYSIS COMPLETE =====")
 
 
 if __name__ == "__main__":
