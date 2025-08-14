@@ -90,7 +90,7 @@
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
         .controls-container > div { display: flex; align-items: center; gap: 8px; }
 
-        #journal-entry, #persistent-notes-entry, #tracker-scratchpad, #trade-reminders-scratchpad, .setups-notes-area {
+        #journal-entry, #persistent-notes-entry, #tracker-scratchpad, .setups-notes-area {
             width: 100%; 
             resize: vertical;
             line-height: 1.6;
@@ -98,13 +98,13 @@
             overflow-y: hidden; 
             min-height: 120px; 
         }
-        #tracker-scratchpad, #trade-reminders-scratchpad { margin: 0; }
+        #tracker-scratchpad { margin: 0; }
         .setups-notes-area {
             margin-top: 15px;
             min-height: 80px;
         }
 
-        #journal-entry:read-only, #persistent-notes-entry:read-only, #tracker-scratchpad:read-only, #trade-reminders-scratchpad:read-only, .setups-notes-area:read-only { 
+        #journal-entry:read-only, #persistent-notes-entry:read-only, #tracker-scratchpad:read-only, .setups-notes-area:read-only { 
             background-color: var(--card-bg); 
             cursor: not-allowed; 
         }
@@ -1315,6 +1315,19 @@
 
         <div id="tracker-tab" class="tab-content active">
 
+            <!-- Tracker Scratchpad Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Notes</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <textarea id="tracker-scratchpad" placeholder="Tracker scratchpad..."></textarea>
+                    </div>
+                </div>
+            </div>
+
             <!-- Add New Trade Section -->
             <div class="collapsible-section master-only">
                 <div class="collapsible-header">
@@ -1396,19 +1409,6 @@
                             </table>
                         </div>
                         <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Reminders Section -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Reminders</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <textarea id="trade-reminders-scratchpad" placeholder="General reminders for the day..."></textarea>
                     </div>
                 </div>
             </div>
@@ -1545,19 +1545,6 @@
                             <p id="setups-save-status-1" class="setups-save-status"></p>
                             <p id="setups-save-status-2" class="setups-save-status"></p>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tracker Scratchpad Section -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Notes</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <textarea id="tracker-scratchpad" placeholder="Tracker scratchpad..."></textarea>
                     </div>
                 </div>
             </div>
@@ -1868,11 +1855,11 @@
             FIREBASE: {
                 apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4", // <-- REPLACE THIS
                 authDomain: "journal-a003f.firebaseapp.com",
-        databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "journal-a003f",
-        storageBucket: "journal-a003f.firebasestorage.app", // <-- The CORRECT domain
-        messagingSenderId: "1038636626553",
-        appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
+                databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
+                projectId: "journal-a003f",
+                storageBucket: "journal-a003f.firebasestorage.app", // <-- The CORRECT domain
+                messagingSenderId: "1038636626553",
+                appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
             },
             DB_PATHS: {
                 TRADES: 'trades',
@@ -1888,9 +1875,8 @@
                 SETUPS_2: 'current_setups_2',
                 PERSISTENT_NOTES: 'persistent_notes',
                 TRACKER_SCRATCHPAD: 'tracker_scratchpad',
-                TRADE_REMINDERS: 'trade_reminders',
                 SENTIMENT_RECEIPTS: 'sentiment_receipts',
-                LEVEL_NOTES: 'level_notes' // <-- ADD THIS LINE
+                LEVEL_NOTES: 'level_notes'
             },
             TRADE_SETTINGS: {
                 FEE_RATE: 0.00075,
@@ -1936,7 +1922,6 @@
             ethDailyOpen: document.getElementById('eth-daily-open'),
             ethWeeklyOpen: document.getElementById('eth-weekly-open'),
             ethMonthlyOpen: document.getElementById('eth-monthly-open'),
-            tradeRemindersScratchpadEl: document.getElementById('trade-reminders-scratchpad'),
             trackerScratchpadEl: document.getElementById('tracker-scratchpad'),
             addTradeForm: document.getElementById('add-trade-form'),
             tradesTbody: document.getElementById('trades-tbody'),
@@ -2013,7 +1998,6 @@
             favouriteEntries: {},
             persistentNotes: '',
             trackerScratchpadText: '',
-            tradeRemindersText: '',
             setupsData1: {},
             setupsData2: {},
             selectedDate: null,
@@ -2021,7 +2005,6 @@
             journalSaveTimer: null,
             notesSaveTimer: null,
             trackerSaveTimer: null,
-            remindersSaveTimer: null,
             setups1NotesTimer: null,
             setups2NotesTimer: null,
             isMerging: false,
@@ -2032,8 +2015,8 @@
                 id: null,
                 type: null 
             },
-            levelNotes: {}, // <-- ADD THIS LINE
-            levelNotesSaveTimer: null, // <-- ADD THIS LINE
+            levelNotes: {},
+            levelNotesSaveTimer: null,
         };
 
         // --- INITIALIZE FIREBASE ---
@@ -2055,9 +2038,8 @@
             setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2),
             persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES),
             trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD),
-            tradeReminders: database.ref(CONFIG.DB_PATHS.TRADE_REMINDERS),
             sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS),
-             levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES) // <-- ADD THIS LINE
+             levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES)
         };
 
         // --- HELPER FUNCTIONS ---
@@ -2264,15 +2246,19 @@
             }).join('');
             tbody.innerHTML = rowsHtml;
 
-            // --- FIX START ---
-            // After updating content, check if the parent section is open and resize it.
+            // First, make the button visible if needed
+            updateToggleButtonsVisibility();
+            
+            // Then, resize the container after the browser has had a chance to reflow the layout
             const contentWrapper = tbody.closest('.collapsible-content');
             if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+                setTimeout(() => {
+                    // Re-check in case it was closed in the meantime
+                    if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
+                        contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+                    }
+                }, 0); // Use a timeout to wait for the DOM update
             }
-            // --- FIX END ---
-            
-            updateToggleButtonsVisibility();
         }
 
         function renderLiveTable(data) {
@@ -2291,12 +2277,10 @@
             }).join('');
             DOM.tradesTbody.innerHTML = rowsHtml;
 
-            // --- FIX START ---
             const contentWrapper = DOM.tradesTbody.closest('.collapsible-content');
             if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
                 contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
             }
-            // --- FIX END ---
         }
 
         function renderCompletedTable(data) {
@@ -2314,15 +2298,20 @@
                 return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedDateStr || ''}"><td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.completedTradesTbody.innerHTML = rowsHtml;
+
+            // First, make the button visible if needed
+            updateToggleButtonsVisibility();
             
-            // --- FIX START ---
+            // Then, resize the container after a reflow
             const contentWrapper = DOM.completedTradesTbody.closest('.collapsible-content');
             if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+                 setTimeout(() => {
+                    // Re-check in case it was closed in the meantime
+                    if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
+                        contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+                    }
+                }, 0);
             }
-            // --- FIX END ---
-
-            updateToggleButtonsVisibility();
         }
 
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
@@ -2749,14 +2738,6 @@
             }, 750);
         };
 
-        const saveTradeReminders = () => {
-            clearTimeout(STATE.remindersSaveTimer);
-            STATE.remindersSaveTimer = setTimeout(() => {
-                if (!STATE.isMasterUser) return;
-                dbRefs.tradeReminders.set(DOM.tradeRemindersScratchpadEl.value).catch(e => console.error("Error saving trade reminders:", e));
-            }, 750);
-        };
-
         const savePrimarySetupsNotes = () => {
             clearTimeout(STATE.setups1NotesTimer);
             STATE.setups1NotesTimer = setTimeout(() => { saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); }, 750);
@@ -2995,7 +2976,6 @@
             }, true);
 
             DOM.trackerScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
-            DOM.tradeRemindersScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.tradeRemindersScratchpadEl); saveTradeReminders(); });
             DOM.primarySetupsNotes.addEventListener('input', () => { autoResizeTextarea(DOM.primarySetupsNotes); savePrimarySetupsNotes(); });
             DOM.secondarySetupsNotes.addEventListener('input', () => { autoResizeTextarea(DOM.secondarySetupsNotes); saveSecondarySetupsNotes(); });
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
@@ -3410,7 +3390,6 @@
             dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(DOM.setupsTable2, STATE.setupsData2, 'secondary-setups-notes'); });
             dbRefs.persistentNotes.on('value', (s) => { STATE.persistentNotes = s.val() || ''; if (DOM.journalTab.classList.contains('active')) { DOM.persistentNotesEl.value = STATE.persistentNotes; autoResizeTextarea(DOM.persistentNotesEl); } });
             dbRefs.trackerScratchpad.on('value', (s) => { STATE.trackerScratchpadText = s.val() || ''; if (DOM.trackerTab.classList.contains('active')) { DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; autoResizeTextarea(DOM.trackerScratchpadEl); } });
-            dbRefs.tradeReminders.on('value', (s) => { STATE.tradeRemindersText = s.val() || ''; if (DOM.trackerTab.classList.contains('active')) { DOM.tradeRemindersScratchpadEl.value = STATE.tradeRemindersText; autoResizeTextarea(DOM.tradeRemindersScratchpadEl); } });
             dbRefs.sentimentReceipts.on('value', (s) => renderSentimentReceipts(s.val()));
             dbRefs.levelNotes.on('value', (s) => renderLevelNotes(s.val()));
         }
@@ -3438,13 +3417,13 @@
                        else if (el.id.startsWith('save-setups-')) el.style.display = 'inline-block';
                        else el.style.display = 'block';
                     });
-                    DOM.journalEntryEl.readOnly = false; DOM.persistentNotesEl.readOnly = false; DOM.trackerScratchpadEl.readOnly = false; DOM.tradeRemindersScratchpadEl.readOnly = false;
+                    DOM.journalEntryEl.readOnly = false; DOM.persistentNotesEl.readOnly = false; DOM.trackerScratchpadEl.readOnly = false;
                     document.querySelectorAll('.setups-table .editable-setup-cell').forEach(cell => cell.setAttribute('contenteditable', 'true'));
                     DOM.primarySetupsNotes.readOnly = false; DOM.secondarySetupsNotes.readOnly = false;
                 }
             }
             if (!STATE.isMasterUser) {
-                DOM.journalEntryEl.readOnly = true; DOM.persistentNotesEl.readOnly = true; DOM.trackerScratchpadEl.readOnly = true; DOM.tradeRemindersScratchpadEl.readOnly = true;
+                DOM.journalEntryEl.readOnly = true; DOM.persistentNotesEl.readOnly = true; DOM.trackerScratchpadEl.readOnly = true;
                 DOM.primarySetupsNotes.readOnly = true; DOM.secondarySetupsNotes.readOnly = true;
             }
 
@@ -3470,7 +3449,7 @@
             STATE.selectedDate = new Date(today); STATE.centerDate = new Date(today);
             setupEventListeners(); subscribeToData();
             renderDateNavigation(); renderChartLibrary2Folders(); renderChartLibrary2Preview();
-            const sectionsToOpen = ['Levels', 'Reminders', 'Live Trades', 'Sentiment Log', 'Add New Trade', 'Notes', 'Trading Setups'];
+            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Add New Trade', 'Notes', 'Trading Setups'];
             document.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 if (sectionsToOpen.includes(h2.textContent.trim())) {
                     const section = h2.closest('.collapsible-section');
