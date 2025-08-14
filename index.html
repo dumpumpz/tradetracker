@@ -1315,6 +1315,104 @@
 
         <div id="tracker-tab" class="tab-content active">
 
+            <!-- Add New Trade Section -->
+            <div class="collapsible-section master-only">
+                <div class="collapsible-header">
+                    <h2>Add New Trade</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <form id="add-trade-form">
+                            <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
+                            <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
+                            <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
+                            <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
+                            <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
+                            <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
+                            <div><button type="submit">Add Trade</button></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Trades Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Live Trades</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
+                                </thead>
+                                <tbody id="trades-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sentiment Log Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Sentiment Log</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="asset-sentiment-container">
+                            <div class="sentiment-trackers-wrapper" style="margin-top: 0;">
+                                <div class="sentiment-tracker" id="sentiment-tracker-btc">
+                                    <h4>BTC/USDT</h4>
+                                    <div class="sentiment-buttons">
+                                        <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
+                                        <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
+                                        <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
+                                    </div>
+                                </div>
+                                <div class="sentiment-tracker" id="sentiment-tracker-eth">
+                                    <h4>ETH/USDT</h4>
+                                    <div class="sentiment-buttons">
+                                        <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
+                                        <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
+                                        <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <h4 style="text-align:center; margin-top:30px;">Sentiment History</h4>
+                        <div class="table-wrapper">
+                            <table id="sentiment-receipts-table">
+                                <thead>
+                                    <tr>
+                                        <th>Asset</th><th>Sentiment</th><th class="note-header">Note</th><th>Charts</th><th>Timestamp</th><th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sentiment-receipts-tbody"></tbody>
+                            </table>
+                        </div>
+                        <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reminders Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Reminders</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <textarea id="trade-reminders-scratchpad" placeholder="General reminders for the day..."></textarea>
+                    </div>
+                </div>
+            </div>
+
             <!-- START: UPDATED Key Market Opens Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -1370,60 +1468,6 @@
                 </div>
             </div>
             <!-- END: UPDATED Key Market Opens Section -->
-
-            <!-- Reminders Section -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Reminders</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <textarea id="trade-reminders-scratchpad" placeholder="General reminders for the day..."></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Live Trades Section -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Live Trades</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
-                                </thead>
-                                <tbody id="trades-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Completed Trades Section -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Completed Trades</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
-                                </thead>
-                                <tbody id="completed-trades-tbody"></tbody>
-                            </table>
-                        </div>
-                        <button id="toggle-old-trades" class="toggle-history-btn">Show All</button>
-                    </div>
-                </div>
-            </div>
 
             <!-- Trading Setups Section (Combined) -->
             <div class="collapsible-section">
@@ -1505,46 +1549,6 @@
                 </div>
             </div>
 
-            <!-- EMA Snapshot Section -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>
-                        EMA Snapshot
-                        <div class="pill-button-group">
-                            <button class="ema-pill-btn active" data-symbol="BTC-USDT">BTC</button>
-                            <button class="ema-pill-btn" data-symbol="ETH-USDT">ETH</button>
-                        </div>
-                    </h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner" id="ema-snapshot-container">
-                        <p>Loading EMA data...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Add New Trade Section -->
-            <div class="collapsible-section master-only">
-                <div class="collapsible-header">
-                    <h2>Add New Trade</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <form id="add-trade-form">
-                            <div><label for="trade-symbol">Symbol:</label><select id="trade-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
-                            <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
-                            <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
-                            <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
-                            <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
-                            <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
-                            <div><button type="submit">Add Trade</button></div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
             <!-- Tracker Scratchpad Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -1558,50 +1562,6 @@
                 </div>
             </div>
 
-               <!-- Sentiment Log Section -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Sentiment Log</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <div id="asset-sentiment-container">
-                            <div class="sentiment-trackers-wrapper" style="margin-top: 0;">
-                                <div class="sentiment-tracker" id="sentiment-tracker-btc">
-                                    <h4>BTC/USDT</h4>
-                                    <div class="sentiment-buttons">
-                                        <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
-                                        <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
-                                        <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
-                                    </div>
-                                </div>
-                                <div class="sentiment-tracker" id="sentiment-tracker-eth">
-                                    <h4>ETH/USDT</h4>
-                                    <div class="sentiment-buttons">
-                                        <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
-                                        <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
-                                        <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <h4 style="text-align:center; margin-top:30px;">Sentiment History</h4>
-                        <div class="table-wrapper">
-                            <table id="sentiment-receipts-table">
-                                <thead>
-                                    <tr>
-                                        <th>Asset</th><th>Sentiment</th><th class="note-header">Note</th><th>Charts</th><th>Timestamp</th><th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="sentiment-receipts-tbody"></tbody>
-                            </table>
-                        </div>
-                        <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
-                    </div>
-                </div>
-            </div>
-            
             <!-- NEW SETUPS IMAGE LIBRARY SECTION -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -1618,6 +1578,46 @@
                             </div>
                             <div id="setups-image-container"></div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed Trades Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Completed Trades</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
+                                </thead>
+                                <tbody id="completed-trades-tbody"></tbody>
+                            </table>
+                        </div>
+                        <button id="toggle-old-trades" class="toggle-history-btn">Show All</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EMA Snapshot Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>
+                        EMA Snapshot
+                        <div class="pill-button-group">
+                            <button class="ema-pill-btn active" data-symbol="BTC-USDT">BTC</button>
+                            <button class="ema-pill-btn" data-symbol="ETH-USDT">ETH</button>
+                        </div>
+                    </h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner" id="ema-snapshot-container">
+                        <p>Loading EMA data...</p>
                     </div>
                 </div>
             </div>
