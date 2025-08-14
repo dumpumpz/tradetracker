@@ -1310,6 +1310,7 @@
             <button class="tab-link active" data-tab="tracker">Trade Tracker</button>
             <button class="tab-link" data-tab="journal">Journal & Setups</button>
             <button class="tab-link" data-tab="sr-levels">S/R Levels</button>
+            <button class="tab-link" data-tab="charts">Charts</button>
         </div>
 
         <div id="tracker-tab" class="tab-content active">
@@ -1600,25 +1601,7 @@
                     </div>
                 </div>
             </div>
-            <!-- CHART LIBRARY 2 SECTION -->
-            <div class="collapsible-section">
-                 <div class="collapsible-header">
-                    <h2>Charts</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <div id="chart-library-2-section">
-                            <div id="chart-library-2-container"></div>
-                            <div id="chart-library-2-preview-section">
-                                <h3 style="text-align: center; margin-top: 0; padding-top: 20px; border-top: 1px dashed var(--border-color);">Latest Uploads</h3>
-                                <div id="chart-library-2-preview-container"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            
             <!-- NEW SETUPS IMAGE LIBRARY SECTION -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -1634,26 +1617,6 @@
                                 <div id="setups-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
                             </div>
                             <div id="setups-image-container"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- IMAGE LIBRARY SECTION -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Misc</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <div id="image-library-section">
-                            <div id="library-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
-                                <label for="library-image-upload" class="image-upload-label">Add to Library</label>
-                                <input type="file" id="library-image-upload" accept="image/*" multiple>
-                                <div id="library-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
-                            </div>
-                            <div id="image-library-container"></div>
                         </div>
                     </div>
                 </div>
@@ -1817,6 +1780,47 @@
             
         </div>
 
+        <div id="charts-tab" class="tab-content">
+            <!-- CHART LIBRARY 2 SECTION -->
+            <div class="collapsible-section">
+                 <div class="collapsible-header">
+                    <h2>Charts</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="chart-library-2-section">
+                            <div id="chart-library-2-container"></div>
+                            <div id="chart-library-2-preview-section">
+                                <h3 style="text-align: center; margin-top: 0; padding-top: 20px; border-top: 1px dashed var(--border-color);">Latest Uploads</h3>
+                                <div id="chart-library-2-preview-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IMAGE LIBRARY SECTION -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Misc</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="image-library-section">
+                            <div id="library-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
+                                <label for="library-image-upload" class="image-upload-label">Add to Library</label>
+                                <input type="file" id="library-image-upload" accept="image/*" multiple>
+                                <div id="library-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
+                            </div>
+                            <div id="image-library-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- IMAGE MODAL -->
@@ -1935,6 +1939,7 @@
             modalPrevBtn: document.getElementById('modal-prev'),
             modalNextBtn: document.getElementById('modal-next'),
             journalTab: document.getElementById('journal-tab'),
+            chartsTab: document.getElementById('charts-tab'),
             persistentNotesEl: document.getElementById('persistent-notes-entry'),
             setupsTable1: document.getElementById('primary-setups-table'),
             setupsTable2: document.getElementById('secondary-setups-table'),
@@ -2859,7 +2864,7 @@
                     renderEmaSnapshot(pillBtn.dataset.symbol);
                 } else if (e.target.closest('.sentiment-buttons button')) {
                     handleSentimentLog(e);
-                } else if (e.target.closest('#image-library-container, #setups-image-container, #chart-library-2-container, #chart-library-2-preview-container')) {
+                } else if (e.target.closest('#setups-image-container')) {
                     handleGenericImageLibraryClick(e);
                 } else if (e.target.closest('#trades-tbody, #completed-trades-tbody')) {
                     handleTradeAction(e);
@@ -2885,6 +2890,28 @@
                     }
                 }
             });
+
+            if (DOM.chartsTab) {
+                DOM.chartsTab.addEventListener('click', (e) => {
+                    if (e.target.closest('#image-library-container, #chart-library-2-container, #chart-library-2-preview-container')) {
+                        handleGenericImageLibraryClick(e);
+                    } else {
+                        const header = e.target.closest('.collapsible-header');
+                        if (header) {
+                            const section = header.parentElement;
+                            const content = section.querySelector('.collapsible-content');
+                            const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+                            section.classList.toggle('is-open');
+                            toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
+                            toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                            if (section.classList.contains('is-open')) {
+                                content.style.maxHeight = content.scrollHeight + 'px';
+                                setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
+                            } else { content.style.maxHeight = '0px'; }
+                        }
+                    }
+                });
+            }
 
             DOM.trackerTab.addEventListener('blur', (e) => {
                 if (e.target.matches('.setups-table .editable-setup-cell')) {
