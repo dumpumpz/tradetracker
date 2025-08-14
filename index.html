@@ -2262,17 +2262,21 @@
                 }
                 return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${receiptDateStr || ''}"><td>${receipt.asset || '--'}</td><td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td><td class="sentiment-note-cell">${receipt.note || ''}</td>${renderAttachmentThumbnails(receipt, id, 'sentiment')}<td>${displayTimestamp}</td><td class="action-buttons">${ownerActionsHtml}</td></tr>`;
             }).join('');
-            tbody.innerHTML = rowsHtml;
+                        tbody.innerHTML = rowsHtml;
 
-            // --- FIX START ---
-            // After updating content, check if the parent section is open and resize it.
+            // First, make the button visible if needed
+            updateToggleButtonsVisibility();
+            
+            // Then, resize the container after the browser has had a chance to reflow the layout
             const contentWrapper = tbody.closest('.collapsible-content');
             if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+                setTimeout(() => {
+                    // Re-check in case it was closed in the meantime
+                    if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
+                        contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+                    }
+                }, 0); // Use a timeout to wait for the DOM update
             }
-            // --- FIX END ---
-            
-            updateToggleButtonsVisibility();
         }
 
         function renderLiveTable(data) {
@@ -2313,16 +2317,21 @@
                 if (trade.closed_date) { closedDateStr = getYYYYMMDD(new Date(trade.closed_date)); isHistorical = (closedDateStr !== todayStr && closedDateStr !== yesterdayStr); } else { isHistorical = true; }
                 return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedDateStr || ''}"><td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
-            DOM.completedTradesTbody.innerHTML = rowsHtml;
+                        DOM.completedTradesTbody.innerHTML = rowsHtml;
+
+            // First, make the button visible if needed
+            updateToggleButtonsVisibility();
             
-            // --- FIX START ---
+            // Then, resize the container after a reflow
             const contentWrapper = DOM.completedTradesTbody.closest('.collapsible-content');
             if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+                 setTimeout(() => {
+                    // Re-check in case it was closed in the meantime
+                    if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
+                        contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+                    }
+                }, 0);
             }
-            // --- FIX END ---
-
-            updateToggleButtonsVisibility();
         }
 
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
