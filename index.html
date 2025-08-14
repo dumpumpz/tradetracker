@@ -1687,11 +1687,11 @@
 
         <div id="sr-levels-tab" class="tab-content">
             <div id="sr-legend-container">
-                <div id="sr-legend-header">
+                <div id="sr-legend-header" class="collapsed">
                     <h4>S/R Levels Key & Methodology</h4>
-                    <button id="sr-legend-toggle-btn" title="Toggle Details">−</button>
+                    <button id="sr-legend-toggle-btn" title="Toggle Details">+</button>
                 </div>
-                <div id="sr-legend-content">
+                <div id="sr-legend-content" style="display: none;">
                     <div id="sr-metadata-container">
                         <div class="metadata-item">
                             <span class="metadata-label">Lookback & Volatility:</span>
@@ -1750,6 +1750,26 @@
                     </select>
                 </div>
             </div>
+
+            <!-- START: New Top S/R Zones Summary -->
+            <div id="sr-summary-zones-container" class="setups-container" style="margin-top: 25px; display: none;">
+                <h3 style="text-align: center; margin-top: 0; margin-bottom: 15px;">Top Support & Resistance Zone</h3>
+                <div class="table-wrapper">
+                    <table id="sr-summary-table" class="sr-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; padding-left: 15px;">Lookback</th>
+                                <th style="color: var(--green-text);">Top Support</th>
+                                <th style="color: var(--red-text);">Top Resistance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sr-summary-tbody">
+                            <!-- Rows will be injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- END: New Top S/R Zones Summary -->
 
             <p class="ema-last-updated">Last Updated: <span id="sr-last-updated-time">--</span></p>
 
@@ -2546,10 +2566,56 @@
             if (notesTextarea) { notesTextarea.value = data.global_notes || ''; autoResizeTextarea(notesTextarea); }
             applyHighlightingToSetupsTable(tableElement);
         }
+        
+        function renderSrSummaryTable(symbol) {
+            const summaryTbody = document.getElementById('sr-summary-tbody');
+            const summaryContainer = document.getElementById('sr-summary-zones-container');
+            if (!summaryTbody || !summaryContainer) return;
+
+            const symbolData = STATE.srData.data?.[symbol];
+            if (!symbolData || Object.keys(STATE.srData.data).length === 0) {
+                summaryContainer.style.display = 'none';
+                return;
+            }
+
+            const lookbackOptions = Array.from(document.getElementById('sr-lookback').options);
+            const lookbacks = lookbackOptions.map(opt => ({ value: opt.value, text: opt.text }));
+
+            let rowsHtml = '';
+            lookbacks.forEach(lookback => {
+                const lookbackData = symbolData[lookback.value] || {};
+                const supportLevels = lookbackData.support || [];
+                const resistanceLevels = lookbackData.resistance || [];
+
+                const topSupport = supportLevels.length > 0 ? supportLevels[0] : null;
+                const supportZoneText = topSupport 
+                    ? `${Math.round(topSupport['Price Start'])} - ${Math.round(topSupport['Price End'])}`
+                    : '--';
+                
+                const topResistance = resistanceLevels.length > 0 ? resistanceLevels[0] : null;
+                const resistanceZoneText = topResistance
+                    ? `${Math.round(topResistance['Price Start'])} - ${Math.round(topResistance['Price End'])}`
+                    : '--';
+
+                rowsHtml += `
+                    <tr>
+                        <td style="text-align: left; padding-left: 15px; font-weight: 500;">${lookback.text}</td>
+                        <td class="sr-center-price" style="color: var(--green-text);">${supportZoneText}</td>
+                        <td class="sr-center-price" style="color: var(--red-text);">${resistanceZoneText}</td>
+                    </tr>
+                `;
+            });
+            
+            summaryTbody.innerHTML = rowsHtml;
+            summaryContainer.style.display = 'block';
+        }
 
         function renderSrLevels() {
             const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
             const selectedLookback = DOM.srLookbackEl.value;
+            
+            renderSrSummaryTable(selectedSymbol);
+
             const lookbackData = STATE.srData.data?.[selectedSymbol]?.[selectedLookback] || {};
             const analysisParams = lookbackData.analysis_params || {};
 
