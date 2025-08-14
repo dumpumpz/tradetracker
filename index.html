@@ -426,45 +426,52 @@
             color: var(--red-text);
             font-weight: bold;
         }
+        
+        /* START: New styles for percentage cells */
+        .setups-table .percent-cell {
+            font-size: 11px;
+            color: var(--subtle-text);
+            text-align: right;
+            padding-right: 10px;
+            font-style: italic;
+        }
+        /* END: New styles for percentage cells */
 
-        /* --- START: CSS Change for Yellow Borders (Indices Shifted) --- */
+        /* --- START: CSS for Yellow Borders (Indices RECALCULATED for new columns) --- */
         /* Top Borders */
         .setups-table thead tr:first-child th:nth-child(n+2) {
             border-top: 2px solid yellow;
         }
-
         /* Bottom Borders */
         .setups-table tbody tr:last-child td:nth-child(n+1),
         .setups-table thead tr:last-child th:nth-child(n+1) {
             border-bottom: 2px solid yellow;
         }
-
         /* Left Borders for each section */
         .setups-table thead tr:first-child th:nth-child(2), /* 0-Candle Main */
         .setups-table thead tr:last-child th:nth-child(1),  /* 0-Candle Sub */
         .setups-table tbody td:nth-child(2),               /* 0-Candle Data */
         .setups-table thead tr:first-child th:nth-child(3), /* 4-Candle Main */
-        .setups-table thead tr:last-child th:nth-child(4),  /* 4-Candle Sub */
-        .setups-table tbody td:nth-child(5),               /* 4-Candle Data */
-        .setups-table thead tr:first-child th:nth-child(4), /* Bounce Main */
-        .setups-table thead tr:last-child th:nth-child(7),  /* Bounce Sub */
-        .setups-table tbody td:nth-child(8) {              /* Bounce Data */
-            border-left: 2px solid yellow;
-        }
-
-        /* Right Borders for each section */
-        .setups-table thead tr:first-child th:nth-child(2), /* 0-Candle Main */
-        .setups-table thead tr:last-child th:nth-child(3),  /* 0-Candle Sub */
-        .setups-table tbody td:nth-child(4),               /* 0-Candle Data */
-        .setups-table thead tr:first-child th:nth-child(3), /* 4-Candle Main */
         .setups-table thead tr:last-child th:nth-child(6),  /* 4-Candle Sub */
         .setups-table tbody td:nth-child(7),               /* 4-Candle Data */
         .setups-table thead tr:first-child th:nth-child(4), /* Bounce Main */
-        .setups-table thead tr:last-child th:nth-child(9),  /* Bounce Sub */
-        .setups-table tbody td:nth-child(10) {             /* Bounce Data */
+        .setups-table thead tr:last-child th:nth-child(11), /* Bounce Sub */
+        .setups-table tbody td:nth-child(12) {             /* Bounce Data */
+            border-left: 2px solid yellow;
+        }
+        /* Right Borders for each section */
+        .setups-table thead tr:first-child th:nth-child(2), /* 0-Candle Main */
+        .setups-table thead tr:last-child th:nth-child(5),  /* 0-Candle Sub */
+        .setups-table tbody td:nth-child(6),               /* 0-Candle Data */
+        .setups-table thead tr:first-child th:nth-child(3), /* 4-Candle Main */
+        .setups-table thead tr:last-child th:nth-child(10), /* 4-Candle Sub */
+        .setups-table tbody td:nth-child(11),              /* 4-Candle Data */
+        .setups-table thead tr:first-child th:nth-child(4), /* Bounce Main */
+        .setups-table thead tr:last-child th:nth-child(15), /* Bounce Sub */
+        .setups-table tbody td:nth-child(16) {             /* Bounce Data */
             border-right: 2px solid yellow;
         }
-        /* --- END: CSS Change for Yellow Borders --- */
+        /* --- END: CSS for Yellow Borders --- */
 
         .setups-container {
             margin-bottom: 30px; 
@@ -1425,71 +1432,67 @@
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
-                        
-                        <!-- START: REORDERED SECTION -->
                         <textarea id="primary-setups-notes" class="setups-notes-area" placeholder="Notes for Primary Setups..."></textarea>
-
-                  
+ 
                         <div class="table-wrapper">
                             <table id="primary-setups-table" class="setups-table">
                                 <thead>
                                     <tr>
                                         <th rowspan="2">TF</th>
-                                        <th colspan="3">0-Candle</th>
-                                        <th colspan="3">4-Candle</th>
-                                        <th colspan="3">0-Candle Bounce</th>
+                                        <th colspan="5">0-Candle</th>
+                                        <th colspan="5">4-Candle</th>
+                                        <th colspan="5">0-Candle Bounce</th>
                                     </tr>
                                     <tr>
-                                        <th>Entry</th><th>Target</th><th>Stoploss</th>
-                                        <th>Entry</th><th>Target</th><th>Stoploss</th>
-                                        <th>Entry</th><th>Target</th><th>Stoploss</th>
+                                        <th>Entry</th><th>Target</th><th>Tgt %</th><th>Stoploss</th><th>SL %</th>
+                                        <th>Entry</th><th>Target</th><th>Tgt %</th><th>Stoploss</th><th>SL %</th>
+                                        <th>Entry</th><th>Target</th><th>Tgt %</th><th>Stoploss</th><th>SL %</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                    <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                                    <tr><th>5min</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>15min</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>30min</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>1hour</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>2hour</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>4hour</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>daily</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>weekly</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>monthly</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
                                 </tbody>
                             </table>
                         </div>
 
-       
+           
                         <div class="table-wrapper">
-                            <table id="secondary-setups-table" class="setups-table">
-                               <thead>
-                                   <tr>
+                             <table id="secondary-setups-table" class="setups-table">
+                                <thead>
+                                    <tr>
                                         <th rowspan="2">TF</th>
-                                        <th colspan="3">0-Candle</th>
-                                        <th colspan="3">4-Candle</th>
-                                        <th colspan="3">0-Candle Bounce</th>
-                                   </tr>
-                                   <tr>
-                                       <th>Entry</th><th>Target</th><th>Stoploss</th>
-                                       <th>Entry</th><th>Target</th><th>Stoploss</th>
-                                       <th>Entry</th><th>Target</th><th>Stoploss</th>
-                                   </tr>
-                               </thead>
-                               <tbody>
-                                   <tr><th>5min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>15min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>30min</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>1hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>2hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>4hour</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>daily</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>weekly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                                   <tr><th>monthly</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                               </tbody>
-                           </table>
+                                        <th colspan="5">0-Candle</th>
+                                        <th colspan="5">4-Candle</th>
+                                        <th colspan="5">0-Candle Bounce</th>
+                                    </tr>
+                                    <tr>
+                                        <th>Entry</th><th>Target</th><th>Tgt %</th><th>Stoploss</th><th>SL %</th>
+                                        <th>Entry</th><th>Target</th><th>Tgt %</th><th>Stoploss</th><th>SL %</th>
+                                        <th>Entry</th><th>Target</th><th>Tgt %</th><th>Stoploss</th><th>SL %</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><th>5min</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>15min</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>30min</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>1hour</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>2hour</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>4hour</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>daily</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>weekly</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                    <tr><th>monthly</th><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td><td></td><td></td><td class="percent-cell"></td><td></td><td class="percent-cell"></td></tr>
+                                </tbody>
+                            </table>
                        </div>
                        <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder="Notes for Secondary Setups..."></textarea>
-                        <!-- END: REORDERED SECTION -->
 
                         <div class="setups-controls">
                             <button id="save-setups-1-btn" class="master-only">Save Primary Setups</button>
@@ -2455,15 +2458,57 @@
             container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
         }
 
+        // --- START: New function to calculate percentages for setups table ---
+        function calculateAndDisplayPercentages(row) {
+            if (!row) return;
+            const cells = row.querySelectorAll('td');
+            if (cells.length === 0) return;
+
+            // Define the indices for each setup type within the row
+            const setups = [
+                { entry: 0, target: 1, targetPct: 2, stoploss: 3, stoplossPct: 4 },
+                { entry: 5, target: 6, targetPct: 7, stoploss: 8, stoplossPct: 9 },
+                { entry: 10, target: 11, targetPct: 12, stoploss: 13, stoplossPct: 14 }
+            ];
+
+            setups.forEach(setup => {
+                const entryVal = parseFloat(cells[setup.entry].textContent);
+                const targetVal = parseFloat(cells[setup.target].textContent);
+                const stoplossVal = parseFloat(cells[setup.stoploss].textContent);
+
+                const targetPctCell = cells[setup.targetPct];
+                const stoplossPctCell = cells[setup.stoplossPct];
+
+                // Calculate and display target percentage
+                if (!isNaN(entryVal) && !isNaN(targetVal) && entryVal !== 0) {
+                    const percent = ((targetVal - entryVal) / entryVal) * 100;
+                    targetPctCell.textContent = percent.toFixed(1) + '%';
+                    targetPctCell.style.color = percent >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                } else {
+                    targetPctCell.textContent = '';
+                }
+
+                // Calculate and display stoploss percentage
+                if (!isNaN(entryVal) && !isNaN(stoplossVal) && entryVal !== 0) {
+                    const percent = ((stoplossVal - entryVal) / entryVal) * 100;
+                    stoplossPctCell.textContent = percent.toFixed(1) + '%';
+                    stoplossPctCell.style.color = percent >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                } else {
+                    stoplossPctCell.textContent = '';
+                }
+            });
+        }
+        // --- END: New function ---
+
         function applyHighlightingToSetupsTable(tableElement) {
             if (!tableElement) return;
             const tbody = tableElement.querySelector('tbody');
             const letterCheckRegex = /[a-zA-Z]/; 
-            const setupTypes = [ { baseIndex: 0 }, { baseIndex: 3 }, { baseIndex: 6 } ];
+            const setupTypes = [ { baseIndex: 0 }, { baseIndex: 5 }, { baseIndex: 10 } ];
             tbody.querySelectorAll('tr').forEach(row => {
                 const cells = row.querySelectorAll('td'); if (cells.length === 0) return;
                 setupTypes.forEach(setup => {
-                    const [entryCell, targetCell, stoplossCell] = [cells[setup.baseIndex], cells[setup.baseIndex + 1], cells[setup.baseIndex + 2]];
+                    const [entryCell, targetCell, stoplossCell] = [cells[setup.baseIndex], cells[setup.baseIndex + 1], cells[setup.baseIndex + 3]];
                     [entryCell, targetCell, stoplossCell].forEach(cell => cell.classList.remove('highlight-long', 'highlight-short'));
                     const entryText = entryCell.textContent.trim(), targetText = targetCell.textContent.trim();
                     if (letterCheckRegex.test(entryText) || letterCheckRegex.test(targetText)) return; 
@@ -2482,9 +2527,15 @@
                 const timeframe = row.firstElementChild.textContent.trim();
                 const rowData = data[timeframe] || {};
                 const cells = row.querySelectorAll('td');
-                cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[2].textContent = rowData.zero_stoploss || '';
-                cells[3].textContent = rowData.four_entry || ''; cells[4].textContent = rowData.four_target || ''; cells[5].textContent = rowData.four_stoploss || '';
-                cells[6].textContent = rowData.bounce_entry || ''; cells[7].textContent = rowData.bounce_target || ''; cells[8].textContent = rowData.bounce_stoploss || '';
+                // 0-Candle
+                cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
+                // 4-Candle
+                cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
+                // Bounce
+                cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
+                
+                // Calculate percentages for the row
+                calculateAndDisplayPercentages(row);
             });
             const notesTextarea = document.getElementById(notesTextareaId);
             if (notesTextarea) { notesTextarea.value = data.global_notes || ''; autoResizeTextarea(notesTextarea); }
@@ -2580,9 +2631,9 @@
                 const timeframe = row.firstElementChild.textContent.trim();
                 const cells = row.querySelectorAll('td');
                 dataToSave[timeframe] = {
-                    zero_entry: cells[0].textContent.trim(), zero_target: cells[1].textContent.trim(), zero_stoploss: cells[2].textContent.trim(),
-                    four_entry: cells[3].textContent.trim(), four_target: cells[4].textContent.trim(), four_stoploss: cells[5].textContent.trim(),
-                    bounce_entry: cells[6].textContent.trim(), bounce_target: cells[7].textContent.trim(), bounce_stoploss: cells[8].textContent.trim()
+                    zero_entry: cells[0].textContent.trim(), zero_target: cells[1].textContent.trim(), zero_stoploss: cells[3].textContent.trim(),
+                    four_entry: cells[5].textContent.trim(), four_target: cells[6].textContent.trim(), four_stoploss: cells[8].textContent.trim(),
+                    bounce_entry: cells[10].textContent.trim(), bounce_target: cells[11].textContent.trim(), bounce_stoploss: cells[13].textContent.trim()
                 };
             });
             const notesTextarea = document.getElementById(notesTextareaId);
@@ -2838,7 +2889,13 @@
             DOM.trackerTab.addEventListener('blur', (e) => {
                 if (e.target.matches('.setups-table td[contenteditable="true"]')) {
                     const table = e.target.closest('.setups-table');
+                    const row = e.target.closest('tr'); // Get the row that was edited
+                    
                     applyHighlightingToSetupsTable(table);
+                    if (row) {
+                        calculateAndDisplayPercentages(row); // Recalculate percentages for the row
+                    }
+
                     if (table.id === 'primary-setups-table') saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
                     else saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
                 }
@@ -3289,7 +3346,7 @@
                        else el.style.display = 'block';
                     });
                     DOM.journalEntryEl.readOnly = false; DOM.persistentNotesEl.readOnly = false; DOM.trackerScratchpadEl.readOnly = false; DOM.tradeRemindersScratchpadEl.readOnly = false;
-                    document.querySelectorAll('.setups-table td').forEach(cell => cell.setAttribute('contenteditable', 'true'));
+                    document.querySelectorAll('.setups-table td[contenteditable="true"]').forEach(cell => cell.setAttribute('contenteditable', 'true'));
                     DOM.primarySetupsNotes.readOnly = false; DOM.secondarySetupsNotes.readOnly = false;
                 }
             }
