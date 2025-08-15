@@ -2063,6 +2063,19 @@
                 }
             }
         }
+        
+        function updateCollapsibleHeight(sectionElement) {
+            // Only resize if the section is actually open
+            if (!sectionElement || !sectionElement.classList.contains('is-open')) {
+                return;
+            }
+            const content = sectionElement.querySelector('.collapsible-content');
+            if (content) {
+                // Set the max-height to the new, correct height of its content
+                content.style.maxHeight = content.scrollHeight + 'px';
+            }
+        }
+
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
         const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
 
@@ -2324,6 +2337,12 @@
                 return `<div class="library-image-wrapper">${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption" title="${caption}">${caption}</div></div>`;
             }).join('');
             containerElement.innerHTML = imagesHtml;
+
+            // After rendering the images, find the parent section and resize it correctly.
+            const parentSection = containerElement.closest('.collapsible-section');
+            if (parentSection) {
+                updateCollapsibleHeight(parentSection);
+            }
         }
 
         function renderChartLibrary2Folders() {
@@ -3453,7 +3472,7 @@
             STATE.selectedDate = new Date(today); STATE.centerDate = new Date(today);
             setupEventListeners(); subscribeToData();
             renderDateNavigation(); renderChartLibrary2Folders(); renderChartLibrary2Preview();
-            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Add New Trade', 'Notes', 'Trading Setups', 'Setups'];
+            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes'];
             document.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 if (sectionsToOpen.includes(h2.textContent.trim())) {
                     const section = h2.closest('.collapsible-section');
