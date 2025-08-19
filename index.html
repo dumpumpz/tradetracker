@@ -2050,38 +2050,12 @@
             const maximumFractionDigits = num > 100 ? 2 : (num > 1 ? 4 : 8);
             return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`;
         };
-               // Add a variable to hold our timer outside the function
-        let containerResizeTimer = null;
 
         function autoResizeTextarea(element) {
             if (!element) return;
             // Instantly resize the textarea itself
             element.style.height = 'auto';
             element.style.height = `${element.scrollHeight}px`;
-
-            // Now, handle the parent container with a debounce
-            const parentSection = element.closest('.collapsible-section');
-            if (parentSection) {
-                // Clear any previous timer to reset the waiting period
-                clearTimeout(containerResizeTimer);
-                
-                // Set a new timer to resize the container after 300ms of inactivity
-                containerResizeTimer = setTimeout(() => {
-                    updateCollapsibleHeight(parentSection);
-                }, 300);
-            }
-        }
-        
-        function updateCollapsibleHeight(sectionElement) {
-            // Only resize if the section is actually open
-            if (!sectionElement || !sectionElement.classList.contains('is-open')) {
-                return;
-            }
-            const content = sectionElement.querySelector('.collapsible-content');
-            if (content) {
-                // Set the max-height to the new, correct height of its content
-                content.style.maxHeight = content.scrollHeight + 'px';
-            }
         }
 
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
@@ -2172,9 +2146,14 @@
             const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
             historicalRows.forEach(row => { row.style.display = displayStyle; });
             button.textContent = isCurrentlyHidden ? 'Show All' : 'Hide Older';
-            const content = button.closest('.collapsible-content');
-            if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
-                content.style.maxHeight = content.scrollHeight + 'px';
+            
+            const section = button.closest('.collapsible-section');
+            if (section && section.classList.contains('is-open')) {
+                const content = section.querySelector('.collapsible-content');
+                if (content) {
+                    // Update to the fixed large value method
+                    content.style.maxHeight = '5000px';
+                }
             }
         }
 
@@ -2267,19 +2246,7 @@
             }).join('');
             tbody.innerHTML = rowsHtml;
 
-            // First, make the button visible if needed
             updateToggleButtonsVisibility();
-            
-            // Then, resize the container after the browser has had a chance to reflow the layout
-            const contentWrapper = tbody.closest('.collapsible-content');
-            if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                setTimeout(() => {
-                    // Re-check in case it was closed in the meantime
-                    if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                        contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
-                    }
-                }, 0); // Use a timeout to wait for the DOM update
-            }
         }
 
         function renderLiveTable(data) {
@@ -2297,11 +2264,6 @@
                 return `<tr><td>${trade.symbol}</td><td>${trade.type}</td>${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}<td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td><td style="color: #28a745;">${profitString}</td><td style="color: #dc3545;">${lossString}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'live')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.tradesTbody.innerHTML = rowsHtml;
-
-            const contentWrapper = DOM.tradesTbody.closest('.collapsible-content');
-            if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
-            }
         }
 
         function renderCompletedTable(data) {
@@ -2320,19 +2282,7 @@
             }).join('');
             DOM.completedTradesTbody.innerHTML = rowsHtml;
 
-            // First, make the button visible if needed
             updateToggleButtonsVisibility();
-            
-            // Then, resize the container after a reflow
-            const contentWrapper = DOM.completedTradesTbody.closest('.collapsible-content');
-            if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                 setTimeout(() => {
-                    // Re-check in case it was closed in the meantime
-                    if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                        contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
-                    }
-                }, 0);
-            }
         }
 
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
@@ -2345,12 +2295,6 @@
                 return `<div class="library-image-wrapper">${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption" title="${caption}">${caption}</div></div>`;
             }).join('');
             containerElement.innerHTML = imagesHtml;
-
-            // After rendering the images, find the parent section and resize it correctly.
-            const parentSection = containerElement.closest('.collapsible-section');
-            if (parentSection) {
-                updateCollapsibleHeight(parentSection);
-            }
         }
 
         function renderChartLibrary2Folders() {
@@ -2432,7 +2376,8 @@
             const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
             DOM.journalEntryEl.value = dailyText;
             DOM.persistentNotesEl.value = STATE.persistentNotes;
-            setTimeout(() => { autoResizeTextarea(DOM.journalEntryEl); autoResizeTextarea(DOM.persistentNotesEl); }, 0);
+            autoResizeTextarea(DOM.journalEntryEl); 
+            autoResizeTextarea(DOM.persistentNotesEl);
             DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
             renderJournalImages(safeSymbol, timeframe, yyyymmdd);
             renderDateNavigation();
@@ -2579,7 +2524,10 @@
                 calculateAndDisplayPercentages(row);
             });
             const notesTextarea = document.getElementById(notesTextareaId);
-            if (notesTextarea) { notesTextarea.value = data.global_notes || ''; autoResizeTextarea(notesTextarea); }
+            if (notesTextarea) { 
+                notesTextarea.value = data.global_notes || ''; 
+                autoResizeTextarea(notesTextarea); // Resize after loading data
+            }
             applyHighlightingToSetupsTable(tableElement);
         }
         
@@ -2765,12 +2713,13 @@
             }, 750);
         };
 
-        // FIX: Removed debounce since save is now on blur.
         const savePrimarySetupsNotes = () => {
+            if (!STATE.isMasterUser) return;
             saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
         };
         
         const saveSecondarySetupsNotes = () => {
+            if (!STATE.isMasterUser) return;
             saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
         };
 
@@ -2926,6 +2875,27 @@
 
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
             
+            const collapsibleHandler = (e) => {
+                const header = e.target.closest('.collapsible-header');
+                if (header) {
+                    const section = header.parentElement;
+                    const content = section.querySelector('.collapsible-content');
+                    const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+                    section.classList.toggle('is-open');
+                    toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
+                    toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                    
+                    if (section.classList.contains('is-open')) {
+                        // Set max-height to a value larger than the content will ever be.
+                        // This allows the content to grow without causing a layout shift.
+                        content.style.maxHeight = '5000px'; 
+                    } else { 
+                        // Set it back to 0 to collapse it.
+                        content.style.maxHeight = '0px'; 
+                    }
+                }
+            };
+
             DOM.trackerTab.addEventListener('click', (e) => {
                 if (handleAttachmentActions(e)) return;
                 if (e.target.matches('.ema-pill-btn')) {
@@ -2948,19 +2918,7 @@
                 } else if (e.target.id === 'toggle-old-trades') {
                     toggleHistoricalRows('completed-trades-tbody', e.target);
                 } else {
-                    const header = e.target.closest('.collapsible-header');
-                    if (header) {
-                        const section = header.parentElement;
-                        const content = section.querySelector('.collapsible-content');
-                        const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-                        section.classList.toggle('is-open');
-                        toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
-                        toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
-                        if (section.classList.contains('is-open')) {
-                            content.style.maxHeight = content.scrollHeight + 'px';
-                            setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
-                        } else { content.style.maxHeight = '0px'; }
-                    }
+                    collapsibleHandler(e);
                 }
             });
 
@@ -2969,19 +2927,7 @@
                     if (e.target.closest('#image-library-container, #chart-library-2-container, #chart-library-2-preview-container')) {
                         handleGenericImageLibraryClick(e);
                     } else {
-                        const header = e.target.closest('.collapsible-header');
-                        if (header) {
-                            const section = header.parentElement;
-                            const content = section.querySelector('.collapsible-content');
-                            const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-                            section.classList.toggle('is-open');
-                            toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
-                            toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
-                            if (section.classList.contains('is-open')) {
-                                content.style.maxHeight = content.scrollHeight + 'px';
-                                setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
-                            } else { content.style.maxHeight = '0px'; }
-                        }
+                        collapsibleHandler(e);
                     }
                 });
             }
@@ -2995,15 +2941,11 @@
                     if (row) {
                         calculateAndDisplayPercentages(row); // Recalculate percentages for the row
                     }
-
-                    if (table.id === 'primary-setups-table') saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
-                    else saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
                 }
             }, true);
 
             DOM.trackerScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
             
-            // FIX: Changed setups notes to save on blur instead of input to prevent scrolling while typing.
             DOM.primarySetupsNotes.addEventListener('input', () => autoResizeTextarea(DOM.primarySetupsNotes));
             DOM.primarySetupsNotes.addEventListener('blur', savePrimarySetupsNotes);
             DOM.secondarySetupsNotes.addEventListener('input', () => autoResizeTextarea(DOM.secondarySetupsNotes));
@@ -3428,11 +3370,13 @@
         // --- INITIALIZATION ---
         function openCollapsibleSection(sectionElement) {
             if (!sectionElement) return;
-            const content = sectionElement.querySelector('.collapsible-content'), toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
+            const content = sectionElement.querySelector('.collapsible-content');
+            const toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
             if (content && toggleBtn && !sectionElement.classList.contains('is-open')) {
-                sectionElement.classList.add('is-open'); toggleBtn.textContent = '−'; toggleBtn.style.transform = 'rotate(180deg)';
-                content.style.maxHeight = content.scrollHeight + 'px';
-                setTimeout(() => { if (sectionElement.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
+                sectionElement.classList.add('is-open'); 
+                toggleBtn.textContent = '−'; 
+                toggleBtn.style.transform = 'rotate(180deg)';
+                content.style.maxHeight = '5000px'; // Use the fixed large value
             }
         }
 
@@ -3491,18 +3435,6 @@
 
         initializeApp();
     });
-
-            function updateCollapsibleHeight(sectionElement) {
-            // Only resize if the section is actually open
-            if (!sectionElement || !sectionElement.classList.contains('is-open')) {
-                return;
-            }
-            const content = sectionElement.querySelector('.collapsible-content');
-            if (content) {
-                // Set the max-height to the new, correct height of its content
-                content.style.maxHeight = content.scrollHeight + 'px';
-            }
-        }
 </script>
 
 </body>
