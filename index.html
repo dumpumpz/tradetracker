@@ -2050,17 +2050,25 @@
             const maximumFractionDigits = num > 100 ? 2 : (num > 1 ? 4 : 8);
             return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`;
         };
-       function autoResizeTextarea(element) {
+               // Add a variable to hold our timer outside the function
+        let containerResizeTimer = null;
+
+        function autoResizeTextarea(element) {
             if (!element) return;
+            // Instantly resize the textarea itself
             element.style.height = 'auto';
             element.style.height = `${element.scrollHeight}px`;
 
-            const content = element.closest('.collapsible-content');
-            if (content) {
-                const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
-                if (isOpen) {
-                    content.style.maxHeight = content.scrollHeight + 'px';
-                }
+            // Now, handle the parent container with a debounce
+            const parentSection = element.closest('.collapsible-section');
+            if (parentSection) {
+                // Clear any previous timer to reset the waiting period
+                clearTimeout(containerResizeTimer);
+                
+                // Set a new timer to resize the container after 300ms of inactivity
+                containerResizeTimer = setTimeout(() => {
+                    updateCollapsibleHeight(parentSection);
+                }, 300);
             }
         }
         
@@ -3483,6 +3491,18 @@
 
         initializeApp();
     });
+
+            function updateCollapsibleHeight(sectionElement) {
+            // Only resize if the section is actually open
+            if (!sectionElement || !sectionElement.classList.contains('is-open')) {
+                return;
+            }
+            const content = sectionElement.querySelector('.collapsible-content');
+            if (content) {
+                // Set the max-height to the new, correct height of its content
+                content.style.maxHeight = content.scrollHeight + 'px';
+            }
+        }
 </script>
 
 </body>
