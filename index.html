@@ -2005,8 +2005,6 @@
             journalSaveTimer: null,
             notesSaveTimer: null,
             trackerSaveTimer: null,
-            setups1NotesTimer: null,
-            setups2NotesTimer: null,
             isMerging: false,
             mergeBaseTradeId: null,
             modalImageGallery: [],
@@ -2053,9 +2051,23 @@
 
         function autoResizeTextarea(element) {
             if (!element) return;
-            // Instantly resize the textarea itself
             element.style.height = 'auto';
             element.style.height = `${element.scrollHeight}px`;
+        }
+
+        // Definitive fix for the scroll-jumping issue.
+        function resizeTextareaWithoutScrollJump(element) {
+            // 1. Disable the browser's scroll anchoring behavior.
+            document.body.style.overflowAnchor = 'none';
+        
+            // 2. Perform the resize, which causes the layout shift.
+            autoResizeTextarea(element);
+        
+            // 3. Re-enable scroll anchoring in the next frame, after the layout is stable.
+            // Using requestAnimationFrame is a robust way to ensure this runs after the browser has repainted.
+            requestAnimationFrame(() => {
+                document.body.style.overflowAnchor = 'auto';
+            });
         }
 
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
@@ -2145,13 +2157,12 @@
             const isCurrentlyHidden = historicalRows[0].style.display === 'none';
             const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
             historicalRows.forEach(row => { row.style.display = displayStyle; });
-            button.textContent = isCurrentlyHidden ? 'Show All' : 'Hide Older';
+            button.textContent = isCurrentlyHidden ? 'Show Recent' : 'Show All';
             
             const section = button.closest('.collapsible-section');
             if (section && section.classList.contains('is-open')) {
                 const content = section.querySelector('.collapsible-content');
                 if (content) {
-                    // Update to the fixed large value method
                     content.style.maxHeight = '5000px';
                 }
             }
@@ -2159,7 +2170,6 @@
 
 
         // --- RENDERING FUNCTIONS ---
-        // MODIFIED: This function now also styles the daily open prices
         function renderMarketOpens() {
             const data = STATE.marketOpens;
             if (!data?.opens) return;
@@ -2187,17 +2197,12 @@
                 
                 const lastUpdatedContainer = DOM.keyOpensLastUpdated.parentElement;
         
-                // This condition checks if the update is from today (since 00:00 UTC)
                 if (lastUpdatedDate.getTime() >= todayUTCStart.getTime()) {
-                    // Apply yellow color to "Last Updated" text
                     lastUpdatedContainer.classList.add('updated-today');
-                    // ADDED: Apply yellow color to the daily open prices
                     DOM.btcDailyOpen.classList.add('updated-today-value');
                     DOM.ethDailyOpen.classList.add('updated-today-value');
                 } else {
-                    // Remove yellow color if data is from a previous day
                     lastUpdatedContainer.classList.remove('updated-today');
-                    // ADDED: Remove yellow color from the daily open prices
                     DOM.btcDailyOpen.classList.remove('updated-today-value');
                     DOM.ethDailyOpen.classList.remove('updated-today-value');
                 }
@@ -2444,13 +2449,11 @@
             container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
         }
 
-        // --- START: New function to calculate percentages for setups table ---
         function calculateAndDisplayPercentages(row) {
             if (!row) return;
             const cells = row.querySelectorAll('td');
             if (cells.length === 0) return;
 
-            // Define the indices for each setup type within the row
             const setups = [
                 { entry: 0, target: 1, targetPct: 2, stoploss: 3, stoplossPct: 4 },
                 { entry: 5, target: 6, targetPct: 7, stoploss: 8, stoplossPct: 9 },
@@ -2461,11 +2464,9 @@
                 const entryVal = parseFloat(cells[setup.entry].textContent.replace(/,/g, ''));
                 const targetVal = parseFloat(cells[setup.target].textContent.replace(/,/g, ''));
                 const stoplossVal = parseFloat(cells[setup.stoploss].textContent.replace(/,/g, ''));
-
                 const targetPctCell = cells[setup.targetPct];
                 const stoplossPctCell = cells[setup.stoplossPct];
 
-                // Calculate and display target percentage
                 if (!isNaN(entryVal) && !isNaN(targetVal) && entryVal !== 0) {
                     const percent = ((targetVal - entryVal) / entryVal) * 100;
                     targetPctCell.textContent = percent.toFixed(1) + '%';
@@ -2474,7 +2475,6 @@
                     targetPctCell.textContent = '';
                 }
 
-                // Calculate and display stoploss percentage
                 if (!isNaN(entryVal) && !isNaN(stoplossVal) && entryVal !== 0) {
                     const percent = ((stoplossVal - entryVal) / entryVal) * 100;
                     stoplossPctCell.textContent = percent.toFixed(1) + '%';
@@ -2484,7 +2484,6 @@
                 }
             });
         }
-        // --- END: New function ---
 
         function applyHighlightingToSetupsTable(tableElement) {
             if (!tableElement) return;
@@ -2513,20 +2512,15 @@
                 const timeframe = row.firstElementChild.textContent.trim();
                 const rowData = data[timeframe] || {};
                 const cells = row.querySelectorAll('td');
-                // 0-Candle
                 cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
-                // 4-Candle
                 cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
-                // Bounce
                 cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
-                
-                // Calculate percentages for the row
                 calculateAndDisplayPercentages(row);
             });
             const notesTextarea = document.getElementById(notesTextareaId);
             if (notesTextarea) { 
                 notesTextarea.value = data.global_notes || ''; 
-                autoResizeTextarea(notesTextarea); // Resize after loading data
+                autoResizeTextarea(notesTextarea);
             }
             applyHighlightingToSetupsTable(tableElement);
         }
@@ -2552,14 +2546,10 @@
                 const resistanceLevels = lookbackData.resistance || [];
 
                 const topSupport = supportLevels.length > 0 ? supportLevels[0] : null;
-                const supportZoneText = topSupport 
-                    ? `${Math.round(topSupport['Price Start'])} - ${Math.round(topSupport['Price End'])}`
-                    : '--';
+                const supportZoneText = topSupport ? `${Math.round(topSupport['Price Start'])} - ${Math.round(topSupport['Price End'])}` : '--';
                 
                 const topResistance = resistanceLevels.length > 0 ? resistanceLevels[0] : null;
-                const resistanceZoneText = topResistance
-                    ? `${Math.round(topResistance['Price Start'])} - ${Math.round(topResistance['Price End'])}`
-                    : '--';
+                const resistanceZoneText = topResistance ? `${Math.round(topResistance['Price Start'])} - ${Math.round(topResistance['Price End'])}` : '--';
 
                 rowsHtml += `
                     <tr>
@@ -2583,12 +2573,9 @@
             const lookbackData = STATE.srData.data?.[selectedSymbol]?.[selectedLookback] || {};
             const analysisParams = lookbackData.analysis_params || {};
 
-            DOM.srLastUpdatedTime.textContent = STATE.srData.last_updated 
-                ? new Date(STATE.srData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) 
-                : '--';
-                
+            DOM.srLastUpdatedTime.textContent = STATE.srData.last_updated ? new Date(STATE.srData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--';
             DOM.srMetadataTimeframes.textContent = (analysisParams.timeframes_analyzed || []).join(', ') || '--';
-            DOM.srMetadataWindows.textContent = '5, 8, 13, 21, 34'; // From script config
+            DOM.srMetadataWindows.textContent = '5, 8, 13, 21, 34';
 
             if (analysisParams.lookback_days) {
                 const atrText = analysisParams.atr_percent ? ` / ATR: ${(analysisParams.atr_percent * 100).toFixed(2)}%` : '';
@@ -2599,7 +2586,6 @@
 
             const supportLevels = lookbackData.support || [];
             const resistanceLevels = lookbackData.resistance || [];
-            
             const allScores = [...supportLevels, ...resistanceLevels].map(l => l['Strength Score']);
             const maxScore = allScores.length > 0 ? Math.max(...allScores) : 1;
 
@@ -2636,7 +2622,7 @@
                             const textareaEl = document.getElementById(`${symbolPrefix}-${timeframe}-note`);
                             if (textareaEl) {
                                 textareaEl.value = note;
-                                autoResizeTextarea(textareaEl); // Auto-resize on load
+                                autoResizeTextarea(textareaEl);
                             }
                         }
                     }
@@ -2647,11 +2633,10 @@
             if (!STATE.isMasterUser) return;
             clearTimeout(STATE.levelNotesSaveTimer);
             STATE.levelNotesSaveTimer = setTimeout(() => {
-                const idParts = inputElement.id.split('-'); // e.g., ['btc', 'daily', 'note']
+                const idParts = inputElement.id.split('-');
                 const symbol = `${idParts[0].toUpperCase()}-USDT`;
                 const timeframe = idParts[1];
                 const value = inputElement.value;
-
                 dbRefs.levelNotes.child(getSafeSymbol(symbol)).child(timeframe).set(value)
                     .catch(e => console.error("Error saving level note:", e));
             }, 750);
@@ -2841,13 +2826,13 @@
 
         // --- EVENT LISTENERS ---
          function setupEventListeners() {
-            // Listen for input on the new level note boxes
-                      document.getElementById('key-opens-container').addEventListener('input', e => {
+            document.getElementById('key-opens-container').addEventListener('input', e => {
                 if(e.target.matches('.key-open-note')) {
-                    autoResizeTextarea(e.target);
+                    resizeTextareaWithoutScrollJump(e.target);
                     saveLevelNotes(e.target);
                 }
             });
+
             DOM.themeToggle.addEventListener('change', (e) => {
                 const theme = e.target.checked ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
@@ -2886,11 +2871,8 @@
                     toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
                     
                     if (section.classList.contains('is-open')) {
-                        // Set max-height to a value larger than the content will ever be.
-                        // This allows the content to grow without causing a layout shift.
                         content.style.maxHeight = '5000px'; 
                     } else { 
-                        // Set it back to 0 to collapse it.
                         content.style.maxHeight = '0px'; 
                     }
                 }
@@ -2935,20 +2917,21 @@
             DOM.trackerTab.addEventListener('blur', (e) => {
                 if (e.target.matches('.setups-table .editable-setup-cell')) {
                     const table = e.target.closest('.setups-table');
-                    const row = e.target.closest('tr'); // Get the row that was edited
-                    
+                    const row = e.target.closest('tr');
                     applyHighlightingToSetupsTable(table);
                     if (row) {
-                        calculateAndDisplayPercentages(row); // Recalculate percentages for the row
+                        calculateAndDisplayPercentages(row);
                     }
+                    if (table.id === 'primary-setups-table') savePrimarySetupsNotes();
+                    else saveSecondarySetupsNotes();
                 }
             }, true);
-
-            DOM.trackerScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
             
-            DOM.primarySetupsNotes.addEventListener('input', () => autoResizeTextarea(DOM.primarySetupsNotes));
+            // Use the scroll-jump fix for all auto-growing textareas
+            DOM.trackerScratchpadEl.addEventListener('input', () => { resizeTextareaWithoutScrollJump(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
+            DOM.primarySetupsNotes.addEventListener('input', () => resizeTextareaWithoutScrollJump(DOM.primarySetupsNotes));
+            DOM.secondarySetupsNotes.addEventListener('input', () => resizeTextareaWithoutScrollJump(DOM.secondarySetupsNotes));
             DOM.primarySetupsNotes.addEventListener('blur', savePrimarySetupsNotes);
-            DOM.secondarySetupsNotes.addEventListener('input', () => autoResizeTextarea(DOM.secondarySetupsNotes));
             DOM.secondarySetupsNotes.addEventListener('blur', saveSecondarySetupsNotes);
 
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
@@ -2974,8 +2957,8 @@
             DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
             DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
 
-            DOM.journalEntryEl.addEventListener('input', () => { autoResizeTextarea(DOM.journalEntryEl); saveJournalEntry(); });
-            DOM.persistentNotesEl.addEventListener('input', () => { autoResizeTextarea(DOM.persistentNotesEl); savePersistentNotes(); });
+            DOM.journalEntryEl.addEventListener('input', () => { resizeTextareaWithoutScrollJump(DOM.journalEntryEl); saveJournalEntry(); });
+            DOM.persistentNotesEl.addEventListener('input', () => { resizeTextareaWithoutScrollJump(DOM.persistentNotesEl); savePersistentNotes(); });
             DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
             DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
 
@@ -3376,7 +3359,7 @@
                 sectionElement.classList.add('is-open'); 
                 toggleBtn.textContent = '−'; 
                 toggleBtn.style.transform = 'rotate(180deg)';
-                content.style.maxHeight = '5000px'; // Use the fixed large value
+                content.style.maxHeight = '5000px';
             }
         }
 
