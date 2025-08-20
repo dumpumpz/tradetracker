@@ -2053,33 +2053,41 @@
 
        // FIX: 2. This function is modified to prevent the scroll jump issue.
          // FIX: This is the corrected function to prevent scroll jump while ensuring the parent container resizes.
+        // FIX: This is the final, correct version that solves BOTH the expansion and scroll-jump issues.
        function autoResizeTextarea(element) {
             if (!element) return;
-            
-            // 1. First, resize the textarea itself to fit its content.
-            element.style.height = 'auto'; // Shrink first to correctly calculate the new scrollHeight
-            element.style.height = `${element.scrollHeight}px`; // Expand to fit the content
+
+            // Step 1: Resize the textarea itself to fit its content. This part is correct.
+            element.style.height = 'auto';
+            element.style.height = `${element.scrollHeight}px`;
 
             const content = element.closest('.collapsible-content');
 
-            // 2. Only resize the parent container if it's already open.
+            // Only resize the parent if it's actually open.
             if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
                 
-                // 3. THE KEY FIX: Temporarily disable the CSS transition.
-                // This makes the height change instantaneous, preventing the animation that causes the scroll jump.
-                content.style.transition = 'max-height 0s'; 
-                
-                // 4. Update the container's max-height to its new content height.
-                content.style.maxHeight = content.scrollHeight + 'px';
+                // Step 2: THE CRITICAL FIX - Measure the TRUE required height.
+                // We must temporarily un-constrain the parent's max-height to accurately
+                // measure the full scrollHeight of its content (including the newly-expanded textarea).
+                const originalMaxHeight = content.style.maxHeight;
+                content.style.maxHeight = 'none'; // Temporarily remove the height limit
+                const requiredHeight = content.scrollHeight; // Now, this measurement is accurate
+                content.style.maxHeight = originalMaxHeight; // Put the old limit back for a split second
 
-                // 5. Re-enable the transition after a tiny delay.
-                // This ensures that when the user manually clicks the expand/collapse button, the animation works as expected.
-                // We use a timeout to allow the browser to apply the height change before restoring the transition.
-                setTimeout(() => {
-                    if (content) { // Check if content still exists, just in case.
-                        content.style.transition = ''; // Reverts to the transition defined in the CSS stylesheet.
-                    }
-                }, 50); 
+                // Step 3: Apply the new height INSTANTLY to prevent the scroll-jump animation.
+                // We use requestAnimationFrame to ensure the browser has processed the above changes
+                // before we apply the final, non-animated height change.
+                requestAnimationFrame(() => {
+                    content.style.transition = 'none'; // Disable animation
+                    content.style.maxHeight = requiredHeight + 'px'; // Apply the true required height
+
+                    // Step 4: Re-enable the animation for future user clicks (expand/collapse).
+                    // We use another animation frame or a tiny timeout to ensure this happens *after*
+                    // the height has been set.
+                    setTimeout(() => {
+                        content.style.transition = ''; // Restore animation from CSS
+                    }, 10);
+                });
             }
         }
         function updateCollapsibleHeight(sectionElement) {
