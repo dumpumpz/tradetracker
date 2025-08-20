@@ -2052,25 +2052,36 @@
         };
 
        // FIX: 2. This function is modified to prevent the scroll jump issue.
+         // FIX: This is the corrected function to prevent scroll jump while ensuring the parent container resizes.
        function autoResizeTextarea(element) {
             if (!element) return;
-            element.style.height = 'auto';
-            element.style.height = `${element.scrollHeight}px`;
+            
+            // 1. First, resize the textarea itself to fit its content.
+            element.style.height = 'auto'; // Shrink first to correctly calculate the new scrollHeight
+            element.style.height = `${element.scrollHeight}px`; // Expand to fit the content
 
-            // The following block caused a layout shift when typing, leading to a scroll jump.
-            // Removing it fixes the issue. The textarea will still grow, but the parent
-            // collapsible section will not, preventing the jarring scroll behavior.
-            /*
             const content = element.closest('.collapsible-content');
-            if (content) {
-                const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
-                if (isOpen) {
-                    content.style.maxHeight = content.scrollHeight + 'px';
-                }
+
+            // 2. Only resize the parent container if it's already open.
+            if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
+                
+                // 3. THE KEY FIX: Temporarily disable the CSS transition.
+                // This makes the height change instantaneous, preventing the animation that causes the scroll jump.
+                content.style.transition = 'max-height 0s'; 
+                
+                // 4. Update the container's max-height to its new content height.
+                content.style.maxHeight = content.scrollHeight + 'px';
+
+                // 5. Re-enable the transition after a tiny delay.
+                // This ensures that when the user manually clicks the expand/collapse button, the animation works as expected.
+                // We use a timeout to allow the browser to apply the height change before restoring the transition.
+                setTimeout(() => {
+                    if (content) { // Check if content still exists, just in case.
+                        content.style.transition = ''; // Reverts to the transition defined in the CSS stylesheet.
+                    }
+                }, 50); 
             }
-            */
         }
-        
         function updateCollapsibleHeight(sectionElement) {
             // Only resize if the section is actually open
             if (!sectionElement || !sectionElement.classList.contains('is-open')) {
