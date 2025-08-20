@@ -2050,11 +2050,17 @@
             const maximumFractionDigits = num > 100 ? 2 : (num > 1 ? 4 : 8);
             return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`;
         };
+
+       // FIX: 2. This function is modified to prevent the scroll jump issue.
        function autoResizeTextarea(element) {
             if (!element) return;
             element.style.height = 'auto';
             element.style.height = `${element.scrollHeight}px`;
 
+            // The following block caused a layout shift when typing, leading to a scroll jump.
+            // Removing it fixes the issue. The textarea will still grow, but the parent
+            // collapsible section will not, preventing the jarring scroll behavior.
+            /*
             const content = element.closest('.collapsible-content');
             if (content) {
                 const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
@@ -2062,6 +2068,7 @@
                     content.style.maxHeight = content.scrollHeight + 'px';
                 }
             }
+            */
         }
         
         function updateCollapsibleHeight(sectionElement) {
@@ -2077,6 +2084,27 @@
         }
 
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
+
+        // FIX: 1. New helper function to get date strings in Perth time (UTC+8).
+        const getPerthDateString = (date = new Date()) => {
+            // Use Intl.DateTimeFormat for robust, timezone-aware formatting.
+            // The 'en-CA' locale reliably formats dates as 'YYYY-MM-DD'.
+            try {
+                const formatter = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Australia/Perth',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                return formatter.format(date);
+            } catch (e) {
+                // Fallback for older browsers that might not support the timeZone option
+                console.error("Timezone formatting failed, using fallback.", e);
+                const perthTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+                return perthTime.toISOString().split('T')[0];
+            }
+        };
+
         const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
 
         function getViewerId() {
@@ -2163,7 +2191,7 @@
             const isCurrentlyHidden = historicalRows[0].style.display === 'none';
             const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
             historicalRows.forEach(row => { row.style.display = displayStyle; });
-            button.textContent = isCurrentlyHidden ? 'Show All' : 'Hide Older';
+            button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All'; // FIX: Changed text to be more intuitive
             const content = button.closest('.collapsible-content');
             if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
                 content.style.maxHeight = content.scrollHeight + 'px';
@@ -2228,34 +2256,40 @@
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 
+        // FIX: 1. This function is updated to use Perth Time for filtering.
         function renderSentimentReceipts(receiptsData) {
             const tbody = DOM.sentimentReceiptsTbody;
             if (!tbody) return;
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(today.getDate() - 1);
-            const todayStr = getYYYYMMDD(today);
-            const yesterdayStr = getYYYYMMDD(yesterday);
+
+            const perthTodayStr = getPerthDateString(); // Get today's date in Perth
             const currentViewerId = getViewerId();
             const receipts = receiptsData || {};
             const receiptIds = Object.keys(receipts).sort().reverse();
+
             const rowsHtml = receiptIds.map(id => {
                 const receipt = receipts[id];
                 if (!receipt) return '';
+                
                 let sentimentColor = 'var(--text-color)';
                 if (receipt.sentiment === 'long') sentimentColor = 'var(--green-text)';
                 if (receipt.sentiment === 'short') sentimentColor = 'var(--red-text)';
+
                 const ownerActionsHtml = (receipt.viewerId === currentViewerId && STATE.isMasterUser) ? `<button class="attach-image-btn" data-id="${id}" data-type="sentiment" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="edit-sentiment-note-btn" data-id="${id}">Note</button><button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">×</button>` : '';
-                let displayTimestamp, receiptDateStr, isHistorical;
+
+                let displayTimestamp, isHistorical;
+                let receiptPerthDateStr = '';
+
                 if (typeof receipt.timestamp === 'number') {
                     const receiptDate = new Date(receipt.timestamp);
                     displayTimestamp = receiptDate.toLocaleString();
-                    receiptDateStr = getYYYYMMDD(receiptDate);
-                    isHistorical = (receiptDateStr !== todayStr && receiptDateStr !== yesterdayStr);
+                    receiptPerthDateStr = getPerthDateString(receiptDate); // Convert timestamp to Perth date string
+                    isHistorical = (receiptPerthDateStr !== perthTodayStr); // Check if it's not today in Perth
                 } else {
-                    displayTimestamp = receipt.timestamp || '--'; isHistorical = true;
+                    displayTimestamp = receipt.timestamp || '--'; 
+                    isHistorical = true;
                 }
-                return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${receiptDateStr || ''}"><td>${receipt.asset || '--'}</td><td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td><td class="sentiment-note-cell">${receipt.note || ''}</td>${renderAttachmentThumbnails(receipt, id, 'sentiment')}<td>${displayTimestamp}</td><td class="action-buttons">${ownerActionsHtml}</td></tr>`;
+
+                return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${receiptPerthDateStr}"><td>${receipt.asset || '--'}</td><td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td><td class="sentiment-note-cell">${receipt.note || ''}</td>${renderAttachmentThumbnails(receipt, id, 'sentiment')}<td>${displayTimestamp}</td><td class="action-buttons">${ownerActionsHtml}</td></tr>`;
             }).join('');
             tbody.innerHTML = rowsHtml;
 
@@ -2296,19 +2330,29 @@
             }
         }
 
+        // FIX: 1. This function is updated to use Perth Time for filtering.
         function renderCompletedTable(data) {
             const trades = data || {};
-            const today = new Date(), yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
-            const todayStr = getYYYYMMDD(today), yesterdayStr = getYYYYMMDD(yesterday);
+            const perthTodayStr = getPerthDateString(); // Get today's date in Perth
+            
             const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button><button class="note-btn-completed" data-id="${id}">Edit</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>` : '';
+            
             const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date)).map(id => {
                 const trade = trades[id];
                 const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                 const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
-                let closedDateStr, isHistorical;
-                if (trade.closed_date) { closedDateStr = getYYYYMMDD(new Date(trade.closed_date)); isHistorical = (closedDateStr !== todayStr && closedDateStr !== yesterdayStr); } else { isHistorical = true; }
-                return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedDateStr || ''}"><td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}</tr>`;
+                
+                let closedPerthDateStr = '', isHistorical;
+                if (trade.closed_date) {
+                    const closedDate = new Date(trade.closed_date);
+                    closedPerthDateStr = getPerthDateString(closedDate); // Convert timestamp to Perth date string
+                    isHistorical = (closedPerthDateStr !== perthTodayStr); // Check if it's not today in Perth
+                } else { 
+                    isHistorical = true; 
+                }
+
+                return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedPerthDateStr}"><td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.completedTradesTbody.innerHTML = rowsHtml;
 
