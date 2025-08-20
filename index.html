@@ -2005,6 +2005,8 @@
             journalSaveTimer: null,
             notesSaveTimer: null,
             trackerSaveTimer: null,
+            setups1NotesTimer: null,
+            setups2NotesTimer: null,
             isMerging: false,
             mergeBaseTradeId: null,
             modalImageGallery: [],
@@ -2049,28 +2051,79 @@
             return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`;
         };
 
-        function autoResizeTextarea(element) {
+       // FIX: 2. This function is modified to prevent the scroll jump issue.
+         // FIX: This is the corrected function to prevent scroll jump while ensuring the parent container resizes.
+        // FIX: This is the final, correct version that solves BOTH the expansion and scroll-jump issues.
+       function autoResizeTextarea(element) {
             if (!element) return;
+
+            // Step 1: Resize the textarea itself to fit its content. This part is correct.
             element.style.height = 'auto';
             element.style.height = `${element.scrollHeight}px`;
-        }
 
-        // Definitive fix for the scroll-jumping issue.
-        function resizeTextareaWithoutScrollJump(element) {
-            // 1. Disable the browser's scroll anchoring behavior.
-            document.body.style.overflowAnchor = 'none';
-        
-            // 2. Perform the resize, which causes the layout shift.
-            autoResizeTextarea(element);
-        
-            // 3. Re-enable scroll anchoring in the next frame, after the layout is stable.
-            // Using requestAnimationFrame is a robust way to ensure this runs after the browser has repainted.
-            requestAnimationFrame(() => {
-                document.body.style.overflowAnchor = 'auto';
-            });
+            const content = element.closest('.collapsible-content');
+
+            // Only resize the parent if it's actually open.
+            if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
+                
+                // Step 2: THE CRITICAL FIX - Measure the TRUE required height.
+                // We must temporarily un-constrain the parent's max-height to accurately
+                // measure the full scrollHeight of its content (including the newly-expanded textarea).
+                const originalMaxHeight = content.style.maxHeight;
+                content.style.maxHeight = 'none'; // Temporarily remove the height limit
+                const requiredHeight = content.scrollHeight; // Now, this measurement is accurate
+                content.style.maxHeight = originalMaxHeight; // Put the old limit back for a split second
+
+                // Step 3: Apply the new height INSTANTLY to prevent the scroll-jump animation.
+                // We use requestAnimationFrame to ensure the browser has processed the above changes
+                // before we apply the final, non-animated height change.
+                requestAnimationFrame(() => {
+                    content.style.transition = 'none'; // Disable animation
+                    content.style.maxHeight = requiredHeight + 'px'; // Apply the true required height
+
+                    // Step 4: Re-enable the animation for future user clicks (expand/collapse).
+                    // We use another animation frame or a tiny timeout to ensure this happens *after*
+                    // the height has been set.
+                    setTimeout(() => {
+                        content.style.transition = ''; // Restore animation from CSS
+                    }, 10);
+                });
+            }
+        }
+        function updateCollapsibleHeight(sectionElement) {
+            // Only resize if the section is actually open
+            if (!sectionElement || !sectionElement.classList.contains('is-open')) {
+                return;
+            }
+            const content = sectionElement.querySelector('.collapsible-content');
+            if (content) {
+                // Set the max-height to the new, correct height of its content
+                content.style.maxHeight = content.scrollHeight + 'px';
+            }
         }
 
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
+
+        // FIX: 1. New helper function to get date strings in Perth time (UTC+8).
+        const getPerthDateString = (date = new Date()) => {
+            // Use Intl.DateTimeFormat for robust, timezone-aware formatting.
+            // The 'en-CA' locale reliably formats dates as 'YYYY-MM-DD'.
+            try {
+                const formatter = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Australia/Perth',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                return formatter.format(date);
+            } catch (e) {
+                // Fallback for older browsers that might not support the timeZone option
+                console.error("Timezone formatting failed, using fallback.", e);
+                const perthTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+                return perthTime.toISOString().split('T')[0];
+            }
+        };
+
         const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
 
         function getViewerId() {
@@ -2157,19 +2210,16 @@
             const isCurrentlyHidden = historicalRows[0].style.display === 'none';
             const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
             historicalRows.forEach(row => { row.style.display = displayStyle; });
-            button.textContent = isCurrentlyHidden ? 'Show Recent' : 'Show All';
-            
-            const section = button.closest('.collapsible-section');
-            if (section && section.classList.contains('is-open')) {
-                const content = section.querySelector('.collapsible-content');
-                if (content) {
-                    content.style.maxHeight = '5000px';
-                }
+            button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All'; // FIX: Changed text to be more intuitive
+            const content = button.closest('.collapsible-content');
+            if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
+                content.style.maxHeight = content.scrollHeight + 'px';
             }
         }
 
 
         // --- RENDERING FUNCTIONS ---
+        // MODIFIED: This function now also styles the daily open prices
         function renderMarketOpens() {
             const data = STATE.marketOpens;
             if (!data?.opens) return;
@@ -2197,12 +2247,17 @@
                 
                 const lastUpdatedContainer = DOM.keyOpensLastUpdated.parentElement;
         
+                // This condition checks if the update is from today (since 00:00 UTC)
                 if (lastUpdatedDate.getTime() >= todayUTCStart.getTime()) {
+                    // Apply yellow color to "Last Updated" text
                     lastUpdatedContainer.classList.add('updated-today');
+                    // ADDED: Apply yellow color to the daily open prices
                     DOM.btcDailyOpen.classList.add('updated-today-value');
                     DOM.ethDailyOpen.classList.add('updated-today-value');
                 } else {
+                    // Remove yellow color if data is from a previous day
                     lastUpdatedContainer.classList.remove('updated-today');
+                    // ADDED: Remove yellow color from the daily open prices
                     DOM.btcDailyOpen.classList.remove('updated-today-value');
                     DOM.ethDailyOpen.classList.remove('updated-today-value');
                 }
@@ -2220,38 +2275,56 @@
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 
+        // FIX: 1. This function is updated to use Perth Time for filtering.
         function renderSentimentReceipts(receiptsData) {
             const tbody = DOM.sentimentReceiptsTbody;
             if (!tbody) return;
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(today.getDate() - 1);
-            const todayStr = getYYYYMMDD(today);
-            const yesterdayStr = getYYYYMMDD(yesterday);
+
+            const perthTodayStr = getPerthDateString(); // Get today's date in Perth
             const currentViewerId = getViewerId();
             const receipts = receiptsData || {};
             const receiptIds = Object.keys(receipts).sort().reverse();
+
             const rowsHtml = receiptIds.map(id => {
                 const receipt = receipts[id];
                 if (!receipt) return '';
+                
                 let sentimentColor = 'var(--text-color)';
                 if (receipt.sentiment === 'long') sentimentColor = 'var(--green-text)';
                 if (receipt.sentiment === 'short') sentimentColor = 'var(--red-text)';
+
                 const ownerActionsHtml = (receipt.viewerId === currentViewerId && STATE.isMasterUser) ? `<button class="attach-image-btn" data-id="${id}" data-type="sentiment" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="edit-sentiment-note-btn" data-id="${id}">Note</button><button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">×</button>` : '';
-                let displayTimestamp, receiptDateStr, isHistorical;
+
+                let displayTimestamp, isHistorical;
+                let receiptPerthDateStr = '';
+
                 if (typeof receipt.timestamp === 'number') {
                     const receiptDate = new Date(receipt.timestamp);
                     displayTimestamp = receiptDate.toLocaleString();
-                    receiptDateStr = getYYYYMMDD(receiptDate);
-                    isHistorical = (receiptDateStr !== todayStr && receiptDateStr !== yesterdayStr);
+                    receiptPerthDateStr = getPerthDateString(receiptDate); // Convert timestamp to Perth date string
+                    isHistorical = (receiptPerthDateStr !== perthTodayStr); // Check if it's not today in Perth
                 } else {
-                    displayTimestamp = receipt.timestamp || '--'; isHistorical = true;
+                    displayTimestamp = receipt.timestamp || '--'; 
+                    isHistorical = true;
                 }
-                return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${receiptDateStr || ''}"><td>${receipt.asset || '--'}</td><td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td><td class="sentiment-note-cell">${receipt.note || ''}</td>${renderAttachmentThumbnails(receipt, id, 'sentiment')}<td>${displayTimestamp}</td><td class="action-buttons">${ownerActionsHtml}</td></tr>`;
+
+                return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${receiptPerthDateStr}"><td>${receipt.asset || '--'}</td><td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td><td class="sentiment-note-cell">${receipt.note || ''}</td>${renderAttachmentThumbnails(receipt, id, 'sentiment')}<td>${displayTimestamp}</td><td class="action-buttons">${ownerActionsHtml}</td></tr>`;
             }).join('');
             tbody.innerHTML = rowsHtml;
 
+            // First, make the button visible if needed
             updateToggleButtonsVisibility();
+            
+            // Then, resize the container after the browser has had a chance to reflow the layout
+            const contentWrapper = tbody.closest('.collapsible-content');
+            if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
+                setTimeout(() => {
+                    // Re-check in case it was closed in the meantime
+                    if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
+                        contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+                    }
+                }, 0); // Use a timeout to wait for the DOM update
+            }
         }
 
         function renderLiveTable(data) {
@@ -2269,25 +2342,52 @@
                 return `<tr><td>${trade.symbol}</td><td>${trade.type}</td>${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}<td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td><td style="color: #28a745;">${profitString}</td><td style="color: #dc3545;">${lossString}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'live')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.tradesTbody.innerHTML = rowsHtml;
+
+            const contentWrapper = DOM.tradesTbody.closest('.collapsible-content');
+            if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
+                contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+            }
         }
 
+        // FIX: 1. This function is updated to use Perth Time for filtering.
         function renderCompletedTable(data) {
             const trades = data || {};
-            const today = new Date(), yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
-            const todayStr = getYYYYMMDD(today), yesterdayStr = getYYYYMMDD(yesterday);
+            const perthTodayStr = getPerthDateString(); // Get today's date in Perth
+            
             const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button><button class="note-btn-completed" data-id="${id}">Edit</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>` : '';
+            
             const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date)).map(id => {
                 const trade = trades[id];
                 const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                 const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
-                let closedDateStr, isHistorical;
-                if (trade.closed_date) { closedDateStr = getYYYYMMDD(new Date(trade.closed_date)); isHistorical = (closedDateStr !== todayStr && closedDateStr !== yesterdayStr); } else { isHistorical = true; }
-                return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedDateStr || ''}"><td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}</tr>`;
+                
+                let closedPerthDateStr = '', isHistorical;
+                if (trade.closed_date) {
+                    const closedDate = new Date(trade.closed_date);
+                    closedPerthDateStr = getPerthDateString(closedDate); // Convert timestamp to Perth date string
+                    isHistorical = (closedPerthDateStr !== perthTodayStr); // Check if it's not today in Perth
+                } else { 
+                    isHistorical = true; 
+                }
+
+                return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedPerthDateStr}"><td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.completedTradesTbody.innerHTML = rowsHtml;
 
+            // First, make the button visible if needed
             updateToggleButtonsVisibility();
+            
+            // Then, resize the container after a reflow
+            const contentWrapper = DOM.completedTradesTbody.closest('.collapsible-content');
+            if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
+                 setTimeout(() => {
+                    // Re-check in case it was closed in the meantime
+                    if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
+                        contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+                    }
+                }, 0);
+            }
         }
 
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
@@ -2300,6 +2400,12 @@
                 return `<div class="library-image-wrapper">${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption" title="${caption}">${caption}</div></div>`;
             }).join('');
             containerElement.innerHTML = imagesHtml;
+
+            // After rendering the images, find the parent section and resize it correctly.
+            const parentSection = containerElement.closest('.collapsible-section');
+            if (parentSection) {
+                updateCollapsibleHeight(parentSection);
+            }
         }
 
         function renderChartLibrary2Folders() {
@@ -2381,8 +2487,7 @@
             const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
             DOM.journalEntryEl.value = dailyText;
             DOM.persistentNotesEl.value = STATE.persistentNotes;
-            autoResizeTextarea(DOM.journalEntryEl); 
-            autoResizeTextarea(DOM.persistentNotesEl);
+            setTimeout(() => { autoResizeTextarea(DOM.journalEntryEl); autoResizeTextarea(DOM.persistentNotesEl); }, 0);
             DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
             renderJournalImages(safeSymbol, timeframe, yyyymmdd);
             renderDateNavigation();
@@ -2449,11 +2554,13 @@
             container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
         }
 
+        // --- START: New function to calculate percentages for setups table ---
         function calculateAndDisplayPercentages(row) {
             if (!row) return;
             const cells = row.querySelectorAll('td');
             if (cells.length === 0) return;
 
+            // Define the indices for each setup type within the row
             const setups = [
                 { entry: 0, target: 1, targetPct: 2, stoploss: 3, stoplossPct: 4 },
                 { entry: 5, target: 6, targetPct: 7, stoploss: 8, stoplossPct: 9 },
@@ -2464,9 +2571,11 @@
                 const entryVal = parseFloat(cells[setup.entry].textContent.replace(/,/g, ''));
                 const targetVal = parseFloat(cells[setup.target].textContent.replace(/,/g, ''));
                 const stoplossVal = parseFloat(cells[setup.stoploss].textContent.replace(/,/g, ''));
+
                 const targetPctCell = cells[setup.targetPct];
                 const stoplossPctCell = cells[setup.stoplossPct];
 
+                // Calculate and display target percentage
                 if (!isNaN(entryVal) && !isNaN(targetVal) && entryVal !== 0) {
                     const percent = ((targetVal - entryVal) / entryVal) * 100;
                     targetPctCell.textContent = percent.toFixed(1) + '%';
@@ -2475,6 +2584,7 @@
                     targetPctCell.textContent = '';
                 }
 
+                // Calculate and display stoploss percentage
                 if (!isNaN(entryVal) && !isNaN(stoplossVal) && entryVal !== 0) {
                     const percent = ((stoplossVal - entryVal) / entryVal) * 100;
                     stoplossPctCell.textContent = percent.toFixed(1) + '%';
@@ -2484,6 +2594,7 @@
                 }
             });
         }
+        // --- END: New function ---
 
         function applyHighlightingToSetupsTable(tableElement) {
             if (!tableElement) return;
@@ -2512,16 +2623,18 @@
                 const timeframe = row.firstElementChild.textContent.trim();
                 const rowData = data[timeframe] || {};
                 const cells = row.querySelectorAll('td');
+                // 0-Candle
                 cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
+                // 4-Candle
                 cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
+                // Bounce
                 cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
+                
+                // Calculate percentages for the row
                 calculateAndDisplayPercentages(row);
             });
             const notesTextarea = document.getElementById(notesTextareaId);
-            if (notesTextarea) { 
-                notesTextarea.value = data.global_notes || ''; 
-                autoResizeTextarea(notesTextarea);
-            }
+            if (notesTextarea) { notesTextarea.value = data.global_notes || ''; autoResizeTextarea(notesTextarea); }
             applyHighlightingToSetupsTable(tableElement);
         }
         
@@ -2546,10 +2659,14 @@
                 const resistanceLevels = lookbackData.resistance || [];
 
                 const topSupport = supportLevels.length > 0 ? supportLevels[0] : null;
-                const supportZoneText = topSupport ? `${Math.round(topSupport['Price Start'])} - ${Math.round(topSupport['Price End'])}` : '--';
+                const supportZoneText = topSupport 
+                    ? `${Math.round(topSupport['Price Start'])} - ${Math.round(topSupport['Price End'])}`
+                    : '--';
                 
                 const topResistance = resistanceLevels.length > 0 ? resistanceLevels[0] : null;
-                const resistanceZoneText = topResistance ? `${Math.round(topResistance['Price Start'])} - ${Math.round(topResistance['Price End'])}` : '--';
+                const resistanceZoneText = topResistance
+                    ? `${Math.round(topResistance['Price Start'])} - ${Math.round(topResistance['Price End'])}`
+                    : '--';
 
                 rowsHtml += `
                     <tr>
@@ -2573,9 +2690,12 @@
             const lookbackData = STATE.srData.data?.[selectedSymbol]?.[selectedLookback] || {};
             const analysisParams = lookbackData.analysis_params || {};
 
-            DOM.srLastUpdatedTime.textContent = STATE.srData.last_updated ? new Date(STATE.srData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--';
+            DOM.srLastUpdatedTime.textContent = STATE.srData.last_updated 
+                ? new Date(STATE.srData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) 
+                : '--';
+                
             DOM.srMetadataTimeframes.textContent = (analysisParams.timeframes_analyzed || []).join(', ') || '--';
-            DOM.srMetadataWindows.textContent = '5, 8, 13, 21, 34';
+            DOM.srMetadataWindows.textContent = '5, 8, 13, 21, 34'; // From script config
 
             if (analysisParams.lookback_days) {
                 const atrText = analysisParams.atr_percent ? ` / ATR: ${(analysisParams.atr_percent * 100).toFixed(2)}%` : '';
@@ -2586,6 +2706,7 @@
 
             const supportLevels = lookbackData.support || [];
             const resistanceLevels = lookbackData.resistance || [];
+            
             const allScores = [...supportLevels, ...resistanceLevels].map(l => l['Strength Score']);
             const maxScore = allScores.length > 0 ? Math.max(...allScores) : 1;
 
@@ -2622,7 +2743,7 @@
                             const textareaEl = document.getElementById(`${symbolPrefix}-${timeframe}-note`);
                             if (textareaEl) {
                                 textareaEl.value = note;
-                                autoResizeTextarea(textareaEl);
+                                autoResizeTextarea(textareaEl); // Auto-resize on load
                             }
                         }
                     }
@@ -2633,10 +2754,11 @@
             if (!STATE.isMasterUser) return;
             clearTimeout(STATE.levelNotesSaveTimer);
             STATE.levelNotesSaveTimer = setTimeout(() => {
-                const idParts = inputElement.id.split('-');
+                const idParts = inputElement.id.split('-'); // e.g., ['btc', 'daily', 'note']
                 const symbol = `${idParts[0].toUpperCase()}-USDT`;
                 const timeframe = idParts[1];
                 const value = inputElement.value;
+
                 dbRefs.levelNotes.child(getSafeSymbol(symbol)).child(timeframe).set(value)
                     .catch(e => console.error("Error saving level note:", e));
             }, 750);
@@ -2698,13 +2820,12 @@
             }, 750);
         };
 
+        // FIX: Removed debounce since save is now on blur.
         const savePrimarySetupsNotes = () => {
-            if (!STATE.isMasterUser) return;
             saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
         };
         
         const saveSecondarySetupsNotes = () => {
-            if (!STATE.isMasterUser) return;
             saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
         };
 
@@ -2826,13 +2947,13 @@
 
         // --- EVENT LISTENERS ---
          function setupEventListeners() {
-            document.getElementById('key-opens-container').addEventListener('input', e => {
+            // Listen for input on the new level note boxes
+                      document.getElementById('key-opens-container').addEventListener('input', e => {
                 if(e.target.matches('.key-open-note')) {
-                    resizeTextareaWithoutScrollJump(e.target);
+                    autoResizeTextarea(e.target);
                     saveLevelNotes(e.target);
                 }
             });
-
             DOM.themeToggle.addEventListener('change', (e) => {
                 const theme = e.target.checked ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
@@ -2860,24 +2981,6 @@
 
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
             
-            const collapsibleHandler = (e) => {
-                const header = e.target.closest('.collapsible-header');
-                if (header) {
-                    const section = header.parentElement;
-                    const content = section.querySelector('.collapsible-content');
-                    const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-                    section.classList.toggle('is-open');
-                    toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
-                    toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
-                    
-                    if (section.classList.contains('is-open')) {
-                        content.style.maxHeight = '5000px'; 
-                    } else { 
-                        content.style.maxHeight = '0px'; 
-                    }
-                }
-            };
-
             DOM.trackerTab.addEventListener('click', (e) => {
                 if (handleAttachmentActions(e)) return;
                 if (e.target.matches('.ema-pill-btn')) {
@@ -2900,7 +3003,19 @@
                 } else if (e.target.id === 'toggle-old-trades') {
                     toggleHistoricalRows('completed-trades-tbody', e.target);
                 } else {
-                    collapsibleHandler(e);
+                    const header = e.target.closest('.collapsible-header');
+                    if (header) {
+                        const section = header.parentElement;
+                        const content = section.querySelector('.collapsible-content');
+                        const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+                        section.classList.toggle('is-open');
+                        toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
+                        toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                        if (section.classList.contains('is-open')) {
+                            content.style.maxHeight = content.scrollHeight + 'px';
+                            setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
+                        } else { content.style.maxHeight = '0px'; }
+                    }
                 }
             });
 
@@ -2909,7 +3024,19 @@
                     if (e.target.closest('#image-library-container, #chart-library-2-container, #chart-library-2-preview-container')) {
                         handleGenericImageLibraryClick(e);
                     } else {
-                        collapsibleHandler(e);
+                        const header = e.target.closest('.collapsible-header');
+                        if (header) {
+                            const section = header.parentElement;
+                            const content = section.querySelector('.collapsible-content');
+                            const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+                            section.classList.toggle('is-open');
+                            toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
+                            toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                            if (section.classList.contains('is-open')) {
+                                content.style.maxHeight = content.scrollHeight + 'px';
+                                setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
+                            } else { content.style.maxHeight = '0px'; }
+                        }
                     }
                 });
             }
@@ -2917,21 +3044,24 @@
             DOM.trackerTab.addEventListener('blur', (e) => {
                 if (e.target.matches('.setups-table .editable-setup-cell')) {
                     const table = e.target.closest('.setups-table');
-                    const row = e.target.closest('tr');
+                    const row = e.target.closest('tr'); // Get the row that was edited
+                    
                     applyHighlightingToSetupsTable(table);
                     if (row) {
-                        calculateAndDisplayPercentages(row);
+                        calculateAndDisplayPercentages(row); // Recalculate percentages for the row
                     }
-                    if (table.id === 'primary-setups-table') savePrimarySetupsNotes();
-                    else saveSecondarySetupsNotes();
+
+                    if (table.id === 'primary-setups-table') saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
+                    else saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
                 }
             }, true);
+
+            DOM.trackerScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
             
-            // Use the scroll-jump fix for all auto-growing textareas
-            DOM.trackerScratchpadEl.addEventListener('input', () => { resizeTextareaWithoutScrollJump(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
-            DOM.primarySetupsNotes.addEventListener('input', () => resizeTextareaWithoutScrollJump(DOM.primarySetupsNotes));
-            DOM.secondarySetupsNotes.addEventListener('input', () => resizeTextareaWithoutScrollJump(DOM.secondarySetupsNotes));
+            // FIX: Changed setups notes to save on blur instead of input to prevent scrolling while typing.
+            DOM.primarySetupsNotes.addEventListener('input', () => autoResizeTextarea(DOM.primarySetupsNotes));
             DOM.primarySetupsNotes.addEventListener('blur', savePrimarySetupsNotes);
+            DOM.secondarySetupsNotes.addEventListener('input', () => autoResizeTextarea(DOM.secondarySetupsNotes));
             DOM.secondarySetupsNotes.addEventListener('blur', saveSecondarySetupsNotes);
 
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
@@ -2957,8 +3087,8 @@
             DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
             DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
 
-            DOM.journalEntryEl.addEventListener('input', () => { resizeTextareaWithoutScrollJump(DOM.journalEntryEl); saveJournalEntry(); });
-            DOM.persistentNotesEl.addEventListener('input', () => { resizeTextareaWithoutScrollJump(DOM.persistentNotesEl); savePersistentNotes(); });
+            DOM.journalEntryEl.addEventListener('input', () => { autoResizeTextarea(DOM.journalEntryEl); saveJournalEntry(); });
+            DOM.persistentNotesEl.addEventListener('input', () => { autoResizeTextarea(DOM.persistentNotesEl); savePersistentNotes(); });
             DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
             DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
 
@@ -3353,13 +3483,11 @@
         // --- INITIALIZATION ---
         function openCollapsibleSection(sectionElement) {
             if (!sectionElement) return;
-            const content = sectionElement.querySelector('.collapsible-content');
-            const toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
+            const content = sectionElement.querySelector('.collapsible-content'), toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
             if (content && toggleBtn && !sectionElement.classList.contains('is-open')) {
-                sectionElement.classList.add('is-open'); 
-                toggleBtn.textContent = '−'; 
-                toggleBtn.style.transform = 'rotate(180deg)';
-                content.style.maxHeight = '5000px';
+                sectionElement.classList.add('is-open'); toggleBtn.textContent = '−'; toggleBtn.style.transform = 'rotate(180deg)';
+                content.style.maxHeight = content.scrollHeight + 'px';
+                setTimeout(() => { if (sectionElement.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
             }
         }
 
