@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+how come when i press enter in the trading setups input box , if i can see below sections it expands and takes user down to the save priamry secondary buttons , but if can only see the input box taking up whole screen view pressing enter it just works normally creates new line ,, something broken ,, : <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -24,7 +24,7 @@
             --red-text: #721c24;
             --green-bar: rgba(40, 167, 69, 0.2);
             --red-bar: rgba(220, 53, 69, 0.2);
-
+        
         }
 
         [data-theme="dark"] {
@@ -287,7 +287,7 @@
         .sr-column h3 { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid; }
         .sr-column.support h3 { color: #28a745; border-color: #28a745; }
         .sr-column.resistance h3 { color: #dc3545; border-color: #dc3545; }
-
+        
         /* START: New Compact S/R Table Styles */
         .sr-table {
             width: 100%;
@@ -426,7 +426,7 @@
             color: var(--red-text);
             font-weight: bold;
         }
-
+        
         /* START: New styles for percentage cells */
         .setups-table .percent-cell {
             font-size: 11px;
@@ -1478,7 +1478,7 @@
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
                         <textarea id="primary-setups-notes" class="setups-notes-area" placeholder="Notes for Primary Setups..."></textarea>
-
+       
                         <div class="table-wrapper">
                             <table id="primary-setups-table" class="setups-table">
                                 <thead>
@@ -1508,7 +1508,7 @@
                             </table>
                         </div>
 
-
+                
                         <div class="table-wrapper">
                              <table id="secondary-setups-table" class="setups-table">
                                 <thead>
@@ -1784,7 +1784,7 @@
                     </div>
                 </div>
             </div>
-
+            
         </div>
 
         <div id="charts-tab" class="tab-content">
@@ -2063,6 +2063,19 @@
                 }
             }
         }
+        
+        function updateCollapsibleHeight(sectionElement) {
+            // Only resize if the section is actually open
+            if (!sectionElement || !sectionElement.classList.contains('is-open')) {
+                return;
+            }
+            const content = sectionElement.querySelector('.collapsible-content');
+            if (content) {
+                // Set the max-height to the new, correct height of its content
+                content.style.maxHeight = content.scrollHeight + 'px';
+            }
+        }
+
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
         const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
 
@@ -2163,30 +2176,30 @@
         function renderMarketOpens() {
             const data = STATE.marketOpens;
             if (!data?.opens) return;
-
+        
             const btcData = data.opens['BTC-USDT'];
             if (btcData) {
                 DOM.btcDailyOpen.textContent = formatCurrency(btcData.daily);
                 DOM.btcWeeklyOpen.textContent = formatCurrency(btcData.weekly);
                 DOM.btcMonthlyOpen.textContent = formatCurrency(btcData.monthly);
             }
-
+        
             const ethData = data.opens['ETH-USDT'];
             if (ethData) {
                 DOM.ethDailyOpen.textContent = formatCurrency(ethData.daily);
                 DOM.ethWeeklyOpen.textContent = formatCurrency(ethData.weekly);
                 DOM.ethMonthlyOpen.textContent = formatCurrency(ethData.monthly);
             }
-
+        
             if (data.last_updated) {
                 const lastUpdatedDate = new Date(data.last_updated);
                 DOM.keyOpensLastUpdated.textContent = lastUpdatedDate.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-
+                
                 const now = new Date();
                 const todayUTCStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-
+                
                 const lastUpdatedContainer = DOM.keyOpensLastUpdated.parentElement;
-
+        
                 // This condition checks if the update is from today (since 00:00 UTC)
                 if (lastUpdatedDate.getTime() >= todayUTCStart.getTime()) {
                     // Apply yellow color to "Last Updated" text
@@ -2248,7 +2261,7 @@
 
             // First, make the button visible if needed
             updateToggleButtonsVisibility();
-
+            
             // Then, resize the container after the browser has had a chance to reflow the layout
             const contentWrapper = tbody.closest('.collapsible-content');
             if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
@@ -2301,7 +2314,7 @@
 
             // First, make the button visible if needed
             updateToggleButtonsVisibility();
-
+            
             // Then, resize the container after a reflow
             const contentWrapper = DOM.completedTradesTbody.closest('.collapsible-content');
             if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
@@ -2324,6 +2337,12 @@
                 return `<div class="library-image-wrapper">${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption" title="${caption}">${caption}</div></div>`;
             }).join('');
             containerElement.innerHTML = imagesHtml;
+
+            // After rendering the images, find the parent section and resize it correctly.
+            const parentSection = containerElement.closest('.collapsible-section');
+            if (parentSection) {
+                updateCollapsibleHeight(parentSection);
+            }
         }
 
         function renderChartLibrary2Folders() {
@@ -2533,7 +2552,7 @@
                 });
             });
         }
-
+        
         function renderSetupsTable(tableElement, data, notesTextareaId) {
             if (!tableElement) return;
             const tbody = tableElement.querySelector('tbody');
@@ -2547,7 +2566,7 @@
                 cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
                 // Bounce
                 cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
-
+                
                 // Calculate percentages for the row
                 calculateAndDisplayPercentages(row);
             });
@@ -2555,7 +2574,7 @@
             if (notesTextarea) { notesTextarea.value = data.global_notes || ''; autoResizeTextarea(notesTextarea); }
             applyHighlightingToSetupsTable(tableElement);
         }
-
+        
         function renderSrSummaryTable(symbol) {
             const summaryTbody = document.getElementById('sr-summary-tbody');
             const summaryContainer = document.getElementById('sr-summary-zones-container');
@@ -2580,7 +2599,7 @@
                 const supportZoneText = topSupport 
                     ? `${Math.round(topSupport['Price Start'])} - ${Math.round(topSupport['Price End'])}`
                     : '--';
-
+                
                 const topResistance = resistanceLevels.length > 0 ? resistanceLevels[0] : null;
                 const resistanceZoneText = topResistance
                     ? `${Math.round(topResistance['Price Start'])} - ${Math.round(topResistance['Price End'])}`
@@ -2594,7 +2613,7 @@
                     </tr>
                 `;
             });
-
+            
             summaryTbody.innerHTML = rowsHtml;
             summaryContainer.style.display = 'block';
         }
@@ -2602,7 +2621,7 @@
         function renderSrLevels() {
             const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
             const selectedLookback = DOM.srLookbackEl.value;
-
+            
             renderSrSummaryTable(selectedSymbol);
 
             const lookbackData = STATE.srData.data?.[selectedSymbol]?.[selectedLookback] || {};
@@ -2611,7 +2630,7 @@
             DOM.srLastUpdatedTime.textContent = STATE.srData.last_updated 
                 ? new Date(STATE.srData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) 
                 : '--';
-
+                
             DOM.srMetadataTimeframes.textContent = (analysisParams.timeframes_analyzed || []).join(', ') || '--';
             DOM.srMetadataWindows.textContent = '5, 8, 13, 21, 34'; // From script config
 
@@ -2624,7 +2643,7 @@
 
             const supportLevels = lookbackData.support || [];
             const resistanceLevels = lookbackData.resistance || [];
-
+            
             const allScores = [...supportLevels, ...resistanceLevels].map(l => l['Strength Score']);
             const maxScore = allScores.length > 0 ? Math.max(...allScores) : 1;
 
@@ -2635,7 +2654,7 @@
                 const score = level['Strength Score'] || 0;
                 const scoreWidth = (score / maxScore) * 100;
                 const barColor = type === 'support' ? 'var(--green-bar)' : 'var(--red-bar)';
-
+                
                 return `
                     <tr>
                         <td>${priceStart} - ${priceEnd}</td>
@@ -2681,7 +2700,7 @@
                     .catch(e => console.error("Error saving level note:", e));
             }, 750);
         };
-
+        
         // --- DATA HANDLING AND SAVING ---
         function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
             if (!STATE.isMasterUser) return;
@@ -2742,7 +2761,7 @@
         const savePrimarySetupsNotes = () => {
             saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
         };
-
+        
         const saveSecondarySetupsNotes = () => {
             saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
         };
@@ -2898,7 +2917,7 @@
             });
 
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
-
+            
             DOM.trackerTab.addEventListener('click', (e) => {
                 if (handleAttachmentActions(e)) return;
                 if (e.target.matches('.ema-pill-btn')) {
@@ -2963,7 +2982,7 @@
                 if (e.target.matches('.setups-table .editable-setup-cell')) {
                     const table = e.target.closest('.setups-table');
                     const row = e.target.closest('tr'); // Get the row that was edited
-
+                    
                     applyHighlightingToSetupsTable(table);
                     if (row) {
                         calculateAndDisplayPercentages(row); // Recalculate percentages for the row
@@ -2975,7 +2994,7 @@
             }, true);
 
             DOM.trackerScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
-
+            
             // FIX: Changed setups notes to save on blur instead of input to prevent scrolling while typing.
             DOM.primarySetupsNotes.addEventListener('input', () => autoResizeTextarea(DOM.primarySetupsNotes));
             DOM.primarySetupsNotes.addEventListener('blur', savePrimarySetupsNotes);
@@ -3240,7 +3259,7 @@
                 tradeRef.child('note').once('value', snapshot => { const newNote = prompt("Enter note:", snapshot.val() || ""); if (newNote !== null) tradeRef.update({ note: newNote }); });
             }
         }
-
+        
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); if (attachBtn) { handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type); return true; }
             const delImgBtn = e.target.closest('.delete-trade-image'); if (delImgBtn) { const { entryId, entryType, imageId, filename } = delImgBtn.dataset; handleDeleteAttachmentImage(entryId, entryType, imageId, filename); return true; }
@@ -3453,8 +3472,7 @@
             STATE.selectedDate = new Date(today); STATE.centerDate = new Date(today);
             setupEventListeners(); subscribeToData();
             renderDateNavigation(); renderChartLibrary2Folders(); renderChartLibrary2Preview();
-            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Add New Trade', 'Notes', 'Trading Setups'];
-            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Add New Trade', 'Notes', 'Trading Setups', 'Setups'];
+            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes'];
             document.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 if (sectionsToOpen.includes(h2.textContent.trim())) {
                     const section = h2.closest('.collapsible-section');
