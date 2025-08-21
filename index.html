@@ -2051,56 +2051,35 @@
             return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`;
         };
 
-       // FIX: 2. This function is modified to prevent the scroll jump issue.
-         // FIX: This is the corrected function to prevent scroll jump while ensuring the parent container resizes.
-        // FIX: This is the final, correct version that solves BOTH the expansion and scroll-jump issues.
-       function autoResizeTextarea(element) {
+        // --- START: CORRECTED FUNCTION TO PREVENT SCROLL JUMP ---
+        function autoResizeTextarea(element) {
             if (!element) return;
-
-            // Step 1: Resize the textarea itself to fit its content. This part is correct.
+        
+            // Part 1: Resize the textarea element itself to fit its new content.
             element.style.height = 'auto';
             element.style.height = `${element.scrollHeight}px`;
-
+        
+            // Part 2: Resize the parent collapsible container without causing a scroll jump.
             const content = element.closest('.collapsible-content');
-
-            // Only resize the parent if it's actually open.
+            // Check if the parent collapsible section is currently open before trying to resize it.
             if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
+                // To prevent the animated jump, we temporarily disable the CSS transition,
+                // update the height, and then re-enable the transition after the browser has rendered the change.
+                const originalTransition = content.style.transition;
+                content.style.transition = 'none';
                 
-                // Step 2: THE CRITICAL FIX - Measure the TRUE required height.
-                // We must temporarily un-constrain the parent's max-height to accurately
-                // measure the full scrollHeight of its content (including the newly-expanded textarea).
-                const originalMaxHeight = content.style.maxHeight;
-                content.style.maxHeight = 'none'; // Temporarily remove the height limit
-                const requiredHeight = content.scrollHeight; // Now, this measurement is accurate
-                content.style.maxHeight = originalMaxHeight; // Put the old limit back for a split second
-
-                // Step 3: Apply the new height INSTANTLY to prevent the scroll-jump animation.
-                // We use requestAnimationFrame to ensure the browser has processed the above changes
-                // before we apply the final, non-animated height change.
-                requestAnimationFrame(() => {
-                    content.style.transition = 'none'; // Disable animation
-                    content.style.maxHeight = requiredHeight + 'px'; // Apply the true required height
-
-                    // Step 4: Re-enable the animation for future user clicks (expand/collapse).
-                    // We use another animation frame or a tiny timeout to ensure this happens *after*
-                    // the height has been set.
-                    setTimeout(() => {
-                        content.style.transition = ''; // Restore animation from CSS
-                    }, 10);
-                });
-            }
-        }
-        function updateCollapsibleHeight(sectionElement) {
-            // Only resize if the section is actually open
-            if (!sectionElement || !sectionElement.classList.contains('is-open')) {
-                return;
-            }
-            const content = sectionElement.querySelector('.collapsible-content');
-            if (content) {
-                // Set the max-height to the new, correct height of its content
+                // Set the new max-height based on the content's new scroll height.
                 content.style.maxHeight = content.scrollHeight + 'px';
+                
+                // By using a minimal timeout, we allow the browser to apply the new height instantly (without animation).
+                // Afterwards, we restore the original transition property so that user interactions,
+                // like manually collapsing the section, remain animated.
+                setTimeout(() => {
+                    content.style.transition = originalTransition;
+                }, 15);
             }
         }
+        // --- END: CORRECTED FUNCTION ---
 
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
 
@@ -2403,8 +2382,9 @@
 
             // After rendering the images, find the parent section and resize it correctly.
             const parentSection = containerElement.closest('.collapsible-section');
-            if (parentSection) {
-                updateCollapsibleHeight(parentSection);
+            if (parentSection && parentSection.classList.contains('is-open')) {
+                const content = parentSection.querySelector('.collapsible-content');
+                if (content) content.style.maxHeight = content.scrollHeight + 'px';
             }
         }
 
@@ -2819,13 +2799,14 @@
                 dbRefs.trackerScratchpad.set(DOM.trackerScratchpadEl.value).catch(e => console.error("Error saving tracker scratchpad:", e));
             }, 750);
         };
-
-        // FIX: Removed debounce since save is now on blur.
+        
         const savePrimarySetupsNotes = () => {
+            if (!STATE.isMasterUser) return;
             saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
         };
         
         const saveSecondarySetupsNotes = () => {
+            if (!STATE.isMasterUser) return;
             saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
         };
 
@@ -3041,28 +3022,41 @@
                 });
             }
 
+            // --- START: UPDATED EVENT LISTENERS FOR SETUPS SECTION ---
             DOM.trackerTab.addEventListener('blur', (e) => {
                 if (e.target.matches('.setups-table .editable-setup-cell')) {
                     const table = e.target.closest('.setups-table');
-                    const row = e.target.closest('tr'); // Get the row that was edited
+                    const row = e.target.closest('tr');
                     
                     applyHighlightingToSetupsTable(table);
                     if (row) {
-                        calculateAndDisplayPercentages(row); // Recalculate percentages for the row
+                        calculateAndDisplayPercentages(row);
                     }
 
-                    if (table.id === 'primary-setups-table') saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
-                    else saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
+                    // Save the table data on blur. This triggers the re-render that is now fixed.
+                    if (table.id === 'primary-setups-table') {
+                        saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
+                    } else {
+                        saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
+                    }
                 }
             }, true);
 
             DOM.trackerScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
             
-            // FIX: Changed setups notes to save on blur instead of input to prevent scrolling while typing.
-            DOM.primarySetupsNotes.addEventListener('input', () => autoResizeTextarea(DOM.primarySetupsNotes));
-            DOM.primarySetupsNotes.addEventListener('blur', savePrimarySetupsNotes);
-            DOM.secondarySetupsNotes.addEventListener('input', () => autoResizeTextarea(DOM.secondarySetupsNotes));
-            DOM.secondarySetupsNotes.addEventListener('blur', saveSecondarySetupsNotes);
+            // UPDATED: This improved logic ensures the notes textarea resizes as you type without jumping,
+            // and saves the notes automatically when you stop typing (debounced).
+            DOM.primarySetupsNotes.addEventListener('input', () => {
+                autoResizeTextarea(DOM.primarySetupsNotes);
+                clearTimeout(STATE.setups1NotesTimer);
+                STATE.setups1NotesTimer = setTimeout(savePrimarySetupsNotes, 750);
+            });
+            DOM.secondarySetupsNotes.addEventListener('input', () => {
+                autoResizeTextarea(DOM.secondarySetupsNotes);
+                clearTimeout(STATE.setups2NotesTimer);
+                STATE.setups2NotesTimer = setTimeout(saveSecondarySetupsNotes, 750);
+            });
+            // --- END: UPDATED EVENT LISTENERS ---
 
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
