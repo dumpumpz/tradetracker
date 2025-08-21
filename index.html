@@ -1564,6 +1564,8 @@
                                 <div id="setups-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
                             </div>
                             <div id="setups-image-container"></div>
+                            <!-- ADDED THIS BUTTON -->
+                            <button id="toggle-old-setups-images" class="toggle-history-btn">Show All</button>
                         </div>
                     </div>
                 </div>
@@ -2083,10 +2085,7 @@
 
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
 
-        // FIX: 1. New helper function to get date strings in Perth time (UTC+8).
         const getPerthDateString = (date = new Date()) => {
-            // Use Intl.DateTimeFormat for robust, timezone-aware formatting.
-            // The 'en-CA' locale reliably formats dates as 'YYYY-MM-DD'.
             try {
                 const formatter = new Intl.DateTimeFormat('en-CA', {
                     timeZone: 'Australia/Perth',
@@ -2096,7 +2095,6 @@
                 });
                 return formatter.format(date);
             } catch (e) {
-                // Fallback for older browsers that might not support the timeZone option
                 console.error("Timezone formatting failed, using fallback.", e);
                 const perthTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
                 return perthTime.toISOString().split('T')[0];
@@ -2179,6 +2177,12 @@
             if (tradesBody && tradesButton) {
                 tradesButton.style.display = tradesBody.querySelector('.historical-entry') ? 'block' : 'none';
             }
+            // ADDED: Logic for setups images
+            const setupsContainer = document.getElementById('setups-image-container');
+            const setupsButton = document.getElementById('toggle-old-setups-images');
+             if (setupsContainer && setupsButton) {
+                setupsButton.style.display = setupsContainer.querySelector('.historical-entry') ? 'block' : 'none';
+            }
         }
 
         function toggleHistoricalRows(tbodyId, button) {
@@ -2189,8 +2193,25 @@
             const isCurrentlyHidden = historicalRows[0].style.display === 'none';
             const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
             historicalRows.forEach(row => { row.style.display = displayStyle; });
-            button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All'; // FIX: Changed text to be more intuitive
+            button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
             const content = button.closest('.collapsible-content');
+            if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
+                content.style.maxHeight = content.scrollHeight + 'px';
+            }
+        }
+        
+        // ADDED: New function to toggle historical images (divs instead of table rows)
+        function toggleHistoricalImages(containerId, button) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const historicalImages = container.querySelectorAll('.historical-entry');
+            if (historicalImages.length === 0) return;
+            const isCurrentlyHidden = historicalImages[0].style.display === 'none';
+            // Note: image wrappers use 'flex', not 'table-row'
+            const displayStyle = isCurrentlyHidden ? 'flex' : 'none';
+            historicalImages.forEach(img => { img.style.display = displayStyle; });
+            button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
+             const content = button.closest('.collapsible-content');
             if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
                 content.style.maxHeight = content.scrollHeight + 'px';
             }
@@ -2198,7 +2219,6 @@
 
 
         // --- RENDERING FUNCTIONS ---
-        // MODIFIED: This function now also styles the daily open prices
         function renderMarketOpens() {
             const data = STATE.marketOpens;
             if (!data?.opens) return;
@@ -2226,17 +2246,12 @@
                 
                 const lastUpdatedContainer = DOM.keyOpensLastUpdated.parentElement;
         
-                // This condition checks if the update is from today (since 00:00 UTC)
                 if (lastUpdatedDate.getTime() >= todayUTCStart.getTime()) {
-                    // Apply yellow color to "Last Updated" text
                     lastUpdatedContainer.classList.add('updated-today');
-                    // ADDED: Apply yellow color to the daily open prices
                     DOM.btcDailyOpen.classList.add('updated-today-value');
                     DOM.ethDailyOpen.classList.add('updated-today-value');
                 } else {
-                    // Remove yellow color if data is from a previous day
                     lastUpdatedContainer.classList.remove('updated-today');
-                    // ADDED: Remove yellow color from the daily open prices
                     DOM.btcDailyOpen.classList.remove('updated-today-value');
                     DOM.ethDailyOpen.classList.remove('updated-today-value');
                 }
@@ -2254,12 +2269,11 @@
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 
-        // FIX: 1. This function is updated to use Perth Time for filtering.
         function renderSentimentReceipts(receiptsData) {
             const tbody = DOM.sentimentReceiptsTbody;
             if (!tbody) return;
 
-            const perthTodayStr = getPerthDateString(); // Get today's date in Perth
+            const perthTodayStr = getPerthDateString();
             const currentViewerId = getViewerId();
             const receipts = receiptsData || {};
             const receiptIds = Object.keys(receipts).sort().reverse();
@@ -2280,8 +2294,8 @@
                 if (typeof receipt.timestamp === 'number') {
                     const receiptDate = new Date(receipt.timestamp);
                     displayTimestamp = receiptDate.toLocaleString();
-                    receiptPerthDateStr = getPerthDateString(receiptDate); // Convert timestamp to Perth date string
-                    isHistorical = (receiptPerthDateStr !== perthTodayStr); // Check if it's not today in Perth
+                    receiptPerthDateStr = getPerthDateString(receiptDate);
+                    isHistorical = (receiptPerthDateStr !== perthTodayStr);
                 } else {
                     displayTimestamp = receipt.timestamp || '--'; 
                     isHistorical = true;
@@ -2290,19 +2304,15 @@
                 return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${receiptPerthDateStr}"><td>${receipt.asset || '--'}</td><td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td><td class="sentiment-note-cell">${receipt.note || ''}</td>${renderAttachmentThumbnails(receipt, id, 'sentiment')}<td>${displayTimestamp}</td><td class="action-buttons">${ownerActionsHtml}</td></tr>`;
             }).join('');
             tbody.innerHTML = rowsHtml;
-
-            // First, make the button visible if needed
             updateToggleButtonsVisibility();
             
-            // Then, resize the container after the browser has had a chance to reflow the layout
             const contentWrapper = tbody.closest('.collapsible-content');
             if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
                 setTimeout(() => {
-                    // Re-check in case it was closed in the meantime
                     if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
                         contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
                     }
-                }, 0); // Use a timeout to wait for the DOM update
+                }, 0);
             }
         }
 
@@ -2328,10 +2338,9 @@
             }
         }
 
-        // FIX: 1. This function is updated to use Perth Time for filtering.
         function renderCompletedTable(data) {
             const trades = data || {};
-            const perthTodayStr = getPerthDateString(); // Get today's date in Perth
+            const perthTodayStr = getPerthDateString();
             
             const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button><button class="note-btn-completed" data-id="${id}">Edit</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>` : '';
             
@@ -2344,8 +2353,8 @@
                 let closedPerthDateStr = '', isHistorical;
                 if (trade.closed_date) {
                     const closedDate = new Date(trade.closed_date);
-                    closedPerthDateStr = getPerthDateString(closedDate); // Convert timestamp to Perth date string
-                    isHistorical = (closedPerthDateStr !== perthTodayStr); // Check if it's not today in Perth
+                    closedPerthDateStr = getPerthDateString(closedDate);
+                    isHistorical = (closedPerthDateStr !== perthTodayStr);
                 } else { 
                     isHistorical = true; 
                 }
@@ -2354,14 +2363,11 @@
             }).join('');
             DOM.completedTradesTbody.innerHTML = rowsHtml;
 
-            // First, make the button visible if needed
             updateToggleButtonsVisibility();
             
-            // Then, resize the container after a reflow
             const contentWrapper = DOM.completedTradesTbody.closest('.collapsible-content');
             if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
                  setTimeout(() => {
-                    // Re-check in case it was closed in the meantime
                     if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
                         contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
                     }
@@ -2369,22 +2375,44 @@
             }
         }
 
+        // MODIFIED: This function now handles the "show today" logic for the Setups library
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
             if (!containerElement) return;
+            const perthTodayStr = getPerthDateString();
+
             const masterButtonsHtml = (id, fileName) => (STATE.isMasterUser) ? `<button class="delete-library-image" title="Delete Image" data-id="${id}" data-filename="${fileName}" data-library-type="${libraryType}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button><button class="edit-caption-btn" title="Edit Caption" data-id="${id}" data-library-type="${libraryType}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M471.6 21.7c-21.9-21.9-57.3-21.9-79.2 0L362.3 51.7l97.9 97.9 30.1-30.1c21.9-21.9 21.9-57.3 0-79.2L471.6 21.7zm-299.2 220c-6.1 6.1-10.8 13.6-13.5 21.9l-29.6 88.8c-2.9 8.6-.6 18.1 5.8 24.6s15.9 8.7 24.6 5.8l88.8-29.6c8.2-2.7 15.7-7.4 21.9-13.5L437.7 172.3 339.7 74.3 172.4 241.7zM96 64C43 64 0 107 0 160V416c0 53 43 96 96 96H352c53 0 96-43 96-96V320c0-17.7-14.3-32-32-32s-32 14.3-32 32v96c0 17.7-14.3 32-32 32H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h96c17.7 0 32-14.3 32-32s-14.3-32-32-32H96z"/></svg></button>` : '';
+            
             const imagesHtml = Object.keys(images).sort((a, b) => images[b].timestamp - images[a].timestamp).map(id => {
                 const imgData = images[id]; if (!imgData?.url) return '';
                 const caption = imgData.caption || (imgData.timestamp ? new Date(imgData.timestamp).toLocaleString() : ' ');
-                return `<div class="library-image-wrapper">${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption" title="${caption}">${caption}</div></div>`;
+
+                let wrapperClasses = 'library-image-wrapper';
+                let wrapperStyle = '';
+
+                // Apply historical logic only to the setups image library
+                if (libraryType === 'setups_images' && imgData.timestamp) {
+                    const imagePerthDateStr = getPerthDateString(new Date(imgData.timestamp));
+                    const isHistorical = imagePerthDateStr !== perthTodayStr;
+                    if (isHistorical) {
+                        wrapperClasses += ' historical-entry';
+                        wrapperStyle = 'style="display: none;"';
+                    }
+                }
+                
+                return `<div class="${wrapperClasses}" ${wrapperStyle}>${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption" title="${caption}">${caption}</div></div>`;
             }).join('');
             containerElement.innerHTML = imagesHtml;
 
-            // After rendering the images, find the parent section and resize it correctly.
+            // Update button visibility for the setups library
+            if (libraryType === 'setups_images') {
+                updateToggleButtonsVisibility();
+            }
+
             const parentSection = containerElement.closest('.collapsible-section');
             if (parentSection && parentSection.classList.contains('is-open')) {
                 const content = parentSection.querySelector('.collapsible-content');
-                if (content) content.style.maxHeight = content.scrollHeight + 'px';
+                if(content) content.style.maxHeight = content.scrollHeight + 'px';
             }
         }
 
@@ -2534,13 +2562,11 @@
             container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
         }
 
-        // --- START: New function to calculate percentages for setups table ---
         function calculateAndDisplayPercentages(row) {
             if (!row) return;
             const cells = row.querySelectorAll('td');
             if (cells.length === 0) return;
 
-            // Define the indices for each setup type within the row
             const setups = [
                 { entry: 0, target: 1, targetPct: 2, stoploss: 3, stoplossPct: 4 },
                 { entry: 5, target: 6, targetPct: 7, stoploss: 8, stoplossPct: 9 },
@@ -2555,7 +2581,6 @@
                 const targetPctCell = cells[setup.targetPct];
                 const stoplossPctCell = cells[setup.stoplossPct];
 
-                // Calculate and display target percentage
                 if (!isNaN(entryVal) && !isNaN(targetVal) && entryVal !== 0) {
                     const percent = ((targetVal - entryVal) / entryVal) * 100;
                     targetPctCell.textContent = percent.toFixed(1) + '%';
@@ -2564,7 +2589,6 @@
                     targetPctCell.textContent = '';
                 }
 
-                // Calculate and display stoploss percentage
                 if (!isNaN(entryVal) && !isNaN(stoplossVal) && entryVal !== 0) {
                     const percent = ((stoplossVal - entryVal) / entryVal) * 100;
                     stoplossPctCell.textContent = percent.toFixed(1) + '%';
@@ -2574,7 +2598,6 @@
                 }
             });
         }
-        // --- END: New function ---
 
         function applyHighlightingToSetupsTable(tableElement) {
             if (!tableElement) return;
@@ -2603,14 +2626,10 @@
                 const timeframe = row.firstElementChild.textContent.trim();
                 const rowData = data[timeframe] || {};
                 const cells = row.querySelectorAll('td');
-                // 0-Candle
                 cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
-                // 4-Candle
                 cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
-                // Bounce
                 cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
                 
-                // Calculate percentages for the row
                 calculateAndDisplayPercentages(row);
             });
             const notesTextarea = document.getElementById(notesTextareaId);
@@ -2928,8 +2947,7 @@
 
         // --- EVENT LISTENERS ---
          function setupEventListeners() {
-            // Listen for input on the new level note boxes
-                      document.getElementById('key-opens-container').addEventListener('input', e => {
+            document.getElementById('key-opens-container').addEventListener('input', e => {
                 if(e.target.matches('.key-open-note')) {
                     autoResizeTextarea(e.target);
                     saveLevelNotes(e.target);
@@ -2983,6 +3001,8 @@
                     toggleHistoricalRows('sentiment-receipts-tbody', e.target);
                 } else if (e.target.id === 'toggle-old-trades') {
                     toggleHistoricalRows('completed-trades-tbody', e.target);
+                } else if (e.target.id === 'toggle-old-setups-images') { // ADDED
+                    toggleHistoricalImages('setups-image-container', e.target);
                 } else {
                     const header = e.target.closest('.collapsible-header');
                     if (header) {
@@ -3022,7 +3042,6 @@
                 });
             }
 
-            // --- START: UPDATED EVENT LISTENERS FOR SETUPS SECTION ---
             DOM.trackerTab.addEventListener('blur', (e) => {
                 if (e.target.matches('.setups-table .editable-setup-cell')) {
                     const table = e.target.closest('.setups-table');
@@ -3033,7 +3052,6 @@
                         calculateAndDisplayPercentages(row);
                     }
 
-                    // Save the table data on blur. This triggers the re-render that is now fixed.
                     if (table.id === 'primary-setups-table') {
                         saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
                     } else {
@@ -3044,8 +3062,6 @@
 
             DOM.trackerScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
             
-            // UPDATED: This improved logic ensures the notes textarea resizes as you type without jumping,
-            // and saves the notes automatically when you stop typing (debounced).
             DOM.primarySetupsNotes.addEventListener('input', () => {
                 autoResizeTextarea(DOM.primarySetupsNotes);
                 clearTimeout(STATE.setups1NotesTimer);
@@ -3056,7 +3072,6 @@
                 clearTimeout(STATE.setups2NotesTimer);
                 STATE.setups2NotesTimer = setTimeout(saveSecondarySetupsNotes, 750);
             });
-            // --- END: UPDATED EVENT LISTENERS ---
 
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
