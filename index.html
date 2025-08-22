@@ -1379,24 +1379,20 @@
                     <div class="collapsible-content-inner">
                         <div id="asset-sentiment-container">
                             <div class="sentiment-trackers-wrapper" style="margin-top: 0;">
-                                <div class="sentiment-tracker" id="sentiment-tracker-btc">
-                                   
-                                    <div class="master-only">
-                                        <div class="sentiment-buttons">
-                                            <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
-                                            <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
-                                            <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
-                                        </div>
+                                <div class="sentiment-tracker master-only" id="sentiment-tracker-btc">
+                                    <h4>BTC/USDT</h4>
+                                    <div class="sentiment-buttons">
+                                        <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
+                                        <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
+                                        <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
                                     </div>
                                 </div>
-                                <div class="sentiment-tracker" id="sentiment-tracker-eth">
-                                   
-                                    <div class="master-only">
-                                        <div class="sentiment-buttons">
-                                            <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
-                                            <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
-                                            <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
-                                        </div>
+                                <div class="sentiment-tracker master-only" id="sentiment-tracker-eth">
+                                    <h4>ETH/USDT</h4>
+                                    <div class="sentiment-buttons">
+                                        <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
+                                        <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
+                                        <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
                                     </div>
                                 </div>
                             </div>
@@ -3525,8 +3521,7 @@
                 if (password) {
                     STATE.isMasterUser = true; STATE.masterPassword = password;
                     document.querySelectorAll('.master-only').forEach(el => {
-                       // Corrected logic: No special cases needed now for most elements.
-                       if (el.classList.contains('collapsible-section') || el.id === 'favourite-btn') {
+                       if (el.classList.contains('collapsible-section') || el.id === 'favourite-btn' || el.classList.contains('sentiment-tracker')) {
                            el.style.display = 'block';
                        } else if (el.tagName === 'TH' || el.tagName === 'TD') {
                            el.style.display = 'table-cell';
