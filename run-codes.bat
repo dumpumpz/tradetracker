@@ -1,10 +1,10 @@
 @echo OFF
-TITLE TradeTracker Local Data Updater (DIAGNOSTIC MODE)
+TITLE TradeTracker Local Data Updater
 cd /D "%~dp0"
 cls
 
 echo ===========================================
-echo      TRADETACKER LOCAL DATA UPDATER
+echo      TRADETRACKER LOCAL DATA UPDATER
 echo ===========================================
 echo.
 
@@ -15,7 +15,6 @@ IF NOT EXIST "venv\Scripts\activate.bat" (
     python -m venv venv
     IF ERRORLEVEL 1 (
         echo [!!!] FATAL ERROR: Failed to create the virtual environment.
-        echo     Please ensure Python is installed and added to your PATH.
         goto:error_exit
     )
     echo [*] Installing required packages from requirements.txt...
@@ -58,26 +57,14 @@ echo.
 echo [4/4] Committing and pushing data to GitHub...
 echo.
 
-REM Add the JSON files AND force add the cache directory, overriding the .gitignore.
-git add -f ma_analysis.json sr_levels_analysis.json market_opens.json warmup_ohlc_data_fixed/
+REM Add ALL new and modified files in the project to the staging area.
+git add .
 IF ERRORLEVEL 1 (
     echo [!] WARNING: 'git add' command failed.
 )
 
 REM Commit the changes with a standard message
-REM The '|| exit /b 0' part will exit gracefully if there are no changes to commit
 git diff-index --quiet HEAD -- || git commit -m "Automated local data update"
-
-REM ======================== VITAL DIAGNOSTIC STEP ========================
-echo.
-echo [DEBUG] The commit has finished. Now checking the status right before the pull.
-echo [DEBUG] If any files are listed below as "modified", that is the source of the error.
-git status
-echo.
-echo [DEBUG] The script is paused. Please copy the text from the [DEBUG] lines above and paste it.
-echo Press any key to continue to see the error again...
-PAUSE >NUL
-REM ======================================================================
 
 echo [*] Pulling latest changes from the remote repository...
 git pull --rebase
