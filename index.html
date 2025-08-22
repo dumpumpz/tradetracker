@@ -527,7 +527,7 @@
             height:1em;
         }
 
-        /* Asset Sentiddddment Styles */
+        /* Asset Sentiment Styles */
         #asset-sentiment-container h4 {
             text-align: center;
             margin-top: 0;
@@ -636,6 +636,38 @@
             margin-bottom: 0; 
         }
 
+        /* <!-- ADDED --> Pagination Styles */
+        .pagination-controls {
+            text-align: center;
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+        .pagination-btn {
+            padding: 6px 12px;
+            font-size: 14px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--subtle-text);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .pagination-btn:hover:not(:disabled) {
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
+        .pagination-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        #sentiment-page-info {
+            font-size: 14px;
+            color: var(--subtle-text);
+        }
+        /* <!-- END ADDED --> */
 
         /* Image Library Styles */
         #image-library-container, #setups-image-container {
@@ -1408,7 +1440,12 @@
                                 <tbody id="sentiment-receipts-tbody"></tbody>
                             </table>
                         </div>
-                        <button id="toggle-old-sentiments" class="toggle-history-btn">Show All</button>
+                        <!-- MODIFIED: Replaced button with pagination controls -->
+                        <div id="sentiment-pagination-controls" class="pagination-controls" style="display: none;">
+                            <button id="sentiment-prev-page" class="pagination-btn">&lt; Prev</button>
+                            <span id="sentiment-page-info"></span>
+                            <button id="sentiment-next-page" class="pagination-btn">Next &gt;</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2013,6 +2050,10 @@
             },
             levelNotes: {},
             levelNotesSaveTimer: null,
+            // ADDED: State for sentiment pagination
+            allSentimentReceipts: {},
+            sentimentCurrentPage: 1,
+            sentimentItemsPerPage: 15,
         };
 
         // --- INITIALIZE FIREBASE ---
@@ -2161,11 +2202,7 @@
 
         // --- HISTORY TOGGLE LOGIC ---
         function updateToggleButtonsVisibility() {
-            const sentimentBody = document.getElementById('sentiment-receipts-tbody');
-            const sentimentButton = document.getElementById('toggle-old-sentiments');
-            if (sentimentBody && sentimentButton) {
-                sentimentButton.style.display = sentimentBody.querySelector('.historical-entry') ? 'block' : 'none';
-            }
+            // REMOVED: Sentiment button logic is now handled by pagination
             const tradesBody = document.getElementById('completed-trades-tbody');
             const tradesButton = document.getElementById('toggle-old-trades');
             if (tradesBody && tradesButton) {
@@ -2262,44 +2299,64 @@
             }).join('');
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
-
-        function renderSentimentReceipts(receiptsData) {
+        
+        // MODIFIED: This function now handles pagination.
+        function renderSentimentReceipts() {
             const tbody = DOM.sentimentReceiptsTbody;
             if (!tbody) return;
-
-            const perthTodayStr = getPerthDateString();
+        
+            const receipts = STATE.allSentimentReceipts || {};
+            const receiptIds = Object.keys(receipts).sort().reverse(); // Get all items, sorted
+        
+            // Pagination calculations
+            const totalItems = receiptIds.length;
+            const totalPages = Math.ceil(totalItems / STATE.sentimentItemsPerPage);
+            
+            // Ensure currentPage is valid (e.g., if data changes and current page becomes out of bounds)
+            if (STATE.sentimentCurrentPage > totalPages && totalPages > 0) STATE.sentimentCurrentPage = totalPages;
+            if (STATE.sentimentCurrentPage < 1) STATE.sentimentCurrentPage = 1;
+        
+            const startIndex = (STATE.sentimentCurrentPage - 1) * STATE.sentimentItemsPerPage;
+            const endIndex = startIndex + STATE.sentimentItemsPerPage;
+            const pageReceiptIds = receiptIds.slice(startIndex, endIndex);
+        
             const currentViewerId = getViewerId();
-            const receipts = receiptsData || {};
-            const receiptIds = Object.keys(receipts).sort().reverse();
-
-            const rowsHtml = receiptIds.map(id => {
+        
+            // Render table rows ONLY for the current page
+            const rowsHtml = pageReceiptIds.map(id => {
                 const receipt = receipts[id];
                 if (!receipt) return '';
                 
                 let sentimentColor = 'var(--text-color)';
                 if (receipt.sentiment === 'long') sentimentColor = 'var(--green-text)';
                 if (receipt.sentiment === 'short') sentimentColor = 'var(--red-text)';
-
+        
                 const ownerActionsHtml = (receipt.viewerId === currentViewerId && STATE.isMasterUser) ? `<button class="attach-image-btn" data-id="${id}" data-type="sentiment" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="edit-sentiment-note-btn" data-id="${id}">Note</button><button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">×</button>` : '';
-
-                let displayTimestamp, isHistorical;
-                let receiptPerthDateStr = '';
-
+        
+                let displayTimestamp;
                 if (typeof receipt.timestamp === 'number') {
-                    const receiptDate = new Date(receipt.timestamp);
-                    displayTimestamp = receiptDate.toLocaleString();
-                    receiptPerthDateStr = getPerthDateString(receiptDate);
-                    isHistorical = (receiptPerthDateStr !== perthTodayStr);
+                    displayTimestamp = new Date(receipt.timestamp).toLocaleString();
                 } else {
                     displayTimestamp = receipt.timestamp || '--'; 
-                    isHistorical = true;
                 }
-
-                return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${receiptPerthDateStr}"><td>${receipt.asset || '--'}</td><td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td><td class="sentiment-note-cell">${receipt.note || ''}</td>${renderAttachmentThumbnails(receipt, id, 'sentiment')}<td>${displayTimestamp}</td><td class="action-buttons">${ownerActionsHtml}</td></tr>`;
+        
+                // NOTE: The historical-entry class is no longer needed here for display logic.
+                return `<tr><td>${receipt.asset || '--'}</td><td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td><td class="sentiment-note-cell">${receipt.note || ''}</td>${renderAttachmentThumbnails(receipt, id, 'sentiment')}<td>${displayTimestamp}</td><td class="action-buttons">${ownerActionsHtml}</td></tr>`;
             }).join('');
             tbody.innerHTML = rowsHtml;
-            updateToggleButtonsVisibility();
+        
+            // Render and update pagination controls
+            const paginationControls = document.getElementById('sentiment-pagination-controls');
+            if (totalPages > 1) {
+                paginationControls.style.display = 'flex';
+                document.getElementById('sentiment-page-info').textContent = `Page ${STATE.sentimentCurrentPage} of ${totalPages}`;
+                document.getElementById('sentiment-prev-page').disabled = (STATE.sentimentCurrentPage === 1);
+                document.getElementById('sentiment-next-page').disabled = (STATE.sentimentCurrentPage === totalPages);
+            } else {
+                paginationControls.style.display = 'none';
+            }
             
+            // Auto-resize parent collapsible section if it's open
             const contentWrapper = tbody.closest('.collapsible-content');
             if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
                 setTimeout(() => {
@@ -2309,6 +2366,7 @@
                 }, 0);
             }
         }
+
 
         function renderLiveTable(data) {
             const trades = data || {};
@@ -3011,8 +3069,18 @@
                     handleTradeAction(e);
                 } else if (e.target.closest('#sentiment-receipts-tbody')) {
                     handleSentimentAction(e);
-                } else if (e.target.id === 'toggle-old-sentiments') {
-                    toggleHistoricalRows('sentiment-receipts-tbody', e.target);
+                // MODIFIED: Handle new pagination buttons
+                } else if (e.target.id === 'sentiment-prev-page') {
+                    if (STATE.sentimentCurrentPage > 1) {
+                        STATE.sentimentCurrentPage--;
+                        renderSentimentReceipts();
+                    }
+                } else if (e.target.id === 'sentiment-next-page') {
+                    const totalPages = Math.ceil(Object.keys(STATE.allSentimentReceipts).length / STATE.sentimentItemsPerPage);
+                    if (STATE.sentimentCurrentPage < totalPages) {
+                        STATE.sentimentCurrentPage++;
+                        renderSentimentReceipts();
+                    }
                 } else if (e.target.id === 'toggle-old-trades') {
                     toggleHistoricalRows('completed-trades-tbody', e.target);
                 } else if (e.target.id === 'toggle-old-setups-images') { // ADDED
@@ -3499,7 +3567,11 @@
             dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(DOM.setupsTable2, STATE.setupsData2, 'secondary-setups-notes'); });
             dbRefs.persistentNotes.on('value', (s) => { STATE.persistentNotes = s.val() || ''; if (DOM.journalTab.classList.contains('active')) { DOM.persistentNotesEl.value = STATE.persistentNotes; autoResizeTextarea(DOM.persistentNotesEl); } });
             dbRefs.trackerScratchpad.on('value', (s) => { STATE.trackerScratchpadText = s.val() || ''; if (DOM.trackerTab.classList.contains('active')) { DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; autoResizeTextarea(DOM.trackerScratchpadEl); } });
-            dbRefs.sentimentReceipts.on('value', (s) => renderSentimentReceipts(s.val()));
+            // MODIFIED: Update state and render first page on new data
+            dbRefs.sentimentReceipts.on('value', (s) => {
+                STATE.allSentimentReceipts = s.val() || {};
+                renderSentimentReceipts();
+            });
             dbRefs.levelNotes.on('value', (s) => renderLevelNotes(s.val()));
         }
 
