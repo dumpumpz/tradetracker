@@ -1,10 +1,10 @@
 @echo OFF
-TITLE TradeTracker Local Data Updater
+TITLE TradeTracker Local Data Updater (DIAGNOSTIC MODE)
 cd /D "%~dp0"
 cls
 
 echo ===========================================
-echo      TRADETRACKER LOCAL DATA UPDATER
+echo      TRADETACKER LOCAL DATA UPDATER
 echo ===========================================
 echo.
 
@@ -58,20 +58,31 @@ echo.
 echo [4/4] Committing and pushing data to GitHub...
 echo.
 
-REM Add all generated .json files to the staging area
-git add *.json
+REM Add the JSON files AND force add the cache directory, overriding the .gitignore.
+git add -f ma_analysis.json sr_levels_analysis.json market_opens.json warmup_ohlc_data_fixed/
 IF ERRORLEVEL 1 (
-    echo [!] WARNING: 'git add' command failed. This may be okay if no files changed.
+    echo [!] WARNING: 'git add' command failed.
 )
 
 REM Commit the changes with a standard message
 REM The '|| exit /b 0' part will exit gracefully if there are no changes to commit
 git diff-index --quiet HEAD -- || git commit -m "Automated local data update"
 
+REM ======================== VITAL DIAGNOSTIC STEP ========================
+echo.
+echo [DEBUG] The commit has finished. Now checking the status right before the pull.
+echo [DEBUG] If any files are listed below as "modified", that is the source of the error.
+git status
+echo.
+echo [DEBUG] The script is paused. Please copy the text from the [DEBUG] lines above and paste it.
+echo Press any key to continue to see the error again...
+PAUSE >NUL
+REM ======================================================================
+
 echo [*] Pulling latest changes from the remote repository...
-git pull
+git pull --rebase
 IF ERRORLEVEL 1 (
-    echo [!!!] FATAL ERROR: 'git pull' failed. A manual merge might be needed.
+    echo [!!!] FATAL ERROR: 'git pull --rebase' failed. A manual merge might be needed.
     goto:error_exit
 )
 
