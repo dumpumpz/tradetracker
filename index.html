@@ -1381,18 +1381,22 @@
                             <div class="sentiment-trackers-wrapper" style="margin-top: 0;">
                                 <div class="sentiment-tracker" id="sentiment-tracker-btc">
                                     <h4>BTC/USDT</h4>
-                                    <div class="sentiment-buttons master-only">
-                                        <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
-                                        <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
-                                        <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
+                                    <div class="master-only">
+                                        <div class="sentiment-buttons">
+                                            <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
+                                            <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
+                                            <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="sentiment-tracker" id="sentiment-tracker-eth">
                                     <h4>ETH/USDT</h4>
-                                    <div class="sentiment-buttons master-only">
-                                        <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
-                                        <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
-                                        <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
+                                    <div class="master-only">
+                                        <div class="sentiment-buttons">
+                                            <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
+                                            <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
+                                            <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1880,7 +1884,7 @@
             },
             EMA_ANALYSIS: {
                 SYMBOLS: ['BTC-USDT', 'ETH-USDT'],
-                TIMEFRAMES: ['15min', '30min', '1hour', '2hour', '4hour', 'daily'],
+                TIMEFRAMES: ['1hour', '2hour', '4hour', 'daily'], // REMOVED 15min and 30min
                 PERIODS: [13, 49, 100, 200, 500, 1000],
                 SHORT_NAMES: {'15min': '15m', '30min': '30m', '1hour': '1H', '2hour': '2H', '4hour': '4H', 'daily': '1D', 'weekly': '1W', 'monthly': '1M'}
             }
@@ -2513,13 +2517,17 @@
         function renderEmaSnapshot(safeSymbol) {
             const container = DOM.emaSnapshotContainer;
             if (!container || !STATE.emaData.data) return;
+            // Note: The main TIMEFRAMES array is now filtered in CONFIG.
             const { TIMEFRAMES, PERIODS, SHORT_NAMES } = CONFIG.EMA_ANALYSIS;
             const symbolEmaData = STATE.emaData.data[safeSymbol] || {};
+            // Still get current price from 15min data, even though we don't display it in tables.
             const currentPrice = symbolEmaData['15min']?.price || 0;
             const lastUpdatedHtml = STATE.emaData.last_updated ? `<p class="ema-last-updated">Last Updated: <span>${new Date(STATE.emaData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span></p>` : '';
             const priceDisplayHtml = `<div class="ema-table-container"><div class="current-price-display" style="font-size: 14px; margin-bottom: 15px;">Current Price (15m): <span class="price-value">${currentPrice > 0 ? formatCurrency(currentPrice) : '--'}</span></div></div>`;
+            
             let summaryTableHtml = '';
             if (currentPrice > 0) {
+                 // MODIFIED: Added 1hour to this array
                 const htfForSummary = ['daily', '4hour', '2hour', '1hour'];
                 const levelsHtf = [];
                 htfForSummary.forEach(tf => {
@@ -2542,22 +2550,26 @@
                 const resistancesHtfAll = levelsHtf.filter(l => !l.isSupport).sort((a, b) => a.value - b.value);
                 
                 let tableRowsHtml = '';
+                // Render Support levels
                 supportsHtfAll.forEach(supHtf => {
                     tableRowsHtml += `<tr><td style="color: var(--text-color);">${supHtf.label}</td><td style="color: var(--green-text);">${Math.round(supHtf.value).toLocaleString()}</td></tr>`;
                 });
 
+                // Add a separator if both S and R exist
                 if (supportsHtfAll.length > 0 && resistancesHtfAll.length > 0) {
                      tableRowsHtml += '<tr class="separator-row"><td colspan="2"></td></tr>';
                 }
 
+                // Render Resistance levels
                 resistancesHtfAll.forEach(resHtf => {
                     tableRowsHtml += `<tr><td style="color: var(--text-color);">${resHtf.label}</td><td style="color: var(--red-text);">${Math.round(resHtf.value).toLocaleString()}</td></tr>`;
                 });
 
+                // MODIFIED: Updated the table header and structure
                 summaryTableHtml = `<div class="ema-summary-container"><div class="table-wrapper"><table class="ema-table" style="font-size: 11px; margin-top:0;"><thead><tr><th colspan="2">Major S/R (D, 4H, 2H, 1H)</th></tr><tr><th>Level</th><th>Value</th></tr></thead><tbody>${tableRowsHtml}</tbody></table></div></div>`;
             }
             
-            const tableRowsHtml = TIMEFRAMES.filter(tf => !['15min', '30min'].includes(tf)).map(tf => {
+            const tableRowsHtml = TIMEFRAMES.map(tf => {
                 const tfData = symbolEmaData[tf];
                 const cellsHtml = PERIODS.flatMap(period => ['EMA', 'SMA'].map(type => { const value = tfData?.[`${type}_${period}`]; return (value !== undefined) ? `<td class="${currentPrice > 0 ? (value > currentPrice ? 'price-above' : 'price-below') : ''}">${Math.round(value).toLocaleString()}</td>` : '<td>...</td>'; })).join('');
                 return `<tr><td>${SHORT_NAMES[tf] || tf}</td>${cellsHtml}</tr>`;
@@ -2566,6 +2578,7 @@
             const tableHtml = `<div class="table-wrapper"><table class="ema-table"><thead><tr><th>TF</th>${PERIODS.flatMap(p => [`<th>EMA ${p}</th>`, `<th>SMA ${p}</th>`]).join('')}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div>`;
             container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
         }
+
 
         function calculateAndDisplayPercentages(row) {
             if (!row) return;
@@ -3505,16 +3518,15 @@
             }
         }
 
-              function checkMasterMode() {
+        function checkMasterMode() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('master') === 'true') {
                 const password = prompt("Please enter master password:");
                 if (password) {
                     STATE.isMasterUser = true; STATE.masterPassword = password;
                     document.querySelectorAll('.master-only').forEach(el => {
-                       if (el.classList.contains('sentiment-buttons')) {
-                           el.style.display = 'flex';
-                       } else if (el.classList.contains('collapsible-section') || el.id === 'favourite-btn') {
+                       // Corrected logic: No special cases needed now for most elements.
+                       if (el.classList.contains('collapsible-section') || el.id === 'favourite-btn') {
                            el.style.display = 'block';
                        } else if (el.tagName === 'TH' || el.tagName === 'TD') {
                            el.style.display = 'table-cell';
