@@ -1209,6 +1209,94 @@
          }
         /* --- END: New S/R Key styles --- */
 
+        /* --- START: Styles for new Notes Tab --- */
+        #notes-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+        .note-item {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--container-bg);
+            overflow: hidden;
+        }
+        .note-item-header {
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+        .note-item-header:hover {
+            background-color: var(--header-bg);
+        }
+        .note-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        .note-title {
+            font-weight: 500;
+            color: var(--text-color);
+            word-break: break-word;
+            margin: 0;
+        }
+        .note-delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: transparent;
+            border: 1px solid transparent;
+            color: var(--subtle-text);
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 22px;
+            padding: 0;
+            transition: all 0.2s ease;
+            opacity: 0.5;
+        }
+        .note-item:hover .note-delete-btn {
+            opacity: 1;
+        }
+        .note-delete-btn:hover {
+            background-color: var(--red-bg);
+            color: var(--red-text);
+            border-color: var(--red-border);
+        }
+        .note-content {
+            padding: 0;
+            border-top: 1px solid var(--border-color);
+            display: none; /* Hidden by default */
+        }
+        .note-item.open .note-content {
+            display: block; /* Shown when item is open */
+        }
+        .note-textarea {
+            width: 100%;
+            min-height: 200px;
+            border: none;
+            padding: 15px;
+            resize: vertical;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .note-textarea:focus {
+            outline: none;
+        }
+        /* --- END: Styles for new Notes Tab --- */
+
+
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -1346,6 +1434,7 @@
             <button class="tab-link" data-tab="journal">Journal & Setups</button>
             <button class="tab-link" data-tab="sr-levels">S/R Levels</button>
             <button class="tab-link" data-tab="charts">Charts</button>
+            <button class="tab-link" data-tab="notes">Notes</button>
         </div>
 
         <div id="tracker-tab" class="tab-content active">
@@ -1865,6 +1954,25 @@
             </div>
         </div>
 
+        <div id="notes-tab" class="tab-content">
+            <div class="collapsible-section">
+                 <div class="collapsible-header">
+                    <h2>My Notes</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="notes-controls" class="master-only" style="text-align: right; margin-bottom: 20px;">
+                            <button id="create-new-note-btn">Create New Note</button>
+                        </div>
+                        <div id="notes-container">
+                            <!-- Notes will be rendered here by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- IMAGE MODAL -->
@@ -1913,7 +2021,8 @@
                 PERSISTENT_NOTES: 'persistent_notes',
                 TRACKER_SCRATCHPAD: 'tracker_scratchpad',
                 SENTIMENT_RECEIPTS: 'sentiment_receipts',
-                LEVEL_NOTES: 'level_notes'
+                LEVEL_NOTES: 'level_notes',
+                GENERAL_NOTES: 'general_notes' // <-- ADDED
             },
             TRADE_SETTINGS: {
                 FEE_RATE: 0.00075,
@@ -1982,6 +2091,9 @@
             modalNextBtn: document.getElementById('modal-next'),
             journalTab: document.getElementById('journal-tab'),
             chartsTab: document.getElementById('charts-tab'),
+            notesTab: document.getElementById('notes-tab'), // <-- ADDED
+            createNewNoteBtn: document.getElementById('create-new-note-btn'), // <-- ADDED
+            notesContainer: document.getElementById('notes-container'), // <-- ADDED
             persistentNotesEl: document.getElementById('persistent-notes-entry'),
             setupsTable1: document.getElementById('primary-setups-table'),
             setupsTable2: document.getElementById('secondary-setups-table'),
@@ -2037,6 +2149,7 @@
             trackerScratchpadText: '',
             setupsData1: {},
             setupsData2: {},
+            generalNotes: {}, // <-- ADDED
             selectedDate: null,
             centerDate: null,
             journalSaveTimer: null,
@@ -2081,7 +2194,8 @@
             persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES),
             trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD),
             sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS),
-             levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES)
+            levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES),
+            generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES) // <-- ADDED
         };
 
         // --- HELPER FUNCTIONS ---
@@ -2251,6 +2365,37 @@
 
 
         // --- RENDERING FUNCTIONS ---
+        function renderNotes(notesData) {
+            const container = DOM.notesContainer;
+            if (!container) return;
+
+            const notesHtml = Object.keys(notesData).sort((a, b) => (notesData[b].timestamp || 0) - (notesData[a].timestamp || 0)).map(id => {
+                const note = notesData[id];
+                const masterDeleteBtn = STATE.isMasterUser ? `<button class="note-delete-btn" data-note-id="${id}" title="Delete Note">&times;</button>` : '';
+                return `
+                    <div class="note-item" id="note-item-${id}">
+                        <div class="note-item-header" data-note-id="${id}">
+                            ${masterDeleteBtn}
+                            <div class="note-icon">📝</div>
+                            <h4 class="note-title">${note.title || 'Untitled Note'}</h4>
+                        </div>
+                        <div class="note-content">
+                            <textarea class="note-textarea" data-note-id="${id}" placeholder="Start typing your note...">${note.content || ''}</textarea>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = notesHtml;
+            
+            // Re-open any previously opened notes
+            container.querySelectorAll('.note-item.was-open').forEach(item => {
+                item.classList.remove('was-open');
+                item.classList.add('open');
+                item.querySelector('.note-content').style.display = 'block';
+            });
+        }
+
         function renderMarketOpens() {
             const data = STATE.marketOpens;
             if (!data?.opens) return;
@@ -3142,6 +3287,90 @@
                 });
             }
 
+            if (DOM.notesTab) {
+                DOM.notesTab.addEventListener('click', e => {
+                    const header = e.target.closest('.collapsible-header');
+                    if (header) {
+                        const section = header.parentElement;
+                        const content = section.querySelector('.collapsible-content');
+                        const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+                        section.classList.toggle('is-open');
+                        toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
+                        toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                        if (section.classList.contains('is-open')) {
+                            content.style.maxHeight = content.scrollHeight + 'px';
+                            setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
+                        } else { content.style.maxHeight = '0px'; }
+                    }
+                });
+            }
+
+            if (DOM.createNewNoteBtn) {
+                DOM.createNewNoteBtn.addEventListener('click', () => {
+                    if (!STATE.isMasterUser) return;
+                    const title = prompt("Enter a title for the new note:");
+                    if (title && title.trim()) {
+                        dbRefs.generalNotes.push({
+                            title: title.trim(),
+                            content: '',
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        });
+                    }
+                });
+            }
+
+            if (DOM.notesContainer) {
+                DOM.notesContainer.addEventListener('click', (e) => {
+                    const header = e.target.closest('.note-item-header');
+                    const deleteBtn = e.target.closest('.note-delete-btn');
+
+                    if (deleteBtn && STATE.isMasterUser) {
+                        e.stopPropagation();
+                        const noteId = deleteBtn.dataset.noteId;
+                        if (confirm(`Are you sure you want to delete this note?`)) {
+                            dbRefs.generalNotes.child(noteId).remove();
+                        }
+                        return;
+                    }
+
+                    if (header) {
+                        const noteId = header.dataset.noteId;
+                        const noteItem = document.getElementById(`note-item-${noteId}`);
+                        const content = noteItem.querySelector('.note-content');
+                        
+                        const isOpen = noteItem.classList.toggle('open');
+                        content.style.display = isOpen ? 'block' : 'none';
+                        
+                        const parentContent = noteItem.closest('.collapsible-content');
+                        if (parentContent && parentContent.style.maxHeight && parentContent.style.maxHeight !== '0px') {
+                            setTimeout(() => {
+                                if (parentContent.style.maxHeight && parentContent.style.maxHeight !== '0px') {
+                                     parentContent.style.maxHeight = parentContent.scrollHeight + 'px';
+                                }
+                            }, 5);
+                        }
+                    }
+                });
+                
+                let noteSaveTimer = null;
+                DOM.notesContainer.addEventListener('input', (e) => {
+                    if (e.target.matches('.note-textarea') && STATE.isMasterUser) {
+                        const textarea = e.target;
+                        const noteId = textarea.dataset.noteId;
+                        
+                        const noteItem = textarea.closest('.note-item');
+                        if(noteItem.classList.contains('open')) {
+                            noteItem.classList.add('was-open');
+                        }
+
+                        clearTimeout(noteSaveTimer);
+                        noteSaveTimer = setTimeout(() => {
+                            dbRefs.generalNotes.child(noteId).update({ content: textarea.value });
+                        }, 750);
+                    }
+                });
+            }
+
             DOM.trackerTab.addEventListener('blur', (e) => {
                 if (e.target.matches('.setups-table .editable-setup-cell')) {
                     const table = e.target.closest('.setups-table');
@@ -3591,6 +3820,10 @@
                 renderSentimentReceipts();
             });
             dbRefs.levelNotes.on('value', (s) => renderLevelNotes(s.val()));
+            dbRefs.generalNotes.on('value', (s) => { 
+                STATE.generalNotes = s.val() || {}; 
+                renderNotes(STATE.generalNotes); 
+            });
         }
 
         // --- INITIALIZATION ---
@@ -3653,7 +3886,7 @@
             STATE.selectedDate = new Date(today); STATE.centerDate = new Date(today);
             setupEventListeners(); subscribeToData();
             renderDateNavigation(); renderChartLibrary2Folders(); renderChartLibrary2Preview();
-            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes'];
+            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes'];
             document.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 if (sectionsToOpen.includes(h2.textContent.trim())) {
                     const section = h2.closest('.collapsible-section');
