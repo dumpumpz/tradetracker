@@ -2394,6 +2394,19 @@
                 item.classList.add('open');
                 item.querySelector('.note-content').style.display = 'block';
             });
+
+            // --- FIX START ---
+            // After re-rendering, we need to update the parent collapsible container's height
+            const parentContent = container.closest('.collapsible-content');
+            if (parentContent && parentContent.style.maxHeight && parentContent.style.maxHeight !== '0px') {
+                // Use a tiny timeout to ensure the browser has calculated the new layout
+                setTimeout(() => {
+                    if (parentContent.style.maxHeight && parentContent.style.maxHeight !== '0px') {
+                         parentContent.style.maxHeight = parentContent.scrollHeight + 'px';
+                    }
+                }, 10);
+            }
+            // --- FIX END ---
         }
 
         function renderMarketOpens() {
