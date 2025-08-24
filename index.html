@@ -98,7 +98,7 @@
             overflow-y: hidden; 
             min-height: 120px; 
         }
-        #tracker-scratchpad { margin: 0; }
+        #tracker-scratchpad, #persistent-notes-entry { margin: 0; }
         .setups-notes-area {
             margin-top: 15px;
             min-height: 80px;
@@ -1732,9 +1732,17 @@
 
         <div id="journal-tab" class="tab-content">
 
-
-            <div style="margin-bottom: 25px;">
-                <textarea id="persistent-notes-entry" placeholder="Persistent scratchpad..."></textarea>
+            <!-- Persistent Notes Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Persistent Notes</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                         <textarea id="persistent-notes-entry" placeholder="Persistent scratchpad..."></textarea>
+                    </div>
+                </div>
             </div>
 
             <div class="controls-container" id="journal-controls">
@@ -2205,25 +2213,24 @@
             return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`;
         };
 
-        // START: MODIFIED FUNCTION
         function autoResizeTextarea(element) {
             if (!element) return;
             element.style.height = 'auto';
             element.style.height = `${element.scrollHeight}px`;
             
             const section = element.closest('.collapsible-section');
-            const content = element.closest('.collapsible-content');
-            // Check if the section is supposed to be open, not just if the style is already set.
-            if (section && section.classList.contains('is-open') && content) {
-                const originalTransition = content.style.transition;
-                content.style.transition = 'none'; // Prevent animation jump
-                content.style.maxHeight = content.scrollHeight + 'px';
-                setTimeout(() => {
-                    content.style.transition = originalTransition;
-                }, 15);
+            if (section && section.classList.contains('is-open')) {
+                const content = section.querySelector('.collapsible-content');
+                if (content) {
+                    const originalTransition = content.style.transition;
+                    content.style.transition = 'none';
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    setTimeout(() => {
+                        content.style.transition = originalTransition;
+                    }, 15);
+                }
             }
         }
-        // END: MODIFIED FUNCTION
 
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
 
@@ -2330,7 +2337,7 @@
             const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
             historicalRows.forEach(row => { row.style.display = displayStyle; });
             button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
-            autoResizeTextarea(button); // Use the smart resizer
+            autoResizeTextarea(button);
         }
         
         function toggleHistoricalImages(containerId, button) {
@@ -2342,7 +2349,7 @@
             const displayStyle = isCurrentlyHidden ? 'flex' : 'none';
             historicalImages.forEach(img => { img.style.display = displayStyle; });
             button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
-            autoResizeTextarea(button); // Use the smart resizer
+            autoResizeTextarea(button);
         }
 
 
@@ -3748,7 +3755,11 @@
             dbRefs.favourites.on('value', (s) => { STATE.favouriteEntries = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
             dbRefs.setups1.on('value', (s) => { STATE.setupsData1 = s.val() || {}; renderSetupsTable(DOM.setupsTable1, STATE.setupsData1, 'primary-setups-notes'); });
             dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(DOM.setupsTable2, STATE.setupsData2, 'secondary-setups-notes'); });
-            dbRefs.persistentNotes.on('value', (s) => { STATE.persistentNotes = s.val() || ''; if (DOM.journalTab.classList.contains('active')) { DOM.persistentNotesEl.value = STATE.persistentNotes; autoResizeTextarea(DOM.persistentNotesEl); } });
+            dbRefs.persistentNotes.on('value', (s) => { 
+                STATE.persistentNotes = s.val() || ''; 
+                DOM.persistentNotesEl.value = STATE.persistentNotes; 
+                autoResizeTextarea(DOM.persistentNotesEl);
+            });
             dbRefs.trackerScratchpad.on('value', (s) => { 
                 STATE.trackerScratchpadText = s.val() || ''; 
                 DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; 
@@ -3782,7 +3793,7 @@
 
         function openDefaultSectionsInContainer(containerElement) {
             if (!containerElement) return;
-            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc'];
+            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'Persistent Notes'];
             
             containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 const title = h2.textContent.trim();
