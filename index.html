@@ -1731,7 +1731,7 @@
         </div>
 
         <div id="journal-tab" class="tab-content">
-
+            
             <!-- Persistent Notes Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -2213,18 +2213,25 @@
             return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`;
         };
 
-        function autoResizeTextarea(element) {
-            if (!element) return;
-            element.style.height = 'auto';
-            element.style.height = `${element.scrollHeight}px`;
+        function adjustCollapsibleSize(elementInside) {
+            if (!elementInside) return;
+
+            // If the element is a textarea, resize it first
+            if (elementInside.tagName === 'TEXTAREA') {
+                elementInside.style.height = 'auto';
+                elementInside.style.height = `${elementInside.scrollHeight}px`;
+            }
             
-            const section = element.closest('.collapsible-section');
+            // Then, resize its parent collapsible container if it's open
+            const section = elementInside.closest('.collapsible-section');
             if (section && section.classList.contains('is-open')) {
                 const content = section.querySelector('.collapsible-content');
                 if (content) {
+                    // Temporarily disable transition to avoid animation jump on resize
                     const originalTransition = content.style.transition;
                     content.style.transition = 'none';
                     content.style.maxHeight = content.scrollHeight + 'px';
+                    // Restore transition after a brief moment
                     setTimeout(() => {
                         content.style.transition = originalTransition;
                     }, 15);
@@ -2337,7 +2344,7 @@
             const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
             historicalRows.forEach(row => { row.style.display = displayStyle; });
             button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
-            autoResizeTextarea(button);
+            adjustCollapsibleSize(button);
         }
         
         function toggleHistoricalImages(containerId, button) {
@@ -2349,7 +2356,7 @@
             const displayStyle = isCurrentlyHidden ? 'flex' : 'none';
             historicalImages.forEach(img => { img.style.display = displayStyle; });
             button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
-            autoResizeTextarea(button);
+            adjustCollapsibleSize(button);
         }
 
 
@@ -2378,7 +2385,7 @@
             }).join('');
 
             container.innerHTML = notesHtml;
-            autoResizeTextarea(container);
+            adjustCollapsibleSize(container);
         }
 
         function renderMarketOpens() {
@@ -2495,7 +2502,7 @@
             }
         
             tbody.innerHTML = rowsHtml;
-            autoResizeTextarea(tbody);
+            adjustCollapsibleSize(tbody);
         }
 
         function renderLiveTable(data) {
@@ -2513,7 +2520,7 @@
                 return `<tr><td>${trade.symbol}</td><td>${trade.type}</td>${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}<td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td><td style="color: #28a745;">${profitString}</td><td style="color: #dc3545;">${lossString}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'live')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.tradesTbody.innerHTML = rowsHtml;
-            autoResizeTextarea(DOM.tradesTbody);
+            adjustCollapsibleSize(DOM.tradesTbody);
         }
 
         function renderCompletedTable(data) {
@@ -2542,7 +2549,7 @@
             DOM.completedTradesTbody.innerHTML = rowsHtml;
 
             updateToggleButtonsVisibility();
-            autoResizeTextarea(DOM.completedTradesTbody);
+            adjustCollapsibleSize(DOM.completedTradesTbody);
         }
 
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
@@ -2576,7 +2583,7 @@
                 updateToggleButtonsVisibility();
             }
 
-            autoResizeTextarea(containerElement);
+            adjustCollapsibleSize(containerElement);
         }
 
         function renderChartLibrary2Folders() {
@@ -2658,7 +2665,7 @@
             const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
             DOM.journalEntryEl.value = dailyText;
             DOM.persistentNotesEl.value = STATE.persistentNotes;
-            setTimeout(() => { autoResizeTextarea(DOM.journalEntryEl); autoResizeTextarea(DOM.persistentNotesEl); }, 0);
+            setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); adjustCollapsibleSize(DOM.persistentNotesEl); }, 0);
             DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
             renderJournalImages(safeSymbol, timeframe, yyyymmdd);
             renderDateNavigation();
@@ -2811,10 +2818,10 @@
             const notesTextarea = document.getElementById(notesTextareaId);
             if (notesTextarea) { 
                 notesTextarea.value = data.global_notes || ''; 
-                autoResizeTextarea(notesTextarea);
+                adjustCollapsibleSize(notesTextarea);
             }
             applyHighlightingToSetupsTable(tableElement);
-            autoResizeTextarea(tableElement);
+            adjustCollapsibleSize(tableElement);
         }
         
         function renderSrSummaryTable(symbol) {
@@ -2922,7 +2929,7 @@
                             const textareaEl = document.getElementById(`${symbolPrefix}-${timeframe}-note`);
                             if (textareaEl) {
                                 textareaEl.value = note;
-                                autoResizeTextarea(textareaEl);
+                                adjustCollapsibleSize(textareaEl);
                             }
                         }
                     }
@@ -3135,7 +3142,7 @@
             DOM.noteEditModal.style.display = 'flex';
             
             setTimeout(() => { 
-                autoResizeTextarea(DOM.noteModalContent);
+                adjustCollapsibleSize(DOM.noteModalContent);
                 DOM.noteModalContent.focus();
             }, 0);
 
@@ -3173,7 +3180,7 @@
          function setupEventListeners() {
             document.getElementById('key-opens-container').addEventListener('input', e => {
                 if(e.target.matches('.key-open-note')) {
-                    autoResizeTextarea(e.target);
+                    adjustCollapsibleSize(e.target);
                     saveLevelNotes(e.target);
                 }
             });
@@ -3232,8 +3239,9 @@
                 }
 
                 if (handleAttachmentActions(e)) return;
+
                 if (e.target.matches('.ema-pill-btn')) {
-                    e.stopPropagation(); 
+                    e.stopPropagation(); // <-- This is the fix for the EMA pill button
                     const pillBtn = e.target;
                     const group = pillBtn.closest('.pill-button-group');
                     group.querySelectorAll('.ema-pill-btn').forEach(btn => btn.classList.remove('active'));
@@ -3310,7 +3318,7 @@
             });
             DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
             DOM.noteModalContent.addEventListener('input', () => {
-                autoResizeTextarea(DOM.noteModalContent);
+                adjustCollapsibleSize(DOM.noteModalContent);
                 saveNoteFromModal();
             });
 
@@ -3332,15 +3340,15 @@
                 }
             }, true);
 
-            DOM.trackerScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
+            DOM.trackerScratchpadEl.addEventListener('input', () => { adjustCollapsibleSize(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
             
             DOM.primarySetupsNotes.addEventListener('input', () => {
-                autoResizeTextarea(DOM.primarySetupsNotes);
+                adjustCollapsibleSize(DOM.primarySetupsNotes);
                 clearTimeout(STATE.setups1NotesTimer);
                 STATE.setups1NotesTimer = setTimeout(savePrimarySetupsNotes, 750);
             });
             DOM.secondarySetupsNotes.addEventListener('input', () => {
-                autoResizeTextarea(DOM.secondarySetupsNotes);
+                adjustCollapsibleSize(DOM.secondarySetupsNotes);
                 clearTimeout(STATE.setups2NotesTimer);
                 STATE.setups2NotesTimer = setTimeout(saveSecondarySetupsNotes, 750);
             });
@@ -3368,8 +3376,8 @@
             DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
             DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
 
-            DOM.journalEntryEl.addEventListener('input', () => { autoResizeTextarea(DOM.journalEntryEl); saveJournalEntry(); });
-            DOM.persistentNotesEl.addEventListener('input', () => { autoResizeTextarea(DOM.persistentNotesEl); savePersistentNotes(); });
+            DOM.journalEntryEl.addEventListener('input', () => { adjustCollapsibleSize(DOM.journalEntryEl); saveJournalEntry(); });
+            DOM.persistentNotesEl.addEventListener('input', () => { adjustCollapsibleSize(DOM.persistentNotesEl); savePersistentNotes(); });
             DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
             DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
 
@@ -3758,12 +3766,12 @@
             dbRefs.persistentNotes.on('value', (s) => { 
                 STATE.persistentNotes = s.val() || ''; 
                 DOM.persistentNotesEl.value = STATE.persistentNotes; 
-                autoResizeTextarea(DOM.persistentNotesEl);
+                adjustCollapsibleSize(DOM.persistentNotesEl);
             });
             dbRefs.trackerScratchpad.on('value', (s) => { 
                 STATE.trackerScratchpadText = s.val() || ''; 
                 DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; 
-                autoResizeTextarea(DOM.trackerScratchpadEl);
+                adjustCollapsibleSize(DOM.trackerScratchpadEl);
             });
             dbRefs.sentimentReceipts.on('value', (s) => {
                 STATE.allSentimentReceipts = s.val() || {};
@@ -3787,7 +3795,7 @@
                 toggleBtn.style.transform = 'rotate(180deg)';
                 setTimeout(() => {
                     content.style.maxHeight = content.scrollHeight + 'px';
-                }, 10);
+                }, 50); // Increased delay slightly to ensure rendering
             }
         }
 
