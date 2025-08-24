@@ -2211,25 +2211,16 @@
         function autoResizeTextarea(element) {
             if (!element) return;
         
-            // Part 1: Resize the textarea element itself to fit its new content.
             element.style.height = 'auto';
             element.style.height = `${element.scrollHeight}px`;
         
-            // Part 2: Resize the parent collapsible container without causing a scroll jump.
+            // This part is no longer strictly necessary because of the new '10000px' max-height logic,
+            // but it doesn't hurt to keep for other potential uses.
             const content = element.closest('.collapsible-content');
-            // Check if the parent collapsible section is currently open before trying to resize it.
             if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
-                // To prevent the animated jump, we temporarily disable the CSS transition,
-                // update the height, and then re-enable the transition after the browser has rendered the change.
                 const originalTransition = content.style.transition;
                 content.style.transition = 'none';
-                
-                // Set the new max-height based on the content's new scroll height.
-                content.style.maxHeight = content.scrollHeight + 'px';
-                
-                // By using a minimal timeout, we allow the browser to apply the new height instantly (without animation).
-                // Afterwards, we restore the original transition property so that user interactions,
-                // like manually collapsing the section, remain animated.
+                content.style.maxHeight = '10000px'; 
                 setTimeout(() => {
                     content.style.transition = originalTransition;
                 }, 15);
@@ -2342,10 +2333,6 @@
             const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
             historicalRows.forEach(row => { row.style.display = displayStyle; });
             button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
-            const content = button.closest('.collapsible-content');
-            if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
-                content.style.maxHeight = content.scrollHeight + 'px';
-            }
         }
         
         function toggleHistoricalImages(containerId, button) {
@@ -2357,10 +2344,6 @@
             const displayStyle = isCurrentlyHidden ? 'flex' : 'none';
             historicalImages.forEach(img => { img.style.display = displayStyle; });
             button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
-             const content = button.closest('.collapsible-content');
-            if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
-                content.style.maxHeight = content.scrollHeight + 'px';
-            }
         }
 
 
@@ -2394,19 +2377,6 @@
                 item.classList.add('open');
                 item.querySelector('.note-content').style.display = 'block';
             });
-
-            // --- FIX START ---
-            // After re-rendering, we need to update the parent collapsible container's height
-            const parentContent = container.closest('.collapsible-content');
-            if (parentContent && parentContent.style.maxHeight && parentContent.style.maxHeight !== '0px') {
-                // Use a tiny timeout to ensure the browser has calculated the new layout
-                setTimeout(() => {
-                    if (parentContent.style.maxHeight && parentContent.style.maxHeight !== '0px') {
-                         parentContent.style.maxHeight = parentContent.scrollHeight + 'px';
-                    }
-                }, 10);
-            }
-            // --- FIX END ---
         }
 
         function renderMarketOpens() {
@@ -2529,15 +2499,6 @@
             }
         
             tbody.innerHTML = rowsHtml;
-            
-            const contentWrapper = tbody.closest('.collapsible-content');
-            if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                setTimeout(() => {
-                    if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                        contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
-                    }
-                }, 10);
-            }
         }
 
         function renderLiveTable(data) {
@@ -2555,11 +2516,6 @@
                 return `<tr><td>${trade.symbol}</td><td>${trade.type}</td>${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}<td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td><td style="color: #28a745;">${profitString}</td><td style="color: #dc3545;">${lossString}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'live')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.tradesTbody.innerHTML = rowsHtml;
-
-            const contentWrapper = DOM.tradesTbody.closest('.collapsible-content');
-            if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
-            }
         }
 
         function renderCompletedTable(data) {
@@ -2588,15 +2544,6 @@
             DOM.completedTradesTbody.innerHTML = rowsHtml;
 
             updateToggleButtonsVisibility();
-            
-            const contentWrapper = DOM.completedTradesTbody.closest('.collapsible-content');
-            if (contentWrapper && contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                 setTimeout(() => {
-                    if (contentWrapper.style.maxHeight && contentWrapper.style.maxHeight !== '0px') {
-                        contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
-                    }
-                }, 0);
-            }
         }
 
         // MODIFIED: This function now handles the "show today" logic for the Setups library
@@ -2631,12 +2578,6 @@
             // Update button visibility for the setups library
             if (libraryType === 'setups_images') {
                 updateToggleButtonsVisibility();
-            }
-
-            const parentSection = containerElement.closest('.collapsible-section');
-            if (parentSection && parentSection.classList.contains('is-open')) {
-                const content = parentSection.querySelector('.collapsible-content');
-                if(content) content.style.maxHeight = content.scrollHeight + 'px';
             }
         }
 
@@ -3224,6 +3165,28 @@
 
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
             
+            // --- MODIFIED Collapsible Click Handler ---
+            document.body.addEventListener('click', e => {
+                 const header = e.target.closest('.collapsible-header');
+                 if (header) {
+                    const section = header.parentElement;
+                    const content = section.querySelector('.collapsible-content');
+                    const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+                    
+                    section.classList.toggle('is-open');
+                    
+                    if (section.classList.contains('is-open')) {
+                        toggleBtn.textContent = '−';
+                        toggleBtn.style.transform = 'rotate(180deg)';
+                        content.style.maxHeight = '10000px'; // Use a large value to allow content to grow
+                    } else {
+                        toggleBtn.textContent = '+';
+                        toggleBtn.style.transform = 'rotate(0deg)';
+                        content.style.maxHeight = '0px';
+                    }
+                 }
+            });
+
             DOM.trackerTab.addEventListener('click', (e) => {
                 if (handleAttachmentActions(e)) return;
                 if (e.target.matches('.ema-pill-btn')) {
@@ -3241,10 +3204,9 @@
                     handleTradeAction(e);
                 } else if (e.target.closest('#sentiment-receipts-tbody')) {
                     handleSentimentAction(e);
-                // MODIFIED: Handle new pagination and "Show All" buttons
                 } else if (e.target.id === 'toggle-all-sentiments') {
                     STATE.sentimentShowAll = true;
-                    STATE.sentimentCurrentPage = 1; // Reset to page 1 when showing all
+                    STATE.sentimentCurrentPage = 1;
                     renderSentimentReceipts();
                 } else if (e.target.id === 'sentiment-prev-page') {
                     if (STATE.sentimentCurrentPage > 1) {
@@ -3259,22 +3221,8 @@
                     }
                 } else if (e.target.id === 'toggle-old-trades') {
                     toggleHistoricalRows('completed-trades-tbody', e.target);
-                } else if (e.target.id === 'toggle-old-setups-images') { // ADDED
+                } else if (e.target.id === 'toggle-old-setups-images') {
                     toggleHistoricalImages('setups-image-container', e.target);
-                } else {
-                    const header = e.target.closest('.collapsible-header');
-                    if (header) {
-                        const section = header.parentElement;
-                        const content = section.querySelector('.collapsible-content');
-                        const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-                        section.classList.toggle('is-open');
-                        toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
-                        toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
-                        if (section.classList.contains('is-open')) {
-                            content.style.maxHeight = content.scrollHeight + 'px';
-                            setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
-                        } else { content.style.maxHeight = '0px'; }
-                    }
                 }
             });
 
@@ -3282,42 +3230,10 @@
                 DOM.chartsTab.addEventListener('click', (e) => {
                     if (e.target.closest('#image-library-container, #chart-library-2-container, #chart-library-2-preview-container')) {
                         handleGenericImageLibraryClick(e);
-                    } else {
-                        const header = e.target.closest('.collapsible-header');
-                        if (header) {
-                            const section = header.parentElement;
-                            const content = section.querySelector('.collapsible-content');
-                            const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-                            section.classList.toggle('is-open');
-                            toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
-                            toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
-                            if (section.classList.contains('is-open')) {
-                                content.style.maxHeight = content.scrollHeight + 'px';
-                                setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
-                            } else { content.style.maxHeight = '0px'; }
-                        }
                     }
                 });
             }
-
-            if (DOM.notesTab) {
-                DOM.notesTab.addEventListener('click', e => {
-                    const header = e.target.closest('.collapsible-header');
-                    if (header) {
-                        const section = header.parentElement;
-                        const content = section.querySelector('.collapsible-content');
-                        const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-                        section.classList.toggle('is-open');
-                        toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
-                        toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
-                        if (section.classList.contains('is-open')) {
-                            content.style.maxHeight = content.scrollHeight + 'px';
-                            setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
-                        } else { content.style.maxHeight = '0px'; }
-                    }
-                });
-            }
-
+ 
             if (DOM.createNewNoteBtn) {
                 DOM.createNewNoteBtn.addEventListener('click', () => {
                     if (!STATE.isMasterUser) return;
@@ -3354,14 +3270,11 @@
                         const isOpen = noteItem.classList.toggle('open');
                         content.style.display = isOpen ? 'block' : 'none';
                         
+                        // Let the main collapsible handler deal with resizing. This simplifies logic.
                         const parentContent = noteItem.closest('.collapsible-content');
-                        if (parentContent && parentContent.style.maxHeight && parentContent.style.maxHeight !== '0px') {
-                            setTimeout(() => {
-                                if (parentContent.style.maxHeight && parentContent.style.maxHeight !== '0px') {
-                                     parentContent.style.maxHeight = parentContent.scrollHeight + 'px';
-                                }
-                            }, 5);
-                        }
+                         if (parentContent && parentContent.style.maxHeight && parentContent.style.maxHeight !== '0px') {
+                             parentContent.style.maxHeight = '10000px';
+                         }
                     }
                 });
                 
@@ -3840,13 +3753,15 @@
         }
 
         // --- INITIALIZATION ---
+        // MODIFIED: Use a more robust max-height value for opening sections
         function openCollapsibleSection(sectionElement) {
             if (!sectionElement) return;
             const content = sectionElement.querySelector('.collapsible-content'), toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
             if (content && toggleBtn && !sectionElement.classList.contains('is-open')) {
-                sectionElement.classList.add('is-open'); toggleBtn.textContent = '−'; toggleBtn.style.transform = 'rotate(180deg)';
-                content.style.maxHeight = content.scrollHeight + 'px';
-                setTimeout(() => { if (sectionElement.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
+                sectionElement.classList.add('is-open');
+                toggleBtn.textContent = '−';
+                toggleBtn.style.transform = 'rotate(180deg)';
+                content.style.maxHeight = '10000px'; // A large value that allows content to grow
             }
         }
 
