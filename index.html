@@ -836,7 +836,6 @@
         #modal-prev { left: 20px; }
         #modal-next { right: 20px; }
 
-
         .in-merge-mode #completed-trades-tbody tr {
             cursor: crosshair;
         }
@@ -2206,28 +2205,25 @@
             return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`;
         };
 
+        // START: MODIFIED FUNCTION
         function autoResizeTextarea(element) {
             if (!element) return;
             element.style.height = 'auto';
             element.style.height = `${element.scrollHeight}px`;
-        }
-
-        // START: NEW HELPER FUNCTION
-        function updateOpenCollapsibleHeight(element) {
-            if (!element) return;
+            
             const section = element.closest('.collapsible-section');
-            if (section && section.classList.contains('is-open')) {
-                const content = section.querySelector('.collapsible-content');
-                if (content) {
-                    setTimeout(() => {
-                        if (section.classList.contains('is-open')) {
-                           content.style.maxHeight = content.scrollHeight + 'px';
-                        }
-                    }, 10);
-                }
+            const content = element.closest('.collapsible-content');
+            // Check if the section is supposed to be open, not just if the style is already set.
+            if (section && section.classList.contains('is-open') && content) {
+                const originalTransition = content.style.transition;
+                content.style.transition = 'none'; // Prevent animation jump
+                content.style.maxHeight = content.scrollHeight + 'px';
+                setTimeout(() => {
+                    content.style.transition = originalTransition;
+                }, 15);
             }
         }
-        // END: NEW HELPER FUNCTION
+        // END: MODIFIED FUNCTION
 
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
 
@@ -2334,7 +2330,7 @@
             const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
             historicalRows.forEach(row => { row.style.display = displayStyle; });
             button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
-            updateOpenCollapsibleHeight(button);
+            autoResizeTextarea(button); // Use the smart resizer
         }
         
         function toggleHistoricalImages(containerId, button) {
@@ -2346,7 +2342,7 @@
             const displayStyle = isCurrentlyHidden ? 'flex' : 'none';
             historicalImages.forEach(img => { img.style.display = displayStyle; });
             button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
-            updateOpenCollapsibleHeight(button);
+            autoResizeTextarea(button); // Use the smart resizer
         }
 
 
@@ -2375,7 +2371,7 @@
             }).join('');
 
             container.innerHTML = notesHtml;
-            updateOpenCollapsibleHeight(container);
+            autoResizeTextarea(container);
         }
 
         function renderMarketOpens() {
@@ -2492,7 +2488,7 @@
             }
         
             tbody.innerHTML = rowsHtml;
-            updateOpenCollapsibleHeight(tbody);
+            autoResizeTextarea(tbody);
         }
 
         function renderLiveTable(data) {
@@ -2510,7 +2506,7 @@
                 return `<tr><td>${trade.symbol}</td><td>${trade.type}</td>${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}<td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td><td style="color: #28a745;">${profitString}</td><td style="color: #dc3545;">${lossString}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'live')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.tradesTbody.innerHTML = rowsHtml;
-            updateOpenCollapsibleHeight(DOM.tradesTbody);
+            autoResizeTextarea(DOM.tradesTbody);
         }
 
         function renderCompletedTable(data) {
@@ -2539,7 +2535,7 @@
             DOM.completedTradesTbody.innerHTML = rowsHtml;
 
             updateToggleButtonsVisibility();
-            updateOpenCollapsibleHeight(DOM.completedTradesTbody);
+            autoResizeTextarea(DOM.completedTradesTbody);
         }
 
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
@@ -2573,7 +2569,7 @@
                 updateToggleButtonsVisibility();
             }
 
-            updateOpenCollapsibleHeight(containerElement);
+            autoResizeTextarea(containerElement);
         }
 
         function renderChartLibrary2Folders() {
@@ -2811,7 +2807,7 @@
                 autoResizeTextarea(notesTextarea);
             }
             applyHighlightingToSetupsTable(tableElement);
-            updateOpenCollapsibleHeight(tableElement);
+            autoResizeTextarea(tableElement);
         }
         
         function renderSrSummaryTable(symbol) {
@@ -3198,7 +3194,7 @@
                     }
                 }
                 
-                DOM.statsPanelContainer.style.display = (tabId === 'tracker') ? 'block' : 'none';
+                DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'journal') ? 'block' : 'none';
                 if (tabId === 'journal') updateJournalView();
                 if (tabId === 'sr-levels') renderSrLevels();
             });
@@ -3753,7 +3749,11 @@
             dbRefs.setups1.on('value', (s) => { STATE.setupsData1 = s.val() || {}; renderSetupsTable(DOM.setupsTable1, STATE.setupsData1, 'primary-setups-notes'); });
             dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(DOM.setupsTable2, STATE.setupsData2, 'secondary-setups-notes'); });
             dbRefs.persistentNotes.on('value', (s) => { STATE.persistentNotes = s.val() || ''; if (DOM.journalTab.classList.contains('active')) { DOM.persistentNotesEl.value = STATE.persistentNotes; autoResizeTextarea(DOM.persistentNotesEl); } });
-            dbRefs.trackerScratchpad.on('value', (s) => { STATE.trackerScratchpadText = s.val() || ''; if (DOM.trackerTab.classList.contains('active')) { DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; autoResizeTextarea(DOM.trackerScratchpadEl); } });
+            dbRefs.trackerScratchpad.on('value', (s) => { 
+                STATE.trackerScratchpadText = s.val() || ''; 
+                DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; 
+                autoResizeTextarea(DOM.trackerScratchpadEl);
+            });
             dbRefs.sentimentReceipts.on('value', (s) => {
                 STATE.allSentimentReceipts = s.val() || {};
                 renderSentimentReceipts();
