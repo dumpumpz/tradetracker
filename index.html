@@ -2516,15 +2516,47 @@
             adjustCollapsibleSize(container);
         }
 
-        function createCrossoverSignalTableHTML(symbol, symbolData) {
-            const timeframes = ['1h', '2h', '4h', '1d', '1w', '1M'];
-            const tableRows = timeframes.map(tf => {
-                const data = symbolData[tf] || { stage: 'N/A', colour: 'Grey', support: 'N/A' };
-                let colorClass = 'signal-cell-grey'; if (data.colour === 'Green') colorClass = 'signal-cell-green'; else if (data.colour === 'Red') colorClass = 'signal-cell-red';
-                return `<tr><td>${tf.toUpperCase()}</td><td class="signal-cell ${colorClass}">${data.stage}</td><td class="support-value">${data.support}</td></tr>`;
-            }).join('');
-            return `<div class="crossover-signals-table-wrapper"><h3>${symbol.replace('USDT', '/USDT')}</h3><div class="table-wrapper"><table class="crossover-signals-table"><thead><tr><th>Timeframe</th><th>Signal Stage</th><th>Support</th></tr></thead><tbody>${tableRows}</tbody></table></div></div>`;
-        }
+      function createCrossoverSignalTableHTML(symbol, symbolData) {
+    const timeframes = ['1h', '2h', '4h', '1d', '1w', '1M'];
+    const tableRows = timeframes.map(tf => {
+        // 1. MODIFIED: The default object now uses 'Level' to match the new neutral key.
+        const data = symbolData[tf] || { stage: 'N/A', colour: 'Grey', Level: 'N/A' };
+        
+        let colorClass = 'signal-cell-grey'; 
+        if (data.colour === 'Green') colorClass = 'signal-cell-green'; 
+        else if (data.colour === 'Red') colorClass = 'signal-cell-red';
+
+        // 2. NEW: Determine the correct value.
+        // It checks for '0-Candle Support', then '0-Candle Resistance', then 'Level'.
+        // This makes sure it finds the value regardless of which key is present.
+        // Note: We use bracket notation `data['key-name']` because the keys contain spaces and hyphens.
+        const levelValue = data['0-Candle Support'] || data['0-Candle Resistance'] || data['Level'] || 'N/A';
+
+        // 3. MODIFIED: The table cell now uses the 'levelValue' we found.
+        return `<tr>
+                    <td>${tf.toUpperCase()}</td>
+                    <td class="signal-cell ${colorClass}">${data.stage}</td>
+                    <td class="support-value">${levelValue}</td>
+                </tr>`;
+    }).join('');
+
+    // 4. MODIFIED: The table header is changed from "Support" to "Key Level" to be more generic.
+    return `<div class="crossover-signals-table-wrapper">
+                <h3>${symbol.replace('USDT', '/USDT')}</h3>
+                <div class="table-wrapper">
+                    <table class="crossover-signals-table">
+                        <thead>
+                            <tr>
+                                <th>Timeframe</th>
+                                <th>Signal Stage</th>
+                                <th>Key Level</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </div>
+            </div>`;
+}
 
         function renderAttachmentThumbnails(entry, entryId, entryType) {
             const images = entry.attachedImages || {};
