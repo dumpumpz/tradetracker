@@ -28,7 +28,7 @@ IF NOT EXIST "venv\Scripts\activate.bat" (
 )
 
 :: --- STEP 2: ACTIVATE VIRTUAL ENVIRONMENT ---
-echo [1/4] Activating Python virtual environment...
+echo [1/5] Activating Python virtual environment...
 call "venv\Scripts\activate.bat"
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: Could not activate the virtual environment.
@@ -37,7 +37,7 @@ IF ERRORLEVEL 1 (
 echo.
 
 :: --- STEP 3: RUN PYTHON ANALYSIS SCRIPTS ---
-echo [2/4] Running Moving Average analysis script...
+echo [2/5] Running Moving Average analysis script...
 python generate_accurate_ma.py
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: The Moving Average script failed.
@@ -45,7 +45,7 @@ IF ERRORLEVEL 1 (
 )
 echo.
 
-echo [3/4] Running Support/Resistance analysis script...
+echo [3/5] Running Support/Resistance analysis script...
 python sr_levels_analysis.py
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: The S/R script failed.
@@ -53,8 +53,20 @@ IF ERRORLEVEL 1 (
 )
 echo.
 
+:: ===============================================
+:: <<< NEW SECTION FOR YOUR S-SIGNAL SCRIPT >>>
+:: ===============================================
+echo [4/5] Running S-Signal analysis script...
+python s_signal_analysis.py
+IF ERRORLEVEL 1 (
+    echo [!!!] FATAL ERROR: The S-Signal script failed.
+    goto:error_exit
+)
+echo.
+:: ===============================================
+
 :: --- STEP 4: COMMIT AND PUSH CHANGES TO GITHUB ---
-echo [4/4] Committing and pushing data to GitHub...
+echo [5/5] Committing and pushing data to GitHub...
 echo.
 
 REM Add ALL new and modified files in the project to the staging area.
@@ -63,7 +75,7 @@ IF ERRORLEVEL 1 (
     echo [!] WARNING: 'git add' command failed.
 )
 
-REM Commit the changes with a standard message
+REM Commit the changes with a standard message if there are changes
 git diff-index --quiet HEAD -- || git commit -m "Automated local data update"
 
 echo [*] Pulling latest changes from the remote repository...
