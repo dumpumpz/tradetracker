@@ -1,11 +1,10 @@
 import requests
 import pandas as pd
-from datetime import datetime, timedelta
-import time
+from datetime import datetime
 import json
 
-
 # --- [1] FULL ANALYSIS LOGIC ---
+# (All functions from get_historical_data to find_latest_combined_signal remain unchanged)
 
 def get_historical_data(symbol, interval, limit):
     """Fetches historical candlestick data, ignoring the current unclosed candle."""
@@ -20,7 +19,6 @@ def get_historical_data(symbol, interval, limit):
         return None
 
 
-# S-signal helper functions remain unchanged
 def find_s1_signal(df, crossover_iloc, signal_type, initial_level):
     df_after_crossover = df.iloc[crossover_iloc + 1:]
     effective_level = initial_level
@@ -159,70 +157,61 @@ def find_latest_combined_signal(data):
     return {"type": signal_type, "s1": s1, "s2": s2, "s3": s3, "s4": s4, "support_value": support_value}
 
 
-# --- [2] MAIN EXPORTING LOOP ---
+# --- [2] MAIN EXECUTION BLOCK (MODIFIED) ---
 
 def main():
-    """Main function to run analysis and save results to JSON."""
+    """Main function to run analysis ONCE and save results to JSON."""
     symbols = ["BTCUSDT", "ETHUSDT"]
     timeframes = ["1h", "2h", "4h", "1d", "1w", "1M"]
     output_filename = "crypto_signals.json"
 
-    while True:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starting analysis for {', '.join(symbols)}...")
-        all_results = {}
-        for symbol in symbols:
-            print(f"--- Analyzing {symbol} ---")
-            symbol_results = {}
-            for tf in timeframes:
-                klines = get_historical_data(symbol, tf, 1000)
-                signal = find_latest_combined_signal(klines)
+    # The 'while True:' loop has been removed. The code will now run once and exit.
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starting analysis for {', '.join(symbols)}...")
+    all_results = {}
+    for symbol in symbols:
+        print(f"--- Analyzing {symbol} ---")
+        symbol_results = {}
+        for tf in timeframes:
+            klines = get_historical_data(symbol, tf, 1000)
+            signal = find_latest_combined_signal(klines)
 
-                stage = "No Signal"
-                colour = "Grey"
-                support_str = "N/A"
-                if signal:
-                    support_val = signal.get("support_value")
-                    if support_val is not None:
-                        support_str = f"{support_val:,.2f}"
+            stage = "No Signal"
+            colour = "Grey"
+            support_str = "N/A"
+            if signal:
+                support_val = signal.get("support_value")
+                if support_val is not None:
+                    support_str = f"{support_val:,.2f}"
 
-                    base_type = signal["type"]
-                    if base_type == "Grey Crossover":
-                        stage = "Grey Crossover"
-                        colour = "Grey"
+                base_type = signal["type"]
+                if base_type == "Grey Crossover":
+                    stage = "Grey Crossover"
+                    colour = "Grey"
+                else:
+                    colour = "Green" if "Bullish" in base_type else "Red"
+                    if signal.get("s4"):
+                        stage = "S4"
+                    elif signal.get("s3"):
+                        stage = "S3"
+                    elif signal.get("s2"):
+                        stage = "S2"
+                    elif signal.get("s1"):
+                        stage = "S1"
                     else:
-                        colour = "Green" if "Bullish" in base_type else "Red"
-                        # <<< MODIFIED SECTION: Changed stage names to S0, S1, etc. >>>
-                        if signal.get("s4"):
-                            stage = "S4"
-                        elif signal.get("s3"):
-                            stage = "S3"
-                        elif signal.get("s2"):
-                            stage = "S2"
-                        elif signal.get("s1"):
-                            stage = "S1"
-                        else:
-                            stage = "S0" # S0 represents the initial crossover event
+                        stage = "S0"  # S0 represents the initial crossover event
 
-                symbol_results[tf] = {"stage": stage, "colour": colour, "support": support_str}
-            all_results[symbol] = symbol_results
+            symbol_results[tf] = {"stage": stage, "colour": colour, "support": support_str}
+        all_results[symbol] = symbol_results
 
-        try:
-            with open(output_filename, 'w') as f:
-                json.dump(all_results, f, indent=4)
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Successfully saved data to {output_filename}")
-        except IOError as e:
-            print(f"Error: Could not write to file {output_filename}. Reason: {e}")
+    try:
+        with open(output_filename, 'w') as f:
+            json.dump(all_results, f, indent=4)
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Successfully saved data to {output_filename}")
+    except IOError as e:
+        print(f"Error: Could not write to file {output_filename}. Reason: {e}")
 
-        now = datetime.now()
-        next_run = (now + timedelta(hours=1)).replace(minute=2, second=0,
-                                                      microsecond=0) if now.minute >= 2 else now.replace(minute=2,
-                                                                                                         second=0,
-                                                                                                         microsecond=0)
-        sleep_duration = (next_run - now).total_seconds()
-
-        print(f"--- Analysis complete. Next update at {next_run.strftime('%Y-%m-%d %H:%M:%S')} ---")
-        if sleep_duration > 0:
-            time.sleep(sleep_duration)
+    # The scheduling and sleep logic have been removed.
+    print("--- Analysis complete. ---")
 
 
 # --- [3] SCRIPT ENTRY POINT ---
