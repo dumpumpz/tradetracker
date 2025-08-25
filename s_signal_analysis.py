@@ -3,8 +3,9 @@ import pandas as pd
 from datetime import datetime
 import json
 
+
 # --- [1] FULL ANALYSIS LOGIC ---
-# (All functions from get_historical_data to find_latest_combined_signal remain unchanged)
+# (These functions remain unchanged as they correctly define the analysis logic)
 
 def get_historical_data(symbol, interval, limit):
     """Fetches historical candlestick data, ignoring the current unclosed candle."""
@@ -13,6 +14,7 @@ def get_historical_data(symbol, interval, limit):
     try:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
+        # Return all but the last (unclosed) candle
         return response.json()[:-1]
     except requests.RequestException as e:
         print(f"Error fetching data for {symbol} on {interval}: {e}")
@@ -157,17 +159,17 @@ def find_latest_combined_signal(data):
     return {"type": signal_type, "s1": s1, "s2": s2, "s3": s3, "s4": s4, "support_value": support_value}
 
 
-# --- [2] MAIN EXECUTION BLOCK (MODIFIED) ---
+# --- [2] MAIN EXECUTION BLOCK (FIXED & CLEANED) ---
 
 def main():
-    """Main function to run analysis ONCE and save results to JSON."""
+    """Main function to run analysis ONCE and save results to a JSON file."""
     symbols = ["BTCUSDT", "ETHUSDT"]
     timeframes = ["1h", "2h", "4h", "1d", "1w", "1M"]
     output_filename = "crypto_signals.json"
 
-    # The 'while True:' loop has been removed. The code will now run once and exit.
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starting analysis for {', '.join(symbols)}...")
     all_results = {}
+
     for symbol in symbols:
         print(f"--- Analyzing {symbol} ---")
         symbol_results = {}
@@ -177,13 +179,14 @@ def main():
 
             stage = "No Signal"
             colour = "Grey"
-            support_str = "N/A"
-            if signal:
-                support_val = signal.get("support_value")
-                if support_val is not None:
-                    support_str = f"{support_val:,.2f}"
+            
+            # This dictionary will hold the results for the current timeframe
+            tf_result = {"stage": stage, "colour": colour}
 
+            if signal:
                 base_type = signal["type"]
+
+                # Determine stage and colour based on signal
                 if base_type == "Grey Crossover":
                     stage = "Grey Crossover"
                     colour = "Grey"
@@ -199,10 +202,31 @@ def main():
                         stage = "S1"
                     else:
                         stage = "S0"  # S0 represents the initial crossover event
+                
+                # Update stage and colour in the result dict
+                tf_result["stage"] = stage
+                tf_result["colour"] = colour
 
-            symbol_results[tf] = {"stage": stage, "colour": colour, "0-Candle Resistance": support_str}
+                # ** MODIFIED SECTION **
+                # Add the support/resistance level with the new, specific key
+                support_val = signal.get("support_value")
+                if support_val is not None:
+                    support_str = f"{support_val:,.2f}"
+                    if "Bullish" in base_type:
+                        tf_result["0-Candle Support"] = support_str
+                    elif "Bearish" in base_type:
+                        tf_result["0-Candle Resistance"] = support_str
+                else:
+                    # Case for Grey Crossover which has no support/resistance value
+                    tf_result["Level"] = "N/A"
+            else:
+                # Case for No Signal found at all
+                tf_result["Level"] = "N/A"
+
+            symbol_results[tf] = tf_result
         all_results[symbol] = symbol_results
 
+    # Save the final results to a file
     try:
         with open(output_filename, 'w') as f:
             json.dump(all_results, f, indent=4)
@@ -210,11 +234,9 @@ def main():
     except IOError as e:
         print(f"Error: Could not write to file {output_filename}. Reason: {e}")
 
-    # The scheduling and sleep logic have been removed.
     print("--- Analysis complete. ---")
 
 
 # --- [3] SCRIPT ENTRY POINT ---
 if __name__ == "__main__":
     main()
-
