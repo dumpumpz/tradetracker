@@ -1648,7 +1648,7 @@
                         <p class="ema-last-updated" id="crossover-signals-last-updated" style="margin-bottom: 25px;">Fetching signal data...</p>
                         <textarea id="primary-setups-notes" class="setups-notes-area" placeholder="Notes for Primary Setups..."></textarea>
                         
-                        <div id="eth-crossover-signal-container"></div>
+                        <div id="eth-crossover-signal-container" style="margin-bottom: 20px;"></div>
        
                         <div class="table-wrapper">
                             <table id="primary-setups-table" class="setups-table">
@@ -1703,7 +1703,7 @@
                             </table>
                        </div>
 
-                       <div id="btc-crossover-signal-container"></div>
+                       <div id="btc-crossover-signal-container" style="margin-top: 20px;"></div>
 
                        <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder="Notes for Secondary Setups..."></textarea>
 
@@ -2527,45 +2527,40 @@
             adjustCollapsibleSize(btcContainer);
         }
 
-    // THIS IS THE NEW, CORRECT FUNCTION
-function createCrossoverSignalTableHTML(symbol, symbolData) {
-    const timeframes = ['1h', '2h', '4h', '1d', '1w', '1M'];
-    const tableRows = timeframes.map(tf => {
-        // Use a default object that won't cause errors
-        const data = symbolData[tf] || { stage: 'N/A', colour: 'Grey', Level: 'N/A' };
-        
-        let colorClass = 'signal-cell-grey'; 
-        if (data.colour === 'Green') colorClass = 'signal-cell-green'; 
-        else if (data.colour === 'Red') colorClass = 'signal-cell-red';
+    function createCrossoverSignalTableHTML(symbol, symbolData) {
+        const timeframes = ['1h', '2h', '4h', '1d', '1w', '1M'];
+        const tableRows = timeframes.map(tf => {
+            const data = symbolData[tf] || { stage: 'N/A', colour: 'Grey', Level: 'N/A' };
+            
+            let colorClass = 'signal-cell-grey'; 
+            if (data.colour === 'Green') colorClass = 'signal-cell-green'; 
+            else if (data.colour === 'Red') colorClass = 'signal-cell-red';
 
-        // **THE KEY FIX**: Check for all possible keys in the correct order
-        // Use bracket notation `data['key-name']` because the keys have spaces/hyphens.
-        const levelValue = data['0-Candle Support'] || data['0-Candle Resistance'] || data['Level'] || 'N/A';
+            const levelValue = data['0-Candle Support'] || data['0-Candle Resistance'] || data['Level'] || 'N/A';
 
-        // Use the 'levelValue' we found
-        return `<tr>
-                    <td>${tf.toUpperCase()}</td>
-                    <td class="signal-cell ${colorClass}">${data.stage}</td>
-                    <td class="support-value">${levelValue}</td>
-                </tr>`;
-    }).join('');
+            return `<tr>
+                        <td>${tf.toUpperCase()}</td>
+                        <td class="signal-cell ${colorClass}">${data.stage}</td>
+                        <td class="support-value">${levelValue}</td>
+                    </tr>`;
+        }).join('');
 
-    return `<div class="crossover-signals-table-wrapper">
-                <h3>${symbol.replace('USDT', '/USDT')} Crossover Signal</h3>
-                <div class="table-wrapper">
-                    <table class="crossover-signals-table">
-                        <thead>
-                            <tr>
-                                <th>Timeframe</th>
-                                <th>Signal Stage</th>
-                                <th>Key Level</th>
-                            </tr>
-                        </thead>
-                        <tbody>${tableRows}</tbody>
-                    </table>
-                </div>
-            </div>`;
-}
+        return `<div class="crossover-signals-table-wrapper">
+                    <h3>${symbol.replace('USDT', '/USDT')} Crossover Signal</h3>
+                    <div class="table-wrapper">
+                        <table class="crossover-signals-table">
+                            <thead>
+                                <tr>
+                                    <th>Timeframe</th>
+                                    <th>Signal Stage</th>
+                                    <th>0candle Resistance</th>
+                                </tr>
+                            </thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                    </div>
+                </div>`;
+    }
         function renderAttachmentThumbnails(entry, entryId, entryType) {
             const images = entry.attachedImages || {};
             const masterDeleteBtn = (imageId, fileName) => (STATE.isMasterUser) ? `<button class="delete-trade-image" title="Delete Attachment" data-entry-id="${entryId}" data-entry-type="${entryType}" data-image-id="${imageId}" data-filename="${fileName}">×</button>` : '';
@@ -3582,37 +3577,79 @@ function createCrossoverSignalTableHTML(symbol, symbolData) {
 
         function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
-            const tradeId = cell.dataset.id; const fieldToUpdate = cell.dataset.field; const tradeRef = dbRefs.trades.child(tradeId);
-            if (fieldToUpdate === 'entry_prices') {
-                const newPricesArray = cell.textContent.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0);
-                if (newPricesArray.length === 0) {
-                    alert("Invalid entry prices list."); tradeRef.once('value', s => cell.textContent = (s.val().entry_prices || [s.val().entry]).join(', ')); return;
-                }
-                const updates = { entry_prices: newPricesArray, note: (cell.closest('tr').querySelector('td.note-cell[title]')?.title || '') + `\nEntry list updated ${new Date().toLocaleString()}`};
-                tradeRef.update(updates); return; 
-            }
-            let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, '')); if (isNaN(newValue)) return alert('Invalid number.');
+            const tradeId = cell.dataset.id;
+            const fieldToUpdate = cell.dataset.field;
+            const tradeRef = dbRefs.trades.child(tradeId);
+
             tradeRef.once('value', snapshot => {
-                const trade = snapshot.val(); if (!trade) return alert('Error: Trade not found.');
+                const trade = snapshot.val();
+                if (!trade) {
+                    alert('Error: Trade not found.');
+                    return;
+                }
+                
+                const updates = {};
+                
+                if (fieldToUpdate === 'entry_prices') {
+                    const newPricesArray = cell.textContent.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0);
+                    if (newPricesArray.length === 0) {
+                        alert("Invalid entry prices list.");
+                        cell.textContent = (trade.entry_prices || [trade.entry]).join(', '); // Restore from snapshot
+                        return;
+                    }
+                    updates.entry_prices = newPricesArray;
+                    updates.note = (trade.note || '') + `\nEntry list updated ${new Date().toLocaleString()}`;
+                    tradeRef.update(updates);
+                    return; 
+                } 
+
+                // Handle other numerical fields
+                let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, ''));
                 const precision = ['entry', 'stoploss', 'target'].includes(fieldToUpdate) ? 4 : 2;
-                if (parseFloat(trade[fieldToUpdate]).toFixed(precision) === newValue.toFixed(precision)) { cell.textContent = newValue.toFixed(precision); return; }
-                const updates = { [fieldToUpdate]: newValue };
+
+                if (isNaN(newValue)) {
+                    alert('Invalid number.');
+                    cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); // Restore from snapshot
+                    return;
+                }
+
+                if (parseFloat(trade[fieldToUpdate]).toFixed(precision) === newValue.toFixed(precision)) {
+                    cell.textContent = newValue.toFixed(precision); // Just format it correctly, no DB update needed
+                    return;
+                }
+                
+                updates[fieldToUpdate] = newValue;
+                
                 const tempTrade = { ...trade, ...updates };
+
                 const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
                 const positionQty = tempTrade.size / tempTrade.entry;
                 const entryFee = tempTrade.size * FEE_RATE;
-                const exitValueAtTarget = (tempTrade.target / tempTrade.entry) * tempTrade.size, exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
-                const exitValueAtStop = (tempTrade.stoploss / tempTrade.entry) * tempTrade.size, exitFeeAtStop = exitValueAtStop * FEE_RATE;
+                const exitValueAtTarget = (tempTrade.target / tempTrade.entry) * tempTrade.size;
+                const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
+                const exitValueAtStop = (tempTrade.stoploss / tempTrade.entry) * tempTrade.size;
+                const exitFeeAtStop = exitValueAtStop * FEE_RATE;
                 let potentialProfit, potentialLoss;
-                if (tempTrade.type === 'Long') { potentialProfit = positionQty * (tempTrade.target - tempTrade.entry); potentialLoss = positionQty * (tempTrade.entry - tempTrade.stoploss); }
-                else { potentialProfit = positionQty * (tempTrade.entry - tempTrade.target); potentialLoss = positionQty * (tempTrade.stoploss - tempTrade.entry); }
+
+                if (tempTrade.type === 'Long') {
+                    potentialProfit = positionQty * (tempTrade.target - tempTrade.entry);
+                    potentialLoss = positionQty * (tempTrade.entry - tempTrade.stoploss);
+                } else {
+                    potentialProfit = positionQty * (tempTrade.entry - tempTrade.target);
+                    potentialLoss = positionQty * (tempTrade.stoploss - tempTrade.entry);
+                }
                 updates.estimated_total_fee = entryFee + exitFeeAtTarget;
                 updates.expected_profit = potentialProfit - updates.estimated_total_fee;
                 updates.expected_loss = potentialLoss + entryFee + exitFeeAtStop;
                 updates.expected_profit_percent = (updates.expected_profit / tempTrade.size) * 100;
                 updates.expected_loss_percent = (updates.expected_loss / tempTrade.size) * 100;
+                
                 updates.note = (trade.note || '') + `\n${fieldToUpdate} updated to ${newValue.toFixed(precision)} on ${new Date().toLocaleString()}`;
-                tradeRef.update(updates).catch(error => { alert('Failed to update trade: ' + error.message); cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); });
+                
+                tradeRef.update(updates).catch(error => {
+                    alert('Failed to update trade: ' + error.message);
+                    cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision);
+                });
             });
         }
 
