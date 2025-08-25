@@ -1645,7 +1645,10 @@
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
+                        <p class="ema-last-updated" id="crossover-signals-last-updated" style="margin-bottom: 25px;">Fetching signal data...</p>
                         <textarea id="primary-setups-notes" class="setups-notes-area" placeholder="Notes for Primary Setups..."></textarea>
+                        
+                        <div id="eth-crossover-signal-container"></div>
        
                         <div class="table-wrapper">
                             <table id="primary-setups-table" class="setups-table">
@@ -1699,6 +1702,9 @@
                                 </tbody>
                             </table>
                        </div>
+
+                       <div id="btc-crossover-signal-container"></div>
+
                        <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder="Notes for Secondary Setups..."></textarea>
 
                         <div class="setups-controls">
@@ -1768,22 +1774,6 @@
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner" id="ema-snapshot-container">
                         <p>Loading EMA data...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Crossover Signals Section -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Crossover Signals</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <p class="ema-last-updated" id="crossover-signals-last-updated" style="margin-bottom: 25px;">Fetching signal data...</p>
-                        <div id="crossover-signals-container">
-                            <!-- JS will populate this area -->
-                        </div>
                     </div>
                 </div>
             </div>
@@ -2391,8 +2381,11 @@
                 renderCrossoverSignals(data);
             } catch (error) {
                 console.error("Could not fetch or parse crossover signal data:", error);
-                const container = document.getElementById('crossover-signals-container');
-                if (container) container.innerHTML = '<p style="color: red; text-align: center;">Error loading signal data.</p>';
+                const ethContainer = document.getElementById('eth-crossover-signal-container');
+                const btcContainer = document.getElementById('btc-crossover-signal-container');
+                const errorMsg = '<p style="color: red; text-align: center;">Error loading signal data.</p>';
+                if (ethContainer) ethContainer.innerHTML = errorMsg;
+                if (btcContainer) btcContainer.innerHTML = errorMsg;
                 const lastUpdatedEl = document.getElementById('crossover-signals-last-updated');
                 if(lastUpdatedEl) lastUpdatedEl.textContent = 'Failed to load data.';
             }
@@ -2505,15 +2498,33 @@
         }
 
         function renderCrossoverSignals(signalData) {
-            const container = document.getElementById('crossover-signals-container'); if (!container) return;
-            let fullHtml = '';
-            for (const symbol in signalData) {
-                if (Object.hasOwnProperty.call(signalData, symbol)) fullHtml += createCrossoverSignalTableHTML(symbol, signalData[symbol]);
+            const ethContainer = document.getElementById('eth-crossover-signal-container');
+            const btcContainer = document.getElementById('btc-crossover-signal-container');
+            if (!ethContainer || !btcContainer) return;
+
+            let ethHtml = '';
+            let btcHtml = '';
+
+            const symbols = Object.keys(signalData).sort();
+
+            for (const symbol of symbols) {
+                if (Object.hasOwnProperty.call(signalData, symbol)) {
+                    const tableHtml = createCrossoverSignalTableHTML(symbol, signalData[symbol]);
+                    if (symbol.startsWith('ETH')) {
+                        ethHtml += tableHtml;
+                    } else if (symbol.startsWith('BTC')) {
+                        btcHtml += tableHtml;
+                    }
+                }
             }
-            container.innerHTML = fullHtml;
+            ethContainer.innerHTML = ethHtml;
+            btcContainer.innerHTML = btcHtml;
+            
             const lastUpdatedEl = document.getElementById('crossover-signals-last-updated');
             if(lastUpdatedEl) lastUpdatedEl.textContent = `Last Updated: ${new Date().toLocaleString()}`;
-            adjustCollapsibleSize(container);
+            
+            adjustCollapsibleSize(ethContainer);
+            adjustCollapsibleSize(btcContainer);
         }
 
     // THIS IS THE NEW, CORRECT FUNCTION
@@ -2539,16 +2550,15 @@ function createCrossoverSignalTableHTML(symbol, symbolData) {
                 </tr>`;
     }).join('');
 
-    // **THE HEADER FIX**: Use "Key Level" instead of "Support"
     return `<div class="crossover-signals-table-wrapper">
-                <h3>${symbol.replace('USDT', '/USDT')}</h3>
+                <h3>${symbol.replace('USDT', '/USDT')} Crossover Signal</h3>
                 <div class="table-wrapper">
                     <table class="crossover-signals-table">
                         <thead>
                             <tr>
                                 <th>Timeframe</th>
                                 <th>Signal Stage</th>
-                                <th>0-Candle Resistance</th>
+                                <th>Key Level</th>
                             </tr>
                         </thead>
                         <tbody>${tableRows}</tbody>
