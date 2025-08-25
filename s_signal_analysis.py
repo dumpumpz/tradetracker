@@ -200,7 +200,7 @@ def main():
                     else:
                         stage = "S0"  # S0 represents the initial crossover event
 
-            symbol_results[tf] = {"stage": stage, "colour": colour, "support": support_str}
+            symbol_results[tf] = {"stage": stage, "colour": colour, "0-Candle Resistance": support_str}
         all_results[symbol] = symbol_results
 
     try:
@@ -217,3 +217,4 @@ def main():
 # --- [3] SCRIPT ENTRY POINT ---
 if __name__ == "__main__":
     main()
+
