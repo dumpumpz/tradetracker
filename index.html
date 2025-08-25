@@ -2516,23 +2516,22 @@
             adjustCollapsibleSize(container);
         }
 
-      function createCrossoverSignalTableHTML(symbol, symbolData) {
+    // THIS IS THE NEW, CORRECT FUNCTION
+function createCrossoverSignalTableHTML(symbol, symbolData) {
     const timeframes = ['1h', '2h', '4h', '1d', '1w', '1M'];
     const tableRows = timeframes.map(tf => {
-        // 1. MODIFIED: The default object now uses 'Level' to match the new neutral key.
+        // Use a default object that won't cause errors
         const data = symbolData[tf] || { stage: 'N/A', colour: 'Grey', Level: 'N/A' };
         
         let colorClass = 'signal-cell-grey'; 
         if (data.colour === 'Green') colorClass = 'signal-cell-green'; 
         else if (data.colour === 'Red') colorClass = 'signal-cell-red';
 
-        // 2. NEW: Determine the correct value.
-        // It checks for '0-Candle Support', then '0-Candle Resistance', then 'Level'.
-        // This makes sure it finds the value regardless of which key is present.
-        // Note: We use bracket notation `data['key-name']` because the keys contain spaces and hyphens.
+        // **THE KEY FIX**: Check for all possible keys in the correct order
+        // Use bracket notation `data['key-name']` because the keys have spaces/hyphens.
         const levelValue = data['0-Candle Support'] || data['0-Candle Resistance'] || data['Level'] || 'N/A';
 
-        // 3. MODIFIED: The table cell now uses the 'levelValue' we found.
+        // Use the 'levelValue' we found
         return `<tr>
                     <td>${tf.toUpperCase()}</td>
                     <td class="signal-cell ${colorClass}">${data.stage}</td>
@@ -2540,7 +2539,7 @@
                 </tr>`;
     }).join('');
 
-    // 4. MODIFIED: The table header is changed from "Support" to "Key Level" to be more generic.
+    // **THE HEADER FIX**: Use "Key Level" instead of "Support"
     return `<div class="crossover-signals-table-wrapper">
                 <h3>${symbol.replace('USDT', '/USDT')}</h3>
                 <div class="table-wrapper">
@@ -2557,7 +2556,6 @@
                 </div>
             </div>`;
 }
-
         function renderAttachmentThumbnails(entry, entryId, entryType) {
             const images = entry.attachedImages || {};
             const masterDeleteBtn = (imageId, fileName) => (STATE.isMasterUser) ? `<button class="delete-trade-image" title="Delete Attachment" data-entry-id="${entryId}" data-entry-type="${entryType}" data-image-id="${imageId}" data-filename="${fileName}">×</button>` : '';
