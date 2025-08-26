@@ -1586,7 +1586,8 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
+                                    <!-- MODIFIED: Added RR column -->
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>RR</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
                                 </thead>
                                 <tbody id="trades-tbody"></tbody>
                             </table>
@@ -1811,7 +1812,8 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
+                                    <!-- MODIFIED: Added RR column -->
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>RR</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
                                 </thead>
                                 <tbody id="completed-trades-tbody"></tbody>
                             </table>
@@ -2719,8 +2721,11 @@
                 const trade = trades[id];
                 const profitString = `$${parseFloat(trade.expected_profit || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent || 0).toFixed(2)}%)`;
                 const lossString = `$${parseFloat(trade.expected_loss || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent || 0).toFixed(2)}%)`;
+                // MODIFIED: Format the RR string
+                const rrString = trade.rr ? `${parseFloat(trade.rr).toFixed(2)}:1` : '--';
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
-                return `<tr><td>${trade.symbol}</td><td>${trade.type}</td>${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}<td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td><td style="color: #28a745;">${profitString}</td><td style="color: #dc3545;">${lossString}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'live')}${masterButtonsHtml(id)}</tr>`;
+                // MODIFIED: Added the new <td> for RR
+                return `<tr><td>${trade.symbol}</td><td>${trade.type}</td>${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}<td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td><td style="color: #28a745;">${profitString}</td><td style="color: #dc3545;">${lossString}</td><td>${rrString}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'live')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.tradesTbody.innerHTML = rowsHtml;
             adjustCollapsibleSize(DOM.tradesTbody);
@@ -2737,6 +2742,8 @@
                 const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                 const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
+                // MODIFIED: Format the RR string
+                const rrString = trade.rr ? `${parseFloat(trade.rr).toFixed(2)}:1` : '--';
                 
                 let closedPerthDateStr = '', isHistorical;
                 if (trade.closed_date) {
@@ -2746,8 +2753,8 @@
                 } else { 
                     isHistorical = true; 
                 }
-
-                return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedPerthDateStr}"><td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}</tr>`;
+                // MODIFIED: Added the new <td> for RR
+                return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedPerthDateStr}"><td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${rrString}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.completedTradesTbody.innerHTML = rowsHtml;
 
@@ -3615,6 +3622,56 @@
         }
 
         // --- EVENT HANDLER LOGIC ---
+        // ADDED: New helper function to centralize all trade metric calculations
+        function calculateTradeMetrics(tradeData) {
+            const entry = parseFloat(tradeData.entry);
+            const stoploss = parseFloat(tradeData.stoploss);
+            const target = parseFloat(tradeData.target);
+            const size = parseFloat(tradeData.size);
+            const type = tradeData.type;
+
+            if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) {
+                return { rr: 0, estimated_total_fee: 0, expected_profit: 0, expected_loss: 0, expected_profit_percent: 0, expected_loss_percent: 0 };
+            }
+
+            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const positionQty = size / entry;
+            const entryFee = size * FEE_RATE;
+
+            let potentialProfit, potentialLoss;
+            if (type === 'Long') {
+                potentialProfit = positionQty * (target - entry);
+                potentialLoss = positionQty * (entry - stoploss);
+            } else { // Short
+                potentialProfit = positionQty * (entry - target);
+                potentialLoss = positionQty * (stoploss - entry);
+            }
+
+            const rr = (potentialLoss > 0) ? (potentialProfit / potentialLoss) : 0;
+
+            const exitValueAtTarget = (target / entry) * size;
+            const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
+            const estimated_total_fee = entryFee + exitFeeAtTarget;
+            const expected_profit = potentialProfit - estimated_total_fee;
+
+            const exitValueAtStop = (stoploss / entry) * size;
+            const exitFeeAtStop = exitValueAtStop * FEE_RATE;
+            const expected_loss = potentialLoss + entryFee + exitFeeAtStop;
+            
+            const expected_profit_percent = (expected_profit / size) * 100;
+            const expected_loss_percent = (expected_loss / size) * 100;
+
+            return {
+                rr: rr.toFixed(2),
+                estimated_total_fee: estimated_total_fee,
+                expected_profit: expected_profit,
+                expected_loss: expected_loss,
+                expected_profit_percent: expected_profit_percent,
+                expected_loss_percent: expected_loss_percent
+            };
+        }
+
+        // MODIFIED: Use the new helper function
         function handleAddTradeSubmit(e) {
             e.preventDefault(); if (!STATE.isMasterUser) return;
             const trade = {
@@ -3624,26 +3681,15 @@
                 date: firebase.database.ServerValue.TIMESTAMP, entry_prices: []
             };
             if (Object.values(trade).some(val => val === null || (isNaN(val) && typeof val === 'number'))) return alert('Please fill all fields correctly.');
+            
             trade.entry_prices.push(trade.entry);
-            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
-            const positionQty = trade.size / trade.entry;
-            const entryFee = trade.size * FEE_RATE;
-            const exitValueAtTarget = (trade.target / trade.entry) * trade.size, exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
-            const exitValueAtStop = (trade.stoploss / trade.entry) * trade.size, exitFeeAtStop = exitValueAtStop * FEE_RATE;
-            let potentialProfit, potentialLoss;
-            if (trade.type === 'Long') {
-                potentialProfit = positionQty * (trade.target - trade.entry); potentialLoss = positionQty * (trade.entry - trade.stoploss);
-            } else {
-                potentialProfit = positionQty * (trade.entry - trade.target); potentialLoss = positionQty * (trade.stoploss - trade.entry);
-            }
-            trade.estimated_total_fee = entryFee + exitFeeAtTarget;
-            trade.expected_profit = potentialProfit - trade.estimated_total_fee;
-            trade.expected_loss = potentialLoss + entryFee + exitFeeAtStop;
-            trade.expected_profit_percent = (trade.expected_profit / trade.size) * 100;
-            trade.expected_loss_percent = (trade.expected_loss / trade.size) * 100;
-            dbRefs.trades.push(trade).then(() => e.target.reset()).catch(error => alert(`Error adding trade: ${error.message}`));
+            const metrics = calculateTradeMetrics(trade);
+            const tradeWithMetrics = { ...trade, ...metrics };
+            
+            dbRefs.trades.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error adding trade: ${error.message}`));
         }
-
+        
+        // MODIFIED: Recalculate RR and all metrics on update
         function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
             const tradeId = cell.dataset.id;
@@ -3672,7 +3718,6 @@
                     return; 
                 } 
 
-                // Handle other numerical fields
                 let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, ''));
                 const precision = ['entry', 'stoploss', 'target'].includes(fieldToUpdate) ? 4 : 2;
 
@@ -3689,29 +3734,10 @@
                 
                 updates[fieldToUpdate] = newValue;
                 
-                const tempTrade = { ...trade, ...updates };
-
-                const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
-                const positionQty = tempTrade.size / tempTrade.entry;
-                const entryFee = tempTrade.size * FEE_RATE;
-                const exitValueAtTarget = (tempTrade.target / tempTrade.entry) * tempTrade.size;
-                const exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
-                const exitValueAtStop = (tempTrade.stoploss / tempTrade.entry) * tempTrade.size;
-                const exitFeeAtStop = exitValueAtStop * FEE_RATE;
-                let potentialProfit, potentialLoss;
-
-                if (tempTrade.type === 'Long') {
-                    potentialProfit = positionQty * (tempTrade.target - tempTrade.entry);
-                    potentialLoss = positionQty * (tempTrade.entry - tempTrade.stoploss);
-                } else {
-                    potentialProfit = positionQty * (tempTrade.entry - tempTrade.target);
-                    potentialLoss = positionQty * (tempTrade.stoploss - tempTrade.entry);
-                }
-                updates.estimated_total_fee = entryFee + exitFeeAtTarget;
-                updates.expected_profit = potentialProfit - updates.estimated_total_fee;
-                updates.expected_loss = potentialLoss + entryFee + exitFeeAtStop;
-                updates.expected_profit_percent = (updates.expected_profit / tempTrade.size) * 100;
-                updates.expected_loss_percent = (updates.expected_loss / tempTrade.size) * 100;
+                const tempTradeForCalc = { ...trade, ...updates };
+                const newMetrics = calculateTradeMetrics(tempTradeForCalc);
+                
+                Object.assign(updates, newMetrics); // This now includes the new RR
                 
                 updates.note = (trade.note || '') + `\n${fieldToUpdate} updated to ${newValue.toFixed(precision)} on ${new Date().toLocaleString()}`;
                 
@@ -3748,6 +3774,7 @@
             });
         }
 
+        // MODIFIED: Recalculate RR and all metrics when adding to position
         function handleAddStaggeredEntry(tradeId) {
             if (!STATE.isMasterUser) return;
             const tradeRef = dbRefs.trades.child(tradeId);
@@ -3757,24 +3784,25 @@
                 const newPositionValueStr = prompt("Enter value ($) of this NEW position:"); if (newPositionValueStr === null) return;
                 const newEntryPrice = parseFloat(newEntryPriceStr), newPositionValue = parseFloat(newPositionValueStr);
                 if (isNaN(newEntryPrice) || isNaN(newPositionValue) || newEntryPrice <= 0 || newPositionValue <= 0) return alert("Invalid input.");
+                
                 const currentSize = parseFloat(currentTrade.size), currentEntry = parseFloat(currentTrade.entry);
                 const totalValue = currentSize + newPositionValue, totalQuantity = (currentSize / currentEntry) + (newPositionValue / newEntryPrice);
                 const newAverageEntryPrice = totalValue / totalQuantity;
                 const updatedEntryPrices = currentTrade.entry_prices || [currentTrade.entry]; updatedEntryPrices.push(newEntryPrice);
-                const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
-                const entryFee = totalValue * FEE_RATE;
-                const exitValueAtTarget = (currentTrade.target / newAverageEntryPrice) * totalValue, exitFeeAtTarget = exitValueAtTarget * FEE_RATE;
-                const exitValueAtStop = (currentTrade.stoploss / newAverageEntryPrice) * totalValue, exitFeeAtStop = exitValueAtStop * FEE_RATE;
-                let potentialProfit, potentialLoss;
-                if (currentTrade.type === 'Long') { potentialProfit = totalQuantity * (currentTrade.target - newAverageEntryPrice); potentialLoss = totalQuantity * (newAverageEntryPrice - currentTrade.stoploss); }
-                else { potentialProfit = totalQuantity * (newAverageEntryPrice - currentTrade.target); potentialLoss = totalQuantity * (currentTrade.stoploss - newAverageEntryPrice); }
+                
+                const tempTradeForCalc = {
+                    ...currentTrade,
+                    entry: newAverageEntryPrice,
+                    size: totalValue
+                };
+                const newMetrics = calculateTradeMetrics(tempTradeForCalc);
+
                 const updatedTrade = {
-                    ...currentTrade, entry: newAverageEntryPrice, size: totalValue, entry_prices: updatedEntryPrices,
-                    estimated_total_fee: entryFee + exitFeeAtTarget,
-                    expected_profit: potentialProfit - (entryFee + exitFeeAtTarget),
-                    expected_loss: potentialLoss + entryFee + exitFeeAtStop,
-                    expected_profit_percent: ((potentialProfit - (entryFee + exitFeeAtTarget)) / totalValue) * 100,
-                    expected_loss_percent: ((potentialLoss + entryFee + exitFeeAtStop) / totalValue) * 100,
+                    ...currentTrade,
+                    entry: newAverageEntryPrice,
+                    size: totalValue,
+                    entry_prices: updatedEntryPrices,
+                    ...newMetrics,
                     note: (currentTrade.note || '') + `\n+ Added $${newPositionValue.toFixed(2)} @ $${newEntryPrice.toFixed(4)} on ${new Date().toLocaleString()}`
                 };
                 tradeRef.update(updatedTrade);
