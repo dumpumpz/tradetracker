@@ -2710,6 +2710,7 @@
             adjustCollapsibleSize(tbody);
         }
 
+           // MODIFIED: This function now calculates RR on-the-fly if it's missing from the data.
         function renderLiveTable(data) {
             const trades = data || {};
             const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
@@ -2721,16 +2722,27 @@
                 const trade = trades[id];
                 const profitString = `$${parseFloat(trade.expected_profit || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent || 0).toFixed(2)}%)`;
                 const lossString = `$${parseFloat(trade.expected_loss || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent || 0).toFixed(2)}%)`;
-                // MODIFIED: Format the RR string
-                const rrString = trade.rr ? `${parseFloat(trade.rr).toFixed(2)}:1` : '--';
+                
+                // --- START OF CORRECTION ---
+                let rrString;
+                // First, check if a valid RR already exists on the trade object
+                if (trade.rr && !isNaN(parseFloat(trade.rr))) {
+                    rrString = `${parseFloat(trade.rr).toFixed(2)}:1`;
+                } else {
+                    // If not, calculate it now using our helper function
+                    const metrics = calculateTradeMetrics(trade);
+                    rrString = metrics.rr > 0 ? `${parseFloat(metrics.rr).toFixed(2)}:1` : '--';
+                }
+                // --- END OF CORRECTION ---
+
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
-                // MODIFIED: Added the new <td> for RR
                 return `<tr><td>${trade.symbol}</td><td>${trade.type}</td>${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}<td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td><td style="color: #28a745;">${profitString}</td><td style="color: #dc3545;">${lossString}</td><td>${rrString}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'live')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.tradesTbody.innerHTML = rowsHtml;
             adjustCollapsibleSize(DOM.tradesTbody);
         }
 
+        // MODIFIED: This function now also calculates RR on-the-fly for older completed trades.
         function renderCompletedTable(data) {
             const trades = data || {};
             const perthTodayStr = getPerthDateString();
@@ -2742,8 +2754,18 @@
                 const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                 const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
-                // MODIFIED: Format the RR string
-                const rrString = trade.rr ? `${parseFloat(trade.rr).toFixed(2)}:1` : '--';
+
+                // --- START OF CORRECTION ---
+                let rrString;
+                // First, check if a valid RR already exists on the trade object
+                if (trade.rr && !isNaN(parseFloat(trade.rr))) {
+                    rrString = `${parseFloat(trade.rr).toFixed(2)}:1`;
+                } else {
+                    // If not, calculate it now using our helper function
+                    const metrics = calculateTradeMetrics(trade);
+                    rrString = metrics.rr > 0 ? `${parseFloat(metrics.rr).toFixed(2)}:1` : '--';
+                }
+                // --- END OF CORRECTION ---
                 
                 let closedPerthDateStr = '', isHistorical;
                 if (trade.closed_date) {
@@ -2753,7 +2775,6 @@
                 } else { 
                     isHistorical = true; 
                 }
-                // MODIFIED: Added the new <td> for RR
                 return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedPerthDateStr}"><td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${rrString}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}</tr>`;
             }).join('');
             DOM.completedTradesTbody.innerHTML = rowsHtml;
@@ -2761,7 +2782,6 @@
             updateToggleButtonsVisibility();
             adjustCollapsibleSize(DOM.completedTradesTbody);
         }
-
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
             if (!containerElement) return;
