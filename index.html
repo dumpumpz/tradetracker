@@ -3914,34 +3914,41 @@ async function fetchAndRenderOptionsData() {
         `;
 
         // Build table header
-        const tableHeaderHtml = `
-            <thead>
-                <tr>
-                    <th>Expiration Date</th>
-                    <th>Day</th>
-                    <th>Type</th>
-                    <th style="text-align: right;">Open Interest (BTC)</th>
-                    <th style="text-align: right; width: 35%;">Notional Value (USD)</th>
-                </tr>
-            </thead>
-        `;
+        // Build table header
+const tableHeaderHtml = `
+    <thead>
+        <tr>
+            <th>Expiration Date</th>
+            <th>Day</th>
+            <th>Type</th>
+            <th style="text-align: right;">Max Pain Strike</th> <!-- ADD THIS LINE -->
+            <th style="text-align: right;">Open Interest (BTC)</th>
+            <th style="text-align: right; width: 35%;">Notional Value (USD)</th>
+        </tr>
+    </thead>
+`;
 
         // Build table rows
-        const tableRowsHtml = data.expirations.map(expiry => {
-            const barWidth = (expiry.notional_value_usd / maxNotional) * 100;
-            return `
-                <tr>
-                    <td>${expiry.expiration_date}</td>
-                    <td>${expiry.day_of_week}</td>
-                    <td><span class="oi-type-pill oi-type-${expiry.option_type.toLowerCase()}">${expiry.option_type}</span></td>
-                    <td>${expiry.open_interest_btc.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td class="oi-bar-cell">
-                        <div class="oi-bar" style="width: ${barWidth}%;"></div>
-                        <span class="oi-value">$${expiry.notional_value_usd.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+       // Build table rows
+const tableRowsHtml = data.expirations.map(expiry => {
+    const barWidth = (expiry.notional_value_usd / maxNotional) * 100;
+    // Format the Max Pain strike, showing 'N/A' if it's null (for non-major expiries)
+    const maxPainHtml = expiry.max_pain_strike ? formatCurrency(expiry.max_pain_strike) : 'N/A';
+    
+    return `
+        <tr>
+            <td>${expiry.expiration_date}</td>
+            <td>${expiry.day_of_week}</td>
+            <td><span class="oi-type-pill oi-type-${expiry.option_type.toLowerCase()}">${expiry.option_type}</span></td>
+            <td style="font-weight: bold;">${maxPainHtml}</td> <!-- ADD THIS LINE -->
+            <td>${expiry.open_interest_btc.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="oi-bar-cell">
+                <div class="oi-bar" style="width: ${barWidth}%;"></div>
+                <span class="oi-value">$${expiry.notional_value_usd.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+            </td>
+        </tr>
+    `;
+}).join('');
 
         // Combine and render
         DOM.optionsOiTab.innerHTML = `
