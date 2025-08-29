@@ -1,4 +1,3 @@
-javascript
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- CONFIGURATION ---
@@ -140,6 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
         noteModalContent: document.getElementById('note-modal-content'),
         noteModalClose: document.getElementById('note-modal-close'),
         optionsOiTab: document.getElementById('options-oi-tab'),
+        oiMetadataHeader: document.getElementById('oi-metadata-header'),
+        oiDashboardContainer: document.getElementById('oi-dashboard-container'),
     };
 
     // --- APPLICATION STATE ---
@@ -1848,79 +1849,126 @@ function createCrossoverSignalTableHTML(symbol, symbolData) {
             });
         });
     }
-async function fetchAndRenderOptionsData() {
-    if (!DOM.optionsOiTab) return;
-    const jsonFile = 'deribit_open_interest_classified.json';
-    try {
-        const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
 
-        // Find the maximum notional value to scale the bars
-        const maxNotional = Math.max(...data.expirations.map(exp => exp.notional_value_usd));
+    async function fetchAndRenderOptionsDashboard() {
+        if (!DOM.oiDashboardContainer) return;
+        const jsonFile = 'deribit_options_market_analysis.json';
+        try {
+            const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
 
-        // Build metadata HTML
-        const metadataHtml = `
-            <div id="options-oi-metadata">
-                <strong>${data.metadata.currency} Options Open Interest</strong><br>
-                Last calculated: ${new Date(data.metadata.calculation_timestamp_utc).toLocaleString()} | 
-                BTC Index Price: ${formatCurrency(data.metadata.btc_index_price_usd)}
-            </div>
-        `;
+            const { metadata, definitions, expirations } = data;
 
-        // Build table header
-        // Build table header
-const tableHeaderHtml = `
-    <thead>
-        <tr>
-            <th>Expiration Date</th>
-            <th>Day</th>
-            <th>Type</th>
-            <th style="text-align: right;">Max Pain Strike</th> <!-- ADD THIS LINE -->
-            <th style="text-align: right;">Open Interest (BTC)</th>
-            <th style="text-align: right; width: 35%;">Notional Value (USD)</th>
-        </tr>
-    </thead>
-`;
+            // Render Header
+            const pcr = metadata.put_call_ratio_24h_volume;
+            DOM.oiMetadataHeader.innerHTML = `
+                <div class="oi-meta-item">
+                    <div class="oi-meta-label">
+                        <span class="tooltip-trigger">BTC Index Price<span class="tooltip-content">${definitions.btc_index_price_usd}</span></span>
+                    </div>
+                    <div class="oi-meta-value">${formatCurrency(metadata.btc_index_price_usd)}</div>
+                </div>
+                <div class="oi-meta-item">
+                    <div class="oi-meta-label">
+                        <span class="tooltip-trigger">24h Put/Call Ratio (Vol)<span class="tooltip-content">${definitions.put_call_ratio_24h_volume}</span></span>
+                    </div>
+                    <div class="oi-meta-value">${pcr.ratio_by_volume.toFixed(2)}</div>
+                </div>
+                 <div class="oi-meta-item">
+                    <div class="oi-meta-label">Last Updated</div>
+                    <div class="oi-meta-value" style="font-size: 12px; font-weight: 400;">${new Date(metadata.calculation_timestamp_utc).toLocaleString()}</div>
+                </div>
+            `;
 
-        // Build table rows
-       // Build table rows
-const tableRowsHtml = data.expirations.map(expiry => {
-    const barWidth = (expiry.notional_value_usd / maxNotional) * 100;
-    // Format the Max Pain strike, showing 'N/A' if it's null (for non-major expiries)
-    const maxPainHtml = expiry.max_pain_strike ? formatCurrency(expiry.max_pain_strike) : 'N/A';
-    
-    return `
-        <tr>
-            <td>${expiry.expiration_date}</td>
-            <td>${expiry.day_of_week}</td>
-            <td><span class="oi-type-pill oi-type-${expiry.option_type.toLowerCase()}">${expiry.option_type}</span></td>
-            <td style="font-weight: bold;">${maxPainHtml}</td> <!-- ADD THIS LINE -->
-            <td>${expiry.open_interest_btc.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-            <td class="oi-bar-cell">
-                <div class="oi-bar" style="width: ${barWidth}%;"></div>
-                <span class="oi-value">$${expiry.notional_value_usd.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
-            </td>
-        </tr>
-    `;
-}).join('');
+            // Render Cards for major expiries
+            const majorExpiries = expirations
+                .filter(exp => ['Monthly', 'Quarterly'].includes(exp.option_type))
+                .sort((a,b) => new Date(a.expiration_date) - new Date(b.expiration_date));
 
-        // Combine and render
-        DOM.optionsOiTab.innerHTML = `
-            ${metadataHtml}
-            <div class="table-wrapper">
-                <table class="oi-table">
-                    ${tableHeaderHtml}
-                    <tbody>${tableRowsHtml}</tbody>
-                </table>
-            </div>
-        `;
+            const cardsHtml = majorExpiries.map(exp => {
+                // Format Date for header
+                const expDate = new Date(exp.expiration_date + 'T08:00:00Z');
+                const formattedDate = expDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+                
+                const walls = exp.open_interest_walls;
+                const callWallsHtml = walls.top_call_strikes.map(w => `<li><span class="strike">${formatCurrency(w.strike)}</span> <span class="oi">${w.open_interest_btc.toLocaleString()}</span></li>`).join('');
+                const putWallsHtml = walls.top_put_strikes.map(w => `<li><span class="strike">${formatCurrency(w.strike)}</span> <span class="oi">${w.open_interest_btc.toLocaleString()}</span></li>`).join('');
+                
+                const gammaZonesHtml = exp.short_gamma_near_spot.map(g => `<tr><td>${formatCurrency(g.strike)}</td><td class="value negative-gamma">${(g.dealer_gamma * metadata.btc_index_price_usd / 1000000).toFixed(2)}M</td></tr>`).join('');
+                
+                const iv = exp.average_iv_data;
+                const skewClass = iv.skew_proxy >= 0 ? 'positive' : 'negative';
 
-    } catch (error) {
-        console.error("Could not fetch or render options data:", error);
-        DOM.optionsOiTab.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Please check the console.</p>`;
+                return `
+                <div class="oi-card">
+                    <div class="oi-card-header">
+                        <div>
+                            <h3>${formattedDate}</h3>
+                            <p>${exp.day_of_week}</p>
+                        </div>
+                        <span class="oi-card-type-pill ${exp.option_type.toLowerCase()}">${exp.option_type}</span>
+                    </div>
+
+                    <div class="oi-key-metrics">
+                        <div class="oi-key-metric-item">
+                            <div class="label"><span class="tooltip-trigger">Notional OI<span class="tooltip-content">${definitions.notional_value_usd}</span></span></div>
+                            <div class="value">$${(exp.notional_value_usd / 1_000_000_000).toFixed(2)}B</div>
+                        </div>
+                        <div class="oi-key-metric-item">
+                             <div class="label"><span class="tooltip-trigger">Max Pain<span class="tooltip-content">${definitions.max_pain_strike}</span></span></div>
+                            <div class="value">${exp.max_pain_strike ? formatCurrency(exp.max_pain_strike) : 'N/A'}</div>
+                        </div>
+                        <div class="oi-key-metric-item">
+                             <div class="label"><span class="tooltip-trigger">24h Volume<span class="tooltip-content">${definitions.total_volume_24h_btc}</span></span></div>
+                            <div class="value-small">${exp.total_volume_24h_btc.toLocaleString(undefined, {maximumFractionDigits: 0})} BTC</div>
+                        </div>
+                    </div>
+
+                    <div class="oi-card-content-grid">
+                        <div class="oi-content-section">
+                             <h4><span class="tooltip-trigger">OI Walls<span class="tooltip-content">${definitions.open_interest_walls}</span></span></h4>
+                             <div class="oi-walls-container">
+                                <div class="oi-wall-col calls">
+                                    <h5>Call Wall (Resistance)</h5>
+                                    <ul class="oi-walls-list">${callWallsHtml}</ul>
+                                </div>
+                                <div class="oi-wall-col puts">
+                                    <h5>Put Wall (Support)</h5>
+                                    <ul class="oi-walls-list">${putWallsHtml}</ul>
+                                </div>
+                             </div>
+                        </div>
+                        <div class="oi-content-section">
+                            <h4><span class="tooltip-trigger">Short Gamma Zones ($/1pt)<span class="tooltip-content">${definitions.short_gamma_near_spot.description}</span></span></h4>
+                            <table class="oi-gamma-table">
+                                <tbody>
+                                    ${gammaZonesHtml || '<tr><td colspan="2" style="text-align:center; padding: 10px 0;">No significant short gamma near spot.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="oi-content-section">
+                            <h4><span class="tooltip-trigger">Volatility / Skew<span class="tooltip-content">${definitions.average_iv_data.description}</span></span></h4>
+                             <table class="oi-iv-table">
+                                <tbody>
+                                    <tr><td>Avg. Call IV</td><td class="value">${(iv.call_iv * 100).toFixed(1)}%</td></tr>
+                                    <tr><td>Avg. Put IV</td><td class="value">${(iv.put_iv * 100).toFixed(1)}%</td></tr>
+                                    <tr><td><span class="tooltip-trigger">Skew<span class="tooltip-content">${definitions.average_iv_data.skew_proxy}</span></span></td><td class="value ${skewClass}">${(iv.skew_proxy * 100).toFixed(1)}%</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            DOM.oiDashboardContainer.innerHTML = cardsHtml;
+        } catch (error) {
+            console.error("Could not fetch or render Options Market Analysis:", error);
+            DOM.oiDashboardContainer.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Please check the console.</p>`;
+        }
     }
-}
+
     function handleDeleteAttachmentImage(entryId, entryType, imageId, fileName) {
         if (!STATE.isMasterUser || !entryId || !entryType || !imageId || !fileName) return;
         if (confirm(`Delete this attachment?\n\n${fileName}`)) {
@@ -2138,7 +2186,7 @@ const tableRowsHtml = data.expirations.map(expiry => {
         fetchSrData();
         fetchMarketOpens();
         fetchCrossoverSignalData();
-        fetchAndRenderOptionsData(); // <-- ADD THIS LINE
+        fetchAndRenderOptionsDashboard(); 
 
         setInterval(fetchCrossoverSignalData, 5 * 60 * 1000); // Refresh every 5 minutes
         const savedTheme = localStorage.getItem('theme');
