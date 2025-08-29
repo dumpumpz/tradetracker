@@ -236,6 +236,10 @@ def update_historical_data(filename: str, new_entry: dict):
 # Final JSON Assembly
 # (This section is modified to calculate totals and call the new function)
 # -----------------------------
+# -----------------------------
+# Final JSON Assembly
+# (This section is modified to calculate totals and call the new function)
+# -----------------------------
 def process_and_save_json(grouped_options, gex_by_expiry_strike, btc_price, pcr_data, filename):
     if not grouped_options:
         print("No options data to save.")
@@ -244,7 +248,7 @@ def process_and_save_json(grouped_options, gex_by_expiry_strike, btc_price, pcr_
     expirations_list = []
     short_gamma_lookup = summarize_short_gamma_zones(gex_by_expiry_strike, btc_price)
 
-    # --- NEW: Variables to store market-wide totals ---
+    # --- Variables to store market-wide totals ---
     total_oi_all_expiries = 0
     total_volume_all_expiries = 0
     total_short_gamma_all_expiries = 0
@@ -284,14 +288,14 @@ def process_and_save_json(grouped_options, gex_by_expiry_strike, btc_price, pcr_
             "short_gamma_near_spot": short_gamma_lookup.get(expiry_dt, [])
         })
 
-        # --- NEW: Accumulate totals for historical data ---
+        # --- Accumulate totals for historical data ---
         total_oi_all_expiries += total_oi_btc
         total_volume_all_expiries += total_volume_24h_btc
         total_short_gamma_for_expiry = sum(item['dealer_gamma'] for item in gex_curve if item['dealer_gamma'] < 0)
         total_short_gamma_all_expiries += total_short_gamma_for_expiry
         # ---
 
-    # --- NEW: Create and save the historical data point ---
+    # --- Create and save the historical data point ---
     now_timestamp = datetime.utcnow().isoformat() + "Z"
     new_historical_entry = {
         "timestamp": now_timestamp,
@@ -303,9 +307,29 @@ def process_and_save_json(grouped_options, gex_by_expiry_strike, btc_price, pcr_
     }
     update_historical_data(HISTORICAL_DATA_FILENAME, new_historical_entry)
     # ---
-
-    definitions = { "..." } # Definitions are unchanged, snipped for brevity
-    # (Copy the original definitions dictionary here)
+    
+    # ---FIX: RESTORED THE FULL DEFINITIONS DICTIONARY---
+    definitions = {
+        "btc_index_price_usd": "The real-time spot price of Bitcoin used for all calculations. Everything is relative to this price.",
+        "put_call_ratio_24h_volume": "The ratio of put option volume to call option volume over the last 24 hours. A high ratio (>1.0) can signal bearish sentiment or demand for protection, while a low ratio (<0.5) can signal bullish sentiment or speculative greed.",
+        "option_type": "Categorization of the expiry date: 'Daily', 'Weekly', 'Monthly', or 'Quarterly'. Monthly and Quarterly expiries are typically the most significant.",
+        "notional_value_usd": "The total USD value of all open contracts for this expiry (Open Interest in BTC * Spot Price). It indicates the financial significance of this date.",
+        "total_volume_24h_btc": "The total number of contracts (in BTC) traded for this expiry in the last 24 hours. High volume indicates current market focus and activity.",
+        "max_pain_strike": "The strike price at which the largest number of option buyers (both call and put) would lose the most money if the price settled there at expiration. It acts as a potential 'financial gravity' point, especially for major expiries.",
+        "open_interest_walls": "The strike prices with the highest concentration of open interest for both calls and puts. These levels often act as significant psychological support (put walls) and resistance (call walls).",
+        "average_iv_data": {
+            "description": "Implied Volatility (IV) represents the market's expectation of future price movement. Higher IV means higher option premiums and expectations of volatility.",
+            "call_iv": "The open-interest-weighted average IV for all call options in this expiry.",
+            "put_iv": "The open-interest-weighted average IV for all put options in this expiry.",
+            "skew_proxy": "The difference between average Call IV and Put IV (Call IV - Put IV). A positive value (typical for crypto) indicates higher demand for upside speculation (calls). A negative value suggests higher demand for downside protection (puts) and signals fear."
+        },
+        "dealer_gamma_by_strike": "A map showing the 'Dealer Gamma Exposure' at each strike. Dealer Gamma is the inverse of public gamma exposure. A negative value means dealers are 'short gamma'.",
+        "short_gamma_near_spot": {
+            "description": "A filtered list of strikes where dealers are short gamma (negative values), sorted by how close they are to the current spot price. These are the most critical volatility zones.",
+            "dealer_gamma": "When this value is negative, dealers must hedge by buying into rallies and selling into dips, amplifying market moves. The more negative the number, the stronger this effect.",
+            "distance_to_spot": "The absolute price difference between the strike and the current spot price, used for sorting."
+        }
+    }
 
     output_data = {
         "definitions": definitions,
@@ -348,3 +372,4 @@ if __name__ == "__main__":
     if not grouped_options: raise SystemExit("No options data after processing.")
 
     process_and_save_json(grouped_options, gex_by_expiry_strike, spot, pcr, OUTPUT_FILENAME)
+
