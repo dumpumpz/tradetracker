@@ -2257,4 +2257,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeApp();
 });
-```
+
