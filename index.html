@@ -3404,6 +3404,9 @@
             DOM.noteEditModal.dataset.currentNoteId = '';
             DOM.noteModalTitle.value = '';
             DOM.noteModalContent.value = '';
+
+            // Re-render the notes grid to show the latest changes after closing the modal.
+            renderNotes(STATE.generalNotes);
         }
 
         // --- EVENT LISTENERS ---
@@ -4143,9 +4146,13 @@ const tableRowsHtml = data.expirations.map(expiry => {
                 renderSentimentReceipts();
             });
             dbRefs.levelNotes.on('value', (s) => renderLevelNotes(s.val()));
-            dbRefs.generalNotes.on('value', (s) => { 
-                STATE.generalNotes = s.val() || {}; 
-                renderNotes(STATE.generalNotes); 
+            dbRefs.generalNotes.on('value', (s) => {
+                STATE.generalNotes = s.val() || {};
+                // Only re-render the main notes grid if the edit modal is not open,
+                // to prevent the background from jumping while typing.
+                if (DOM.noteEditModal.style.display === 'none') {
+                    renderNotes(STATE.generalNotes);
+                }
             });
         }
 
