@@ -2327,12 +2327,32 @@
         };
 
         // --- HELPER FUNCTIONS ---
+        const debounce = (func, delay) => {
+            let timeout;
+            return (...args) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+
         function autoResizeTextarea(textarea) {
             if (!textarea || textarea.tagName !== 'TEXTAREA') return;
             textarea.style.height = 'auto';
             textarea.style.height = `${textarea.scrollHeight}px`;
         }
+
+        function resizeParentCollapsible(elementInside) {
+            const section = elementInside.closest('.collapsible-section');
+            if (section && section.classList.contains('is-open')) {
+                const content = section.querySelector('.collapsible-content');
+                if (content) {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                }
+            }
+        }
         
+        const debouncedResizeParent = debounce(resizeParentCollapsible, 250);
+
         const formatCurrency = (num, symbol = '$') => {
             if (typeof num !== 'number' || isNaN(num)) {
                 return '--';
@@ -2343,27 +2363,10 @@
 
         function adjustCollapsibleSize(elementInside) {
             if (!elementInside) return;
-
-            // If the element is a textarea, resize it first
             if (elementInside.tagName === 'TEXTAREA') {
                 autoResizeTextarea(elementInside);
             }
-            
-            // Then, resize its parent collapsible container if it's open
-            const section = elementInside.closest('.collapsible-section');
-            if (section && section.classList.contains('is-open')) {
-                const content = section.querySelector('.collapsible-content');
-                if (content) {
-                    // Temporarily disable transition to avoid animation jump on resize
-                    const originalTransition = content.style.transition;
-                    content.style.transition = 'none';
-                    content.style.maxHeight = content.scrollHeight + 'px';
-                    // Restore transition after a brief moment
-                    setTimeout(() => {
-                        content.style.transition = originalTransition;
-                    }, 15);
-                }
-            }
+            resizeParentCollapsible(elementInside);
         }
 
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
@@ -2900,7 +2903,7 @@
             const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
             DOM.journalEntryEl.value = dailyText;
             DOM.persistentNotesEl.value = STATE.persistentNotes;
-            setTimeout(() => { autoResizeTextarea(DOM.journalEntryEl); autoResizeTextarea(DOM.persistentNotesEl); }, 0);
+            setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); adjustCollapsibleSize(DOM.persistentNotesEl); }, 50);
             DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
             renderJournalImages(safeSymbol, timeframe, yyyymmdd);
             renderDateNavigation();
@@ -3555,8 +3558,8 @@
                 if (e.target.id === 'note-edit-modal') closeNoteModal();
             });
             DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
-            DOM.noteModalContent.addEventListener('input', () => {
-                autoResizeTextarea(DOM.noteModalContent);
+            DOM.noteModalContent.addEventListener('input', (e) => {
+                autoResizeTextarea(e.target);
                 saveNoteFromModal();
             });
 
@@ -3578,15 +3581,21 @@
                 }
             }, true);
 
-            DOM.trackerScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
+            DOM.trackerScratchpadEl.addEventListener('input', (e) => { 
+                autoResizeTextarea(e.target); 
+                debouncedResizeParent(e.target);
+                saveTrackerScratchpad(); 
+            });
             
-            DOM.primarySetupsNotes.addEventListener('input', () => {
-                autoResizeTextarea(DOM.primarySetupsNotes);
+            DOM.primarySetupsNotes.addEventListener('input', (e) => {
+                autoResizeTextarea(e.target);
+                debouncedResizeParent(e.target);
                 clearTimeout(STATE.setups1NotesTimer);
                 STATE.setups1NotesTimer = setTimeout(savePrimarySetupsNotes, 750);
             });
-            DOM.secondarySetupsNotes.addEventListener('input', () => {
-                autoResizeTextarea(DOM.secondarySetupsNotes);
+            DOM.secondarySetupsNotes.addEventListener('input', (e) => {
+                autoResizeTextarea(e.target);
+                debouncedResizeParent(e.target);
                 clearTimeout(STATE.setups2NotesTimer);
                 STATE.setups2NotesTimer = setTimeout(saveSecondarySetupsNotes, 750);
             });
@@ -3614,8 +3623,16 @@
             DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
             DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
 
-            DOM.journalEntryEl.addEventListener('input', () => { autoResizeTextarea(DOM.journalEntryEl); saveJournalEntry(); });
-            DOM.persistentNotesEl.addEventListener('input', () => { autoResizeTextarea(DOM.persistentNotesEl); savePersistentNotes(); });
+            DOM.journalEntryEl.addEventListener('input', (e) => { 
+                autoResizeTextarea(e.target); 
+                debouncedResizeParent(e.target);
+                saveJournalEntry(); 
+            });
+            DOM.persistentNotesEl.addEventListener('input', (e) => { 
+                autoResizeTextarea(e.target); 
+                debouncedResizeParent(e.target);
+                savePersistentNotes(); 
+            });
             DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
             DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
 
@@ -4138,12 +4155,16 @@ const tableRowsHtml = data.expirations.map(expiry => {
             dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(DOM.setupsTable2, STATE.setupsData2, 'secondary-setups-notes'); });
             dbRefs.persistentNotes.on('value', (s) => { 
                 STATE.persistentNotes = s.val() || ''; 
-                DOM.persistentNotesEl.value = STATE.persistentNotes; 
+                if (document.activeElement !== DOM.persistentNotesEl) {
+                    DOM.persistentNotesEl.value = STATE.persistentNotes;
+                }
                 autoResizeTextarea(DOM.persistentNotesEl);
             });
             dbRefs.trackerScratchpad.on('value', (s) => { 
                 STATE.trackerScratchpadText = s.val() || ''; 
-                DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; 
+                if (document.activeElement !== DOM.trackerScratchpadEl) {
+                    DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText;
+                }
                 autoResizeTextarea(DOM.trackerScratchpadEl);
             });
             dbRefs.sentimentReceipts.on('value', (s) => {
