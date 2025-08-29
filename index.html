@@ -1358,7 +1358,176 @@
             font-family: 'Courier New', Courier, monospace;
             font-weight: 500;
         }
+        
+        /* --- NEW STYLES FOR OPTIONS OI DASHBOARD --- */
+        #options-oi-tab .oi-global-metrics {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 15px;
+            margin-bottom: 25px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .oi-global-metric { font-size: 14px; }
+        .oi-global-metric .label { color: var(--subtle-text); display: block; font-size: 12px; margin-bottom: 4px; }
+        .oi-global-metric .value { font-weight: 600; font-size: 16px; font-family: 'Courier New', Courier, monospace; }
+        .oi-global-metric .value.pcr-bearish { color: var(--red-text); }
+        .oi-global-metric .value.pcr-bullish { color: var(--green-text); }
 
+        .oi-dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .oi-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 4px var(--shadow-color);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .oi-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px var(--shadow-color);
+        }
+        .oi-card-header {
+            padding: 12px 15px;
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .oi-card-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .oi-card-header .oi-type-pill { margin-left: 10px; }
+        .oi-card-body {
+            padding: 15px;
+            flex-grow: 1;
+        }
+        .oi-metric-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .oi-metric-item {
+            text-align: center;
+            padding: 10px;
+            background-color: var(--bg-color);
+            border-radius: 6px;
+        }
+        .oi-metric-item .label {
+            font-size: 11px;
+            color: var(--subtle-text);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .oi-metric-item .value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .oi-section-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--subtle-text);
+        }
+        .oi-walls-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .wall-column h4 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            text-align: center;
+        }
+        .wall-column.calls h4 { color: var(--red-text); }
+        .wall-column.puts h4 { color: var(--green-text); }
+        .wall-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--header-bg);
+        }
+        .wall-item:last-child { border-bottom: none; }
+        .wall-item .strike { font-weight: bold; font-family: 'Courier New', Courier, monospace; }
+        .wall-item .oi { color: var(--subtle-text); }
+        .gamma-zone-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+        .gamma-zone-table th, .gamma-zone-table td {
+            padding: 6px;
+            text-align: right;
+            border-bottom: 1px solid var(--header-bg);
+        }
+        .gamma-zone-table th { font-weight: 500; color: var(--subtle-text); }
+        .gamma-zone-table tr:last-child td { border-bottom: none; }
+        .gamma-zone-table .strike { font-weight: bold; font-family: 'Courier New', Courier, monospace; }
+        .oi-type-pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 80px;
+        }
+        .oi-type-quarterly { background-color: #ffc107; color: #333; }
+        .oi-type-monthly { background-color: var(--link-color); color: white; }
+        .oi-type-weekly { background-color: var(--card-bg); color: var(--subtle-text); border: 1px solid var(--border-color); }
+        .oi-type-daily { background-color: var(--header-bg); color: var(--subtle-text); }
+        .oi-card .tooltip {
+          position: relative;
+          display: inline-block;
+          cursor: help;
+          border-bottom: 1px dotted var(--subtle-text);
+        }
+        .oi-card .tooltip .tooltiptext {
+          visibility: hidden;
+          width: 250px;
+          background-color: var(--header-bg);
+          color: var(--text-color);
+          text-align: left;
+          border-radius: 6px;
+          padding: 8px;
+          position: absolute;
+          z-index: 1;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -125px;
+          opacity: 0;
+          transition: opacity 0.3s;
+          border: 1px solid var(--border-color);
+          box-shadow: 0 2px 5px var(--shadow-color);
+          font-size: 12px;
+          line-height: 1.5;
+        }
+        .oi-card .tooltip:hover .tooltiptext {
+          visibility: visible;
+          opacity: 1;
+        }
+        
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -1428,67 +1597,6 @@
                 gap: 25px;
             }
         }
-
-
-
-        /* --- STYLES FOR OPTIONS OI TAB --- */
-#options-oi-metadata {
-    text-align: center;
-    margin-bottom: 25px;
-    font-size: 10px;
-    color: var(--subtle-text);
-}
-.oi-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 0;
-}
-.oi-table th, .oi-table td {
-    padding: 12px 15px;
-    font-size: 10px;
-}
-.oi-table th {
-    text-align: left;
-}
-.oi-table td {
-    text-align: right;
-    border-bottom: 1px solid var(--border-color);
-}
-.oi-table td:first-child, .oi-table th:first-child {
-    text-align: left;
-    font-weight: 500;
-}
-.oi-type-pill {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 8px;
-    font-weight: bold;
-    text-align: center;
-    min-width: 80px;
-}
-.oi-type-quarterly { background-color: #ffc107; color: #333; }
-.oi-type-monthly { background-color: var(--link-color); color: white; }
-.oi-type-weekly { background-color: var(--card-bg); color: var(--subtle-text); border: 1px solid var(--border-color); }
-.oi-type-daily { background-color: var(--header-bg); color: var(--subtle-text); }
-.oi-bar-cell {
-    position: relative;
-    padding-left: 10px;
-    padding-right: 10px;
-}
-.oi-bar {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    background-color: var(--green-bar);
-    z-index: 0;
-    border-radius: 0 3px 3px 0;
-}
-.oi-value {
-    position: relative;
-    z-index: 1;
-}
     </style>
 </head>
 <body>
@@ -2083,7 +2191,7 @@
                 </div>
             </div>
         </div>
-<!-- PASTE THE NEW TAB CONTENT HERE -->
+        
         <div id="options-oi-tab" class="tab-content">
             <!-- The content will be dynamically inserted here by JavaScript -->
             <p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>
@@ -3966,79 +4074,150 @@
                 });
             });
         }
-async function fetchAndRenderOptionsData() {
-    if (!DOM.optionsOiTab) return;
-    const jsonFile = 'deribit_open_interest_classified.json';
-    try {
-        const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        
+        async function fetchAndRenderOptionsData() {
+            if (!DOM.optionsOiTab) return;
+            const jsonFile = 'deribit_options_market_analysis.json';
+            
+            try {
+                const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                
+                // Helper functions for formatting
+                const formatNumber = (num, digits = 2) => num.toLocaleString('en-US', {minimumFractionDigits: digits, maximumFractionDigits: digits});
+                const formatCompact = (num) => {
+                    if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2)}B`;
+                    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
+                    if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
+                    return num.toString();
+                };
+                const formatPercent = (val) => `${(val * 100).toFixed(2)}%`;
+                const formatCurrencyNoSymbol = (num) => num.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
 
-        // Find the maximum notional value to scale the bars
-        const maxNotional = Math.max(...data.expirations.map(exp => exp.notional_value_usd));
+                // Global metrics header
+                const pcr = data.metadata.put_call_ratio_24h_volume.ratio_by_volume;
+                const pcrClass = pcr >= 0.7 ? 'pcr-bearish' : pcr <= 0.5 ? 'pcr-bullish' : '';
+                
+                const globalMetricsHtml = `
+                    <div class="oi-global-metrics">
+                        <div class="oi-global-metric">
+                            <span class="label">
+                                <span class="tooltip">24h P/C Ratio (Vol)
+                                <span class="tooltiptext">${data.definitions.put_call_ratio_24h_volume}</span>
+                                </span>
+                            </span>
+                            <span class="value ${pcrClass}">${pcr.toFixed(2)}</span>
+                        </div>
+                        <div class="oi-global-metric">
+                            <span class="label">
+                               <span class="tooltip">BTC Index Price
+                               <span class="tooltiptext">${data.definitions.btc_index_price_usd}</span>
+                               </span>
+                            </span>
+                            <span class="value">$${formatNumber(data.metadata.btc_index_price_usd)}</span>
+                        </div>
+                        <div class="oi-global-metric">
+                           <span class="label">Last Updated (UTC)</span>
+                           <span class="value" style="font-size: 14px;">${new Date(data.metadata.calculation_timestamp_utc).toLocaleTimeString()}</span>
+                        </div>
+                    </div>
+                `;
 
-        // Build metadata HTML
-        const metadataHtml = `
-            <div id="options-oi-metadata">
-                <strong>${data.metadata.currency} Options Open Interest</strong><br>
-                Last calculated: ${new Date(data.metadata.calculation_timestamp_utc).toLocaleString()} | 
-                BTC Index Price: ${formatCurrency(data.metadata.btc_index_price_usd)}
-            </div>
-        `;
+                // Build cards for major expirations
+                const cardsHtml = data.expirations
+                    .filter(exp => ['Monthly', 'Quarterly'].includes(exp.option_type))
+                    .map(expiry => {
+                        const {
+                            expiration_date, day_of_week, option_type, notional_value_usd,
+                            total_volume_24h_btc, max_pain_strike, average_iv_data,
+                            open_interest_walls, short_gamma_near_spot
+                        } = expiry;
 
-        // Build table header
-        // Build table header
-const tableHeaderHtml = `
-    <thead>
-        <tr>
-            <th>Expiration Date</th>
-            <th>Day</th>
-            <th>Type</th>
-            <th style="text-align: right;">Max Pain Strike</th> <!-- ADD THIS LINE -->
-            <th style="text-align: right;">Open Interest (BTC)</th>
-            <th style="text-align: right; width: 35%;">Notional Value (USD)</th>
-        </tr>
-    </thead>
-`;
+                        const callWallsHtml = open_interest_walls.top_call_strikes.map(item => `
+                            <div class="wall-item">
+                                <span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span>
+                                <span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span>
+                            </div>
+                        `).join('');
 
-        // Build table rows
-       // Build table rows
-const tableRowsHtml = data.expirations.map(expiry => {
-    const barWidth = (expiry.notional_value_usd / maxNotional) * 100;
-    // Format the Max Pain strike, showing 'N/A' if it's null (for non-major expiries)
-    const maxPainHtml = expiry.max_pain_strike ? formatCurrency(expiry.max_pain_strike) : 'N/A';
-    
-    return `
-        <tr>
-            <td>${expiry.expiration_date}</td>
-            <td>${expiry.day_of_week}</td>
-            <td><span class="oi-type-pill oi-type-${expiry.option_type.toLowerCase()}">${expiry.option_type}</span></td>
-            <td style="font-weight: bold;">${maxPainHtml}</td> <!-- ADD THIS LINE -->
-            <td>${expiry.open_interest_btc.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-            <td class="oi-bar-cell">
-                <div class="oi-bar" style="width: ${barWidth}%;"></div>
-                <span class="oi-value">$${expiry.notional_value_usd.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
-            </td>
-        </tr>
-    `;
-}).join('');
+                        const putWallsHtml = open_interest_walls.top_put_strikes.map(item => `
+                            <div class="wall-item">
+                                <span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span>
+                                <span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span>
+                            </div>
+                        `).join('');
 
-        // Combine and render
-        DOM.optionsOiTab.innerHTML = `
-            ${metadataHtml}
-            <div class="table-wrapper">
-                <table class="oi-table">
-                    ${tableHeaderHtml}
-                    <tbody>${tableRowsHtml}</tbody>
-                </table>
-            </div>
-        `;
+                        const shortGammaHtml = short_gamma_near_spot.slice(0, 5).map(item => `
+                            <tr>
+                                <td class="strike">$${formatCurrencyNoSymbol(item.strike)}</td>
+                                <td>${formatNumber(item.dealer_gamma)}</td>
+                            </tr>
+                        `).join('') || `<tr><td colspan="2" style="text-align:center; padding: 10px;">None near spot</td></tr>`;
 
-    } catch (error) {
-        console.error("Could not fetch or render options data:", error);
-        DOM.optionsOiTab.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Please check the console.</p>`;
-    }
-}
+                        return `
+                            <div class="oi-card">
+                                <div class="oi-card-header">
+                                    <h3>${expiration_date} <span style="font-weight:400; color:var(--subtle-text)">(${day_of_week})</span></h3>
+                                    <span class="oi-type-pill oi-type-${option_type.toLowerCase()}">${option_type}</span>
+                                </div>
+                                <div class="oi-card-body">
+                                    <div class="oi-metric-grid">
+                                        <div class="oi-metric-item">
+                                            <span class="label"><span class="tooltip">Notional Value<span class="tooltiptext">${data.definitions.notional_value_usd}</span></span></span>
+                                            <span class="value">$${formatCompact(notional_value_usd)}</span>
+                                        </div>
+                                        <div class="oi-metric-item">
+                                            <span class="label"><span class="tooltip">24h Volume<span class="tooltiptext">${data.definitions.total_volume_24h_btc}</span></span></span>
+                                            <span class="value">${formatCompact(total_volume_24h_btc)} BTC</span>
+                                        </div>
+                                        <div class="oi-metric-item">
+                                            <span class="label"><span class="tooltip">Max Pain<span class="tooltiptext">${data.definitions.max_pain_strike}</span></span></span>
+                                            <span class="value">${max_pain_strike ? '$' + formatCurrencyNoSymbol(max_pain_strike) : 'N/A'}</span>
+                                        </div>
+                                         <div class="oi-metric-item">
+                                            <span class="label"><span class="tooltip">IV Skew<span class="tooltiptext">${data.definitions.average_iv_data.skew_proxy}</span></span></span>
+                                            <span class="value" style="color: ${average_iv_data.skew_proxy > 0 ? 'var(--green-text)' : 'var(--red-text)'}">${formatPercent(average_iv_data.skew_proxy)}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="oi-walls-container">
+                                        <div class="wall-column puts">
+                                            <h4><span class="tooltip">Top Put Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>
+                                            ${putWallsHtml}
+                                        </div>
+                                        <div class="wall-column calls">
+                                            <h4><span class="tooltip">Top Call Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>
+                                            ${callWallsHtml}
+                                        </div>
+                                    </div>
+
+                                    <h4 class="oi-section-title">
+                                        <span class="tooltip">Short Gamma Zones (Nearest Spot)
+                                            <span class="tooltiptext">${data.definitions.short_gamma_near_spot.description}</span>
+                                        </span>
+                                    </h4>
+                                    <div class="table-wrapper">
+                                        <table class="gamma-zone-table">
+                                           <thead><tr><th>Strike</th><th>Dealer Gamma</th></tr></thead>
+                                           <tbody>${shortGammaHtml}</tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                
+                DOM.optionsOiTab.innerHTML = `
+                    ${globalMetricsHtml}
+                    <div class="oi-dashboard-grid">${cardsHtml}</div>
+                `;
+
+            } catch (error) {
+                console.error("Could not fetch or render options data:", error);
+                DOM.optionsOiTab.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Could not find or parse <strong>${jsonFile}</strong>. Please check the console.</p>`;
+            }
+        }
         function handleDeleteAttachmentImage(entryId, entryType, imageId, fileName) {
             if (!STATE.isMasterUser || !entryId || !entryType || !imageId || !fileName) return;
             if (confirm(`Delete this attachment?\n\n${fileName}`)) {
@@ -4256,7 +4435,7 @@ const tableRowsHtml = data.expirations.map(expiry => {
             fetchSrData();
             fetchMarketOpens();
             fetchCrossoverSignalData();
-            fetchAndRenderOptionsData(); // <-- ADD THIS LINE
+            fetchAndRenderOptionsData();
 
             setInterval(fetchCrossoverSignalData, 5 * 60 * 1000); // Refresh every 5 minutes
             const savedTheme = localStorage.getItem('theme');
