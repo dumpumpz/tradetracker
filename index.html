@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Trade & Journal Tracker</title>
+    <!-- ADD THESE TWO LINES -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
         :root {
             --bg-color: #f4f7f6;
@@ -1597,6 +1600,213 @@
                 gap: 25px;
             }
         }
+
+
+
+
+        /* --- NEW STYLES FOR OPTIONS OI DASHBOARD --- */
+        #options-oi-tab .oi-global-metrics {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 15px;
+            margin-bottom: 25px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .oi-global-metric { font-size: 14px; }
+        .oi-global-metric .label { color: var(--subtle-text); display: block; font-size: 12px; margin-bottom: 4px; }
+        .oi-global-metric .value { font-weight: 600; font-size: 16px; font-family: 'Courier New', Courier, monospace; }
+        .oi-global-metric .value.pcr-bearish { color: var(--red-text); }
+        .oi-global-metric .value.pcr-bullish { color: var(--green-text); }
+
+        .oi-dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .oi-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 4px var(--shadow-color);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .oi-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px var(--shadow-color);
+        }
+        .oi-card-header {
+            padding: 12px 15px;
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .oi-card-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .oi-card-header .oi-type-pill { margin-left: 10px; }
+        .oi-card-body {
+            padding: 15px;
+            flex-grow: 1;
+        }
+        .oi-metric-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .oi-metric-item {
+            text-align: center;
+            padding: 10px;
+            background-color: var(--bg-color);
+            border-radius: 6px;
+        }
+        .oi-metric-item .label {
+            font-size: 11px;
+            color: var(--subtle-text);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .oi-metric-item .value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .oi-section-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--subtle-text);
+        }
+        .oi-walls-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .wall-column h4 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            text-align: center;
+        }
+        .wall-column.calls h4 { color: var(--red-text); }
+        .wall-column.puts h4 { color: var(--green-text); }
+        .wall-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--header-bg);
+        }
+        .wall-item:last-child { border-bottom: none; }
+        .wall-item .strike { font-weight: bold; font-family: 'Courier New', Courier, monospace; }
+        .wall-item .oi { color: var(--subtle-text); }
+        .gamma-zone-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+        .gamma-zone-table th, .gamma-zone-table td {
+            padding: 6px;
+            text-align: right;
+            border-bottom: 1px solid var(--header-bg);
+        }
+        .gamma-zone-table th { font-weight: 500; color: var(--subtle-text); }
+        .gamma-zone-table tr:last-child td { border-bottom: none; }
+        .gamma-zone-table .strike { font-weight: bold; font-family: 'Courier New', Courier, monospace; }
+        .oi-type-pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 80px;
+        }
+        .oi-type-quarterly { background-color: #ffc107; color: #333; }
+        .oi-type-monthly { background-color: var(--link-color); color: white; }
+        .oi-type-weekly { background-color: var(--card-bg); color: var(--subtle-text); border: 1px solid var(--border-color); }
+        .oi-type-daily { background-color: var(--header-bg); color: var(--subtle-text); }
+        .oi-card .tooltip {
+          position: relative;
+          display: inline-block;
+          cursor: help;
+          border-bottom: 1px dotted var(--subtle-text);
+        }
+        .oi-card .tooltip .tooltiptext {
+          visibility: hidden;
+          width: 250px;
+          background-color: var(--header-bg);
+          color: var(--text-color);
+          text-align: left;
+          border-radius: 6px;
+          padding: 8px;
+          position: absolute;
+          z-index: 1;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -125px;
+          opacity: 0;
+          transition: opacity 0.3s;
+          border: 1px solid var(--border-color);
+          box-shadow: 0 2px 5px var(--shadow-color);
+          font-size: 12px;
+          line-height: 1.5;
+        }
+        .oi-card .tooltip:hover .tooltiptext {
+          visibility: visible;
+          opacity: 1;
+        }
+
+        /* --- NEW STYLES FOR HISTORICAL CHARTS --- */
+        #charts-tab .chart-container {
+            position: relative;
+            margin: 0 auto 40px auto;
+            padding: 20px;
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            max-width: 1200px;
+        }
+        #charts-tab #last-updated-charts { text-align: center; color: var(--subtle-text); margin-top: -10px; margin-bottom: 20px; }
+
+
+                /* --- NEW STYLES FOR HISTORICAL CHARTS --- */
+        #charts-tab .chart-container,
+        #options-oi-tab .chart-container { /* <--- ADD THIS LINE */
+            position: relative;
+            margin: 0 auto 40px auto;
+            padding: 20px;
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            max-width: 1200px;
+        }
+        #charts-tab #last-updated-charts,
+        #options-oi-tab #last-updated-charts { /* <--- ADD THIS LINE */
+            text-align: center; 
+            color: var(--subtle-text); 
+            margin-top: 0; /* Changed from -10px */
+            margin-bottom: 20px; 
+        }
+
+
+        
     </style>
 </head>
 <body>
@@ -2193,9 +2403,24 @@
         </div>
         
         <div id="options-oi-tab" class="tab-content">
+            <!-- PASTE THE CHART HTML HERE -->
+            <p id="last-updated-charts">Loading chart data...</p>
+
+            <div class="chart-container">
+                <canvas id="priceChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="oiVolumeChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="sentimentChart"></canvas>
+            </div>
+            <!-- END OF PASTED BLOCK -->
+
             <!-- The content will be dynamically inserted here by JavaScript -->
-            <p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>
-        </div>
+            <div id="options-snapshot-container">
+    <p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>
+</div>
 
 
     </div>
@@ -4208,14 +4433,12 @@
                         `;
                     }).join('');
                 
-                DOM.optionsOiTab.innerHTML = `
-                    ${globalMetricsHtml}
-                    <div class="oi-dashboard-grid">${cardsHtml}</div>
-                `;
+                document.getElementById('options-snapshot-container').innerHTML = `${globalMetricsHtml}<div class="oi-dashboard-grid">${cardsHtml}</div>`;
 
             } catch (error) {
                 console.error("Could not fetch or render options data:", error);
-                DOM.optionsOiTab.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Could not find or parse <strong>${jsonFile}</strong>. Please check the console.</p>`;
+                // REPLACE WITH THIS
+document.getElementById('options-snapshot-container').innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Could not find or parse <strong>${jsonFile}</strong>. Please check the console.</p>`;
             }
         }
         function handleDeleteAttachmentImage(entryId, entryType, imageId, fileName) {
