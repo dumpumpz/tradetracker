@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         noteModalClose: document.getElementById('note-modal-close'),
         optionsOiTab: document.getElementById('options-oi-tab'),
         oiMetadataHeader: document.getElementById('oi-metadata-header'),
-        oiDashboardContainer: document.getElementById('oi-dashboard-container'),
+        oiDashboardContainer: document.getElementById('oi-dashboard-container')
     };
 
     // --- APPLICATION STATE ---
