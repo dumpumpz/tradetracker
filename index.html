@@ -2327,6 +2327,12 @@
         };
 
         // --- HELPER FUNCTIONS ---
+        function autoResizeTextarea(textarea) {
+            if (!textarea || textarea.tagName !== 'TEXTAREA') return;
+            textarea.style.height = 'auto';
+            textarea.style.height = `${textarea.scrollHeight}px`;
+        }
+        
         const formatCurrency = (num, symbol = '$') => {
             if (typeof num !== 'number' || isNaN(num)) {
                 return '--';
@@ -2340,8 +2346,7 @@
 
             // If the element is a textarea, resize it first
             if (elementInside.tagName === 'TEXTAREA') {
-                elementInside.style.height = 'auto';
-                elementInside.style.height = `${elementInside.scrollHeight}px`;
+                autoResizeTextarea(elementInside);
             }
             
             // Then, resize its parent collapsible container if it's open
@@ -2895,7 +2900,7 @@
             const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
             DOM.journalEntryEl.value = dailyText;
             DOM.persistentNotesEl.value = STATE.persistentNotes;
-            setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); adjustCollapsibleSize(DOM.persistentNotesEl); }, 0);
+            setTimeout(() => { autoResizeTextarea(DOM.journalEntryEl); autoResizeTextarea(DOM.persistentNotesEl); }, 0);
             DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
             renderJournalImages(safeSymbol, timeframe, yyyymmdd);
             renderDateNavigation();
@@ -3048,7 +3053,7 @@
             const notesTextarea = document.getElementById(notesTextareaId);
             if (notesTextarea) { 
                 notesTextarea.value = data.global_notes || ''; 
-                adjustCollapsibleSize(notesTextarea);
+                autoResizeTextarea(notesTextarea);
             }
             applyHighlightingToSetupsTable(tableElement);
             adjustCollapsibleSize(tableElement);
@@ -3159,7 +3164,7 @@
                             const textareaEl = document.getElementById(`${symbolPrefix}-${timeframe}-note`);
                             if (textareaEl) {
                                 textareaEl.value = note;
-                                adjustCollapsibleSize(textareaEl);
+                                autoResizeTextarea(textareaEl);
                             }
                         }
                     }
@@ -3372,7 +3377,7 @@
             DOM.noteEditModal.style.display = 'flex';
             
             setTimeout(() => { 
-                adjustCollapsibleSize(DOM.noteModalContent);
+                autoResizeTextarea(DOM.noteModalContent);
                 DOM.noteModalContent.focus();
             }, 0);
 
@@ -3413,7 +3418,7 @@
          function setupEventListeners() {
             document.getElementById('key-opens-container').addEventListener('input', e => {
                 if(e.target.matches('.key-open-note')) {
-                    adjustCollapsibleSize(e.target);
+                    autoResizeTextarea(e.target);
                     saveLevelNotes(e.target);
                 }
             });
@@ -3551,7 +3556,7 @@
             });
             DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
             DOM.noteModalContent.addEventListener('input', () => {
-                adjustCollapsibleSize(DOM.noteModalContent);
+                autoResizeTextarea(DOM.noteModalContent);
                 saveNoteFromModal();
             });
 
@@ -3573,15 +3578,15 @@
                 }
             }, true);
 
-            DOM.trackerScratchpadEl.addEventListener('input', () => { adjustCollapsibleSize(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
+            DOM.trackerScratchpadEl.addEventListener('input', () => { autoResizeTextarea(DOM.trackerScratchpadEl); saveTrackerScratchpad(); });
             
             DOM.primarySetupsNotes.addEventListener('input', () => {
-                adjustCollapsibleSize(DOM.primarySetupsNotes);
+                autoResizeTextarea(DOM.primarySetupsNotes);
                 clearTimeout(STATE.setups1NotesTimer);
                 STATE.setups1NotesTimer = setTimeout(savePrimarySetupsNotes, 750);
             });
             DOM.secondarySetupsNotes.addEventListener('input', () => {
-                adjustCollapsibleSize(DOM.secondarySetupsNotes);
+                autoResizeTextarea(DOM.secondarySetupsNotes);
                 clearTimeout(STATE.setups2NotesTimer);
                 STATE.setups2NotesTimer = setTimeout(saveSecondarySetupsNotes, 750);
             });
@@ -3609,8 +3614,8 @@
             DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
             DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
 
-            DOM.journalEntryEl.addEventListener('input', () => { adjustCollapsibleSize(DOM.journalEntryEl); saveJournalEntry(); });
-            DOM.persistentNotesEl.addEventListener('input', () => { adjustCollapsibleSize(DOM.persistentNotesEl); savePersistentNotes(); });
+            DOM.journalEntryEl.addEventListener('input', () => { autoResizeTextarea(DOM.journalEntryEl); saveJournalEntry(); });
+            DOM.persistentNotesEl.addEventListener('input', () => { autoResizeTextarea(DOM.persistentNotesEl); savePersistentNotes(); });
             DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
             DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
 
@@ -4134,12 +4139,12 @@ const tableRowsHtml = data.expirations.map(expiry => {
             dbRefs.persistentNotes.on('value', (s) => { 
                 STATE.persistentNotes = s.val() || ''; 
                 DOM.persistentNotesEl.value = STATE.persistentNotes; 
-                adjustCollapsibleSize(DOM.persistentNotesEl);
+                autoResizeTextarea(DOM.persistentNotesEl);
             });
             dbRefs.trackerScratchpad.on('value', (s) => { 
                 STATE.trackerScratchpadText = s.val() || ''; 
                 DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; 
-                adjustCollapsibleSize(DOM.trackerScratchpadEl);
+                autoResizeTextarea(DOM.trackerScratchpadEl);
             });
             dbRefs.sentimentReceipts.on('value', (s) => {
                 STATE.allSentimentReceipts = s.val() || {};
