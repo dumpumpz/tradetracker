@@ -1796,6 +1796,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px var(--shadow-color);
             max-width: 1200px;
+            
         }
         #charts-tab #last-updated-charts,
         #options-oi-tab #last-updated-charts { /* <--- ADD THIS LINE */
@@ -1805,6 +1806,15 @@
             margin-bottom: 20px; 
         }
 
+        @media (max-width: 768px) { 
+            /* ... your other mobile styles ... */
+
+            /* ADD THIS NEW RULE FOR THE CHARTS */
+            #options-oi-tab .chart-container {
+                aspect-ratio: 1 / 1.1; /* Makes the chart nearly square (width / height) */
+                min-height: 350px; /* Optional: ensures it's never TOO small */
+            }
+        }
 
         
     </style>
@@ -2887,7 +2897,7 @@
             }
         }
 
-        async function fetchAndRenderHistoricalCharts() {
+                async function fetchAndRenderHistoricalCharts() {
             let charts = {};
             const renderChart = (canvasId, type, data, titleText, scalesConfig = {}, pluginsConfig = {}) => {
                 const ctx = document.getElementById(canvasId);
@@ -2896,8 +2906,25 @@
                 if (chartInstance) {
                     chartInstance.destroy();
                 }
-                charts[canvasId] = new Chart(ctx, { type, data, options: { responsive: true, maintainAspectRatio: true, plugins: { title: { display: true, text: titleText, font: { size: 18 } }, ...pluginsConfig }, scales: { x: { type: 'time', time: { unit: 'hour', tooltipFormat: 'MMM dd, yyyy HH:mm', displayFormats: { hour: 'HH:mm' } }, title: { display: true, text: 'Time (UTC)' } }, ...scalesConfig } } });
+                charts[canvasId] = new Chart(ctx, { 
+                    type, 
+                    data, 
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, // <-- ADD THIS LINE
+                        plugins: { 
+                            title: { display: true, text: titleText, font: { size: 18 } }, 
+                            ...pluginsConfig 
+                        }, 
+                        scales: { 
+                            x: { type: 'time', time: { unit: 'hour', tooltipFormat: 'MMM dd, yyyy HH:mm', displayFormats: { hour: 'HH:mm' } }, title: { display: true, text: 'Time (UTC)' } }, 
+                            ...scalesConfig 
+                        } 
+                    } 
+                });
             };
+
+            // ... the rest of the function remains the same ...
 
             try {
                 const response = await fetch('historical_market_data.json?v=' + new Date().getTime());
