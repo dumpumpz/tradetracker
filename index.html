@@ -3056,7 +3056,7 @@
             const notesTextarea = document.getElementById(notesTextareaId);
             if (notesTextarea) { 
                 notesTextarea.value = data.global_notes || ''; 
-                autoResizeTextarea(notesTextarea);
+                adjustCollapsibleSize(notesTextarea);
             }
             applyHighlightingToSetupsTable(tableElement);
             adjustCollapsibleSize(tableElement);
@@ -3167,7 +3167,7 @@
                             const textareaEl = document.getElementById(`${symbolPrefix}-${timeframe}-note`);
                             if (textareaEl) {
                                 textareaEl.value = note;
-                                autoResizeTextarea(textareaEl);
+                                adjustCollapsibleSize(textareaEl);
                             }
                         }
                     }
@@ -4158,14 +4158,14 @@ const tableRowsHtml = data.expirations.map(expiry => {
                 if (document.activeElement !== DOM.persistentNotesEl) {
                     DOM.persistentNotesEl.value = STATE.persistentNotes;
                 }
-                autoResizeTextarea(DOM.persistentNotesEl);
+                adjustCollapsibleSize(DOM.persistentNotesEl);
             });
             dbRefs.trackerScratchpad.on('value', (s) => { 
                 STATE.trackerScratchpadText = s.val() || ''; 
                 if (document.activeElement !== DOM.trackerScratchpadEl) {
                     DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText;
                 }
-                autoResizeTextarea(DOM.trackerScratchpadEl);
+                adjustCollapsibleSize(DOM.trackerScratchpadEl);
             });
             dbRefs.sentimentReceipts.on('value', (s) => {
                 STATE.allSentimentReceipts = s.val() || {};
