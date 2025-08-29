@@ -1,0 +1,2189 @@
+{
+  "definitions": {
+    "btc_index_price_usd": "The real-time spot price of Bitcoin used for all calculations. Everything is relative to this price.",
+    "put_call_ratio_24h_volume": "The ratio of put option volume to call option volume over the last 24 hours. A high ratio (>1.0) can signal bearish sentiment or demand for protection, while a low ratio (<0.5) can signal bullish sentiment or speculative greed.",
+    "option_type": "Categorization of the expiry date: 'Daily', 'Weekly', 'Monthly', or 'Quarterly'. Monthly and Quarterly expiries are typically the most significant.",
+    "notional_value_usd": "The total USD value of all open contracts for this expiry (Open Interest in BTC * Spot Price). It indicates the financial significance of this date.",
+    "total_volume_24h_btc": "The total number of contracts (in BTC) traded for this expiry in the last 24 hours. High volume indicates current market focus and activity.",
+    "max_pain_strike": "The strike price at which the largest number of option buyers (both call and put) would lose the most money if the price settled there at expiration. It acts as a potential 'financial gravity' point, especially for major expiries.",
+    "open_interest_walls": "The strike prices with the highest concentration of open interest for both calls and puts. These levels often act as significant psychological support (put walls) and resistance (call walls).",
+    "average_iv_data": {
+      "description": "Implied Volatility (IV) represents the market's expectation of future price movement. Higher IV means higher option premiums and expectations of volatility.",
+      "call_iv": "The open-interest-weighted average IV for all call options in this expiry.",
+      "put_iv": "The open-interest-weighted average IV for all put options in this expiry.",
+      "skew_proxy": "The difference between average Call IV and Put IV (Call IV - Put IV). A positive value (typical for crypto) indicates higher demand for upside speculation (calls). A negative value suggests higher demand for downside protection (puts) and signals fear."
+    },
+    "dealer_gamma_by_strike": "A map showing the 'Dealer Gamma Exposure' at each strike. Dealer Gamma is the inverse of public gamma exposure. A negative value means dealers are 'short gamma'.",
+    "short_gamma_near_spot": {
+      "description": "A filtered list of strikes where dealers are short gamma (negative values), sorted by how close they are to the current spot price. These are the most critical volatility zones.",
+      "dealer_gamma": "When this value is negative, dealers must hedge by buying into rallies and selling into dips, amplifying market moves. The more negative the number, the stronger this effect.",
+      "distance_to_spot": "The absolute price difference between the strike and the current spot price, used for sorting."
+    }
+  },
+  "metadata": {
+    "calculation_timestamp_utc": "2025-08-29T07:09:06.581064Z",
+    "btc_index_price_usd": 110937.26,
+    "currency": "BTC",
+    "put_call_ratio_24h_volume": {
+      "ratio_by_volume": 0.0,
+      "call_volume_24h_btc": 0.0,
+      "put_volume_24h_btc": 0.0
+    }
+  },
+  "expirations": [
+    {
+      "expiration_date": "2025-08-29",
+      "day_of_week": "Friday",
+      "option_type": "Monthly",
+      "open_interest_btc": 99596.8,
+      "notional_value_usd": 11048996096.77,
+      "total_volume_24h_btc": 10156.5,
+      "max_pain_strike": 115000.0,
+      "open_interest_walls": {
+        "top_call_strikes": [
+          {
+            "strike": 120000.0,
+            "open_interest_btc": 5067.3
+          },
+          {
+            "strike": 130000.0,
+            "open_interest_btc": 4174.6
+          },
+          {
+            "strike": 125000.0,
+            "open_interest_btc": 3775.8
+          },
+          {
+            "strike": 122000.0,
+            "open_interest_btc": 3499.6
+          },
+          {
+            "strike": 124000.0,
+            "open_interest_btc": 2972.2
+          }
+        ],
+        "top_put_strikes": [
+          {
+            "strike": 85000.0,
+            "open_interest_btc": 2984.6
+          },
+          {
+            "strike": 100000.0,
+            "open_interest_btc": 2890.3
+          },
+          {
+            "strike": 110000.0,
+            "open_interest_btc": 2593.3
+          },
+          {
+            "strike": 95000.0,
+            "open_interest_btc": 2550.3
+          },
+          {
+            "strike": 80000.0,
+            "open_interest_btc": 2429.8
+          }
+        ]
+      },
+      "average_iv_data": {
+        "call_iv": 1.0455,
+        "put_iv": 1.0471,
+        "skew_proxy": -0.0016
+      },
+      "dealer_gamma_by_strike": [
+        {
+          "strike": 40000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 50000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 60000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 70000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 80000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 85000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 90000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 92000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 94000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 95000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 96000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 98000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 100000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 102000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 104000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 105000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -0.020076000000000004
+        },
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.850643
+        },
+        {
+          "strike": 111000.0,
+          "dealer_gamma": -0.898623
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.262086
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.02186
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 117000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 118000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 119000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 121000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 122000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 123000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 124000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 125000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 126000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 127000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 128000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 129000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 130000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 132000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 134000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 135000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 136000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 140000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 145000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 150000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 160000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 170000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 180000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 190000.0,
+          "dealer_gamma": 0.0
+        }
+      ],
+      "short_gamma_near_spot": [
+        {
+          "strike": 111000.0,
+          "dealer_gamma": -0.898623,
+          "distance_to_spot": 62.74000000000524
+        },
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.850643,
+          "distance_to_spot": 937.2599999999948
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.262086,
+          "distance_to_spot": 1062.7400000000052
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -0.020076000000000004,
+          "distance_to_spot": 1937.2599999999948
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.02186,
+          "distance_to_spot": 2062.7400000000052
+        }
+      ]
+    },
+    {
+      "expiration_date": "2025-08-30",
+      "day_of_week": "Saturday",
+      "option_type": "Daily",
+      "open_interest_btc": 3086.9,
+      "notional_value_usd": 342452227.89,
+      "total_volume_24h_btc": 1331.7,
+      "max_pain_strike": null,
+      "open_interest_walls": {
+        "top_call_strikes": [
+          {
+            "strike": 116000.0,
+            "open_interest_btc": 395.9
+          },
+          {
+            "strike": 118000.0,
+            "open_interest_btc": 314.7
+          },
+          {
+            "strike": 114000.0,
+            "open_interest_btc": 180.8
+          },
+          {
+            "strike": 113000.0,
+            "open_interest_btc": 155.0
+          },
+          {
+            "strike": 120000.0,
+            "open_interest_btc": 108.5
+          }
+        ],
+        "top_put_strikes": [
+          {
+            "strike": 113000.0,
+            "open_interest_btc": 242.9
+          },
+          {
+            "strike": 106000.0,
+            "open_interest_btc": 238.1
+          },
+          {
+            "strike": 112000.0,
+            "open_interest_btc": 214.7
+          },
+          {
+            "strike": 109000.0,
+            "open_interest_btc": 213.7
+          },
+          {
+            "strike": 110000.0,
+            "open_interest_btc": 182.8
+          }
+        ]
+      },
+      "average_iv_data": {
+        "call_iv": 0.4326,
+        "put_iv": 0.4406,
+        "skew_proxy": -0.008
+      },
+      "dealer_gamma_by_strike": [
+        {
+          "strike": 102000.0,
+          "dealer_gamma": -0.001173
+        },
+        {
+          "strike": 104000.0,
+          "dealer_gamma": -0.0018980000000000002
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.009524000000000001
+        },
+        {
+          "strike": 107000.0,
+          "dealer_gamma": -0.002785
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -0.004856000000000001
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -0.025776
+        },
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.04006900000000001
+        },
+        {
+          "strike": 111000.0,
+          "dealer_gamma": -0.049894
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.054094
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.047748
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.012767999999999998
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.0035800000000000007
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.007918
+        },
+        {
+          "strike": 118000.0,
+          "dealer_gamma": -0.003147
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.001085
+        }
+      ],
+      "short_gamma_near_spot": [
+        {
+          "strike": 111000.0,
+          "dealer_gamma": -0.049894,
+          "distance_to_spot": 62.74000000000524
+        },
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.04006900000000001,
+          "distance_to_spot": 937.2599999999948
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.054094,
+          "distance_to_spot": 1062.7400000000052
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -0.025776,
+          "distance_to_spot": 1937.2599999999948
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.047748,
+          "distance_to_spot": 2062.7400000000052
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -0.004856000000000001,
+          "distance_to_spot": 2937.2599999999948
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.012767999999999998,
+          "distance_to_spot": 3062.7400000000052
+        },
+        {
+          "strike": 107000.0,
+          "dealer_gamma": -0.002785,
+          "distance_to_spot": 3937.2599999999948
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.0035800000000000007,
+          "distance_to_spot": 4062.7400000000052
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.009524000000000001,
+          "distance_to_spot": 4937.259999999995
+        }
+      ]
+    },
+    {
+      "expiration_date": "2025-08-31",
+      "day_of_week": "Sunday",
+      "option_type": "Daily",
+      "open_interest_btc": 691.9,
+      "notional_value_usd": 76757490.19,
+      "total_volume_24h_btc": 597.4,
+      "max_pain_strike": null,
+      "open_interest_walls": {
+        "top_call_strikes": [
+          {
+            "strike": 112000.0,
+            "open_interest_btc": 72.0
+          },
+          {
+            "strike": 120000.0,
+            "open_interest_btc": 65.4
+          },
+          {
+            "strike": 113000.0,
+            "open_interest_btc": 46.3
+          },
+          {
+            "strike": 111000.0,
+            "open_interest_btc": 32.2
+          },
+          {
+            "strike": 114000.0,
+            "open_interest_btc": 26.2
+          }
+        ],
+        "top_put_strikes": [
+          {
+            "strike": 102000.0,
+            "open_interest_btc": 66.8
+          },
+          {
+            "strike": 104000.0,
+            "open_interest_btc": 64.9
+          },
+          {
+            "strike": 111000.0,
+            "open_interest_btc": 39.9
+          },
+          {
+            "strike": 110000.0,
+            "open_interest_btc": 36.1
+          },
+          {
+            "strike": 112000.0,
+            "open_interest_btc": 33.5
+          }
+        ]
+      },
+      "average_iv_data": {
+        "call_iv": 0.3344,
+        "put_iv": 0.4032,
+        "skew_proxy": -0.0688
+      },
+      "dealer_gamma_by_strike": [
+        {
+          "strike": 102000.0,
+          "dealer_gamma": -0.000668
+        },
+        {
+          "strike": 104000.0,
+          "dealer_gamma": -0.0012980000000000003
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.0007880000000000001
+        },
+        {
+          "strike": 107000.0,
+          "dealer_gamma": -0.0014939999999999999
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -0.002336
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -0.002288
+        },
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.0074849999999999995
+        },
+        {
+          "strike": 111000.0,
+          "dealer_gamma": -0.011536000000000001
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.01688
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.009204
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.0023360000000000004
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.0007700000000000001
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.0005729999999999999
+        },
+        {
+          "strike": 117000.0,
+          "dealer_gamma": -0.00025600000000000004
+        },
+        {
+          "strike": 118000.0,
+          "dealer_gamma": -0.00019500000000000002
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.0006540000000000001
+        }
+      ],
+      "short_gamma_near_spot": [
+        {
+          "strike": 111000.0,
+          "dealer_gamma": -0.011536000000000001,
+          "distance_to_spot": 62.74000000000524
+        },
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.0074849999999999995,
+          "distance_to_spot": 937.2599999999948
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.01688,
+          "distance_to_spot": 1062.7400000000052
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -0.002288,
+          "distance_to_spot": 1937.2599999999948
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.009204,
+          "distance_to_spot": 2062.7400000000052
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -0.002336,
+          "distance_to_spot": 2937.2599999999948
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.0023360000000000004,
+          "distance_to_spot": 3062.7400000000052
+        },
+        {
+          "strike": 107000.0,
+          "dealer_gamma": -0.0014939999999999999,
+          "distance_to_spot": 3937.2599999999948
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.0007700000000000001,
+          "distance_to_spot": 4062.7400000000052
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.0007880000000000001,
+          "distance_to_spot": 4937.259999999995
+        }
+      ]
+    },
+    {
+      "expiration_date": "2025-09-01",
+      "day_of_week": "Monday",
+      "option_type": "Daily",
+      "open_interest_btc": 346.5,
+      "notional_value_usd": 38439760.59,
+      "total_volume_24h_btc": 376.7,
+      "max_pain_strike": null,
+      "open_interest_walls": {
+        "top_call_strikes": [
+          {
+            "strike": 118000.0,
+            "open_interest_btc": 55.9
+          },
+          {
+            "strike": 120000.0,
+            "open_interest_btc": 29.6
+          },
+          {
+            "strike": 114000.0,
+            "open_interest_btc": 22.6
+          },
+          {
+            "strike": 116000.0,
+            "open_interest_btc": 15.5
+          },
+          {
+            "strike": 111000.0,
+            "open_interest_btc": 14.3
+          }
+        ],
+        "top_put_strikes": [
+          {
+            "strike": 110000.0,
+            "open_interest_btc": 40.2
+          },
+          {
+            "strike": 109000.0,
+            "open_interest_btc": 30.8
+          },
+          {
+            "strike": 104000.0,
+            "open_interest_btc": 29.8
+          },
+          {
+            "strike": 111000.0,
+            "open_interest_btc": 20.5
+          },
+          {
+            "strike": 106000.0,
+            "open_interest_btc": 20.2
+          }
+        ]
+      },
+      "average_iv_data": {
+        "call_iv": 0.321,
+        "put_iv": 0.3294,
+        "skew_proxy": -0.0084
+      },
+      "dealer_gamma_by_strike": [
+        {
+          "strike": 104000.0,
+          "dealer_gamma": -0.0005960000000000001
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.000808
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -0.000368
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -0.0030800000000000003
+        },
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.0055379999999999995
+        },
+        {
+          "strike": 111000.0,
+          "dealer_gamma": -0.004872
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.004395999999999999
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.001716
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.0018240000000000003
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.0007740000000000001
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.00062
+        },
+        {
+          "strike": 118000.0,
+          "dealer_gamma": -0.001118
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.00029600000000000004
+        }
+      ],
+      "short_gamma_near_spot": [
+        {
+          "strike": 111000.0,
+          "dealer_gamma": -0.004872,
+          "distance_to_spot": 62.74000000000524
+        },
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.0055379999999999995,
+          "distance_to_spot": 937.2599999999948
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.004395999999999999,
+          "distance_to_spot": 1062.7400000000052
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -0.0030800000000000003,
+          "distance_to_spot": 1937.2599999999948
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.001716,
+          "distance_to_spot": 2062.7400000000052
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -0.000368,
+          "distance_to_spot": 2937.2599999999948
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.0018240000000000003,
+          "distance_to_spot": 3062.7400000000052
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.0007740000000000001,
+          "distance_to_spot": 4062.7400000000052
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.000808,
+          "distance_to_spot": 4937.259999999995
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.00062,
+          "distance_to_spot": 5062.740000000005
+        }
+      ]
+    },
+    {
+      "expiration_date": "2025-09-05",
+      "day_of_week": "Friday",
+      "option_type": "Weekly",
+      "open_interest_btc": 9201.8,
+      "notional_value_usd": 1020822479.07,
+      "total_volume_24h_btc": 2076.1,
+      "max_pain_strike": null,
+      "open_interest_walls": {
+        "top_call_strikes": [
+          {
+            "strike": 117000.0,
+            "open_interest_btc": 707.3
+          },
+          {
+            "strike": 128000.0,
+            "open_interest_btc": 530.2
+          },
+          {
+            "strike": 122000.0,
+            "open_interest_btc": 337.0
+          },
+          {
+            "strike": 114000.0,
+            "open_interest_btc": 320.1
+          },
+          {
+            "strike": 123000.0,
+            "open_interest_btc": 299.7
+          }
+        ],
+        "top_put_strikes": [
+          {
+            "strike": 105000.0,
+            "open_interest_btc": 2462.4
+          },
+          {
+            "strike": 116000.0,
+            "open_interest_btc": 931.8
+          },
+          {
+            "strike": 113000.0,
+            "open_interest_btc": 614.5
+          },
+          {
+            "strike": 95000.0,
+            "open_interest_btc": 606.2
+          },
+          {
+            "strike": 112000.0,
+            "open_interest_btc": 523.9
+          }
+        ]
+      },
+      "average_iv_data": {
+        "call_iv": 0.392,
+        "put_iv": 0.3853,
+        "skew_proxy": 0.0067
+      },
+      "dealer_gamma_by_strike": [
+        {
+          "strike": 85000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 95000.0,
+          "dealer_gamma": -0.0060620000000000005
+        },
+        {
+          "strike": 105000.0,
+          "dealer_gamma": -0.09851600000000002
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.0048000000000000004
+        },
+        {
+          "strike": 107000.0,
+          "dealer_gamma": -0.00503
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -0.00027
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.059408
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.04916
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.040593000000000004
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.04659
+        },
+        {
+          "strike": 117000.0,
+          "dealer_gamma": -0.041348
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.0012460000000000001
+        },
+        {
+          "strike": 122000.0,
+          "dealer_gamma": -0.00337
+        },
+        {
+          "strike": 123000.0,
+          "dealer_gamma": -0.002997
+        },
+        {
+          "strike": 125000.0,
+          "dealer_gamma": -0.0029730000000000004
+        },
+        {
+          "strike": 126000.0,
+          "dealer_gamma": -0.0019930000000000004
+        },
+        {
+          "strike": 128000.0,
+          "dealer_gamma": -0.005302000000000001
+        },
+        {
+          "strike": 130000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 140000.0,
+          "dealer_gamma": 0.0
+        }
+      ],
+      "short_gamma_near_spot": [
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.059408,
+          "distance_to_spot": 1062.7400000000052
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.04916,
+          "distance_to_spot": 2062.7400000000052
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -0.00027,
+          "distance_to_spot": 2937.2599999999948
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.040593000000000004,
+          "distance_to_spot": 3062.7400000000052
+        },
+        {
+          "strike": 107000.0,
+          "dealer_gamma": -0.00503,
+          "distance_to_spot": 3937.2599999999948
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.0048000000000000004,
+          "distance_to_spot": 4937.259999999995
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.04659,
+          "distance_to_spot": 5062.740000000005
+        },
+        {
+          "strike": 105000.0,
+          "dealer_gamma": -0.09851600000000002,
+          "distance_to_spot": 5937.259999999995
+        },
+        {
+          "strike": 117000.0,
+          "dealer_gamma": -0.041348,
+          "distance_to_spot": 6062.740000000005
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.0012460000000000001,
+          "distance_to_spot": 9062.740000000005
+        }
+      ]
+    },
+    {
+      "expiration_date": "2025-09-12",
+      "day_of_week": "Friday",
+      "option_type": "Weekly",
+      "open_interest_btc": 4065.9,
+      "notional_value_usd": 451059805.43,
+      "total_volume_24h_btc": 1242.5,
+      "max_pain_strike": null,
+      "open_interest_walls": {
+        "top_call_strikes": [
+          {
+            "strike": 116000.0,
+            "open_interest_btc": 750.8
+          },
+          {
+            "strike": 122000.0,
+            "open_interest_btc": 335.0
+          },
+          {
+            "strike": 119000.0,
+            "open_interest_btc": 230.7
+          },
+          {
+            "strike": 117000.0,
+            "open_interest_btc": 200.0
+          },
+          {
+            "strike": 113000.0,
+            "open_interest_btc": 121.3
+          }
+        ],
+        "top_put_strikes": [
+          {
+            "strike": 112000.0,
+            "open_interest_btc": 1028.2
+          },
+          {
+            "strike": 106000.0,
+            "open_interest_btc": 393.5
+          },
+          {
+            "strike": 104000.0,
+            "open_interest_btc": 267.8
+          },
+          {
+            "strike": 109000.0,
+            "open_interest_btc": 172.3
+          },
+          {
+            "strike": 113000.0,
+            "open_interest_btc": 113.1
+          }
+        ]
+      },
+      "average_iv_data": {
+        "call_iv": 0.3452,
+        "put_iv": 0.3681,
+        "skew_proxy": -0.0229
+      },
+      "dealer_gamma_by_strike": [
+        {
+          "strike": 95000.0,
+          "dealer_gamma": -0.0007880000000000001
+        },
+        {
+          "strike": 100000.0,
+          "dealer_gamma": -4.000000000000001e-06
+        },
+        {
+          "strike": 104000.0,
+          "dealer_gamma": -0.008034000000000001
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.01574
+        },
+        {
+          "strike": 107000.0,
+          "dealer_gamma": -0.003932
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -0.008615000000000001
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.051410000000000004
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.011720000000000001
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.005495000000000001
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.033052
+        },
+        {
+          "strike": 117000.0,
+          "dealer_gamma": -0.008
+        },
+        {
+          "strike": 119000.0,
+          "dealer_gamma": -0.006921
+        },
+        {
+          "strike": 122000.0,
+          "dealer_gamma": -0.0067
+        },
+        {
+          "strike": 124000.0,
+          "dealer_gamma": -0.0010580000000000001
+        },
+        {
+          "strike": 130000.0,
+          "dealer_gamma": -0.00037600000000000003
+        }
+      ],
+      "short_gamma_near_spot": [
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.051410000000000004,
+          "distance_to_spot": 1062.7400000000052
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -0.008615000000000001,
+          "distance_to_spot": 1937.2599999999948
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.011720000000000001,
+          "distance_to_spot": 2062.7400000000052
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.005495000000000001,
+          "distance_to_spot": 3062.7400000000052
+        },
+        {
+          "strike": 107000.0,
+          "dealer_gamma": -0.003932,
+          "distance_to_spot": 3937.2599999999948
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.01574,
+          "distance_to_spot": 4937.259999999995
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.033052,
+          "distance_to_spot": 5062.740000000005
+        },
+        {
+          "strike": 117000.0,
+          "dealer_gamma": -0.008,
+          "distance_to_spot": 6062.740000000005
+        },
+        {
+          "strike": 104000.0,
+          "dealer_gamma": -0.008034000000000001,
+          "distance_to_spot": 6937.259999999995
+        },
+        {
+          "strike": 119000.0,
+          "dealer_gamma": -0.006921,
+          "distance_to_spot": 8062.740000000005
+        }
+      ]
+    },
+    {
+      "expiration_date": "2025-09-19",
+      "day_of_week": "Friday",
+      "option_type": "Weekly",
+      "open_interest_btc": 105.7,
+      "notional_value_usd": 11726068.38,
+      "total_volume_24h_btc": 111.0,
+      "max_pain_strike": null,
+      "open_interest_walls": {
+        "top_call_strikes": [
+          {
+            "strike": 125000.0,
+            "open_interest_btc": 26.8
+          },
+          {
+            "strike": 120000.0,
+            "open_interest_btc": 12.4
+          },
+          {
+            "strike": 115000.0,
+            "open_interest_btc": 11.7
+          },
+          {
+            "strike": 114000.0,
+            "open_interest_btc": 0.2
+          }
+        ],
+        "top_put_strikes": [
+          {
+            "strike": 100000.0,
+            "open_interest_btc": 42.2
+          },
+          {
+            "strike": 115000.0,
+            "open_interest_btc": 10.1
+          },
+          {
+            "strike": 111000.0,
+            "open_interest_btc": 0.9
+          },
+          {
+            "strike": 109000.0,
+            "open_interest_btc": 0.7
+          },
+          {
+            "strike": 113000.0,
+            "open_interest_btc": 0.6
+          }
+        ]
+      },
+      "average_iv_data": {
+        "call_iv": 0.3521,
+        "put_iv": 0.4094,
+        "skew_proxy": -0.0573
+      },
+      "dealer_gamma_by_strike": [
+        {
+          "strike": 100000.0,
+          "dealer_gamma": -0.0008440000000000001
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -2.8e-05
+        },
+        {
+          "strike": 111000.0,
+          "dealer_gamma": -3.6e-05
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -2.4e-05
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -8.000000000000001e-06
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.0008719999999999999
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -4.000000000000001e-06
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.00037200000000000004
+        },
+        {
+          "strike": 125000.0,
+          "dealer_gamma": -0.000536
+        }
+      ],
+      "short_gamma_near_spot": [
+        {
+          "strike": 111000.0,
+          "dealer_gamma": -3.6e-05,
+          "distance_to_spot": 62.74000000000524
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -2.8e-05,
+          "distance_to_spot": 1937.2599999999948
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -2.4e-05,
+          "distance_to_spot": 2062.7400000000052
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -8.000000000000001e-06,
+          "distance_to_spot": 3062.7400000000052
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.0008719999999999999,
+          "distance_to_spot": 4062.7400000000052
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -4.000000000000001e-06,
+          "distance_to_spot": 5062.740000000005
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.00037200000000000004,
+          "distance_to_spot": 9062.740000000005
+        },
+        {
+          "strike": 100000.0,
+          "dealer_gamma": -0.0008440000000000001,
+          "distance_to_spot": 10937.259999999995
+        },
+        {
+          "strike": 125000.0,
+          "dealer_gamma": -0.000536,
+          "distance_to_spot": 14062.740000000005
+        }
+      ]
+    },
+    {
+      "expiration_date": "2025-09-26",
+      "day_of_week": "Friday",
+      "option_type": "Quarterly",
+      "open_interest_btc": 59207.0,
+      "notional_value_usd": 6568262352.82,
+      "total_volume_24h_btc": 1243.8,
+      "max_pain_strike": 110000.0,
+      "open_interest_walls": {
+        "top_call_strikes": [
+          {
+            "strike": 140000.0,
+            "open_interest_btc": 9796.3
+          },
+          {
+            "strike": 115000.0,
+            "open_interest_btc": 5622.3
+          },
+          {
+            "strike": 150000.0,
+            "open_interest_btc": 4329.9
+          },
+          {
+            "strike": 100000.0,
+            "open_interest_btc": 2734.3
+          },
+          {
+            "strike": 116000.0,
+            "open_interest_btc": 1397.2
+          }
+        ],
+        "top_put_strikes": [
+          {
+            "strike": 95000.0,
+            "open_interest_btc": 8286.2
+          },
+          {
+            "strike": 110000.0,
+            "open_interest_btc": 4516.0
+          },
+          {
+            "strike": 105000.0,
+            "open_interest_btc": 2604.1
+          },
+          {
+            "strike": 98000.0,
+            "open_interest_btc": 1766.1
+          },
+          {
+            "strike": 115000.0,
+            "open_interest_btc": 1553.9
+          }
+        ]
+      },
+      "average_iv_data": {
+        "call_iv": 0.4722,
+        "put_iv": 0.4572,
+        "skew_proxy": 0.015
+      },
+      "dealer_gamma_by_strike": [
+        {
+          "strike": 30000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 40000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 55000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 60000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 65000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 70000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 80000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 85000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 95000.0,
+          "dealer_gamma": -0.09265300000000001
+        },
+        {
+          "strike": 98000.0,
+          "dealer_gamma": -0.035322
+        },
+        {
+          "strike": 100000.0,
+          "dealer_gamma": -0.054686000000000005
+        },
+        {
+          "strike": 105000.0,
+          "dealer_gamma": -0.078123
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -8.7e-05
+        },
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.13548000000000002
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.287048
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.068376
+        },
+        {
+          "strike": 118000.0,
+          "dealer_gamma": -0.027156000000000003
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.033432
+        },
+        {
+          "strike": 124000.0,
+          "dealer_gamma": -0.02135
+        },
+        {
+          "strike": 125000.0,
+          "dealer_gamma": -0.004432
+        },
+        {
+          "strike": 126000.0,
+          "dealer_gamma": -0.0005
+        },
+        {
+          "strike": 132000.0,
+          "dealer_gamma": -5.3e-05
+        },
+        {
+          "strike": 134000.0,
+          "dealer_gamma": -0.004632000000000001
+        },
+        {
+          "strike": 135000.0,
+          "dealer_gamma": -0.00016800000000000002
+        },
+        {
+          "strike": 136000.0,
+          "dealer_gamma": -0.0033860000000000006
+        },
+        {
+          "strike": 140000.0,
+          "dealer_gamma": -0.097963
+        },
+        {
+          "strike": 145000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 150000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 170000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 190000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 200000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 210000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 220000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 240000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 260000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 400000.0,
+          "dealer_gamma": 0.0
+        }
+      ],
+      "short_gamma_near_spot": [
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.13548000000000002,
+          "distance_to_spot": 937.2599999999948
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.287048,
+          "distance_to_spot": 4062.7400000000052
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -8.7e-05,
+          "distance_to_spot": 4937.259999999995
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.068376,
+          "distance_to_spot": 5062.740000000005
+        },
+        {
+          "strike": 105000.0,
+          "dealer_gamma": -0.078123,
+          "distance_to_spot": 5937.259999999995
+        },
+        {
+          "strike": 118000.0,
+          "dealer_gamma": -0.027156000000000003,
+          "distance_to_spot": 7062.740000000005
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.033432,
+          "distance_to_spot": 9062.740000000005
+        },
+        {
+          "strike": 100000.0,
+          "dealer_gamma": -0.054686000000000005,
+          "distance_to_spot": 10937.259999999995
+        },
+        {
+          "strike": 98000.0,
+          "dealer_gamma": -0.035322,
+          "distance_to_spot": 12937.259999999995
+        },
+        {
+          "strike": 124000.0,
+          "dealer_gamma": -0.02135,
+          "distance_to_spot": 13062.740000000005
+        }
+      ]
+    },
+    {
+      "expiration_date": "2025-10-31",
+      "day_of_week": "Friday",
+      "option_type": "Monthly",
+      "open_interest_btc": 14897.1,
+      "notional_value_usd": 1652643455.95,
+      "total_volume_24h_btc": 506.7,
+      "max_pain_strike": 116000.0,
+      "open_interest_walls": {
+        "top_call_strikes": [
+          {
+            "strike": 120000.0,
+            "open_interest_btc": 2661.4
+          },
+          {
+            "strike": 116000.0,
+            "open_interest_btc": 1198.9
+          },
+          {
+            "strike": 130000.0,
+            "open_interest_btc": 1112.8
+          },
+          {
+            "strike": 135000.0,
+            "open_interest_btc": 1025.8
+          },
+          {
+            "strike": 170000.0,
+            "open_interest_btc": 986.0
+          }
+        ],
+        "top_put_strikes": [
+          {
+            "strike": 108000.0,
+            "open_interest_btc": 1335.9
+          },
+          {
+            "strike": 110000.0,
+            "open_interest_btc": 1132.2
+          },
+          {
+            "strike": 105000.0,
+            "open_interest_btc": 804.1
+          },
+          {
+            "strike": 40000.0,
+            "open_interest_btc": 267.1
+          },
+          {
+            "strike": 122000.0,
+            "open_interest_btc": 265.3
+          }
+        ]
+      },
+      "average_iv_data": {
+        "call_iv": 0.381,
+        "put_iv": 0.4136,
+        "skew_proxy": -0.0325
+      },
+      "dealer_gamma_by_strike": [
+        {
+          "strike": 40000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 50000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 60000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 85000.0,
+          "dealer_gamma": -0.0005290000000000001
+        },
+        {
+          "strike": 95000.0,
+          "dealer_gamma": -4e-05
+        },
+        {
+          "strike": 100000.0,
+          "dealer_gamma": -1e-05
+        },
+        {
+          "strike": 104000.0,
+          "dealer_gamma": -0.004720000000000001
+        },
+        {
+          "strike": 105000.0,
+          "dealer_gamma": -0.016082000000000003
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.00021600000000000002
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -0.026718000000000006
+        },
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.022644000000000004
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.005032
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.023978000000000003
+        },
+        {
+          "strike": 118000.0,
+          "dealer_gamma": -0.00177
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.053228000000000004
+        },
+        {
+          "strike": 122000.0,
+          "dealer_gamma": -0.011394000000000001
+        },
+        {
+          "strike": 125000.0,
+          "dealer_gamma": -0.0024480000000000005
+        },
+        {
+          "strike": 126000.0,
+          "dealer_gamma": -0.009908
+        },
+        {
+          "strike": 130000.0,
+          "dealer_gamma": -0.022256
+        },
+        {
+          "strike": 132000.0,
+          "dealer_gamma": -8e-05
+        },
+        {
+          "strike": 135000.0,
+          "dealer_gamma": -0.010258
+        },
+        {
+          "strike": 136000.0,
+          "dealer_gamma": -0.006971000000000001
+        },
+        {
+          "strike": 138000.0,
+          "dealer_gamma": -0.004921
+        },
+        {
+          "strike": 140000.0,
+          "dealer_gamma": -0.009542000000000002
+        },
+        {
+          "strike": 145000.0,
+          "dealer_gamma": -5.6e-05
+        },
+        {
+          "strike": 150000.0,
+          "dealer_gamma": -6e-06
+        },
+        {
+          "strike": 170000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 190000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 200000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 210000.0,
+          "dealer_gamma": 0.0
+        }
+      ],
+      "short_gamma_near_spot": [
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -0.022644000000000004,
+          "distance_to_spot": 937.2599999999948
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -0.026718000000000006,
+          "distance_to_spot": 2937.2599999999948
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.005032,
+          "distance_to_spot": 3062.7400000000052
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.00021600000000000002,
+          "distance_to_spot": 4937.259999999995
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.023978000000000003,
+          "distance_to_spot": 5062.740000000005
+        },
+        {
+          "strike": 105000.0,
+          "dealer_gamma": -0.016082000000000003,
+          "distance_to_spot": 5937.259999999995
+        },
+        {
+          "strike": 104000.0,
+          "dealer_gamma": -0.004720000000000001,
+          "distance_to_spot": 6937.259999999995
+        },
+        {
+          "strike": 118000.0,
+          "dealer_gamma": -0.00177,
+          "distance_to_spot": 7062.740000000005
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.053228000000000004,
+          "distance_to_spot": 9062.740000000005
+        },
+        {
+          "strike": 100000.0,
+          "dealer_gamma": -1e-05,
+          "distance_to_spot": 10937.259999999995
+        }
+      ]
+    },
+    {
+      "expiration_date": "2025-11-28",
+      "day_of_week": "Friday",
+      "option_type": "Monthly",
+      "open_interest_btc": 12.2,
+      "notional_value_usd": 1353434.57,
+      "total_volume_24h_btc": 12.9,
+      "max_pain_strike": 108000.0,
+      "open_interest_walls": {
+        "top_call_strikes": [
+          {
+            "strike": 150000.0,
+            "open_interest_btc": 6.2
+          },
+          {
+            "strike": 126000.0,
+            "open_interest_btc": 2.0
+          },
+          {
+            "strike": 120000.0,
+            "open_interest_btc": 1.2
+          },
+          {
+            "strike": 106000.0,
+            "open_interest_btc": 1.0
+          },
+          {
+            "strike": 114000.0,
+            "open_interest_btc": 0.1
+          }
+        ],
+        "top_put_strikes": [
+          {
+            "strike": 110000.0,
+            "open_interest_btc": 0.5
+          },
+          {
+            "strike": 112000.0,
+            "open_interest_btc": 0.5
+          },
+          {
+            "strike": 108000.0,
+            "open_interest_btc": 0.4
+          },
+          {
+            "strike": 80000.0,
+            "open_interest_btc": 0.3
+          }
+        ]
+      },
+      "average_iv_data": {
+        "call_iv": 0.3931,
+        "put_iv": 0.4044,
+        "skew_proxy": -0.0113
+      },
+      "dealer_gamma_by_strike": [
+        {
+          "strike": 80000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -2e-05
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -8.000000000000001e-06
+        },
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -1e-05
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -1e-05
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -2.0000000000000003e-06
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -2.4e-05
+        },
+        {
+          "strike": 126000.0,
+          "dealer_gamma": -4e-05
+        },
+        {
+          "strike": 150000.0,
+          "dealer_gamma": -6.2e-05
+        }
+      ],
+      "short_gamma_near_spot": [
+        {
+          "strike": 110000.0,
+          "dealer_gamma": -1e-05,
+          "distance_to_spot": 937.2599999999948
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -1e-05,
+          "distance_to_spot": 1062.7400000000052
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -8.000000000000001e-06,
+          "distance_to_spot": 2937.2599999999948
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -2.0000000000000003e-06,
+          "distance_to_spot": 3062.7400000000052
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -2e-05,
+          "distance_to_spot": 4937.259999999995
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -2.4e-05,
+          "distance_to_spot": 9062.740000000005
+        },
+        {
+          "strike": 126000.0,
+          "dealer_gamma": -4e-05,
+          "distance_to_spot": 15062.740000000005
+        },
+        {
+          "strike": 150000.0,
+          "dealer_gamma": -6.2e-05,
+          "distance_to_spot": 39062.740000000005
+        }
+      ]
+    },
+    {
+      "expiration_date": "2025-12-26",
+      "day_of_week": "Friday",
+      "option_type": "Quarterly",
+      "open_interest_btc": 34725.0,
+      "notional_value_usd": 3852296353.5,
+      "total_volume_24h_btc": 281.8,
+      "max_pain_strike": 105000.0,
+      "open_interest_walls": {
+        "top_call_strikes": [
+          {
+            "strike": 140000.0,
+            "open_interest_btc": 10212.9
+          },
+          {
+            "strike": 150000.0,
+            "open_interest_btc": 4804.8
+          },
+          {
+            "strike": 125000.0,
+            "open_interest_btc": 2788.3
+          },
+          {
+            "strike": 190000.0,
+            "open_interest_btc": 1763.5
+          },
+          {
+            "strike": 100000.0,
+            "open_interest_btc": 1485.7
+          }
+        ],
+        "top_put_strikes": [
+          {
+            "strike": 105000.0,
+            "open_interest_btc": 2192.8
+          },
+          {
+            "strike": 100000.0,
+            "open_interest_btc": 2158.2
+          },
+          {
+            "strike": 90000.0,
+            "open_interest_btc": 2114.0
+          },
+          {
+            "strike": 95000.0,
+            "open_interest_btc": 1652.9
+          },
+          {
+            "strike": 50000.0,
+            "open_interest_btc": 868.5
+          }
+        ]
+      },
+      "average_iv_data": {
+        "call_iv": 0.4165,
+        "put_iv": 0.4565,
+        "skew_proxy": -0.04
+      },
+      "dealer_gamma_by_strike": [
+        {
+          "strike": 40000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 50000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 60000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 70000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 75000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 90000.0,
+          "dealer_gamma": -0.021140000000000003
+        },
+        {
+          "strike": 95000.0,
+          "dealer_gamma": -0.016529000000000002
+        },
+        {
+          "strike": 100000.0,
+          "dealer_gamma": -0.036439
+        },
+        {
+          "strike": 105000.0,
+          "dealer_gamma": -0.034953000000000005
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.027628000000000003
+        },
+        {
+          "strike": 125000.0,
+          "dealer_gamma": -0.027883000000000005
+        },
+        {
+          "strike": 135000.0,
+          "dealer_gamma": -0.001085
+        },
+        {
+          "strike": 140000.0,
+          "dealer_gamma": -0.10212900000000001
+        },
+        {
+          "strike": 145000.0,
+          "dealer_gamma": -1.0000000000000002e-06
+        },
+        {
+          "strike": 150000.0,
+          "dealer_gamma": -0.04808500000000001
+        },
+        {
+          "strike": 160000.0,
+          "dealer_gamma": -0.00476
+        },
+        {
+          "strike": 170000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 190000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 200000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 220000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 240000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 260000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 280000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 300000.0,
+          "dealer_gamma": 0.0
+        }
+      ],
+      "short_gamma_near_spot": [
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.027628000000000003,
+          "distance_to_spot": 4062.7400000000052
+        },
+        {
+          "strike": 105000.0,
+          "dealer_gamma": -0.034953000000000005,
+          "distance_to_spot": 5937.259999999995
+        },
+        {
+          "strike": 100000.0,
+          "dealer_gamma": -0.036439,
+          "distance_to_spot": 10937.259999999995
+        },
+        {
+          "strike": 125000.0,
+          "dealer_gamma": -0.027883000000000005,
+          "distance_to_spot": 14062.740000000005
+        },
+        {
+          "strike": 95000.0,
+          "dealer_gamma": -0.016529000000000002,
+          "distance_to_spot": 15937.259999999995
+        },
+        {
+          "strike": 90000.0,
+          "dealer_gamma": -0.021140000000000003,
+          "distance_to_spot": 20937.259999999995
+        },
+        {
+          "strike": 135000.0,
+          "dealer_gamma": -0.001085,
+          "distance_to_spot": 24062.740000000005
+        },
+        {
+          "strike": 140000.0,
+          "dealer_gamma": -0.10212900000000001,
+          "distance_to_spot": 29062.740000000005
+        },
+        {
+          "strike": 145000.0,
+          "dealer_gamma": -1.0000000000000002e-06,
+          "distance_to_spot": 34062.740000000005
+        },
+        {
+          "strike": 150000.0,
+          "dealer_gamma": -0.04808500000000001,
+          "distance_to_spot": 39062.740000000005
+        }
+      ]
+    }
+  ]
+}
