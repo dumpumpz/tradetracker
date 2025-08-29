@@ -240,6 +240,46 @@ def update_historical_data(filename: str, new_entry: dict):
 # Final JSON Assembly
 # (This section is modified to calculate totals and call the new function)
 # -----------------------------
+# --- ADD THIS NEW FUNCTION somewhere in the "Core Calculations" section ---
+
+def get_key_gamma_strikes(gex_by_expiry_strike: dict, spot_price: float, tracked_strikes: list, top_n_dynamic: int = 5) -> dict:
+    """
+    Identifies the most significant gamma strikes to track historically.
+    This includes a static list of tracked strikes plus the top N dynamic
+    short gamma strikes closest to the spot price.
+    """
+    # 1. Aggregate gamma across all expiries for each strike
+    total_gamma_by_strike = defaultdict(float)
+    for expiry, strike_map in gex_by_expiry_strike.items():
+        for strike, gamma in strike_map.items():
+            total_gamma_by_strike[strike] += gamma
+
+    # 2. Find the top N dynamic short gamma strikes near spot
+    dynamic_strikes = []
+    all_short_gamma_strikes = [
+        {'strike': s, 'gamma': g, 'distance': abs(s - spot_price)}
+        for s, g in total_gamma_by_strike.items() if g < 0
+    ]
+    all_short_gamma_strikes.sort(key=lambda x: x['distance'])
+    
+    for item in all_short_gamma_strikes[:top_n_dynamic]:
+        dynamic_strikes.append(item['strike'])
+
+    # 3. Combine static and dynamic strikes, ensuring no duplicates
+    key_strikes_set = set(tracked_strikes) | set(dynamic_strikes)
+    
+    # 4. Build the final dictionary to be saved
+    historical_gamma_data = {
+        # Convert strike to a string key for JSON compatibility and easier JS handling
+        str(int(strike)): round(total_gamma_by_strike.get(strike, 0.0), 4)
+        for strike in sorted(list(key_strikes_set))
+    }
+    
+    return historical_gamma_data
+
+
+# --- REPLACE your existing process_and_save_json function with this one ---
+
 def process_and_save_json(grouped_options, gex_by_expiry_strike, btc_price, pcr_data, filename):
     if not grouped_options:
         print("No options data to save.")
@@ -256,17 +296,12 @@ def process_and_save_json(grouped_options, gex_by_expiry_strike, btc_price, pcr_
 
     for expiry_dt in sorted(grouped_options.keys()):
         options_list = grouped_options[expiry_dt]
-
         total_volume_24h_btc = sum(opt['volume_24h'] for opt in options_list)
         total_call_oi = sum(o['oi'] for o in options_list if o['type'] == 'call')
         total_put_oi = sum(o['oi'] for o in options_list if o['type'] == 'put')
         weighted_call_iv = sum(o['iv'] * o['oi'] for o in options_list if o['type'] == 'call') / total_call_oi if total_call_oi > 0 else 0
         weighted_put_iv = sum(o['iv'] * o['oi'] for o in options_list if o['type'] == 'put') / total_put_oi if total_put_oi > 0 else 0
-        average_iv_data = {
-            "call_iv": round(weighted_call_iv, 4),
-            "put_iv": round(weighted_put_iv, 4),
-            "skew_proxy": round(weighted_call_iv - weighted_put_iv, 4) if weighted_call_iv > 0 and weighted_put_iv > 0 else 0
-        }
+        average_iv_data = { "call_iv": round(weighted_call_iv, 4), "put_iv": round(weighted_put_iv, 4), "skew_proxy": round(weighted_call_iv - weighted_put_iv, 4) if weighted_call_iv > 0 and weighted_put_iv > 0 else 0 }
         oi_walls = find_oi_walls(options_list, top_n=TOP_N_OI_WALLS)
         total_oi_btc = total_call_oi + total_put_oi
         notional_oi_usd = total_oi_btc * btc_price
@@ -274,40 +309,31 @@ def process_and_save_json(grouped_options, gex_by_expiry_strike, btc_price, pcr_
         max_pain_strike = calculate_max_pain(options_list) if otype in ["Monthly", "Quarterly"] else None
         gex_curve = sorted([{'strike': s, 'dealer_gamma': g} for s, g in gex_by_expiry_strike[expiry_dt].items()], key=lambda x: x['strike'])
 
-        expirations_list.append({
-            "expiration_date": expiry_dt.strftime('%Y-%m-%d'),
-            "day_of_week": expiry_dt.strftime('%A'),
-            "option_type": otype,
-            "open_interest_btc": round(total_oi_btc, 4),
-            "notional_value_usd": round(notional_oi_usd, 2),
-            "total_volume_24h_btc": round(total_volume_24h_btc, 4),
-            "max_pain_strike": max_pain_strike,
-            "open_interest_walls": oi_walls,
-            "average_iv_data": average_iv_data,
-            "dealer_gamma_by_strike": gex_curve,
-            "short_gamma_near_spot": short_gamma_lookup.get(expiry_dt, [])
-        })
-
-        # --- Accumulate totals for historical data ---
+        expirations_list.append({ "expiration_date": expiry_dt.strftime('%Y-%m-%d'), "day_of_week": expiry_dt.strftime('%A'), "option_type": otype, "open_interest_btc": round(total_oi_btc, 4), "notional_value_usd": round(notional_oi_usd, 2), "total_volume_24h_btc": round(total_volume_24h_btc, 4), "max_pain_strike": max_pain_strike, "open_interest_walls": oi_walls, "average_iv_data": average_iv_data, "dealer_gamma_by_strike": gex_curve, "short_gamma_near_spot": short_gamma_lookup.get(expiry_dt, []) })
+        
         total_oi_all_expiries += total_oi_btc
         total_volume_all_expiries += total_volume_24h_btc
         total_short_gamma_for_expiry = sum(item['dealer_gamma'] for item in gex_curve if item['dealer_gamma'] < 0)
         total_short_gamma_all_expiries += total_short_gamma_for_expiry
-        # ---
 
-    # --- Create and save the historical data point ---
     now_timestamp = datetime.utcnow().isoformat() + "Z"
+    
+    # --- NEW: Define tracked strikes and get key gamma data ---
+    TRACKED_STRIKES = [100000, 105000, 110000, 115000, 120000, 125000, 130000, 140000, 150000]
+    key_gamma_data = get_key_gamma_strikes(gex_by_expiry_strike, btc_price, TRACKED_STRIKES)
+    
     new_historical_entry = {
         "timestamp": now_timestamp,
         "btc_price": btc_price,
         "total_open_interest_btc": round(total_oi_all_expiries, 2),
         "total_volume_24h_btc": round(total_volume_all_expiries, 2),
         "pcr_by_volume": pcr_data.get("ratio_by_volume"),
-        "total_short_gamma": round(total_short_gamma_all_expiries, 4)
+        "total_short_gamma": round(total_short_gamma_all_expiries, 4),
+        "per_strike_gamma": key_gamma_data  # <-- ADDED THIS LINE
     }
     update_historical_data(HISTORICAL_DATA_FILENAME, new_historical_entry)
-    # ---
-    
+
+ 
     # ---FIX: RESTORED THE FULL DEFINITIONS DICTIONARY---
     definitions = {
         "btc_index_price_usd": "The real-time spot price of Bitcoin used for all calculations. Everything is relative to this price.",
@@ -331,23 +357,17 @@ def process_and_save_json(grouped_options, gex_by_expiry_strike, btc_price, pcr_
         }
     }
 
-    output_data = {
-        "definitions": definitions,
-        "metadata": {
-            "calculation_timestamp_utc": now_timestamp,
-            "btc_index_price_usd": btc_price,
-            "currency": TARGET_CURRENCY,
-            "put_call_ratio_24h_volume": pcr_data
-        },
-        "expirations": expirations_list
-    }
+
+
+    output_data = { "definitions": definitions, "metadata": { "calculation_timestamp_utc": now_timestamp, "btc_index_price_usd": btc_price, "currency": TARGET_CURRENCY, "put_call_ratio_24h_volume": pcr_data }, "expirations": expirations_list }
 
     try:
-        with open(filename, 'w') as f:
-            json.dump(output_data, f, indent=2)
+        with open(filename, 'w') as f: json.dump(output_data, f, indent=2)
         print(f"\n✅ Full market analysis saved to {filename}")
-    except IOError as e:
-        print(f"Error: Could not write to file {filename}. {e}")
+    except IOError as e: print(f"Error: Could not write to file {filename}. {e}")
+    update_historical_data(HISTORICAL_DATA_FILENAME, new_historical_entry)
+    # ---
+    
 
 # -----------------------------
 # Main Execution
@@ -372,4 +392,5 @@ if __name__ == "__main__":
     if not grouped_options: raise SystemExit("No options data after processing.")
 
     process_and_save_json(grouped_options, gex_by_expiry_strike, spot, pcr, OUTPUT_FILENAME)
+
 
