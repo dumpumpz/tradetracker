@@ -2415,6 +2415,11 @@
             <div class="chart-container">
                 <canvas id="sentimentChart"></canvas>
             </div>
+               <!-- ADD THIS NEW CHART CONTAINER -->
+            <div class="chart-container">
+                <canvas id="perStrikeGammaChart"></canvas>
+            </div>
+
             <!-- END OF PASTED BLOCK -->
 
             <!-- The content will be dynamically inserted here by JavaScript -->
@@ -2448,8 +2453,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-<script>
 
+
+<script>
     document.addEventListener('DOMContentLoaded', () => {
 
         // --- CONFIGURATION ---
@@ -2803,6 +2809,160 @@
             }
         }
 
+        async function fetchAndRenderOptionsData() {
+            if (!DOM.optionsOiTab) return;
+            const jsonFile = 'deribit_options_market_analysis.json';
+            const container = document.getElementById('options-snapshot-container');
+            
+            try {
+                const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                
+                const formatNumber = (num, digits = 2) => num ? num.toLocaleString('en-US', {minimumFractionDigits: digits, maximumFractionDigits: digits}) : 'N/A';
+                const formatCompact = (num) => {
+                    if (!num) return 'N/A';
+                    if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2)}B`;
+                    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
+                    if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
+                    return num.toString();
+                };
+                const formatPercent = (val) => val ? `${(val * 100).toFixed(2)}%` : 'N/A';
+                const formatCurrencyNoSymbol = (num) => num ? num.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0}) : 'N/A';
+
+                const pcr = data.metadata.put_call_ratio_24h_volume.ratio_by_volume;
+                const pcrClass = pcr >= 0.7 ? 'pcr-bearish' : pcr <= 0.5 ? 'pcr-bullish' : '';
+                
+                const globalMetricsHtml = `
+                    <div class="oi-global-metrics">
+                        <div class="oi-global-metric">
+                            <span class="label"><span class="tooltip">24h P/C Ratio (Vol)<span class="tooltiptext">${data.definitions.put_call_ratio_24h_volume}</span></span></span>
+                            <span class="value ${pcrClass}">${pcr.toFixed(2)}</span>
+                        </div>
+                        <div class="oi-global-metric">
+                            <span class="label"><span class="tooltip">BTC Index Price<span class="tooltiptext">${data.definitions.btc_index_price_usd}</span></span></span>
+                            <span class="value">$${formatNumber(data.metadata.btc_index_price_usd)}</span>
+                        </div>
+                        <div class="oi-global-metric">
+                           <span class="label">Last Updated (UTC)</span>
+                           <span class="value" style="font-size: 14px;">${new Date(data.metadata.calculation_timestamp_utc).toLocaleTimeString()}</span>
+                        </div>
+                    </div>
+                `;
+
+                const cardsHtml = data.expirations
+                    .map(expiry => {
+                        const { expiration_date, day_of_week, option_type, notional_value_usd, total_volume_24h_btc, max_pain_strike, average_iv_data, open_interest_walls, short_gamma_near_spot } = expiry;
+
+                        const callWallsHtml = open_interest_walls.top_call_strikes.map(item => `<div class="wall-item"><span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span><span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span></div>`).join('');
+                        const putWallsHtml = open_interest_walls.top_put_strikes.map(item => `<div class="wall-item"><span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span><span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span></div>`).join('');
+                        const shortGammaHtml = short_gamma_near_spot.slice(0, 5).map(item => `<tr><td class="strike">$${formatCurrencyNoSymbol(item.strike)}</td><td>${formatNumber(item.dealer_gamma)}</td></tr>`).join('') || `<tr><td colspan="2" style="text-align:center; padding: 10px;">None near spot</td></tr>`;
+
+                        return `
+                            <div class="oi-card">
+                                <div class="oi-card-header">
+                                    <h3>${expiration_date} <span style="font-weight:400; color:var(--subtle-text)">(${day_of_week})</span></h3>
+                                    <span class="oi-type-pill oi-type-${option_type.toLowerCase()}">${option_type}</span>
+                                </div>
+                                <div class="oi-card-body">
+                                    <div class="oi-metric-grid">
+                                        <div class="oi-metric-item"><span class="label"><span class="tooltip">Notional Value<span class="tooltiptext">${data.definitions.notional_value_usd}</span></span></span><span class="value">$${formatCompact(notional_value_usd)}</span></div>
+                                        <div class="oi-metric-item"><span class="label"><span class="tooltip">24h Volume<span class="tooltiptext">${data.definitions.total_volume_24h_btc}</span></span></span><span class="value">${formatCompact(total_volume_24h_btc)} BTC</span></div>
+                                        <div class="oi-metric-item"><span class="label"><span class="tooltip">Max Pain<span class="tooltiptext">${data.definitions.max_pain_strike}</span></span></span><span class="value">${max_pain_strike ? '$' + formatCurrencyNoSymbol(max_pain_strike) : 'N/A'}</span></div>
+                                        <div class="oi-metric-item"><span class="label"><span class="tooltip">IV Skew<span class="tooltiptext">${data.definitions.average_iv_data.skew_proxy}</span></span></span><span class="value" style="color: ${average_iv_data.skew_proxy > 0 ? 'var(--green-text)' : 'var(--red-text)'}">${formatPercent(average_iv_data.skew_proxy)}</span></div>
+                                    </div>
+                                    <div class="oi-walls-container"><div class="wall-column puts"><h4><span class="tooltip">Top Put Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>${putWallsHtml}</div><div class="wall-column calls"><h4><span class="tooltip">Top Call Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>${callWallsHtml}</div></div>
+                                    <h4 class="oi-section-title"><span class="tooltip">Short Gamma Zones (Nearest Spot)<span class="tooltiptext">${data.definitions.short_gamma_near_spot.description}</span></span></h4>
+                                    <div class="table-wrapper"><table class="gamma-zone-table"><thead><tr><th>Strike</th><th>Dealer Gamma</th></tr></thead><tbody>${shortGammaHtml}</tbody></table></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                
+                container.innerHTML = `${globalMetricsHtml}<div class="oi-dashboard-grid">${cardsHtml}</div>`;
+
+            } catch (error) {
+                console.error("Could not fetch or render options data:", error);
+                container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Could not find or parse <strong>${jsonFile}</strong>. Please check the console.</p>`;
+            }
+        }
+
+        async function fetchAndRenderHistoricalCharts() {
+            let charts = {};
+            const renderChart = (canvasId, type, data, titleText, scalesConfig = {}, pluginsConfig = {}) => {
+                const ctx = document.getElementById(canvasId);
+                if (!ctx) return;
+                const chartInstance = Chart.getChart(ctx);
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+                charts[canvasId] = new Chart(ctx, { type, data, options: { responsive: true, maintainAspectRatio: true, plugins: { title: { display: true, text: titleText, font: { size: 18 } }, ...pluginsConfig }, scales: { x: { type: 'time', time: { unit: 'hour', tooltipFormat: 'MMM dd, yyyy HH:mm', displayFormats: { hour: 'HH:mm' } }, title: { display: true, text: 'Time (UTC)' } }, ...scalesConfig } } });
+            };
+
+            try {
+                const response = await fetch('historical_market_data.json?v=' + new Date().getTime());
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                
+                const lastUpdatedEl = document.getElementById('last-updated-charts');
+                if (data.length === 0) { lastUpdatedEl.innerText = 'No historical data. Run the Python script.'; return; }
+                lastUpdatedEl.innerText = `Last updated: ${new Date(data[data.length - 1].timestamp).toLocaleString()}`;
+
+                const labels = data.map(d => new Date(d.timestamp));
+                const btcPrice = data.map(d => d.btc_price);
+                const totalOI = data.map(d => d.total_open_interest_btc);
+                const totalVolume = data.map(d => d.total_volume_24h_btc);
+                const pcr = data.map(d => d.pcr_by_volume);
+                const shortGamma = data.map(d => d.total_short_gamma);
+
+                renderChart('priceChart', 'line', { labels, datasets: [{ label: 'BTC Price (USD)', data: btcPrice, borderColor: 'rgb(249, 115, 22)', yAxisID: 'yPrice' }, { label: 'Total Short Gamma', data: shortGamma, borderColor: 'rgb(59, 130, 246)', yAxisID: 'yGamma' }] }, 'Price and Gamma Exposure', { yPrice: { type: 'linear', position: 'left', title: { display: true, text: 'BTC Price' } }, yGamma: { type: 'linear', position: 'right', title: { display: true, text: 'Total Short Gamma' }, grid: { drawOnChartArea: false } } });
+                renderChart('oiVolumeChart', 'bar', { labels, datasets: [{ label: 'Total OI (BTC)', data: totalOI, type: 'line', borderColor: 'rgb(22, 163, 74)', yAxisID: 'yOI' }, { label: 'Total 24h Volume (BTC)', data: totalVolume, backgroundColor: 'rgba(168, 85, 247, 0.5)', yAxisID: 'yVolume' }] }, 'Open Interest and 24h Volume', { yOI: { type: 'linear', position: 'left', title: { display: true, text: 'Open Interest' } }, yVolume: { type: 'linear', position: 'right', title: { display: true, text: '24h Volume' }, grid: { drawOnChartArea: false } } });
+                renderChart('sentimentChart', 'line', { labels, datasets: [{ label: 'P/C Ratio (Volume)', data: pcr, borderColor: 'rgb(220, 38, 38)' }] }, 'Market Sentiment (Put/Call Ratio)');
+
+                // --- NEW LOGIC FOR PER-STRIKE GAMMA CHART ---
+                const perStrikeGammaData = {};
+                const allStrikeKeys = new Set();
+                data.forEach(entry => {
+                    if (entry.per_strike_gamma) {
+                        Object.keys(entry.per_strike_gamma).forEach(strike => allStrikeKeys.add(strike));
+                    }
+                });
+
+                const sortedStrikes = Array.from(allStrikeKeys).sort((a, b) => parseInt(a) - parseInt(b));
+                
+                sortedStrikes.forEach(strike => {
+                    perStrikeGammaData[strike] = data.map(entry => 
+                        (entry.per_strike_gamma && entry.per_strike_gamma[strike] !== undefined) ? entry.per_strike_gamma[strike] : null
+                    );
+                });
+
+                const colors = ['#3498db', '#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#e67e22', '#34495e', '#7f8c8d'];
+                const perStrikeDatasets = sortedStrikes.map((strike, index) => ({
+                    label: `$${(parseInt(strike)/1000)}K`,
+                    data: perStrikeGammaData[strike],
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: colors[index % colors.length] + '1A', // Add transparency
+                    borderWidth: 2,
+                    spanGaps: true, // Connect points over nulls
+                    pointRadius: 1,
+                    tension: 0.1
+                }));
+
+                renderChart(
+                    'perStrikeGammaChart', 
+                    'line', 
+                    { labels, datasets: perStrikeDatasets }, 
+                    'Historical Gamma Exposure for Key Strikes',
+                    { y: { title: { display: true, text: 'Dealer Gamma' } } },
+                    { legend: { position: 'bottom' } }
+                );
+
+            } catch (error) {
+                console.error("Failed to render chart data:", error);
+                document.getElementById('last-updated-charts').innerText = 'Error loading chart data.';
+            }
+        }
+
         // --- HISTORY TOGGLE LOGIC ---
         function updateToggleButtonsVisibility() {
             const tradesBody = document.getElementById('completed-trades-tbody');
@@ -2939,40 +3099,40 @@
             adjustCollapsibleSize(btcContainer);
         }
 
-    function createCrossoverSignalTableHTML(symbol, symbolData) {
-        const timeframes = ['1h', '2h', '4h', '1d', '1w', '1M'];
-        const tableRows = timeframes.map(tf => {
-            const data = symbolData[tf] || { stage: 'N/A', colour: 'Grey', Level: 'N/A' };
-            
-            let colorClass = 'signal-cell-grey'; 
-            if (data.colour === 'Green') colorClass = 'signal-cell-green'; 
-            else if (data.colour === 'Red') colorClass = 'signal-cell-red';
+        function createCrossoverSignalTableHTML(symbol, symbolData) {
+            const timeframes = ['1h', '2h', '4h', '1d', '1w', '1M'];
+            const tableRows = timeframes.map(tf => {
+                const data = symbolData[tf] || { stage: 'N/A', colour: 'Grey', Level: 'N/A' };
+                
+                let colorClass = 'signal-cell-grey'; 
+                if (data.colour === 'Green') colorClass = 'signal-cell-green'; 
+                else if (data.colour === 'Red') colorClass = 'signal-cell-red';
 
-            const levelValue = data['0-Candle Support'] || data['0-Candle Resistance'] || data['Level'] || 'N/A';
+                const levelValue = data['0-Candle Support'] || data['0-Candle Resistance'] || data['Level'] || 'N/A';
 
-            return `<tr>
-                        <td>${tf.toUpperCase()}</td>
-                        <td class="signal-cell ${colorClass}">${data.stage}</td>
-                        <td class="support-value">${levelValue}</td>
-                    </tr>`;
-        }).join('');
+                return `<tr>
+                            <td>${tf.toUpperCase()}</td>
+                            <td class="signal-cell ${colorClass}">${data.stage}</td>
+                            <td class="support-value">${levelValue}</td>
+                        </tr>`;
+            }).join('');
 
-        return `<div class="crossover-signals-table-wrapper">
-                    <h3>${symbol.replace('USDT', '/USDT')} Crossover Signal</h3>
-                    <div class="table-wrapper">
-                        <table class="crossover-signals-table">
-                            <thead>
-                                <tr>
-                                    <th>Timeframe</th>
-                                    <th>Signal Stage</th>
-                                    <th>0candle Resistance</th>
-                                </tr>
-                            </thead>
-                            <tbody>${tableRows}</tbody>
-                        </table>
-                    </div>
-                </div>`;
-    }
+            return `<div class="crossover-signals-table-wrapper">
+                        <h3>${symbol.replace('USDT', '/USDT')} Crossover Signal</h3>
+                        <div class="table-wrapper">
+                            <table class="crossover-signals-table">
+                                <thead>
+                                    <tr>
+                                        <th>Timeframe</th>
+                                        <th>Signal Stage</th>
+                                        <th>0candle Resistance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${tableRows}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+        }
         function renderAttachmentThumbnails(entry, entryId, entryType) {
             const images = entry.attachedImages || {};
             const masterDeleteBtn = (imageId, fileName) => (STATE.isMasterUser) ? `<button class="delete-trade-image" title="Delete Attachment" data-entry-id="${entryId}" data-entry-type="${entryType}" data-image-id="${imageId}" data-filename="${fileName}">×</button>` : '';
@@ -3051,7 +3211,6 @@
             adjustCollapsibleSize(tbody);
         }
 
-           // MODIFIED: This function now calculates RR on-the-fly if it's missing from the data.
         function renderLiveTable(data) {
             const trades = data || {};
             const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
@@ -3064,17 +3223,13 @@
                 const profitString = `$${parseFloat(trade.expected_profit || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent || 0).toFixed(2)}%)`;
                 const lossString = `$${parseFloat(trade.expected_loss || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent || 0).toFixed(2)}%)`;
                 
-                // --- START OF CORRECTION ---
                 let rrString;
-                // First, check if a valid RR already exists on the trade object
                 if (trade.rr && !isNaN(parseFloat(trade.rr))) {
                     rrString = `${parseFloat(trade.rr).toFixed(2)}:1`;
                 } else {
-                    // If not, calculate it now using our helper function
                     const metrics = calculateTradeMetrics(trade);
                     rrString = metrics.rr > 0 ? `${parseFloat(metrics.rr).toFixed(2)}:1` : '--';
                 }
-                // --- END OF CORRECTION ---
 
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
                 return `<tr><td>${trade.symbol}</td><td>${trade.type}</td>${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}<td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td><td style="color: #28a745;">${profitString}</td><td style="color: #dc3545;">${lossString}</td><td>${rrString}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'live')}${masterButtonsHtml(id)}</tr>`;
@@ -3083,7 +3238,6 @@
             adjustCollapsibleSize(DOM.tradesTbody);
         }
 
-        // MODIFIED: This function now also calculates RR on-the-fly for older completed trades.
         function renderCompletedTable(data) {
             const trades = data || {};
             const perthTodayStr = getPerthDateString();
@@ -3096,17 +3250,13 @@
                 const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
 
-                // --- START OF CORRECTION ---
                 let rrString;
-                // First, check if a valid RR already exists on the trade object
                 if (trade.rr && !isNaN(parseFloat(trade.rr))) {
                     rrString = `${parseFloat(trade.rr).toFixed(2)}:1`;
                 } else {
-                    // If not, calculate it now using our helper function
                     const metrics = calculateTradeMetrics(trade);
                     rrString = metrics.rr > 0 ? `${parseFloat(metrics.rr).toFixed(2)}:1` : '--';
                 }
-                // --- END OF CORRECTION ---
                 
                 let closedPerthDateStr = '', isHistorical;
                 if (trade.closed_date) {
@@ -3315,7 +3465,6 @@
             container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
         }
 
-
         function calculateAndDisplayPercentages(row) {
             if (!row) return;
             const cells = row.querySelectorAll('td');
@@ -3488,7 +3637,7 @@
             DOM.resistanceLevelsTbody.innerHTML = resistanceLevels.map(level => buildLevelRow(level, 'resistance')).join('');
         }
 
-              function renderLevelNotes(notesData) {
+        function renderLevelNotes(notesData) {
             STATE.levelNotes = notesData || {};
             for (const safeSymbol in STATE.levelNotes) {
                 if (Object.hasOwnProperty.call(STATE.levelNotes, safeSymbol)) {
@@ -3746,7 +3895,6 @@
             DOM.noteModalTitle.value = '';
             DOM.noteModalContent.value = '';
 
-            // Re-render the notes grid to show the latest changes after closing the modal.
             renderNotes(STATE.generalNotes);
         }
 
@@ -3815,7 +3963,7 @@
                 if (handleAttachmentActions(e)) return;
 
                 if (e.target.matches('.ema-pill-btn')) {
-                    e.stopPropagation(); // <-- This is the fix for the EMA pill button
+                    e.stopPropagation();
                     const pillBtn = e.target;
                     const group = pillBtn.closest('.pill-button-group');
                     group.querySelectorAll('.ema-pill-btn').forEach(btn => btn.classList.remove('active'));
@@ -4000,7 +4148,6 @@
         }
 
         // --- EVENT HANDLER LOGIC ---
-        // ADDED: New helper function to centralize all trade metric calculations
         function calculateTradeMetrics(tradeData) {
             const entry = parseFloat(tradeData.entry);
             const stoploss = parseFloat(tradeData.stoploss);
@@ -4049,7 +4196,6 @@
             };
         }
 
-        // MODIFIED: Use the new helper function
         function handleAddTradeSubmit(e) {
             e.preventDefault(); if (!STATE.isMasterUser) return;
             const trade = {
@@ -4067,7 +4213,6 @@
             dbRefs.trades.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error adding trade: ${error.message}`));
         }
         
-        // MODIFIED: Recalculate RR and all metrics on update
         function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
             const tradeId = cell.dataset.id;
@@ -4152,7 +4297,6 @@
             });
         }
 
-        // MODIFIED: Recalculate RR and all metrics when adding to position
         function handleAddStaggeredEntry(tradeId) {
             if (!STATE.isMasterUser) return;
             const tradeRef = dbRefs.trades.child(tradeId);
@@ -4168,21 +4312,10 @@
                 const newAverageEntryPrice = totalValue / totalQuantity;
                 const updatedEntryPrices = currentTrade.entry_prices || [currentTrade.entry]; updatedEntryPrices.push(newEntryPrice);
                 
-                const tempTradeForCalc = {
-                    ...currentTrade,
-                    entry: newAverageEntryPrice,
-                    size: totalValue
-                };
+                const tempTradeForCalc = { ...currentTrade, entry: newAverageEntryPrice, size: totalValue };
                 const newMetrics = calculateTradeMetrics(tempTradeForCalc);
 
-                const updatedTrade = {
-                    ...currentTrade,
-                    entry: newAverageEntryPrice,
-                    size: totalValue,
-                    entry_prices: updatedEntryPrices,
-                    ...newMetrics,
-                    note: (currentTrade.note || '') + `\n+ Added $${newPositionValue.toFixed(2)} @ $${newEntryPrice.toFixed(4)} on ${new Date().toLocaleString()}`
-                };
+                const updatedTrade = { ...currentTrade, entry: newAverageEntryPrice, size: totalValue, entry_prices: updatedEntryPrices, ...newMetrics, note: (currentTrade.note || '') + `\n+ Added $${newPositionValue.toFixed(2)} @ $${newEntryPrice.toFixed(4)} on ${new Date().toLocaleString()}` };
                 tradeRef.update(updatedTrade);
             });
         }
@@ -4300,147 +4433,6 @@
             });
         }
         
-        async function fetchAndRenderOptionsData() {
-            if (!DOM.optionsOiTab) return;
-            const jsonFile = 'deribit_options_market_analysis.json';
-            
-            try {
-                const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-                
-                // Helper functions for formatting
-                const formatNumber = (num, digits = 2) => num.toLocaleString('en-US', {minimumFractionDigits: digits, maximumFractionDigits: digits});
-                const formatCompact = (num) => {
-                    if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2)}B`;
-                    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
-                    if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
-                    return num.toString();
-                };
-                const formatPercent = (val) => `${(val * 100).toFixed(2)}%`;
-                const formatCurrencyNoSymbol = (num) => num.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-
-                // Global metrics header
-                const pcr = data.metadata.put_call_ratio_24h_volume.ratio_by_volume;
-                const pcrClass = pcr >= 0.7 ? 'pcr-bearish' : pcr <= 0.5 ? 'pcr-bullish' : '';
-                
-                const globalMetricsHtml = `
-                    <div class="oi-global-metrics">
-                        <div class="oi-global-metric">
-                            <span class="label">
-                                <span class="tooltip">24h P/C Ratio (Vol)
-                                <span class="tooltiptext">${data.definitions.put_call_ratio_24h_volume}</span>
-                                </span>
-                            </span>
-                            <span class="value ${pcrClass}">${pcr.toFixed(2)}</span>
-                        </div>
-                        <div class="oi-global-metric">
-                            <span class="label">
-                               <span class="tooltip">BTC Index Price
-                               <span class="tooltiptext">${data.definitions.btc_index_price_usd}</span>
-                               </span>
-                            </span>
-                            <span class="value">$${formatNumber(data.metadata.btc_index_price_usd)}</span>
-                        </div>
-                        <div class="oi-global-metric">
-                           <span class="label">Last Updated (UTC)</span>
-                           <span class="value" style="font-size: 14px;">${new Date(data.metadata.calculation_timestamp_utc).toLocaleTimeString()}</span>
-                        </div>
-                    </div>
-                `;
-
-                // Build cards for major expirations
-                const cardsHtml = data.expirations
-                    .filter(exp => ['Monthly', 'Quarterly'].includes(exp.option_type))
-                    .map(expiry => {
-                        const {
-                            expiration_date, day_of_week, option_type, notional_value_usd,
-                            total_volume_24h_btc, max_pain_strike, average_iv_data,
-                            open_interest_walls, short_gamma_near_spot
-                        } = expiry;
-
-                        const callWallsHtml = open_interest_walls.top_call_strikes.map(item => `
-                            <div class="wall-item">
-                                <span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span>
-                                <span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span>
-                            </div>
-                        `).join('');
-
-                        const putWallsHtml = open_interest_walls.top_put_strikes.map(item => `
-                            <div class="wall-item">
-                                <span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span>
-                                <span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span>
-                            </div>
-                        `).join('');
-
-                        const shortGammaHtml = short_gamma_near_spot.slice(0, 5).map(item => `
-                            <tr>
-                                <td class="strike">$${formatCurrencyNoSymbol(item.strike)}</td>
-                                <td>${formatNumber(item.dealer_gamma)}</td>
-                            </tr>
-                        `).join('') || `<tr><td colspan="2" style="text-align:center; padding: 10px;">None near spot</td></tr>`;
-
-                        return `
-                            <div class="oi-card">
-                                <div class="oi-card-header">
-                                    <h3>${expiration_date} <span style="font-weight:400; color:var(--subtle-text)">(${day_of_week})</span></h3>
-                                    <span class="oi-type-pill oi-type-${option_type.toLowerCase()}">${option_type}</span>
-                                </div>
-                                <div class="oi-card-body">
-                                    <div class="oi-metric-grid">
-                                        <div class="oi-metric-item">
-                                            <span class="label"><span class="tooltip">Notional Value<span class="tooltiptext">${data.definitions.notional_value_usd}</span></span></span>
-                                            <span class="value">$${formatCompact(notional_value_usd)}</span>
-                                        </div>
-                                        <div class="oi-metric-item">
-                                            <span class="label"><span class="tooltip">24h Volume<span class="tooltiptext">${data.definitions.total_volume_24h_btc}</span></span></span>
-                                            <span class="value">${formatCompact(total_volume_24h_btc)} BTC</span>
-                                        </div>
-                                        <div class="oi-metric-item">
-                                            <span class="label"><span class="tooltip">Max Pain<span class="tooltiptext">${data.definitions.max_pain_strike}</span></span></span>
-                                            <span class="value">${max_pain_strike ? '$' + formatCurrencyNoSymbol(max_pain_strike) : 'N/A'}</span>
-                                        </div>
-                                         <div class="oi-metric-item">
-                                            <span class="label"><span class="tooltip">IV Skew<span class="tooltiptext">${data.definitions.average_iv_data.skew_proxy}</span></span></span>
-                                            <span class="value" style="color: ${average_iv_data.skew_proxy > 0 ? 'var(--green-text)' : 'var(--red-text)'}">${formatPercent(average_iv_data.skew_proxy)}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="oi-walls-container">
-                                        <div class="wall-column puts">
-                                            <h4><span class="tooltip">Top Put Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>
-                                            ${putWallsHtml}
-                                        </div>
-                                        <div class="wall-column calls">
-                                            <h4><span class="tooltip">Top Call Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>
-                                            ${callWallsHtml}
-                                        </div>
-                                    </div>
-
-                                    <h4 class="oi-section-title">
-                                        <span class="tooltip">Short Gamma Zones (Nearest Spot)
-                                            <span class="tooltiptext">${data.definitions.short_gamma_near_spot.description}</span>
-                                        </span>
-                                    </h4>
-                                    <div class="table-wrapper">
-                                        <table class="gamma-zone-table">
-                                           <thead><tr><th>Strike</th><th>Dealer Gamma</th></tr></thead>
-                                           <tbody>${shortGammaHtml}</tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                
-                document.getElementById('options-snapshot-container').innerHTML = `${globalMetricsHtml}<div class="oi-dashboard-grid">${cardsHtml}</div>`;
-
-            } catch (error) {
-                console.error("Could not fetch or render options data:", error);
-                // REPLACE WITH THIS
-document.getElementById('options-snapshot-container').innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Could not find or parse <strong>${jsonFile}</strong>. Please check the console.</p>`;
-            }
-        }
         function handleDeleteAttachmentImage(entryId, entryType, imageId, fileName) {
             if (!STATE.isMasterUser || !entryId || !entryType || !imageId || !fileName) return;
             if (confirm(`Delete this attachment?\n\n${fileName}`)) {
@@ -4522,7 +4514,7 @@ document.getElementById('options-snapshot-container').innerHTML = `<p style="tex
             });
         }
 
-           function subscribeToData() {
+        function subscribeToData() {
             dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
             dbRefs.completedTrades.on('value', s => {
                 const completedData = s.val() || {}; renderCompletedTable(completedData);
@@ -4576,8 +4568,6 @@ document.getElementById('options-snapshot-container').innerHTML = `<p style="tex
             dbRefs.levelNotes.on('value', (s) => renderLevelNotes(s.val()));
             dbRefs.generalNotes.on('value', (s) => {
                 STATE.generalNotes = s.val() || {};
-                // Only re-render the main notes grid if the edit modal is not open,
-                // to prevent the background from jumping while typing.
                 if (DOM.noteEditModal.style.display === 'none') {
                     renderNotes(STATE.generalNotes);
                 }
@@ -4595,7 +4585,7 @@ document.getElementById('options-snapshot-container').innerHTML = `<p style="tex
                 toggleBtn.style.transform = 'rotate(180deg)';
                 setTimeout(() => {
                     content.style.maxHeight = content.scrollHeight + 'px';
-                }, 50); // Increased delay slightly to ensure rendering
+                }, 50);
             }
         }
 
@@ -4658,9 +4648,17 @@ document.getElementById('options-snapshot-container').innerHTML = `<p style="tex
             fetchSrData();
             fetchMarketOpens();
             fetchCrossoverSignalData();
+            
             fetchAndRenderOptionsData();
+            fetchAndRenderHistoricalCharts();
 
-            setInterval(fetchCrossoverSignalData, 5 * 60 * 1000); // Refresh every 5 minutes
+            setInterval(fetchCrossoverSignalData, 5 * 60 * 1000);
+
+            setInterval(() => {
+                fetchAndRenderOptionsData();
+                fetchAndRenderHistoricalCharts();
+            }, 60000);
+
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) { 
                 document.documentElement.setAttribute('data-theme', savedTheme); 
@@ -4686,5 +4684,7 @@ document.getElementById('options-snapshot-container').innerHTML = `<p style="tex
         initializeApp();
     });
 </script>
+
+        
 </body>
 </html>
