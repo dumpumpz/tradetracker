@@ -604,73 +604,34 @@
                 </div>
             </div>
         </div>
-     <div id="options-oi-tab" class="tab-content">
-    
-    <!-- Market Summary Dashboard -->
-    <div id="market-summary-dashboard">
-        <div class="dashboard-header">
-            <h3>Market Structure Overview</h3>
-            <p id="options-last-updated">Last Updated: --</p>
-        </div>
+        
+        <div id="options-oi-tab" class="tab-content">
+            <!-- PASTE THE CHART HTML HERE -->
+            <p id="last-updated-charts">Loading chart data...</p>
 
-        <!-- Key Metrics Grid -->
-        <div class="summary-metrics-grid">
-            <div class="summary-metric-card">
-                <span class="label"><span class="tooltip">BTC Index Price<span class="tooltiptext">The current spot price of the underlying asset (BTC).</span></span></span>
-                <span class="value" id="btc-index-price-value">--</span>
+            <div class="chart-container">
+                <canvas id="priceChart"></canvas>
             </div>
-            <div class="summary-metric-card">
-                <span class="label"><span class="tooltip">Gamma Flip Level<span class="tooltiptext">The critical price level where dealer gamma exposure is estimated to flip from negative to positive. Price BELOW this level encourages volatility. Price ABOVE this level tends to suppress volatility.</span></span></span>
-                <span class="value" id="gamma-flip-level-value">--</span>
+            <div class="chart-container">
+                <canvas id="oiVolumeChart"></canvas>
             </div>
-            <div class="summary-metric-card">
-                <span class="label"><span class="tooltip">Market-Wide Max Pain<span class="tooltiptext">The strike price where the most options (puts & calls combined) would expire worthless. A theoretical point of 'financial gravity' for the market.</span></span></span>
-                <span class="value" id="market-max-pain-value">--</span>
+            <div class="chart-container">
+                <canvas id="sentimentChart"></canvas>
             </div>
-            <div class="summary-metric-card">
-                <span class="label"><span class="tooltip">Total Short Gamma<span class="tooltiptext">The total negative gamma exposure. A larger negative number indicates higher potential for volatile, reflexive market moves as dealers hedge.</span></span></span>
-                <span class="value" id="total-short-gamma-value">--</span>
+               <!-- ADD THIS NEW CHART CONTAINER -->
+            <div class="chart-container">
+                <canvas id="perStrikeGammaChart"></canvas>
             </div>
-        </div>
 
-        <!-- OI Walls Section -->
-        <div class="summary-walls-container">
-            <div class="wall-column puts">
-                <h4><span class="tooltip">Top Put Walls (Support)<span class="tooltiptext">The strikes with the most Put open interest across all expiries, acting as potential support levels.</span></span></h4>
-                <div class="table-wrapper">
-                    <table class="wall-table">
-                        <thead><tr><th>Strike</th><th>OI (BTC)</th></tr></thead>
-                        <tbody id="market-put-walls-tbody"></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="wall-column calls">
-                <h4><span class="tooltip">Top Call Walls (Resistance)<span class="tooltiptext">The strikes with the most Call open interest across all expiries, acting as potential resistance levels.</span></span></h4>
-                <div class="table-wrapper">
-                    <table class="wall-table">
-                         <thead><tr><th>Strike</th><th>OI (BTC)</th></tr></thead>
-                        <tbody id="market-call-walls-tbody"></tbody>
-                    </table>
-                </div>
+            <!-- END OF PASTED BLOCK -->
+
+            <!-- The content will be dynamically inserted here by JavaScript -->
+            <div id="options-snapshot-container">
+                <p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>
             </div>
         </div>
     </div>
 
-    <!-- Historical Charts Section -->
-    <h3 style="text-align: center; margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 20px;">Historical Context</h3>
-    <p id="last-updated-charts">Loading chart data...</p>
-
-    <div class="chart-container">
-        <canvas id="priceGammaChart"></canvas>
-    </div>
-    <div class="chart-container">
-        <canvas id="gammaExposureChart"></canvas>
-    </div>
-    <div class="chart-container">
-        <canvas id="sentimentChart"></canvas>
-    </div>
-</div>
-</div>
     <div id="image-modal" class="modal-overlay" style="display: none;">
         <span class="modal-close">&times;</span>
         <button id="modal-prev" class="modal-nav">&lt;</button>
