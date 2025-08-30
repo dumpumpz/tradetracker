@@ -148,60 +148,41 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchMarketOpens() { try { const response = await fetch(`market_opens.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.marketOpens = await response.json(); renderMarketOpens(); } catch (error) { console.error("Could not fetch market_opens.json:", error); } }
     async function fetchCrossoverSignalData() { const signalJsonUrl = 'crypto_signals.json'; try { const response = await fetch(`${signalJsonUrl}?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); renderCrossoverSignals(data); } catch (error) { console.error("Could not fetch or parse crossover signal data:", error); const ethContainer = document.getElementById('eth-crossover-signal-container'); const btcContainer = document.getElementById('btc-crossover-signal-container'); const errorMsg = '<p style="color: red; text-align: center;">Error loading signal data.</p>'; if (ethContainer) ethContainer.innerHTML = errorMsg; if (btcContainer) btcContainer.innerHTML = errorMsg; const lastUpdatedEl = document.getElementById('crossover-signals-last-updated'); if(lastUpdatedEl) lastUpdatedEl.textContent = 'Failed to load data.'; } }
     
-   async function fetchAndRenderMarketSummary() {
-    if (!DOM.optionsOiTab) return;
-    const jsonFile = 'deribit_options_market_analysis.json';
-    const dashboard = document.getElementById('market-summary-dashboard');
-    if (!dashboard) return;
-
-    try {
-        const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-
-        const { metadata, market_summary } = data;
-        if (!metadata || !market_summary) {
-            throw new Error("JSON is missing 'metadata' or 'market_summary' keys.");
-        }
-
-        const formatCurrency = (num) => num != null ? `$${num.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}` : 'N/A';
-        const formatNumber = (num, digits = 2) => num != null ? num.toLocaleString('en-US', {minimumFractionDigits: digits, maximumFractionDigits: digits}) : 'N/A';
-
-        // --- Populate Key Metrics ---
-        const btcPrice = metadata.btc_index_price_usd;
-        const gammaFlip = market_summary.gamma_flip_level;
+    async function fetchAndRenderOptionsData() {
+        if (!DOM.optionsOiTab) return;
+        const jsonFile = 'deribit_options_market_analysis.json';
+        const container = document.getElementById('options-snapshot-container');
         
-        document.getElementById('options-last-updated').textContent = `Last Updated: ${new Date(metadata.calculation_timestamp_utc).toLocaleTimeString()}`;
-        document.getElementById('btc-index-price-value').textContent = formatCurrency(btcPrice);
-        
-        const gammaFlipEl = document.getElementById('gamma-flip-level-value');
-        gammaFlipEl.textContent = formatCurrency(gammaFlip);
-        // Add context color based on price vs gamma flip
-        gammaFlipEl.classList.remove('price-above', 'price-below');
-        if (btcPrice && gammaFlip) {
-            gammaFlipEl.classList.add(btcPrice > gammaFlip ? 'price-above-gamma' : 'price-below-gamma');
-        }
-
-        document.getElementById('market-max-pain-value').textContent = formatCurrency(market_summary.market_wide_max_pain);
-        document.getElementById('total-short-gamma-value').textContent = formatNumber(market_summary.total_short_gamma);
-
-        // --- Populate OI Walls ---
-        const putWallsTbody = document.getElementById('market-put-walls-tbody');
-        const callWallsTbody = document.getElementById('market-call-walls-tbody');
-        
-        putWallsTbody.innerHTML = market_summary.market_wide_oi_walls.top_put_strikes
-            .map(w => `<tr><td>${formatCurrency(w.strike)}</td><td>${formatNumber(w.open_interest_btc, 1)}</td></tr>`)
-            .join('');
+        try {
+            const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
             
-        callWallsTbody.innerHTML = market_summary.market_wide_oi_walls.top_call_strikes
-            .map(w => `<tr><td>${formatCurrency(w.strike)}</td><td>${formatNumber(w.open_interest_btc, 1)}</td></tr>`)
-            .join('');
+            const formatNumber = (num, digits = 2) => num != null ? num.toLocaleString('en-US', {minimumFractionDigits: digits, maximumFractionDigits: digits}) : 'N/A';
+            const formatCompact = (num) => { if (num == null) return 'N/A'; if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2)}B`; if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`; if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`; return num.toString(); };
+            const formatPercent = (val) => val != null ? `${(val * 100).toFixed(2)}%` : 'N/A';
+            const formatCurrencyNoSymbol = (num) => num != null ? num.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0}) : 'N/A';
 
-    } catch (error) {
-        console.error("Could not fetch or render market summary data:", error);
-        dashboard.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading market summary. Please check the console.</p>`;
+            const pcr = data.metadata.put_call_ratio_24h_volume.ratio_by_volume;
+            const pcrClass = pcr >= 0.7 ? 'pcr-bearish' : pcr <= 0.5 ? 'pcr-bullish' : '';
+            
+            const globalMetricsHtml = `<div class="oi-global-metrics"><div class="oi-global-metric"><span class="label"><span class="tooltip">24h P/C Ratio (Vol)<span class="tooltiptext">${data.definitions.put_call_ratio_24h_volume}</span></span></span><span class="value ${pcrClass}">${pcr.toFixed(2)}</span></div><div class="oi-global-metric"><span class="label"><span class="tooltip">BTC Index Price<span class="tooltiptext">${data.definitions.btc_index_price_usd}</span></span></span><span class="value">$${formatNumber(data.metadata.btc_index_price_usd)}</span></div><div class="oi-global-metric"><span class="label">Last Updated (UTC)</span><span class="value" style="font-size: 14px;">${new Date(data.metadata.calculation_timestamp_utc).toLocaleTimeString()}</span></div></div>`;
+
+            const cardsHtml = data.expirations.map(expiry => {
+                const { expiration_date, day_of_week, option_type, notional_value_usd, total_volume_24h_btc, max_pain_strike, average_iv_data, open_interest_walls, short_gamma_near_spot } = expiry;
+                const callWallsHtml = open_interest_walls.top_call_strikes.map(item => `<div class="wall-item"><span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span><span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span></div>`).join('');
+                const putWallsHtml = open_interest_walls.top_put_strikes.map(item => `<div class="wall-item"><span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span><span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span></div>`).join('');
+                const shortGammaHtml = short_gamma_near_spot.slice(0, 5).map(item => `<tr><td class="strike">$${formatCurrencyNoSymbol(item.strike)}</td><td>${formatNumber(item.dealer_gamma)}</td></tr>`).join('') || `<tr><td colspan="2" style="text-align:center; padding: 10px;">None near spot</td></tr>`;
+                return `<div class="oi-card"><div class="oi-card-header"><h3>${expiration_date} <span style="font-weight:400; color:var(--subtle-text)">(${day_of_week})</span></h3><span class="oi-type-pill oi-type-${option_type.toLowerCase()}">${option_type}</span></div><div class="oi-card-body"><div class="oi-metric-grid"><div class="oi-metric-item"><span class="label"><span class="tooltip">Notional Value<span class="tooltiptext">${data.definitions.notional_value_usd}</span></span></span><span class="value">$${formatCompact(notional_value_usd)}</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">24h Volume<span class="tooltiptext">${data.definitions.total_volume_24h_btc}</span></span></span><span class="value">${formatCompact(total_volume_24h_btc)} BTC</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">Max Pain<span class="tooltiptext">${data.definitions.max_pain_strike}</span></span></span><span class="value">${max_pain_strike ? '$' + formatCurrencyNoSymbol(max_pain_strike) : 'N/A'}</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">IV Skew<span class="tooltiptext">${data.definitions.average_iv_data.skew_proxy}</span></span></span><span class="value" style="color: ${average_iv_data.skew_proxy > 0 ? 'var(--green-text)' : 'var(--red-text)'}">${formatPercent(average_iv_data.skew_proxy)}</span></div></div><div class="oi-walls-container"><div class="wall-column puts"><h4><span class="tooltip">Top Put Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>${putWallsHtml}</div><div class="wall-column calls"><h4><span class="tooltip">Top Call Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>${callWallsHtml}</div></div><h4 class="oi-section-title"><span class="tooltip">Short Gamma Zones (Nearest Spot)<span class="tooltiptext">${data.definitions.short_gamma_near_spot.description}</span></span></h4><div class="table-wrapper"><table class="gamma-zone-table"><thead><tr><th>Strike</th><th>Dealer Gamma</th></tr></thead><tbody>${shortGammaHtml}</tbody></table></div></div></div>`;
+            }).join('');
+            
+            container.innerHTML = `${globalMetricsHtml}<div class="oi-dashboard-grid">${cardsHtml}</div>`;
+        } catch (error) {
+            console.error("Could not fetch or render options data:", error);
+            container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Could not find or parse <strong>${jsonFile}</strong>. Please check the console.</p>`;
+        }
     }
-}
+    
     // --- NEW, ROBUST CHART RENDERING FUNCTION ---
     function renderOrUpdateChart(canvasId, type, chartData, titleText, scalesConfig = {}, pluginsConfig = {}) {
         const ctx = document.getElementById(canvasId);
@@ -237,53 +218,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-  async function fetchAndRenderHistoricalCharts() {
-    try {
-        // ... (data fetching part is the same)
-        const data = await response.json();
-        
-        // ... (data mapping part is the same)
-        const labels = data.map(d => new Date(d.timestamp));
-        const btcPrice = data.map(d => d.btc_price);
-        const gammaFlipLevel = data.map(d => d.gamma_flip_level);
-        const totalShortGamma = data.map(d => d.total_short_gamma);
-        const pcr = data.map(d => d.pcr_by_volume);
+    async function fetchAndRenderHistoricalCharts() {
+        try {
+            const response = await fetch('historical_market_data.json?v=' + new Date().getTime());
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            
+            const lastUpdatedEl = document.getElementById('last-updated-charts');
+            if (data.length === 0) { lastUpdatedEl.innerText = 'No historical data. Run the Python script.'; return; }
+            lastUpdatedEl.innerText = `Last updated: ${new Date(data[data.length - 1].timestamp).toLocaleString()}`;
 
-        // Chart 1: Price vs. Gamma Flip Level
-        renderOrUpdateChart('priceGammaChart', 'line', { // <-- FIX: Was 'priceChart'
-            labels,
-            datasets: [
-                { label: 'BTC Price (USD)', data: btcPrice, borderColor: 'rgb(249, 115, 22)', yAxisID: 'yPrice', borderWidth: 2 },
-                { label: 'Gamma Flip Level', data: gammaFlipLevel, borderColor: 'rgb(59, 130, 246)', yAxisID: 'yPrice', borderDash: [5, 5], borderWidth: 2, pointRadius: 0 }
-            ]
-        }, 'Price vs. Gamma Flip Level', {
-            yPrice: { type: 'linear', position: 'left', title: { display: true, text: 'Price (USD)' } }
-        });
+            const labels = data.map(d => new Date(d.timestamp));
+            const btcPrice = data.map(d => d.btc_price);
+            const totalOI = data.map(d => d.total_open_interest_btc);
+            const totalVolume = data.map(d => d.total_volume_24h_btc);
+            const pcr = data.map(d => d.pcr_by_volume);
+            const shortGamma = data.map(d => d.total_short_gamma);
 
-        // Chart 2: Total Short Gamma Exposure
-        renderOrUpdateChart('gammaExposureChart', 'bar', { // <-- FIX: Was something else or missing
-            labels,
-            datasets: [{
-                label: 'Total Short Gamma',
-                data: totalShortGamma,
-                backgroundColor: 'rgba(220, 38, 38, 0.5)',
-                borderColor: 'rgb(220, 38, 38)',
-                borderWidth: 1
-            }]
-        }, 'Total Short Gamma Exposure (Volatility Potential)');
+            renderOrUpdateChart('priceChart', 'line', { labels, datasets: [{ label: 'BTC Price (USD)', data: btcPrice, borderColor: 'rgb(249, 115, 22)', yAxisID: 'yPrice' }, { label: 'Total Short Gamma', data: shortGamma, borderColor: 'rgb(59, 130, 246)', yAxisID: 'yGamma' }] }, 'Price and Gamma Exposure', { yPrice: { type: 'linear', position: 'left', title: { display: true, text: 'BTC Price' } }, yGamma: { type: 'linear', position: 'right', title: { display: true, text: 'Total Short Gamma' }, grid: { drawOnChartArea: false } } });
+            renderOrUpdateChart('oiVolumeChart', 'bar', { labels, datasets: [{ label: 'Total OI (BTC)', data: totalOI, type: 'line', borderColor: 'rgb(22, 163, 74)', yAxisID: 'yOI' }, { label: 'Total 24h Volume (BTC)', data: totalVolume, backgroundColor: 'rgba(168, 85, 247, 0.5)', yAxisID: 'yVolume' }] }, 'Open Interest and 24h Volume', { yOI: { type: 'linear', position: 'left', title: { display: true, text: 'Open Interest' } }, yVolume: { type: 'linear', position: 'right', title: { display: true, text: '24h Volume' }, grid: { drawOnChartArea: false } } });
+            renderOrUpdateChart('sentimentChart', 'line', { labels, datasets: [{ label: 'P/C Ratio (Volume)', data: pcr, borderColor: 'rgb(220, 38, 38)' }] }, 'Market Sentiment (Put/Call Ratio)');
 
-        // Chart 3: Sentiment (P/C Ratio)
-        renderOrUpdateChart('sentimentChart', 'line', { // <-- This one was likely correct already
-            labels,
-            datasets: [{ label: 'P/C Ratio (Volume)', data: pcr, borderColor: 'rgb(139, 92, 246)', borderWidth: 2 }]
-        }, 'Market Sentiment (Put/Call Ratio by Volume)');
+            const allStrikeKeys = new Set();
+            data.forEach(entry => { if (entry.per_strike_gamma) { Object.keys(entry.per_strike_gamma).forEach(strike => allStrikeKeys.add(strike)); } });
+            const sortedStrikes = Array.from(allStrikeKeys).sort((a, b) => parseInt(a) - parseInt(b));
+            
+            const perStrikeGammaData = {};
+            sortedStrikes.forEach(strike => { perStrikeGammaData[strike] = data.map(entry => (entry.per_strike_gamma && entry.per_strike_gamma[strike] !== undefined) ? entry.per_strike_gamma[strike] : null); });
 
-    } catch (error) {
-        console.error("Failed to render historical chart data:", error);
-        const lastUpdatedEl = document.getElementById('last-updated-charts');
-        if (lastUpdatedEl) lastUpdatedEl.innerText = 'Error loading chart data.';
+            const colors = ['#3498db', '#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#e67e22', '#34495e', '#7f8c8d'];
+            const perStrikeDatasets = sortedStrikes.map((strike, index) => ({ label: `$${(parseInt(strike)/1000)}K`, data: perStrikeGammaData[strike], borderColor: colors[index % colors.length], backgroundColor: colors[index % colors.length] + '1A', borderWidth: 2, spanGaps: true, pointRadius: 1, tension: 0.1 }));
+            
+            renderOrUpdateChart('perStrikeGammaChart', 'line', { labels, datasets: perStrikeDatasets }, 'Historical Gamma Exposure for Key Strikes', { y: { title: { display: true, text: 'Dealer Gamma' } } }, { legend: { position: 'bottom' } });
+
+        } catch (error) {
+            console.error("Failed to render chart data:", error);
+            document.getElementById('last-updated-charts').innerText = 'Error loading chart data.';
+        }
     }
-}
+
     // --- HISTORY TOGGLE LOGIC ---
     function updateToggleButtonsVisibility() {
         const tradesBody = document.getElementById('completed-trades-tbody');
@@ -1447,13 +1420,13 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchMarketOpens();
         fetchCrossoverSignalData();
         
-        fetchAndRenderMarketSummary(); 
+        fetchAndRenderOptionsData();
         fetchAndRenderHistoricalCharts();
 
         setInterval(fetchCrossoverSignalData, 5 * 60 * 1000);
 
         setInterval(() => {
-            fetchAndRenderMarketSummary();
+            fetchAndRenderOptionsData();
             fetchAndRenderHistoricalCharts();
         }, 60000);
 
