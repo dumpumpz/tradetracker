@@ -188,41 +188,11 @@ def calculate_max_pain(options_list):
         if total_pain < min_pain_value:
             min_pain_value, max_pain_strike = total_pain, test_price
     return max_pain_strike
-
-def summarize_short_gamma_zones(gex_by_expiry_strike, spot_price, top_n_per_expiry=10):
-    results_by_expiry = {}
-    for expiry_dt, strike_map in gex_by_expiry_strike.items():
-        rows = [{'strike': s, 'dealer_gamma': g, 'distance_to_spot': abs(s - spot_price)} for s, g in strike_map.items()
-                if g < 0]
-        rows.sort(key=lambda r: r['distance_to_spot'])
-        results_by_expiry[expiry_dt] = rows[:top_n_per_expiry]
-    return results_by_expiry
     
-def get_key_gamma_strikes(gex_by_expiry_strike: dict, spot_price: float, tracked_strikes: list, top_n_dynamic: int = 5) -> dict:
-    total_gamma_by_strike = defaultdict(float)
-    for expiry, strike_map in gex_by_expiry_strike.items():
-        for strike, gamma in strike_map.items():
-            total_gamma_by_strike[strike] += gamma
-    dynamic_strikes = []
-    all_short_gamma_strikes = [
-        {'strike': s, 'gamma': g, 'distance': abs(s - spot_price)}
-        for s, g in total_gamma_by_strike.items() if g < 0
-    ]
-    all_short_gamma_strikes.sort(key=lambda x: x['distance'])
-    for item in all_short_gamma_strikes[:top_n_dynamic]:
-        dynamic_strikes.append(item['strike'])
-    key_strikes_set = set(tracked_strikes) | set(dynamic_strikes)
-    historical_gamma_data = {
-        str(int(strike)): round(total_gamma_by_strike.get(strike, 0.0), 4)
-        for strike in sorted(list(key_strikes_set))
-    }
-    return historical_gamma_data
-    
-# --- NEW: Function to create a market-wide summary ---
 def calculate_market_wide_summary(grouped_options, gex_by_expiry_strike, btc_price):
     """
-    Aggregates data across all expiries to create a single, market-wide view.
-    This is the key to simplifying the data for the frontend.
+    Aggregates data across all expiries to create a single, high-level market overview.
+    This is the key to simplifying the data for your intraday trading decisions.
     """
     if not grouped_options:
         return {}
@@ -255,7 +225,12 @@ def calculate_market_wide_summary(grouped_options, gex_by_expiry_strike, btc_pri
     # 3. Find the Gamma Flip ("Zero Gamma") Level
     gamma_flip_level = None
     cumulative_gamma = 0
-    first_strike_above_spot_index = next((i for i, s in enumerate(sorted_strikes) if s >= btc_price), len(sorted_strikes))
+    # Search for the flip point near the current spot price for relevance
+    try:
+        first_strike_above_spot_index = next(i for i, s in enumerate(sorted_strikes) if s >= btc_price)
+    except StopIteration:
+        first_strike_above_spot_index = len(sorted_strikes) # Spot is above all strikes
+        
     # Search downwards from spot
     for i in range(first_strike_above_spot_index - 1, -1, -1):
         strike = sorted_strikes[i]
@@ -263,6 +238,7 @@ def calculate_market_wide_summary(grouped_options, gex_by_expiry_strike, btc_pri
         if cumulative_gamma > 0:
             gamma_flip_level = strike
             break
+            
     # If not found, search upwards from spot
     if gamma_flip_level is None:
         cumulative_gamma = 0
@@ -324,20 +300,20 @@ def update_historical_data(filename: str, new_entry: dict):
         print(f"Error: Could not write to historical data file {filename}. {e}")
 
 # -----------------------------
-# Final JSON Assembly (UPDATED)
+# Final JSON Assembly
 # -----------------------------
 def process_and_save_json(grouped_options, gex_by_expiry_strike, btc_price, pcr_data, filename):
     if not grouped_options:
         print("No options data to save.")
         return
     print("Calculating final metrics and preparing JSON files...")
+    now_timestamp = datetime.utcnow().isoformat() + "Z"
     
-    # --- STEP 1: Calculate the new market-wide summary ---
+    # --- STEP 1: Calculate the new market-wide summary. This is your main dashboard. ---
     market_summary = calculate_market_wide_summary(grouped_options, gex_by_expiry_strike, btc_price)
 
-    # --- STEP 2: Process individual expiries for detailed view ---
+    # --- STEP 2: Process individual expiries for detailed, secondary analysis ---
     expirations_list = []
-    short_gamma_lookup = summarize_short_gamma_zones(gex_by_expiry_strike, btc_price)
     total_oi_all_expiries = 0
     total_volume_all_expiries = 0
 
@@ -346,48 +322,50 @@ def process_and_save_json(grouped_options, gex_by_expiry_strike, btc_price, pcr_
         total_volume_24h_btc = sum(opt['volume_24h'] for opt in options_list)
         total_call_oi = sum(o['oi'] for o in options_list if o['type'] == 'call')
         total_put_oi = sum(o['oi'] for o in options_list if o['type'] == 'put')
-        weighted_call_iv = sum(o['iv'] * o['oi'] for o in options_list if o['type'] == 'call') / total_call_oi if total_call_oi > 0 else 0
-        weighted_put_iv = sum(o['iv'] * o['oi'] for o in options_list if o['type'] == 'put') / total_put_oi if total_put_oi > 0 else 0
-        average_iv_data = { "call_iv": round(weighted_call_iv, 4), "put_iv": round(weighted_put_iv, 4), "skew_proxy": round(weighted_call_iv - weighted_put_iv, 4) if weighted_call_iv > 0 and weighted_put_iv > 0 else 0 }
-        oi_walls = find_oi_walls(options_list, top_n=TOP_N_OI_WALLS)
         total_oi_btc = total_call_oi + total_put_oi
         notional_oi_usd = total_oi_btc * btc_price
-        otype = get_option_type(expiry_dt)
-        max_pain_strike = calculate_max_pain(options_list) if otype in ["Monthly", "Quarterly"] else None
-        gex_curve = sorted([{'strike': s, 'dealer_gamma': g} for s, g in gex_by_expiry_strike[expiry_dt].items()], key=lambda x: x['strike'])
+        max_pain_strike = calculate_max_pain(options_list)
 
-        expirations_list.append({ "expiration_date": expiry_dt.strftime('%Y-%m-%d'), "day_of_week": expiry_dt.strftime('%A'), "option_type": otype, "open_interest_btc": round(total_oi_btc, 4), "notional_value_usd": round(notional_oi_usd, 2), "total_volume_24h_btc": round(total_volume_24h_btc, 4), "max_pain_strike": max_pain_strike, "open_interest_walls": oi_walls, "average_iv_data": average_iv_data, "dealer_gamma_by_strike": gex_curve, "short_gamma_near_spot": short_gamma_lookup.get(expiry_dt, []) })
+        expirations_list.append({
+            "expiration_date": expiry_dt.strftime('%Y-%m-%d'),
+            "option_type": get_option_type(expiry_dt),
+            "notional_value_usd": round(notional_oi_usd, 2),
+            "open_interest_btc": round(total_oi_btc, 4),
+            "total_volume_24h_btc": round(total_volume_24h_btc, 4),
+            "max_pain_strike": max_pain_strike,
+            "open_interest_walls": find_oi_walls(options_list, top_n=TOP_N_OI_WALLS),
+            "dealer_gamma_by_strike": sorted([{'strike': s, 'dealer_gamma': g} for s, g in gex_by_expiry_strike[expiry_dt].items()], key=lambda x: x['strike'])
+        })
         
         total_oi_all_expiries += total_oi_btc
         total_volume_all_expiries += total_volume_24h_btc
     
-    now_timestamp = datetime.utcnow().isoformat() + "Z"
-    
-    # --- STEP 3: Handle Historical Data ---
-    # Adjust strikes based on current market price for better tracking
-    TRACKED_STRIKES = [60000, 65000, 70000, 75000, 80000, 85000, 90000, 95000, 100000] 
-    key_gamma_data = get_key_gamma_strikes(gex_by_expiry_strike, btc_price, TRACKED_STRIKES)
+    # --- STEP 3: Handle Historical Data (REFINED for actionable insights) ---
+    # This new entry focuses on the key summary metrics that define the market's volatility environment.
+    # Plotting these over time (e.g., btc_price vs gamma_flip_level) provides powerful context.
     new_historical_entry = {
         "timestamp": now_timestamp,
         "btc_price": btc_price,
-        "total_open_interest_btc": round(total_oi_all_expiries, 2),
-        "total_volume_24h_btc": round(total_volume_all_expiries, 2),
-        "pcr_by_volume": pcr_data.get("ratio_by_volume"),
+        "gamma_flip_level": market_summary.get('gamma_flip_level'),
         "total_short_gamma": market_summary.get('total_short_gamma'),
-        "per_strike_gamma": key_gamma_data
+        "total_long_gamma": market_summary.get('total_long_gamma'),
+        "pcr_by_volume": pcr_data.get("ratio_by_volume"),
+        "total_open_interest_btc": round(total_oi_all_expiries, 2),
+        "total_volume_24h_btc": round(total_volume_all_expiries, 2)
     }
     update_historical_data(HISTORICAL_DATA_FILENAME, new_historical_entry)
 
     # --- STEP 4: Assemble the final JSON with the new summary section ---
     definitions = {
-        # ... (Your existing definitions dictionary can go here) ...
+        "metadata": "General information about the data snapshot.",
         "market_summary": {
-            "description": "Key metrics aggregated across ALL available option expiries to provide a high-level market structure overview.",
-            "market_wide_max_pain": "The strike price where the most options holders (puts & calls combined) would see their options expire worthless. It is a theoretical point of 'financial gravity' for the entire market.",
-            "gamma_flip_level": "The estimated price level where dealers' net gamma exposure flips from negative (short gamma) to positive (long gamma). Below this level, dealer hedging tends to accelerate price moves (volatility). Above it, hedging tends to suppress moves (stability). It acts as a major pivot point.",
-            "total_short_gamma": "The sum of all negative dealer gamma exposure across the market. A larger negative number indicates a higher potential for volatile, reflexive market moves, as dealers are forced to buy into rallies and sell into dips.",
-            "market_wide_oi_walls": "The strike prices with the highest concentration of open interest for calls (resistance) and puts (support) across the entire market. These are the most significant macro levels."
-        }
+            "description": "Key metrics aggregated across ALL available option expiries to provide a high-level market structure overview. THIS IS YOUR PRIMARY DASHBOARD.",
+            "market_wide_max_pain": "The strike price where the most options holders (puts & calls combined) would see their options expire worthless. A theoretical point of 'financial gravity' for the entire market.",
+            "gamma_flip_level": "The estimated price level where dealers' net gamma exposure flips from negative (short gamma) to positive (long gamma). Price below this level = volatile (dealer hedging accelerates moves). Price above this level = stable/pinning (dealer hedging suppresses moves). This is a critical pivot.",
+            "total_short_gamma": "The sum of all negative dealer gamma exposure across the market. A larger negative number (e.g., -500 vs -100) indicates a higher potential for volatile, reflexive market moves.",
+            "market_wide_oi_walls": "The strike prices with the highest concentration of open interest for calls (resistance) and puts (support) across the entire market. These are the most significant macro levels to watch."
+        },
+        "expirations": "A detailed breakdown of each individual options expiration date."
     }
     
     # Sort expirations by notional value to show the most important ones first
@@ -417,9 +395,10 @@ def process_and_save_json(grouped_options, gex_by_expiry_strike, btc_price, pcr_
 # Main Execution
 # -----------------------------
 if __name__ == "__main__":
+    print("--- Starting Deribit Options Market Analysis ---")
     spot = get_btc_index_price()
     if not spot:
-        raise SystemExit("Could not fetch BTC index price.")
+        raise SystemExit("Fatal Error: Could not fetch BTC index price. Exiting.")
 
     pcr = get_put_call_ratio(TARGET_CURRENCY)
     if not pcr:
@@ -428,14 +407,15 @@ if __name__ == "__main__":
 
     instrument_names = get_instrument_names(TARGET_CURRENCY)
     if not instrument_names:
-        raise SystemExit("No instrument names retrieved.")
+        raise SystemExit("Fatal Error: No instrument names retrieved. Exiting.")
 
     all_tickers = get_all_tickers_in_parallel(instrument_names)
     if not all_tickers:
-        raise SystemExit("Could not fetch ticker data.")
+        raise SystemExit("Fatal Error: Could not fetch any ticker data. Exiting.")
 
     grouped_options, gex_by_expiry_strike = aggregate_by_expiry_and_strike(all_tickers, END_DATE)
     if not grouped_options:
-        raise SystemExit("No options data after processing.")
+        raise SystemExit("Fatal Error: No options data available after processing. Exiting.")
 
     process_and_save_json(grouped_options, gex_by_expiry_strike, spot, pcr, OUTPUT_FILENAME)
+    print("--- Analysis complete. ---")
