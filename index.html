@@ -2012,8 +2012,8 @@
             <button class="tab-link" data-tab="sr-levels">S/R Levels</button>
             <button class="tab-link" data-tab="charts">Charts</button>
             <button class="tab-link" data-tab="notes">Notes</button>
-            <button class="tab-link" data-tab="options-oi">Options OI</button>
             <button class="tab-link" data-tab="trade-signals">Trade Signals</button>
+            <button class="tab-link" data-tab="options-oi">Options OI</button>
         </div>
 
         <div id="tracker-tab" class="tab-content active">
@@ -2583,11 +2583,9 @@
 
             <!-- The content will be dynamically inserted here by JavaScript -->
             <div id="options-snapshot-container">
-    <p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>
-</div>
-
-
-
+                <p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>
+            </div>
+        </div>
 
         <!-- ADD THIS NEW TAB CONTENT SECTION -->
         <div id="trade-signals-tab" class="tab-content">
@@ -2602,6 +2600,7 @@
         </div>
 
     </div> <!-- This is the closing tag for the main .container div -->
+
     <div id="image-modal" class="modal-overlay" style="display: none;">
         <span class="modal-close">&times;</span>
         <button id="modal-prev" class="modal-nav">&lt;</button>
@@ -2626,7 +2625,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
-<script>
+    <script>
     document.addEventListener('DOMContentLoaded', () => {
 
         // --- CONFIGURATION ---
@@ -2640,7 +2639,8 @@
                 messagingSenderId: "1038636626553",
                 appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
             },
-            DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades', BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', PERSISTENT_NOTES: 'persistent_notes', TRACKER_SCRATCHPAD: 'tracker_scratchpad', SENTIMENT_RECEIPTS: 'sentiment_receipts', LEVEL_NOTES: 'level_notes', GENERAL_NOTES: 'general_notes',TRADE_SIGNALS: 'trade_signals' // <-- ADD THIS },
+            // <-- FIX: Corrected the closing brace for the DB_PATHS object.
+            DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades', BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', PERSISTENT_NOTES: 'persistent_notes', TRACKER_SCRATCHPAD: 'tracker_scratchpad', SENTIMENT_RECEIPTS: 'sentiment_receipts', LEVEL_NOTES: 'level_notes', GENERAL_NOTES: 'general_notes', TRADE_SIGNALS: 'trade_signals' },
             TRADE_SETTINGS: { FEE_RATE: 0.00075, STARTING_BALANCE: 3881, },
             EMA_ANALYSIS: { SYMBOLS: ['BTC-USDT', 'ETH-USDT'], TIMEFRAMES: ['1hour', '2hour', '4hour', 'daily'], PERIODS: [13, 49, 100, 200, 500, 1000], SHORT_NAMES: {'15min': '15m', '30min': '30m', '1hour': '1H', '2hour': '2H', '4hour': '4H', 'daily': '1D', 'weekly': '1W', 'monthly': '1M'} }
         };
@@ -2742,14 +2742,16 @@
             noteModalContent: document.getElementById('note-modal-content'),
             noteModalClose: document.getElementById('note-modal-close'),
             optionsOiTab: document.getElementById('options-oi-tab'),
-            radeSignalsTab: document.getElementById('trade-signals-tab'),
+            // <-- FIX: Corrected typo 'radeSignalsTab' to 'tradeSignalsTab'
+            tradeSignalsTab: document.getElementById('trade-signals-tab'),
             tradeSignalsContent: document.getElementById('trade-signals-content'),
         };
 
         // --- APPLICATION STATE ---
         const STATE = {
-            isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, marketOpens: {}, journalText: {}, journalImages: {}, chartLibrary2Data: {}, currentCl2Folder: null, emaData: {}, srData: {}, favouriteEntries: {}, persistentNotes: '', trackerScratchpadText: '', setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, trackerSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null }, levelNotes: {}, levelNotesSaveTimer: null, allSentimentReceipts: {}, sentimentShowAll: false, sentimentCurrentPage: 1, sentimentItemsPerPage: 15,tradeSignalsData: [], // <-- ADD THIS
-
+            isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, marketOpens: {}, journalText: {}, journalImages: {}, chartLibrary2Data: {}, currentCl2Folder: null, emaData: {}, srData: {}, favouriteEntries: {}, persistentNotes: '', trackerScratchpadText: '', setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, trackerSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null }, levelNotes: {}, levelNotesSaveTimer: null, allSentimentReceipts: {}, sentimentShowAll: false, sentimentCurrentPage: 1, sentimentItemsPerPage: 15,
+            // <-- FIX: Added missing comma
+            tradeSignalsData: [], 
             
             // --- NEW: Object to hold persistent chart instances ---
             chartInstances: {}
@@ -2759,7 +2761,8 @@
         firebase.initializeApp(CONFIG.FIREBASE);
         const database = firebase.database();
         const storage = firebase.storage();
-        const dbRefs = { trades: database.ref(CONFIG.DB_PATHS.TRADES), completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), bank: database.ref(CONFIG.DB_PATHS.BANK), journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES), trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD), sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS), levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES), generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES),    tradeSignals: database.ref(CONFIG.DB_PATHS.TRADE_SIGNALS) // <-- ADD THIS};
+        // <-- FIX: Added closing brace for the dbRefs object.
+        const dbRefs = { trades: database.ref(CONFIG.DB_PATHS.TRADES), completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), bank: database.ref(CONFIG.DB_PATHS.BANK), journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES), trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD), sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS), levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES), generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES), tradeSignals: database.ref(CONFIG.DB_PATHS.TRADE_SIGNALS)};
 
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
@@ -4043,50 +4046,7 @@
             });
         }
 
-        async function initializeApp() {
-            checkMasterMode(); 
-            getViewerId();
-            await fetchLiveConversionRate();
-            fetchEmaData();
-            fetchSrData();
-            fetchMarketOpens();
-            fetchCrossoverSignalData();
-            etchTradeSignalsData(); 
-            fetchAndRenderOptionsData();
-            fetchAndRenderHistoricalCharts();
-
-            setInterval(fetchCrossoverSignalData, 5 * 60 * 1000);
-
-            setInterval(() => {
-                fetchAndRenderOptionsData();
-                fetchAndRenderHistoricalCharts();
-            }, 60000);
-
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) { 
-                document.documentElement.setAttribute('data-theme', savedTheme); 
-                DOM.themeToggle.checked = savedTheme === 'dark'; 
-            }
-            const today = new Date(); 
-            today.setUTCHours(0, 0, 0, 0);
-            STATE.selectedDate = new Date(today); 
-            STATE.centerDate = new Date(today);
-            setupEventListeners(); 
-            subscribeToData();
-            renderDateNavigation(); 
-            renderChartLibrary2Folders(); 
-            renderChartLibrary2Preview();
-
-            const activeTabContent = document.querySelector('.tab-content.active');
-            if (activeTabContent) {
-                openDefaultSectionsInContainer(activeTabContent);
-                activeTabContent.dataset.sectionsInitialized = 'true';
-            }
-        }
-
-        initializeApp();
-
-                            // --- TRADE SIGNALS TAB LOGIC ---
+        // --- TRADE SIGNALS TAB LOGIC ---
 
         function formatSignalCurrency(value) {
             if (value === null || value === "" || isNaN(parseFloat(value))) return "";
@@ -4408,9 +4368,52 @@
                 if(DOM.tradeSignalsTab.classList.contains('active')) renderTradeSignals();
             });
         }
+        
+        async function initializeApp() {
+            checkMasterMode(); 
+            getViewerId();
+            await fetchLiveConversionRate();
+            fetchEmaData();
+            fetchSrData();
+            fetchMarketOpens();
+            fetchCrossoverSignalData();
+            fetchTradeSignalsData(); // <-- FIX: Corrected typo
+            
+            fetchAndRenderOptionsData();
+            fetchAndRenderHistoricalCharts();
+
+            setInterval(fetchCrossoverSignalData, 5 * 60 * 1000);
+
+            setInterval(() => {
+                fetchAndRenderOptionsData();
+                fetchAndRenderHistoricalCharts();
+            }, 60000);
+
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) { 
+                document.documentElement.setAttribute('data-theme', savedTheme); 
+                DOM.themeToggle.checked = savedTheme === 'dark'; 
+            }
+            const today = new Date(); 
+            today.setUTCHours(0, 0, 0, 0);
+            STATE.selectedDate = new Date(today); 
+            STATE.centerDate = new Date(today);
+            setupEventListeners(); 
+            subscribeToData();
+            renderDateNavigation(); 
+            renderChartLibrary2Folders(); 
+            renderChartLibrary2Preview();
+
+            const activeTabContent = document.querySelector('.tab-content.active');
+            if (activeTabContent) {
+                openDefaultSectionsInContainer(activeTabContent);
+                activeTabContent.dataset.sectionsInitialized = 'true';
+            }
+        }
+
+        initializeApp();
+
     });
 </script>
-
-        
 </body>
 </html>
