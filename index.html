@@ -1816,7 +1816,155 @@
             }
         }
 
-        
+                /* --- STYLES FOR TRADE SIGNALS TAB --- */
+        #trade-signals-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+        }
+        #trade-signals-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .trade-signal-row {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 5px;
+            display: flex;
+            align-items: stretch; /* Make children same height */
+            gap: 5px;
+            min-height: 200px;
+        }
+        .signal-cards-container {
+            flex-grow: 1;
+            display: flex;
+            flex-wrap: nowrap; /* Prevent wrapping */
+            gap: 5px;
+            overflow-x: auto; /* Allow horizontal scrolling if needed */
+            padding-bottom: 5px; /* For scrollbar spacing */
+        }
+        .signal-card, .note-card {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-shadow: 0 1px 3px var(--shadow-color);
+            display: flex;
+            flex-direction: column;
+            min-width: 180px;
+            background-color: var(--card-bg);
+        }
+        .signal-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: grab;
+        }
+        .signal-card-header:active {
+            cursor: grabbing;
+        }
+        .signal-card-header .timeframe {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .signal-card-header .delete-signal-card-btn {
+            font-size: 14px;
+            padding: 0 6px;
+            background-color: var(--red-bg);
+            color: var(--red-text);
+            border: 1px solid var(--red-border);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .signal-card-body {
+            padding: 5px;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 2px 8px;
+            font-size: 13px;
+            align-items: center;
+        }
+        .signal-card-body label {
+            font-weight: normal;
+            color: var(--subtle-text);
+            text-align: right;
+        }
+        .signal-card-body input, .signal-card-body select {
+            padding: 3px;
+            font-size: 13px;
+            width: 100%;
+        }
+        .signal-card-body .signal-value {
+             font-weight: 600;
+             font-family: 'Courier New', Courier, monospace;
+        }
+        .signal-percent-value {
+            color: #00008B;
+            font-weight: bold;
+        }
+        [data-theme="dark"] .signal-percent-value {
+            color: #87CEEB; /* Sky Blue for dark mode */
+        }
+        .note-card {
+            padding: 5px;
+            position: relative;
+        }
+        .note-card textarea {
+            width: 100%;
+            height: 100%;
+            resize: none;
+            border: none;
+            background-color: transparent;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .note-card textarea:focus {
+            outline: none;
+        }
+        .signal-row-controls {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 10px;
+            border-left: 1px dashed var(--border-color);
+        }
+        .signal-row-controls button {
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+        .delete-signal-row-btn {
+            background-color: #dc3545;
+        }
+
+        /* Color States for Signal Cards */
+        .signal-card.long { background-color: var(--green-bg); color: var(--green-text); }
+        .signal-card.short { background-color: var(--red-bg); color: var(--red-text); }
+        .signal-card.profit { background-color: #ffc107; color: #333; } /* Bootstrap's warning yellow */
+        .signal-card.loss { background-color: #fd7e14; color: white; } /* Bootstrap's orange */
+        .signal-card.closed { background-color: var(--header-bg); color: var(--subtle-text); }
+        .signal-card-body .today-highlight {
+            background-color: #ffc107;
+            color: #333;
+            border-radius: 3px;
+            padding: 2px 4px;
+        }
+
+        /* Drag and Drop Visuals */
+        .signal-card.dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+        }
+        .drag-over-zone {
+            outline: 2px dashed var(--link-color);
+            background-color: rgba(0, 123, 255, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -1865,6 +2013,7 @@
             <button class="tab-link" data-tab="charts">Charts</button>
             <button class="tab-link" data-tab="notes">Notes</button>
             <button class="tab-link" data-tab="options-oi">Options OI</button>
+            <button class="tab-link" data-tab="trade-signals">Trade Signals</button>
         </div>
 
         <div id="tracker-tab" class="tab-content active">
@@ -2438,8 +2587,21 @@
 </div>
 
 
-    </div>
 
+
+        <!-- ADD THIS NEW TAB CONTENT SECTION -->
+        <div id="trade-signals-tab" class="tab-content">
+            <div id="trade-signals-controls" class="master-only">
+                <button id="save-trade-signals-btn">Save All Ideas</button>
+                <button id="load-s4-signals-btn">Load Default Entries</button>
+                <button id="add-trade-signal-row-btn">+ Add New Row</button>
+            </div>
+            <div id="trade-signals-content">
+                <!-- Trade signal rows will be dynamically inserted here -->
+            </div>
+        </div>
+
+    </div> <!-- This is the closing tag for the main .container div -->
     <div id="image-modal" class="modal-overlay" style="display: none;">
         <span class="modal-close">&times;</span>
         <button id="modal-prev" class="modal-nav">&lt;</button>
@@ -2478,7 +2640,7 @@
                 messagingSenderId: "1038636626553",
                 appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
             },
-            DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades', BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', PERSISTENT_NOTES: 'persistent_notes', TRACKER_SCRATCHPAD: 'tracker_scratchpad', SENTIMENT_RECEIPTS: 'sentiment_receipts', LEVEL_NOTES: 'level_notes', GENERAL_NOTES: 'general_notes' },
+            DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades', BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', PERSISTENT_NOTES: 'persistent_notes', TRACKER_SCRATCHPAD: 'tracker_scratchpad', SENTIMENT_RECEIPTS: 'sentiment_receipts', LEVEL_NOTES: 'level_notes', GENERAL_NOTES: 'general_notes',TRADE_SIGNALS: 'trade_signals' // <-- ADD THIS },
             TRADE_SETTINGS: { FEE_RATE: 0.00075, STARTING_BALANCE: 3881, },
             EMA_ANALYSIS: { SYMBOLS: ['BTC-USDT', 'ETH-USDT'], TIMEFRAMES: ['1hour', '2hour', '4hour', 'daily'], PERIODS: [13, 49, 100, 200, 500, 1000], SHORT_NAMES: {'15min': '15m', '30min': '30m', '1hour': '1H', '2hour': '2H', '4hour': '4H', 'daily': '1D', 'weekly': '1W', 'monthly': '1M'} }
         };
@@ -2580,11 +2742,14 @@
             noteModalContent: document.getElementById('note-modal-content'),
             noteModalClose: document.getElementById('note-modal-close'),
             optionsOiTab: document.getElementById('options-oi-tab'),
+            radeSignalsTab: document.getElementById('trade-signals-tab'),
+            tradeSignalsContent: document.getElementById('trade-signals-content'),
         };
 
         // --- APPLICATION STATE ---
         const STATE = {
-            isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, marketOpens: {}, journalText: {}, journalImages: {}, chartLibrary2Data: {}, currentCl2Folder: null, emaData: {}, srData: {}, favouriteEntries: {}, persistentNotes: '', trackerScratchpadText: '', setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, trackerSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null }, levelNotes: {}, levelNotesSaveTimer: null, allSentimentReceipts: {}, sentimentShowAll: false, sentimentCurrentPage: 1, sentimentItemsPerPage: 15,
+            isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, marketOpens: {}, journalText: {}, journalImages: {}, chartLibrary2Data: {}, currentCl2Folder: null, emaData: {}, srData: {}, favouriteEntries: {}, persistentNotes: '', trackerScratchpadText: '', setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, trackerSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null }, levelNotes: {}, levelNotesSaveTimer: null, allSentimentReceipts: {}, sentimentShowAll: false, sentimentCurrentPage: 1, sentimentItemsPerPage: 15,tradeSignalsData: [], // <-- ADD THIS
+
             
             // --- NEW: Object to hold persistent chart instances ---
             chartInstances: {}
@@ -2594,7 +2759,7 @@
         firebase.initializeApp(CONFIG.FIREBASE);
         const database = firebase.database();
         const storage = firebase.storage();
-        const dbRefs = { trades: database.ref(CONFIG.DB_PATHS.TRADES), completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), bank: database.ref(CONFIG.DB_PATHS.BANK), journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES), trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD), sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS), levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES), generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES) };
+        const dbRefs = { trades: database.ref(CONFIG.DB_PATHS.TRADES), completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), bank: database.ref(CONFIG.DB_PATHS.BANK), journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), persistentNotes: database.ref(CONFIG.DB_PATHS.PERSISTENT_NOTES), trackerScratchpad: database.ref(CONFIG.DB_PATHS.TRACKER_SCRATCHPAD), sentimentReceipts: database.ref(CONFIG.DB_PATHS.SENTIMENT_RECEIPTS), levelNotes: database.ref(CONFIG.DB_PATHS.LEVEL_NOTES), generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES),    tradeSignals: database.ref(CONFIG.DB_PATHS.TRADE_SIGNALS) // <-- ADD THIS};
 
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
@@ -3886,7 +4051,7 @@
             fetchSrData();
             fetchMarketOpens();
             fetchCrossoverSignalData();
-            
+            etchTradeSignalsData(); 
             fetchAndRenderOptionsData();
             fetchAndRenderHistoricalCharts();
 
@@ -3920,6 +4085,329 @@
         }
 
         initializeApp();
+
+                            // --- TRADE SIGNALS TAB LOGIC ---
+
+        function formatSignalCurrency(value) {
+            if (value === null || value === "" || isNaN(parseFloat(value))) return "";
+            try {
+                const num = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+                return `$${num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+            } catch (e) {
+                return String(value);
+            }
+        }
+
+        function calculateSignalPercentage(entryStr, stopStr) {
+            try {
+                const entryVal = parseFloat(String(entryStr).replace(/[^0-9.-]/g, ''));
+                const stopVal = parseFloat(String(stopStr).replace(/[^0-9.-]/g, ''));
+                if (isNaN(entryVal) || isNaN(stopVal) || Math.abs(entryVal) < 1e-9) return null;
+                const difference = Math.abs(entryVal - stopVal);
+                return (difference / Math.abs(entryVal)) * 100.0;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function renderTradeSignals() {
+            if (!DOM.tradeSignalsContent) return;
+            const content = DOM.tradeSignalsContent;
+            content.innerHTML = ''; // Clear previous content
+
+            const data = STATE.tradeSignalsData || [];
+
+            data.forEach((rowData, rowIndex) => {
+                const rowEl = document.createElement('div');
+                rowEl.className = 'trade-signal-row';
+                rowEl.dataset.rowIndex = rowIndex;
+
+                const cardsContainer = document.createElement('div');
+                cardsContainer.className = 'signal-cards-container';
+                
+                rowData.sections.forEach((sectionData, sectionIndex) => {
+                    const cardWrapper = document.createElement('div');
+                    cardWrapper.dataset.rowIndex = rowIndex;
+                    cardWrapper.dataset.sectionIndex = sectionIndex;
+
+                    if (sectionData.type === 'note') {
+                        cardWrapper.className = 'note-card';
+                        const deleteBtn = STATE.isMasterUser ? `<button class="delete-signal-card-btn" title="Delete Note">&times;</button>` : '';
+                        cardWrapper.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; padding-bottom: 4px;">
+                                <span style="color: var(--subtle-text); font-size:14px; font-weight: bold;">Note</span>
+                                ${deleteBtn}
+                            </div>
+                            <textarea placeholder="Type note here..." ${STATE.isMasterUser ? '' : 'readonly'}>${sectionData.text || ''}</textarea>
+                        `;
+                    } else { // type === 'section'
+                        cardWrapper.className = `signal-card ${sectionData.status || sectionData.direction?.toLowerCase()}`;
+                        cardWrapper.draggable = STATE.isMasterUser;
+                        
+                        const entryDate = sectionData.entry_date || new Date().toISOString().split('T')[0];
+                        const isToday = new Date(entryDate).toDateString() === new Date().toDateString();
+
+                        const deleteBtn = STATE.isMasterUser ? `<button class="delete-signal-card-btn" title="Delete Section">&times;</button>` : '';
+                        const headerHTML = `
+                            <div class="signal-card-header">
+                                <span class="timeframe">${sectionData.timeframe_name || 'N/A'}</span>
+                                ${deleteBtn}
+                            </div>`;
+
+                        const percentage = calculateSignalPercentage(sectionData.entry, sectionData.stoploss);
+                        const sign = sectionData.direction === "Short" ? "-" : "";
+                        const percentText = percentage !== null ? `${sign}${percentage.toFixed(2)}%` : '--%';
+
+                        const bodyHTML = `
+                            <div class="signal-card-body">
+                                <label>Direction:</label> <span class="signal-value">${sectionData.direction || 'Long'}</span>
+                                <label>Status:</label> <span class="signal-value">${sectionData.status || 'Open'}</span>
+                                <label>Entry:</label> <span class="signal-value">${formatSignalCurrency(sectionData.entry)}</span>
+                                <label>Resistance:</label> <span class="signal-value">${formatSignalCurrency(sectionData.resistance)}</span>
+                                <label>Stoploss:</label> <span class="signal-value">${formatSignalCurrency(sectionData.stoploss)}</span>
+                                <label>Percent:</label> <span class="signal-value signal-percent-value">${percentText}</span>
+                                <label>Target:</label> <span class="signal-value">${formatSignalCurrency(sectionData.target)}</span>
+                                <label>Candle #:</label> <span class="signal-value">${sectionData.candle_num || ''}</span>
+                                <label>Entry Date:</label> <span class="signal-value ${isToday ? 'today-highlight' : ''}">${entryDate}</span>
+                            </div>`;
+                        
+                        const inputsHTML = `
+                            <div class="signal-card-body">
+                                <label>Timeframe:</label> <input type="text" data-field="timeframe_name" value="${sectionData.timeframe_name || ''}">
+                                <label>Direction:</label> <select data-field="direction"><option ${sectionData.direction === 'Long' ? 'selected' : ''}>Long</option><option ${sectionData.direction === 'Short' ? 'selected' : ''}>Short</option></select>
+                                <label>Status:</label> <select data-field="status"><option value="" ${!sectionData.status ? 'selected' : ''}>Open</option><option ${sectionData.status === 'profit' ? 'selected' : ''} value="profit">Profit</option><option ${sectionData.status === 'loss' ? 'selected' : ''} value="loss">Loss</option><option ${sectionData.status === 'closed' ? 'selected' : ''} value="closed">Closed</option></select>
+                                <label>Entry:</label> <input type="text" data-field="entry" value="${String(sectionData.entry || '').replace(/[^0-9.-]/g, '')}">
+                                <label>Resistance:</label> <input type="text" data-field="resistance" value="${String(sectionData.resistance || '').replace(/[^0-9.-]/g, '')}">
+                                <label>Stoploss:</label> <input type="text" data-field="stoploss" value="${String(sectionData.stoploss || '').replace(/[^0-9.-]/g, '')}">
+                                <label>Percent:</label> <span class="signal-value signal-percent-value">${percentText}</span>
+                                <label>Target:</label> <input type="text" data-field="target" value="${String(sectionData.target || '').replace(/[^0-9.-]/g, '')}">
+                                <label>Candle #:</label> <input type="text" data-field="candle_num" value="${sectionData.candle_num || ''}">
+                                <label>Entry Date:</label> <input type="date" data-field="entry_date" value="${entryDate}">
+                            </div>`;
+
+                        cardWrapper.innerHTML = headerHTML + (STATE.isMasterUser ? inputsHTML : bodyHTML);
+                    }
+                    cardsContainer.appendChild(cardWrapper);
+                });
+                rowEl.appendChild(cardsContainer);
+
+                if (STATE.isMasterUser) {
+                    const controlsEl = document.createElement('div');
+                    controlsEl.className = 'signal-row-controls';
+                    controlsEl.innerHTML = `
+                        <button class="add-signal-section-btn" style="background-color: #28a745;">+ Section</button>
+                        <button class="add-signal-note-btn" style="background-color: #ffc107; color: #333;">+ Note</button>
+                        <button class="delete-signal-row-btn">&times; Row</button>
+                    `;
+                    rowEl.appendChild(controlsEl);
+                }
+                content.appendChild(rowEl);
+            });
+            addTradeSignalEventListeners();
+        }
+
+        function saveTradeSignals() {
+            if (!STATE.isMasterUser) return;
+            // The STATE.tradeSignalsData is the single source of truth, so we just save it.
+            dbRefs.tradeSignals.set(STATE.tradeSignalsData)
+                .catch(err => console.error("Failed to save trade signals:", err));
+        }
+
+        function handleSignalDataChange(rowIndex, sectionIndex, field, value) {
+            const section = STATE.tradeSignalsData[rowIndex].sections[sectionIndex];
+            section[field] = value;
+            
+            // Auto-calculation logic
+            if (field === 'entry' || field === 'stoploss' || field === 'direction') {
+                const entryVal = parseFloat(String(section.entry || '').replace(/[^0-9.-]/g, ''));
+                const stopVal = parseFloat(String(section.stoploss || '').replace(/[^0-9.-]/g, ''));
+                const percentage = calculateSignalPercentage(entryVal, stopVal);
+                if (!isNaN(entryVal) && percentage !== null) {
+                    const riskAmount = Math.abs(entryVal * percentage / 100.0);
+                    const targetVal = section.direction === "Long" ? entryVal + riskAmount : entryVal - riskAmount;
+                    section.target = targetVal.toFixed(2);
+                }
+            }
+            // Re-render and save
+            renderTradeSignals();
+            saveTradeSignals();
+        }
+        
+        let draggedElement = null;
+        function addTradeSignalEventListeners() {
+            if (!STATE.isMasterUser) return;
+
+            // Input and select changes
+            DOM.tradeSignalsContent.querySelectorAll('input, select, textarea').forEach(el => {
+                el.addEventListener('change', (e) => {
+                    const card = e.target.closest('[data-section-index]');
+                    const rowIndex = parseInt(card.dataset.rowIndex, 10);
+                    const sectionIndex = parseInt(card.dataset.sectionIndex, 10);
+                    const field = e.target.dataset.field;
+                    let value = e.target.value;
+                    
+                    if(e.target.closest('.note-card')) {
+                         STATE.tradeSignalsData[rowIndex].sections[sectionIndex].text = value;
+                         saveTradeSignals();
+                    } else if (field) {
+                        handleSignalDataChange(rowIndex, sectionIndex, field, value);
+                    }
+                });
+                if(el.type === 'text' && (el.dataset.field === 'entry' || el.dataset.field === 'resistance' || el.dataset.field === 'stoploss' || el.dataset.field === 'target')){
+                    el.addEventListener('blur', (e) => {
+                        e.target.value = formatSignalCurrency(e.target.value).replace(/[^0-9.-]/g, '');
+                    });
+                }
+            });
+
+            // Button clicks
+            DOM.tradeSignalsContent.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const row = e.target.closest('.trade-signal-row');
+                    const card = e.target.closest('[data-section-index]');
+                    const rowIndex = parseInt(row?.dataset.rowIndex ?? card?.dataset.rowIndex, 10);
+
+                    if (e.target.matches('.add-signal-section-btn')) {
+                        STATE.tradeSignalsData[rowIndex].sections.push({ type: 'section', direction: 'Long', entry_date: new Date().toISOString().split('T')[0] });
+                    } else if (e.target.matches('.add-signal-note-btn')) {
+                        STATE.tradeSignalsData[rowIndex].sections.push({ type: 'note', text: '' });
+                    } else if (e.target.matches('.delete-signal-row-btn')) {
+                        if (confirm('Are you sure you want to delete this entire row?')) {
+                            STATE.tradeSignalsData.splice(rowIndex, 1);
+                        }
+                    } else if (e.target.matches('.delete-signal-card-btn')) {
+                         if (confirm('Are you sure you want to delete this item?')) {
+                            const sectionIndex = parseInt(card.dataset.sectionIndex, 10);
+                            STATE.tradeSignalsData[rowIndex].sections.splice(sectionIndex, 1);
+                        }
+                    }
+                    renderTradeSignals();
+                    saveTradeSignals();
+                });
+            });
+            
+            // Drag and Drop
+            DOM.tradeSignalsContent.querySelectorAll('.signal-card').forEach(card => {
+                card.addEventListener('dragstart', (e) => {
+                    draggedElement = e.target;
+                    e.target.classList.add('dragging');
+                });
+                card.addEventListener('dragend', (e) => {
+                    e.target.classList.remove('dragging');
+                    draggedElement = null;
+                });
+            });
+
+            DOM.tradeSignalsContent.querySelectorAll('.signal-cards-container').forEach(container => {
+                container.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    const afterElement = getDragAfterElement(container, e.clientX);
+                    const dragging = document.querySelector('.dragging');
+                    if (dragging) {
+                       if (afterElement == null) {
+                           container.appendChild(dragging);
+                       } else {
+                           container.insertBefore(dragging, afterElement);
+                       }
+                    }
+                });
+                container.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if(!draggedElement) return;
+
+                    const fromRowIndex = parseInt(draggedElement.dataset.rowIndex, 10);
+                    const fromSectionIndex = parseInt(draggedElement.dataset.sectionIndex, 10);
+                    
+                    const toRowEl = e.target.closest('.trade-signal-row');
+                    const toRowIndex = parseInt(toRowEl.dataset.rowIndex, 10);
+                    
+                    const newElements = Array.from(toRowEl.querySelector('.signal-cards-container').children);
+                    const toSectionIndex = newElements.indexOf(draggedElement);
+
+                    // Update data model
+                    const [movedItem] = STATE.tradeSignalsData[fromRowIndex].sections.splice(fromSectionIndex, 1);
+                    STATE.tradeSignalsData[toRowIndex].sections.splice(toSectionIndex, 0, movedItem);
+
+                    renderTradeSignals();
+                    saveTradeSignals();
+                });
+            });
+        }
+        
+        function getDragAfterElement(container, x) {
+            const draggableElements = [...container.querySelectorAll('.signal-card:not(.dragging), .note-card:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = x - box.left - box.width / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        document.getElementById('save-trade-signals-btn')?.addEventListener('click', () => {
+             saveTradeSignals();
+             alert("Trade signals saved to database.");
+        });
+
+        document.getElementById('load-s4-signals-btn')?.addEventListener('click', async () => {
+            if (confirm("This will overwrite your current signals with the default S4 entries. Are you sure?")) {
+                try {
+                    const response = await fetch('s4_entries.json');
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const s4Data = await response.json();
+                    STATE.tradeSignalsData = s4Data;
+                    renderTradeSignals();
+                    saveTradeSignals();
+                } catch (error) {
+                    console.error('Error loading s4_entries.json:', error);
+                    alert('Failed to load default entries.');
+                }
+            }
+        });
+
+        document.getElementById('add-trade-signal-row-btn')?.addEventListener('click', () => {
+            const newRow = {
+                sections: [
+                    { type: 'section', timeframe_name: '1hour', direction: 'Long', entry_date: new Date().toISOString().split('T')[0] }
+                ]
+            };
+            STATE.tradeSignalsData.push(newRow);
+            renderTradeSignals();
+            saveTradeSignals();
+        });
+
+
+        // Initial data load for Trade Signals
+        async function fetchTradeSignalsData() {
+             dbRefs.tradeSignals.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    STATE.tradeSignalsData = data;
+                } else {
+                    // If DB is empty, load from default file and set it
+                    console.log("No trade signals in DB, trying to load default.");
+                    fetch('trade_signals_default.json')
+                        .then(response => {
+                            if (!response.ok) return [];
+                            return response.json();
+                        })
+                        .then(defaultData => {
+                            STATE.tradeSignalsData = defaultData || [];
+                            if (STATE.isMasterUser && defaultData.length > 0) {
+                                saveTradeSignals(); // Save default to DB if master
+                            }
+                        })
+                        .catch(err => console.error("Could not load trade_signals_default.json", err))
+                        .finally(() => {
+                             if(DOM.tradeSignalsTab.classList.contains('active')) renderTradeSignals();
+                        });
+                }
+                if(DOM.tradeSignalsTab.classList.contains('active')) renderTradeSignals();
+            });
+        }
     });
 </script>
 
