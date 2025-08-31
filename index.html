@@ -2477,8 +2477,7 @@
             createNewNoteBtn: document.getElementById('create-new-note-btn'),
             notesContainer: document.getElementById('notes-container'),
             persistentNotesEl: document.getElementById('persistent-notes-entry'),
-            setupsTable1: document.getElementById('primary-setups-table'),
-            setupsTable2: document.getElementById('secondary-setups-table'),
+
             primarySetupsNotes: document.getElementById('primary-setups-notes'),
             secondarySetupsNotes: document.getElementById('secondary-setups-notes'),
 
@@ -3044,24 +3043,36 @@
             });
         }
         
-        function renderSetupsTable(tableElement, data, notesTextareaId) {
-            if (!tableElement) return;
-            const tbody = tableElement.querySelector('tbody');
-            tbody.querySelectorAll('tr').forEach(row => {
-                const timeframe = row.firstElementChild.textContent.trim();
-                const rowData = data[timeframe] || {};
-                const cells = row.querySelectorAll('td');
-                cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
-                cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
-                cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
-                calculateAndDisplayPercentages(row);
-            });
-            const notesTextarea = document.getElementById(notesTextareaId);
-            if (notesTextarea) { notesTextarea.value = data.global_notes || ''; adjustCollapsibleSize(notesTextarea); }
-            applyHighlightingToSetupsTable(tableElement);
-            adjustCollapsibleSize(tableElement);
+       // --- REPLACE WITH THIS CORRECTED VERSION ---
+function renderSetupsTable(tableElement, data, notesTextareaId) {
+    // This part is for the table, which you've removed.
+    // It's safe to keep, but we need to fix the notes part below.
+    if (tableElement) {
+        const tbody = tableElement.querySelector('tbody');
+        tbody.querySelectorAll('tr').forEach(row => {
+            const timeframe = row.firstElementChild.textContent.trim();
+            const rowData = data[timeframe] || {};
+            const cells = row.querySelectorAll('td');
+            cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
+            cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
+            cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
+            calculateAndDisplayPercentages(row);
+        });
+        applyHighlightingToSetupsTable(tableElement);
+        adjustCollapsibleSize(tableElement);
+    }
+    
+    // --- THIS IS THE CRITICAL FIX ---
+    const notesTextarea = document.getElementById(notesTextareaId);
+    if (notesTextarea) {
+        // ONLY update the textarea's value if the user is NOT currently focused on it.
+        if (document.activeElement !== notesTextarea) {
+            notesTextarea.value = data.global_notes || '';
         }
-        
+        // Always adjust size, as this doesn't interfere with user input.
+        adjustCollapsibleSize(notesTextarea);
+    }
+}
         function renderSrSummaryTable(symbol) {
             const summaryTbody = document.getElementById('sr-summary-tbody');
             const summaryContainer = document.getElementById('sr-summary-zones-container');
