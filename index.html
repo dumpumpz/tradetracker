@@ -2029,23 +2029,20 @@
             </div>
 
             <!-- Trading Setups Section (Combined) -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Trading Setups</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-       
-                        <textarea id="primary-setups-notes" class="setups-notes-area" placeholder="Notes for Primary Setups..."></textarea>
-                        
-                       <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder="Notes for Secondary Setups..."></textarea>
-
-                
-                    </div>
-                </div>
-            </div>
-
+        <!-- Trading Setups Section (Combined) -->
+<div class="collapsible-section">
+    <div class="collapsible-header">
+        <h2>Trading Setups</h2>
+        <button class="collapsible-toggle-btn">+</button>
+    </div>
+    <div class="collapsible-content">
+        <div class="collapsible-content-inner">
+            <!-- This is correct. No save buttons or status elements. -->
+            <textarea id="primary-setups-notes" class="setups-notes-area" placeholder="Notes for Primary Setups..."></textarea>
+            <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder="Notes for Secondary Setups..."></textarea>
+        </div>
+    </div>
+</div>
             <!-- Setups Image Library Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -2484,10 +2481,7 @@
             setupsTable2: document.getElementById('secondary-setups-table'),
             primarySetupsNotes: document.getElementById('primary-setups-notes'),
             secondarySetupsNotes: document.getElementById('secondary-setups-notes'),
-            saveSetups1Btn: document.getElementById('save-setups-1-btn'),
-            saveSetups2Btn: document.getElementById('save-setups-2-btn'),
-            setupsSaveStatus1: document.getElementById('setups-save-status-1'),
-            setupsSaveStatus2: document.getElementById('setups-save-status-2'),
+
             journalSymbolEl: document.getElementById('journal-symbol'),
             journalTimeframeEl: document.getElementById('journal-timeframe'),
             journalImageFilterEl: document.getElementById('journal-image-filter'),
@@ -3172,6 +3166,24 @@
         const savePrimarySetupsNotes = () => { if (!STATE.isMasterUser) return; saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); };
         const saveSecondarySetupsNotes = () => { if (!STATE.isMasterUser) return; saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'); };
 
+
+                function savePrimaryNotesOnly() {
+    if (!STATE.isMasterUser) return;
+    const notesTextarea = DOM.primarySetupsNotes;
+    if (notesTextarea) {
+        dbRefs.setups1.child('global_notes').set(notesTextarea.value)
+            .catch(e => console.error("Error saving primary notes:", e));
+    }
+}
+
+function saveSecondaryNotesOnly() {
+    if (!STATE.isMasterUser) return;
+    const notesTextarea = DOM.secondarySetupsNotes;
+    if (notesTextarea) {
+        dbRefs.setups2.child('global_notes').set(notesTextarea.value)
+            .catch(e => console.error("Error saving secondary notes:", e));
+    }
+}
         function handleFileUpload(files) {
             if (!STATE.isMasterUser || !files || files.length === 0) return;
             DOM.uploadProgress.style.display = 'block';
@@ -3428,8 +3440,21 @@ function closeModal() {
             }, true);
 
             DOM.trackerScratchpadEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveTrackerScratchpad(); });
-            DOM.primarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); clearTimeout(STATE.setups1NotesTimer); STATE.setups1NotesTimer = setTimeout(savePrimarySetupsNotes, 750); });
-            DOM.secondarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); clearTimeout(STATE.setups2NotesTimer); STATE.setups2NotesTimer = setTimeout(saveSecondarySetupsNotes, 750); });
+         // --- REPLACE WITH THIS ---
+
+// Keep listening to 'input' for resizing the textarea as the user types.
+DOM.primarySetupsNotes.addEventListener('input', (e) => {
+    autoResizeTextarea(e.target);
+    debouncedResizeParent(e.target);
+});
+DOM.secondarySetupsNotes.addEventListener('input', (e) => {
+    autoResizeTextarea(e.target);
+    debouncedResizeParent(e.target);
+});
+
+// Add a NEW 'blur' event listener to save the content when the user clicks away.
+DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
+DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
 
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
