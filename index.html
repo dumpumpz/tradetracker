@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+what lines do i need to fix in the setups tab the iamges have caption to the right side instead of under the image when in full screen : <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -27,7 +27,7 @@
             --red-text: #721c24;
             --green-bar: rgba(40, 167, 69, 0.2);
             --red-bar: rgba(220, 53, 69, 0.2);
-
+        
         }
 
         [data-theme="dark"] {
@@ -290,7 +290,7 @@
         .sr-column h3 { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid; }
         .sr-column.support h3 { color: #28a745; border-color: #28a745; }
         .sr-column.resistance h3 { color: #dc3545; border-color: #dc3545; }
-
+        
         .sr-table {
             width: 100%;
             border-collapse: collapse;
@@ -425,7 +425,7 @@
             color: var(--red-text);
             font-weight: bold;
         }
-
+        
         .setups-table .percent-cell {
             font-size: 11px;
             color: var(--subtle-text);
@@ -771,22 +771,6 @@
             animation-name: fadeIn;
             animation-duration: 0.3s;
         }
-    position: fixed;
-    z-index: 2000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.85);
-    display: flex;
-    flex-direction: column;   /* <--- ADD THIS LINE */
-    justify-content: center;
-    align-items: center;      /* <--- CHANGE THIS LINE */
-    padding: 20px 0;
-    overflow-y: auto;
-    animation-name: fadeIn;
-    animation-duration: 0.3s;
-}
         #image-modal .modal-content {
             margin: auto;
             display: block;
@@ -795,7 +779,7 @@
             animation-name: zoomIn;
             animation-duration: 0.4s;
         }
-
+        
         @keyframes fadeIn {
             from {opacity: 0}
             to {opacity: 1}
@@ -1377,7 +1361,7 @@
             font-family: 'Courier New', Courier, monospace;
             font-weight: 500;
         }
-
+        
         /* --- NEW STYLES FOR OPTIONS OI DASHBOARD --- */
         #options-oi-tab .oi-global-metrics {
             display: flex;
@@ -1546,7 +1530,7 @@
           visibility: visible;
           opacity: 1;
         }
-
+        
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -1610,7 +1594,7 @@
                 background-color: var(--card-bg);
                 z-index: 1;
             }
-
+            
             #key-opens-container {
                 grid-template-columns: 1fr;
                 gap: 25px;
@@ -1812,7 +1796,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px var(--shadow-color);
             max-width: 1200px;
-
+            
         }
         #charts-tab #last-updated-charts,
         #options-oi-tab #last-updated-charts { /* <--- ADD THIS LINE */
@@ -1832,7 +1816,7 @@
             }
         }
 
-
+        
     </style>
 </head>
 <body>
@@ -2124,7 +2108,7 @@
         </div>
 
         <div id="journal-tab" class="tab-content">
-
+            
             <!-- Persistent Notes Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -2301,7 +2285,7 @@
                     </div>
                 </div>
             </div>
-
+            
         </div>
 
         <div id="charts-tab" class="tab-content">
@@ -2362,7 +2346,7 @@
                 </div>
             </div>
         </div>
-
+        
         <div id="options-oi-tab" class="tab-content">
             <!-- PASTE THE CHART HTML HERE -->
             <p id="last-updated-charts">Loading chart data...</p>
@@ -2533,7 +2517,7 @@
         // --- APPLICATION STATE ---
         const STATE = {
             isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, marketOpens: {}, journalText: {}, journalImages: {}, chartLibrary2Data: {}, currentCl2Folder: null, emaData: {}, srData: {}, favouriteEntries: {}, persistentNotes: '', trackerScratchpadText: '', setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, trackerSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null }, levelNotes: {}, levelNotesSaveTimer: null, allSentimentReceipts: {}, sentimentShowAll: false, sentimentCurrentPage: 1, sentimentItemsPerPage: 15,
-
+            
             // --- NEW: Object to hold persistent chart instances ---
             chartInstances: {}
         };
@@ -2562,17 +2546,17 @@
         async function fetchSrData() { try { const response = await fetch(`sr_levels_analysis.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.srData = await response.json(); if (DOM.srLevelsTab.classList.contains('active')) { renderSrLevels(); } } catch (error) { console.error("Could not fetch sr_levels_analysis.json:", error); DOM.supportLevelsTbody.parentElement.innerHTML = '<p style="color: red; text-align: center;">Error loading S/R data.</p>'; } }
         async function fetchMarketOpens() { try { const response = await fetch(`market_opens.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.marketOpens = await response.json(); renderMarketOpens(); } catch (error) { console.error("Could not fetch market_opens.json:", error); } }
         async function fetchCrossoverSignalData() { const signalJsonUrl = 'crypto_signals.json'; try { const response = await fetch(`${signalJsonUrl}?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); renderCrossoverSignals(data); } catch (error) { console.error("Could not fetch or parse crossover signal data:", error); const ethContainer = document.getElementById('eth-crossover-signal-container'); const btcContainer = document.getElementById('btc-crossover-signal-container'); const errorMsg = '<p style="color: red; text-align: center;">Error loading signal data.</p>'; if (ethContainer) ethContainer.innerHTML = errorMsg; if (btcContainer) btcContainer.innerHTML = errorMsg; const lastUpdatedEl = document.getElementById('crossover-signals-last-updated'); if(lastUpdatedEl) lastUpdatedEl.textContent = 'Failed to load data.'; } }
-
+        
         async function fetchAndRenderOptionsData() {
             if (!DOM.optionsOiTab) return;
             const jsonFile = 'deribit_options_market_analysis.json';
             const container = document.getElementById('options-snapshot-container');
-
+            
             try {
                 const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-
+                
                 const formatNumber = (num, digits = 2) => num != null ? num.toLocaleString('en-US', {minimumFractionDigits: digits, maximumFractionDigits: digits}) : 'N/A';
                 const formatCompact = (num) => { if (num == null) return 'N/A'; if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2)}B`; if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`; if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`; return num.toString(); };
                 const formatPercent = (val) => val != null ? `${(val * 100).toFixed(2)}%` : 'N/A';
@@ -2580,7 +2564,7 @@
 
                 const pcr = data.metadata.put_call_ratio_24h_volume.ratio_by_volume;
                 const pcrClass = pcr >= 0.7 ? 'pcr-bearish' : pcr <= 0.5 ? 'pcr-bullish' : '';
-
+                
                 const globalMetricsHtml = `<div class="oi-global-metrics"><div class="oi-global-metric"><span class="label"><span class="tooltip">24h P/C Ratio (Vol)<span class="tooltiptext">${data.definitions.put_call_ratio_24h_volume}</span></span></span><span class="value ${pcrClass}">${pcr.toFixed(2)}</span></div><div class="oi-global-metric"><span class="label"><span class="tooltip">BTC Index Price<span class="tooltiptext">${data.definitions.btc_index_price_usd}</span></span></span><span class="value">$${formatNumber(data.metadata.btc_index_price_usd)}</span></div><div class="oi-global-metric"><span class="label">Last Updated (UTC)</span><span class="value" style="font-size: 14px;">${new Date(data.metadata.calculation_timestamp_utc).toLocaleTimeString()}</span></div></div>`;
 
                 const cardsHtml = data.expirations.map(expiry => {
@@ -2590,14 +2574,14 @@
                     const shortGammaHtml = short_gamma_near_spot.slice(0, 5).map(item => `<tr><td class="strike">$${formatCurrencyNoSymbol(item.strike)}</td><td>${formatNumber(item.dealer_gamma)}</td></tr>`).join('') || `<tr><td colspan="2" style="text-align:center; padding: 10px;">None near spot</td></tr>`;
                     return `<div class="oi-card"><div class="oi-card-header"><h3>${expiration_date} <span style="font-weight:400; color:var(--subtle-text)">(${day_of_week})</span></h3><span class="oi-type-pill oi-type-${option_type.toLowerCase()}">${option_type}</span></div><div class="oi-card-body"><div class="oi-metric-grid"><div class="oi-metric-item"><span class="label"><span class="tooltip">Notional Value<span class="tooltiptext">${data.definitions.notional_value_usd}</span></span></span><span class="value">$${formatCompact(notional_value_usd)}</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">24h Volume<span class="tooltiptext">${data.definitions.total_volume_24h_btc}</span></span></span><span class="value">${formatCompact(total_volume_24h_btc)} BTC</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">Max Pain<span class="tooltiptext">${data.definitions.max_pain_strike}</span></span></span><span class="value">${max_pain_strike ? '$' + formatCurrencyNoSymbol(max_pain_strike) : 'N/A'}</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">IV Skew<span class="tooltiptext">${data.definitions.average_iv_data.skew_proxy}</span></span></span><span class="value" style="color: ${average_iv_data.skew_proxy > 0 ? 'var(--green-text)' : 'var(--red-text)'}">${formatPercent(average_iv_data.skew_proxy)}</span></div></div><div class="oi-walls-container"><div class="wall-column puts"><h4><span class="tooltip">Top Put Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>${putWallsHtml}</div><div class="wall-column calls"><h4><span class="tooltip">Top Call Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>${callWallsHtml}</div></div><h4 class="oi-section-title"><span class="tooltip">Short Gamma Zones (Nearest Spot)<span class="tooltiptext">${data.definitions.short_gamma_near_spot.description}</span></span></h4><div class="table-wrapper"><table class="gamma-zone-table"><thead><tr><th>Strike</th><th>Dealer Gamma</th></tr></thead><tbody>${shortGammaHtml}</tbody></table></div></div></div>`;
                 }).join('');
-
+                
                 container.innerHTML = `${globalMetricsHtml}<div class="oi-dashboard-grid">${cardsHtml}</div>`;
             } catch (error) {
                 console.error("Could not fetch or render options data:", error);
                 container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Could not find or parse <strong>${jsonFile}</strong>. Please check the console.</p>`;
             }
         }
-
+        
         // --- NEW, ROBUST CHART RENDERING FUNCTION ---
         function renderOrUpdateChart(canvasId, type, chartData, titleText, scalesConfig = {}, pluginsConfig = {}) {
             const ctx = document.getElementById(canvasId);
@@ -2638,7 +2622,7 @@
                 const response = await fetch('historical_market_data.json?v=' + new Date().getTime());
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-
+                
                 const lastUpdatedEl = document.getElementById('last-updated-charts');
                 if (data.length === 0) { lastUpdatedEl.innerText = 'No historical data. Run the Python script.'; return; }
                 lastUpdatedEl.innerText = `Last updated: ${new Date(data[data.length - 1].timestamp).toLocaleString()}`;
@@ -2657,13 +2641,13 @@
                 const allStrikeKeys = new Set();
                 data.forEach(entry => { if (entry.per_strike_gamma) { Object.keys(entry.per_strike_gamma).forEach(strike => allStrikeKeys.add(strike)); } });
                 const sortedStrikes = Array.from(allStrikeKeys).sort((a, b) => parseInt(a) - parseInt(b));
-
+                
                 const perStrikeGammaData = {};
                 sortedStrikes.forEach(strike => { perStrikeGammaData[strike] = data.map(entry => (entry.per_strike_gamma && entry.per_strike_gamma[strike] !== undefined) ? entry.per_strike_gamma[strike] : null); });
 
                 const colors = ['#3498db', '#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#e67e22', '#34495e', '#7f8c8d'];
                 const perStrikeDatasets = sortedStrikes.map((strike, index) => ({ label: `$${(parseInt(strike)/1000)}K`, data: perStrikeGammaData[strike], borderColor: colors[index % colors.length], backgroundColor: colors[index % colors.length] + '1A', borderWidth: 2, spanGaps: true, pointRadius: 1, tension: 0.1 }));
-
+                
                 renderOrUpdateChart('perStrikeGammaChart', 'line', { labels, datasets: perStrikeDatasets }, 'Historical Gamma Exposure for Key Strikes', { y: { title: { display: true, text: 'Dealer Gamma' } } }, { legend: { position: 'bottom' } });
 
             } catch (error) {
@@ -2697,7 +2681,7 @@
             button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
             adjustCollapsibleSize(button);
         }
-
+        
         function toggleHistoricalImages(containerId, button) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -2785,7 +2769,7 @@
             }).join('');
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
-
+        
         function renderSentimentReceipts() {
             const tbody = DOM.sentimentReceiptsTbody;
             if (!tbody) return;
@@ -3058,7 +3042,7 @@
                 });
             });
         }
-
+        
        // --- REPLACE WITH THIS CORRECTED VERSION ---
 function renderSetupsTable(tableElement, data, notesTextareaId) {
     // This part is for the table, which you've removed.
@@ -3077,7 +3061,7 @@ function renderSetupsTable(tableElement, data, notesTextareaId) {
         applyHighlightingToSetupsTable(tableElement);
         adjustCollapsibleSize(tableElement);
     }
-
+    
     // --- THIS IS THE CRITICAL FIX ---
     const notesTextarea = document.getElementById(notesTextareaId);
     if (notesTextarea) {
@@ -3166,7 +3150,7 @@ function renderSetupsTable(tableElement, data, notesTextareaId) {
                 dbRefs.levelNotes.child(getSafeSymbol(symbol)).child(timeframe).set(value).catch(e => console.error("Error saving level note:", e));
             }, 750);
         };
-
+        
         // --- DATA HANDLING AND SAVING ---
         function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
             if (!STATE.isMasterUser) return;
@@ -3385,7 +3369,7 @@ function closeModal() {
             });
 
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
-
+            
             document.body.addEventListener('click', (e) => {
                 const header = e.target.closest('.collapsible-header');
                 if (header) {
@@ -3544,7 +3528,7 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
             const tradeWithMetrics = { ...trade, ...metrics };
             dbRefs.trades.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error adding trade: ${error.message}`));
         }
-
+        
         function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
             const tradeId = cell.dataset.id;
@@ -3648,7 +3632,7 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
             else if (button.matches('.delete-btn, .delete-btn-completed')) { if (confirm('Delete this trade?')) { resetMergeState(); tradeRef.remove(); } } 
             else if (button.matches('.note-btn, .note-btn-completed')) { tradeRef.child('note').once('value', snapshot => { const newNote = prompt("Enter note:", snapshot.val() || ""); if (newNote !== null) tradeRef.update({ note: newNote }); }); }
         }
-
+        
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); if (attachBtn) { handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type); return true; }
             const delImgBtn = e.target.closest('.delete-trade-image'); if (delImgBtn) { const { entryId, entryType, imageId, filename } = delImgBtn.dataset; handleDeleteAttachmentImage(entryId, entryType, imageId, filename); return true; }
@@ -3685,7 +3669,7 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
                 });
             });
         }
-
+        
         function handleDeleteAttachmentImage(entryId, entryType, imageId, fileName) {
             if (!STATE.isMasterUser || !entryId || !entryType || !imageId || !fileName) return;
             if (confirm(`Delete this attachment?\n\n${fileName}`)) {
@@ -3821,7 +3805,7 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
         function openDefaultSectionsInContainer(containerElement) {
             if (!containerElement) return;
             const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'Persistent Notes'];
-
+            
             containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 const title = h2.textContent.trim();
                 if (sectionsToOpen.includes(title)) {
@@ -3877,7 +3861,7 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
             fetchSrData();
             fetchMarketOpens();
             fetchCrossoverSignalData();
-
+            
             fetchAndRenderOptionsData();
             fetchAndRenderHistoricalCharts();
 
