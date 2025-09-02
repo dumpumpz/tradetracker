@@ -27,7 +27,7 @@
             --red-text: #721c24;
             --green-bar: rgba(40, 167, 69, 0.2);
             --red-bar: rgba(220, 53, 69, 0.2);
-        
+
         }
 
         [data-theme="dark"] {
@@ -290,7 +290,7 @@
         .sr-column h3 { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid; }
         .sr-column.support h3 { color: #28a745; border-color: #28a745; }
         .sr-column.resistance h3 { color: #dc3545; border-color: #dc3545; }
-        
+
         .sr-table {
             width: 100%;
             border-collapse: collapse;
@@ -425,7 +425,7 @@
             color: var(--red-text);
             font-weight: bold;
         }
-        
+
         .setups-table .percent-cell {
             font-size: 11px;
             color: var(--subtle-text);
@@ -756,6 +756,21 @@
         }
 
         .modal-overlay {
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; 
+            padding: 20px 0;
+            overflow-y: auto;
+            animation-name: fadeIn;
+            animation-duration: 0.3s;
+        }
     position: fixed;
     z-index: 2000;
     left: 0;
@@ -780,7 +795,7 @@
             animation-name: zoomIn;
             animation-duration: 0.4s;
         }
-        
+
         @keyframes fadeIn {
             from {opacity: 0}
             to {opacity: 1}
@@ -1362,8 +1377,8 @@
             font-family: 'Courier New', Courier, monospace;
             font-weight: 500;
         }
-        
-        /* --- NEW STYLES FOR OPTIONS DASHBOARD --- */
+
+        /* --- NEW STYLES FOR OPTIONS OI DASHBOARD --- */
         #options-oi-tab .oi-global-metrics {
             display: flex;
             justify-content: center;
@@ -1376,44 +1391,15 @@
             border-radius: 8px;
             text-align: center;
         }
-        .oi-global-metric { font-size: 14px; flex: 1; min-width: 150px; }
+        .oi-global-metric { font-size: 14px; }
         .oi-global-metric .label { color: var(--subtle-text); display: block; font-size: 12px; margin-bottom: 4px; }
         .oi-global-metric .value { font-weight: 600; font-size: 16px; font-family: 'Courier New', Courier, monospace; }
         .oi-global-metric .value.pcr-bearish { color: var(--red-text); }
         .oi-global-metric .value.pcr-bullish { color: var(--green-text); }
-        .oi-global-metric .tooltip {
-          position: relative;
-          display: inline-block;
-          cursor: help;
-          border-bottom: 1px dotted var(--subtle-text);
-        }
-        .oi-global-metric .tooltip .tooltiptext {
-          visibility: hidden;
-          width: 250px;
-          background-color: var(--header-bg);
-          color: var(--text-color);
-          text-align: left;
-          border-radius: 6px;
-          padding: 8px;
-          position: absolute;
-          z-index: 1;
-          bottom: 125%;
-          left: 50%;
-          margin-left: -125px;
-          opacity: 0;
-          transition: opacity 0.3s;
-          border: 1px solid var(--border-color);
-          box-shadow: 0 2px 5px var(--shadow-color);
-          font-size: 12px;
-          line-height: 1.5;
-        }
-        .oi-global-metric .tooltip:hover .tooltiptext {
-          visibility: visible;
-          opacity: 1;
-        }
+
         .oi-dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 20px;
         }
         .oi-card {
@@ -1438,8 +1424,16 @@
             justify-content: space-between;
             align-items: center;
         }
-        .oi-card-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
-        .oi-card-body { padding: 15px; flex-grow: 1; }
+        .oi-card-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .oi-card-header .oi-type-pill { margin-left: 10px; }
+        .oi-card-body {
+            padding: 15px;
+            flex-grow: 1;
+        }
         .oi-metric-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -1459,13 +1453,30 @@
             margin-bottom: 4px;
             display: block;
         }
-        .oi-metric-item .value { font-size: 16px; font-weight: 600; color: var(--text-color); }
+        .oi-metric-item .value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .oi-section-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--subtle-text);
+        }
         .oi-walls-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
         }
-        .wall-column h4 { margin: 0 0 8px 0; font-size: 13px; text-align: center; }
+        .wall-column h4 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            text-align: center;
+        }
         .wall-column.calls h4 { color: var(--red-text); }
         .wall-column.puts h4 { color: var(--green-text); }
         .wall-item {
@@ -1478,6 +1489,20 @@
         .wall-item:last-child { border-bottom: none; }
         .wall-item .strike { font-weight: bold; font-family: 'Courier New', Courier, monospace; }
         .wall-item .oi { color: var(--subtle-text); }
+        .gamma-zone-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+        .gamma-zone-table th, .gamma-zone-table td {
+            padding: 6px;
+            text-align: right;
+            border-bottom: 1px solid var(--header-bg);
+        }
+        .gamma-zone-table th { font-weight: 500; color: var(--subtle-text); }
+        .gamma-zone-table tr:last-child td { border-bottom: none; }
+        .gamma-zone-table .strike { font-weight: bold; font-family: 'Courier New', Courier, monospace; }
         .oi-type-pill {
             display: inline-block;
             padding: 3px 10px;
@@ -1491,23 +1516,35 @@
         .oi-type-monthly { background-color: var(--link-color); color: white; }
         .oi-type-weekly { background-color: var(--card-bg); color: var(--subtle-text); border: 1px solid var(--border-color); }
         .oi-type-daily { background-color: var(--header-bg); color: var(--subtle-text); }
-        
-        /* --- NEW STYLES FOR HISTORICAL CHARTS --- */
-        #options-oi-tab .chart-container {
-            position: relative;
-            margin: 0 auto 40px auto;
-            padding: 20px;
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 4px 6px var(--shadow-color);
-            max-width: 1200px;
-            aspect-ratio: 16 / 7;
+        .oi-card .tooltip {
+          position: relative;
+          display: inline-block;
+          cursor: help;
+          border-bottom: 1px dotted var(--subtle-text);
         }
-        #options-oi-tab #last-updated-charts {
-            text-align: center; 
-            color: var(--subtle-text); 
-            margin-top: 0;
-            margin-bottom: 20px; 
+        .oi-card .tooltip .tooltiptext {
+          visibility: hidden;
+          width: 250px;
+          background-color: var(--header-bg);
+          color: var(--text-color);
+          text-align: left;
+          border-radius: 6px;
+          padding: 8px;
+          position: absolute;
+          z-index: 1;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -125px;
+          opacity: 0;
+          transition: opacity 0.3s;
+          border: 1px solid var(--border-color);
+          box-shadow: 0 2px 5px var(--shadow-color);
+          font-size: 12px;
+          line-height: 1.5;
+        }
+        .oi-card .tooltip:hover .tooltiptext {
+          visibility: visible;
+          opacity: 1;
         }
 
         @media (max-width: 768px) { 
@@ -1525,7 +1562,11 @@
             #chart-library-2-preview-container {
                 grid-template-columns: 1fr;
             }
-            .modal-nav { width: 40px; height: 40px; font-size: 24px; }
+            .modal-nav {
+                width: 40px;
+                height: 40px;
+                font-size: 24px;
+            }
             #modal-prev { left: 5px; }
             #modal-next { right: 5px; }
             .collapsible-content-inner { padding: 15px 10px; }
@@ -1533,7 +1574,9 @@
             .collapsible-header h2 { font-size: 1em; }
             .ema-level-summary-grid { grid-template-columns: 1fr; }
 
-            .modal-overlay { padding: 0; }
+            .modal-overlay {
+                padding: 0;
+            }
             .note-modal-container {
                 width: 100%;
                 min-height: 100%;
@@ -1544,20 +1587,253 @@
             }
             #note-modal-title { font-size: 20px; }
             #note-modal-content { font-size: 15px; }
-            .setups-table th, .setups-table td { font-size: 11px; padding: 6px 5px; }
-            .setups-table thead tr:first-of-type th:first-child, .setups-table tbody th:first-child {
+
+            .setups-table th,
+            .setups-table td {
+                font-size: 11px;
+                padding: 6px 5px;
+            }
+
+            .setups-table thead tr:first-of-type th:first-child,
+            .setups-table tbody th:first-child {
                 position: -webkit-sticky;
                 position: sticky;
                 left: 0;
             }
-            .setups-table thead tr:first-of-type th:first-child { background-color: var(--header-bg); z-index: 2; }
-            .setups-table tbody th:first-child { background-color: var(--card-bg); z-index: 1; }
-            #key-opens-container { grid-template-columns: 1fr; gap: 25px; }
-            .oi-dashboard-grid { grid-template-columns: 1fr; }
-            #options-oi-tab .chart-container { aspect-ratio: 1 / 1.1; min-height: 350px; }
-        }
-    </style>
 
+            .setups-table thead tr:first-of-type th:first-child {
+                background-color: var(--header-bg);
+                z-index: 2;
+            }
+
+            .setups-table tbody th:first-child {
+                background-color: var(--card-bg);
+                z-index: 1;
+            }
+
+            #key-opens-container {
+                grid-template-columns: 1fr;
+                gap: 25px;
+            }
+        }
+
+
+
+
+        /* --- NEW STYLES FOR OPTIONS OI DASHBOARD --- */
+        #options-oi-tab .oi-global-metrics {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 15px;
+            margin-bottom: 25px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .oi-global-metric { font-size: 14px; }
+        .oi-global-metric .label { color: var(--subtle-text); display: block; font-size: 12px; margin-bottom: 4px; }
+        .oi-global-metric .value { font-weight: 600; font-size: 16px; font-family: 'Courier New', Courier, monospace; }
+        .oi-global-metric .value.pcr-bearish { color: var(--red-text); }
+        .oi-global-metric .value.pcr-bullish { color: var(--green-text); }
+
+        .oi-dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .oi-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 4px var(--shadow-color);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .oi-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px var(--shadow-color);
+        }
+        .oi-card-header {
+            padding: 12px 15px;
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .oi-card-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .oi-card-header .oi-type-pill { margin-left: 10px; }
+        .oi-card-body {
+            padding: 15px;
+            flex-grow: 1;
+        }
+        .oi-metric-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .oi-metric-item {
+            text-align: center;
+            padding: 10px;
+            background-color: var(--bg-color);
+            border-radius: 6px;
+        }
+        .oi-metric-item .label {
+            font-size: 11px;
+            color: var(--subtle-text);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .oi-metric-item .value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .oi-section-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--subtle-text);
+        }
+        .oi-walls-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .wall-column h4 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            text-align: center;
+        }
+        .wall-column.calls h4 { color: var(--red-text); }
+        .wall-column.puts h4 { color: var(--green-text); }
+        .wall-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--header-bg);
+        }
+        .wall-item:last-child { border-bottom: none; }
+        .wall-item .strike { font-weight: bold; font-family: 'Courier New', Courier, monospace; }
+        .wall-item .oi { color: var(--subtle-text); }
+        .gamma-zone-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+        .gamma-zone-table th, .gamma-zone-table td {
+            padding: 6px;
+            text-align: right;
+            border-bottom: 1px solid var(--header-bg);
+        }
+        .gamma-zone-table th { font-weight: 500; color: var(--subtle-text); }
+        .gamma-zone-table tr:last-child td { border-bottom: none; }
+        .gamma-zone-table .strike { font-weight: bold; font-family: 'Courier New', Courier, monospace; }
+        .oi-type-pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 80px;
+        }
+        .oi-type-quarterly { background-color: #ffc107; color: #333; }
+        .oi-type-monthly { background-color: var(--link-color); color: white; }
+        .oi-type-weekly { background-color: var(--card-bg); color: var(--subtle-text); border: 1px solid var(--border-color); }
+        .oi-type-daily { background-color: var(--header-bg); color: var(--subtle-text); }
+        .oi-card .tooltip {
+          position: relative;
+          display: inline-block;
+          cursor: help;
+          border-bottom: 1px dotted var(--subtle-text);
+        }
+        .oi-card .tooltip .tooltiptext {
+          visibility: hidden;
+          width: 250px;
+          background-color: var(--header-bg);
+          color: var(--text-color);
+          text-align: left;
+          border-radius: 6px;
+          padding: 8px;
+          position: absolute;
+          z-index: 1;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -125px;
+          opacity: 0;
+          transition: opacity 0.3s;
+          border: 1px solid var(--border-color);
+          box-shadow: 0 2px 5px var(--shadow-color);
+          font-size: 12px;
+          line-height: 1.5;
+        }
+        .oi-card .tooltip:hover .tooltiptext {
+          visibility: visible;
+          opacity: 1;
+        }
+
+        /* --- NEW STYLES FOR HISTORICAL CHARTS --- */
+        #charts-tab .chart-container {
+            position: relative;
+            margin: 0 auto 40px auto;
+            padding: 20px;
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            max-width: 1200px;
+        }
+        #charts-tab #last-updated-charts { text-align: center; color: var(--subtle-text); margin-top: -10px; margin-bottom: 20px; }
+
+
+                /* --- NEW STYLES FOR HISTORICAL CHARTS --- */
+        #charts-tab .chart-container,
+        #options-oi-tab .chart-container { /* <--- ADD THIS LINE */
+            position: relative;
+            margin: 0 auto 40px auto;
+            padding: 20px;
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            max-width: 1200px;
+
+        }
+        #charts-tab #last-updated-charts,
+        #options-oi-tab #last-updated-charts { /* <--- ADD THIS LINE */
+            text-align: center; 
+            color: var(--subtle-text); 
+            margin-top: 0; /* Changed from -10px */
+            margin-bottom: 20px; 
+        }
+
+        @media (max-width: 768px) { 
+            /* ... your other mobile styles ... */
+
+            /* ADD THIS NEW RULE FOR THE CHARTS */
+            #options-oi-tab .chart-container {
+                aspect-ratio: 1 / 1.1; /* Makes the chart nearly square (width / height) */
+                min-height: 350px; /* Optional: ensures it's never TOO small */
+            }
+        }
+
+
+    </style>
 </head>
 <body>
     <div class="container">
@@ -1654,6 +1930,7 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
+                                    <!-- MODIFIED: Added RR column -->
                                     <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>RR</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
                                 </thead>
                                 <tbody id="trades-tbody"></tbody>
@@ -1768,18 +2045,20 @@
             </div>
 
             <!-- Trading Setups Section (Combined) -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Trading Setups</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <textarea id="primary-setups-notes" class="setups-notes-area" placeholder="Notes for Primary Setups..."></textarea>
-                        <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder="Notes for Secondary Setups..."></textarea>
-                    </div>
-                </div>
-            </div>
+        <!-- Trading Setups Section (Combined) -->
+<div class="collapsible-section">
+    <div class="collapsible-header">
+        <h2>Trading Setups</h2>
+        <button class="collapsible-toggle-btn">+</button>
+    </div>
+    <div class="collapsible-content">
+        <div class="collapsible-content-inner">
+            <!-- This is correct. No save buttons or status elements. -->
+            <textarea id="primary-setups-notes" class="setups-notes-area" placeholder="Notes for Primary Setups..."></textarea>
+            <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder="Notes for Secondary Setups..."></textarea>
+        </div>
+    </div>
+</div>
             <!-- Setups Image Library Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -1812,6 +2091,7 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
+                                    <!-- MODIFIED: Added RR column -->
                                     <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>RR</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
                                 </thead>
                                 <tbody id="completed-trades-tbody"></tbody>
@@ -1844,7 +2124,7 @@
         </div>
 
         <div id="journal-tab" class="tab-content">
-            
+
             <!-- Persistent Notes Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -2021,7 +2301,7 @@
                     </div>
                 </div>
             </div>
-            
+
         </div>
 
         <div id="charts-tab" class="tab-content">
@@ -2082,8 +2362,9 @@
                 </div>
             </div>
         </div>
-        
+
         <div id="options-oi-tab" class="tab-content">
+            <!-- PASTE THE CHART HTML HERE -->
             <p id="last-updated-charts">Loading chart data...</p>
 
             <div class="chart-container">
@@ -2095,15 +2376,19 @@
             <div class="chart-container">
                 <canvas id="sentimentChart"></canvas>
             </div>
+               <!-- ADD THIS NEW CHART CONTAINER -->
             <div class="chart-container">
                 <canvas id="perStrikeGammaChart"></canvas>
             </div>
 
-            <h2 style="text-align:center; margin-top:40px; border-top:1px solid var(--border-color); padding-top:20px;">Options Expiry Dashboard</h2>
+            <!-- END OF PASTED BLOCK -->
+
+            <!-- The content will be dynamically inserted here by JavaScript -->
             <div id="options-snapshot-container">
-                <p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>
-            </div>
-        </div>
+    <p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>
+</div>
+
+
     </div>
 
     <div id="image-modal" class="modal-overlay" style="display: none;">
@@ -2130,8 +2415,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
 
         // --- CONFIGURATION ---
         const CONFIG = {
@@ -2207,8 +2493,10 @@
             createNewNoteBtn: document.getElementById('create-new-note-btn'),
             notesContainer: document.getElementById('notes-container'),
             persistentNotesEl: document.getElementById('persistent-notes-entry'),
+
             primarySetupsNotes: document.getElementById('primary-setups-notes'),
             secondarySetupsNotes: document.getElementById('secondary-setups-notes'),
+
             journalSymbolEl: document.getElementById('journal-symbol'),
             journalTimeframeEl: document.getElementById('journal-timeframe'),
             journalImageFilterEl: document.getElementById('journal-image-filter'),
@@ -2245,6 +2533,8 @@
         // --- APPLICATION STATE ---
         const STATE = {
             isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, marketOpens: {}, journalText: {}, journalImages: {}, chartLibrary2Data: {}, currentCl2Folder: null, emaData: {}, srData: {}, favouriteEntries: {}, persistentNotes: '', trackerScratchpadText: '', setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, trackerSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null }, levelNotes: {}, levelNotesSaveTimer: null, allSentimentReceipts: {}, sentimentShowAll: false, sentimentCurrentPage: 1, sentimentItemsPerPage: 15,
+
+            // --- NEW: Object to hold persistent chart instances ---
             chartInstances: {}
         };
 
@@ -2272,148 +2562,69 @@
         async function fetchSrData() { try { const response = await fetch(`sr_levels_analysis.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.srData = await response.json(); if (DOM.srLevelsTab.classList.contains('active')) { renderSrLevels(); } } catch (error) { console.error("Could not fetch sr_levels_analysis.json:", error); DOM.supportLevelsTbody.parentElement.innerHTML = '<p style="color: red; text-align: center;">Error loading S/R data.</p>'; } }
         async function fetchMarketOpens() { try { const response = await fetch(`market_opens.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.marketOpens = await response.json(); renderMarketOpens(); } catch (error) { console.error("Could not fetch market_opens.json:", error); } }
         async function fetchCrossoverSignalData() { const signalJsonUrl = 'crypto_signals.json'; try { const response = await fetch(`${signalJsonUrl}?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); renderCrossoverSignals(data); } catch (error) { console.error("Could not fetch or parse crossover signal data:", error); const ethContainer = document.getElementById('eth-crossover-signal-container'); const btcContainer = document.getElementById('btc-crossover-signal-container'); const errorMsg = '<p style="color: red; text-align: center;">Error loading signal data.</p>'; if (ethContainer) ethContainer.innerHTML = errorMsg; if (btcContainer) btcContainer.innerHTML = errorMsg; const lastUpdatedEl = document.getElementById('crossover-signals-last-updated'); if(lastUpdatedEl) lastUpdatedEl.textContent = 'Failed to load data.'; } }
-        
+
         async function fetchAndRenderOptionsData() {
             if (!DOM.optionsOiTab) return;
             const jsonFile = 'deribit_options_market_analysis.json';
             const container = document.getElementById('options-snapshot-container');
-            
+
             try {
                 const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-                
+
                 const formatNumber = (num, digits = 2) => num != null ? num.toLocaleString('en-US', {minimumFractionDigits: digits, maximumFractionDigits: digits}) : 'N/A';
                 const formatCompact = (num) => { if (num == null) return 'N/A'; if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2)}B`; if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`; if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`; return num.toString(); };
+                const formatPercent = (val) => val != null ? `${(val * 100).toFixed(2)}%` : 'N/A';
                 const formatCurrencyNoSymbol = (num) => num != null ? num.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0}) : 'N/A';
-                
-                const { market_summary, metadata, definitions, expirations } = data;
 
-                const pcrOI = market_summary.pcr_by_open_interest;
-                const pcrVol = market_summary.pcr_by_24h_volume?.ratio;
-                const pcrOIClass = pcrOI >= 0.7 ? 'pcr-bearish' : pcrOI <= 0.5 ? 'pcr-bullish' : '';
-                const pcrVolClass = pcrVol >= 0.7 ? 'pcr-bearish' : pcrVol <= 0.5 ? 'pcr-bullish' : '';
-                
-                const globalMetricsHtml = `
-                <div class="oi-global-metrics">
-                    <div class="oi-global-metric">
-                        <span class="label"><span class="tooltip">BTC Index Price<span class="tooltiptext">The real-time spot price of Bitcoin used for all calculations.</span></span></span>
-                        <span class="value">$${formatNumber(metadata.btc_index_price_usd)}</span>
-                    </div>
-                    <div class="oi-global-metric">
-                        <span class="label"><span class="tooltip">Total Notional OI<span class="tooltiptext">The total USD value of all open contracts across all expiries.</span></span></span>
-                        <span class="value">$${formatCompact(market_summary.total_notional_oi_usd)}</span>
-                    </div>
-                    <div class="oi-global-metric">
-                        <span class="label"><span class="tooltip">P/C Ratio (OI)<span class="tooltiptext">${definitions.pcr_by_open_interest}</span></span></span>
-                        <span class="value ${pcrOIClass}">${formatNumber(pcrOI, 2)}</span>
-                    </div>
-                    <div class="oi-global-metric">
-                        <span class="label"><span class="tooltip">P/C Ratio (24h Vol)<span class="tooltiptext">${definitions.pcr_by_24h_volume}</span></span></span>
-                        <span class="value ${pcrVolClass}">${formatNumber(pcrVol, 2)}</span>
-                    </div>
-                    <div class="oi-global-metric">
-                        <span class="label"><span class="tooltip">Total GEX<span class="tooltiptext">${definitions.total_dealer_gamma_exposure}</span></span></span>
-                        <span class="value ${market_summary.total_dealer_gamma_exposure < 0 ? 'pcr-bearish' : 'pcr-bullish'}">${formatNumber(market_summary.total_dealer_gamma_exposure, 2)}</span>
-                    </div>
-                    <div class="oi-global-metric">
-                        <span class="label"><span class="tooltip">Gamma Flip<span class="tooltiptext">${definitions.gamma_flip_level_usd}</span></span></span>
-                        <span class="value">${market_summary.gamma_flip_level_usd ? '$' + formatCurrencyNoSymbol(market_summary.gamma_flip_level_usd) : 'N/A'}</span>
-                    </div>
-                </div>`;
+                const pcr = data.metadata.put_call_ratio_24h_volume.ratio_by_volume;
+                const pcrClass = pcr >= 0.7 ? 'pcr-bearish' : pcr <= 0.5 ? 'pcr-bullish' : '';
 
-                const cardsHtml = expirations.map(expiry => {
-                    const { expiration_date, option_type, notional_value_usd, pcr_by_oi, max_pain_strike, average_iv_data, open_interest_walls } = expiry;
-                    
+                const globalMetricsHtml = `<div class="oi-global-metrics"><div class="oi-global-metric"><span class="label"><span class="tooltip">24h P/C Ratio (Vol)<span class="tooltiptext">${data.definitions.put_call_ratio_24h_volume}</span></span></span><span class="value ${pcrClass}">${pcr.toFixed(2)}</span></div><div class="oi-global-metric"><span class="label"><span class="tooltip">BTC Index Price<span class="tooltiptext">${data.definitions.btc_index_price_usd}</span></span></span><span class="value">$${formatNumber(data.metadata.btc_index_price_usd)}</span></div><div class="oi-global-metric"><span class="label">Last Updated (UTC)</span><span class="value" style="font-size: 14px;">${new Date(data.metadata.calculation_timestamp_utc).toLocaleTimeString()}</span></div></div>`;
+
+                const cardsHtml = data.expirations.map(expiry => {
+                    const { expiration_date, day_of_week, option_type, notional_value_usd, total_volume_24h_btc, max_pain_strike, average_iv_data, open_interest_walls, short_gamma_near_spot } = expiry;
                     const callWallsHtml = open_interest_walls.top_call_strikes.map(item => `<div class="wall-item"><span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span><span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span></div>`).join('');
                     const putWallsHtml = open_interest_walls.top_put_strikes.map(item => `<div class="wall-item"><span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span><span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span></div>`).join('');
-                    
-                    const pcrOIClass = pcr_by_oi >= 1.0 ? 'pcr-bearish' : pcr_by_oi <= 0.7 ? 'pcr-bullish' : '';
-
-                    return `
-                    <div class="oi-card">
-                        <div class="oi-card-header">
-                            <h3>${expiration_date}</h3>
-                            <span class="oi-type-pill oi-type-${option_type.toLowerCase()}">${option_type}</span>
-                        </div>
-                        <div class="oi-card-body">
-                            <div class="oi-metric-grid">
-                                <div class="oi-metric-item">
-                                    <span class="label">Notional Value</span>
-                                    <span class="value">$${formatCompact(notional_value_usd)}</span>
-                                </div>
-                                <div class="oi-metric-item">
-                                    <span class="label">P/C Ratio (OI)</span>
-                                    <span class="value ${pcrOIClass}">${formatNumber(pcr_by_oi, 2)}</span>
-                                </div>
-                                <div class="oi-metric-item">
-                                    <span class="label">Max Pain</span>
-                                    <span class="value">${max_pain_strike ? '$' + formatCurrencyNoSymbol(max_pain_strike) : 'N/A'}</span>
-                                </div>
-                                <div class="oi-metric-item">
-                                    <span class="label">IV Skew</span>
-                                    <span class="value" style="color: ${average_iv_data.skew_proxy >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">${(average_iv_data.skew_proxy * 100).toFixed(2)}%</span>
-                                </div>
-                            </div>
-                            <div class="oi-walls-container">
-                                <div class="wall-column puts">
-                                    <h4>Put Walls (Support)</h4>
-                                    ${putWallsHtml}
-                                </div>
-                                <div class="wall-column calls">
-                                    <h4>Call Walls (Resistance)</h4>
-                                    ${callWallsHtml}
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
+                    const shortGammaHtml = short_gamma_near_spot.slice(0, 5).map(item => `<tr><td class="strike">$${formatCurrencyNoSymbol(item.strike)}</td><td>${formatNumber(item.dealer_gamma)}</td></tr>`).join('') || `<tr><td colspan="2" style="text-align:center; padding: 10px;">None near spot</td></tr>`;
+                    return `<div class="oi-card"><div class="oi-card-header"><h3>${expiration_date} <span style="font-weight:400; color:var(--subtle-text)">(${day_of_week})</span></h3><span class="oi-type-pill oi-type-${option_type.toLowerCase()}">${option_type}</span></div><div class="oi-card-body"><div class="oi-metric-grid"><div class="oi-metric-item"><span class="label"><span class="tooltip">Notional Value<span class="tooltiptext">${data.definitions.notional_value_usd}</span></span></span><span class="value">$${formatCompact(notional_value_usd)}</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">24h Volume<span class="tooltiptext">${data.definitions.total_volume_24h_btc}</span></span></span><span class="value">${formatCompact(total_volume_24h_btc)} BTC</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">Max Pain<span class="tooltiptext">${data.definitions.max_pain_strike}</span></span></span><span class="value">${max_pain_strike ? '$' + formatCurrencyNoSymbol(max_pain_strike) : 'N/A'}</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">IV Skew<span class="tooltiptext">${data.definitions.average_iv_data.skew_proxy}</span></span></span><span class="value" style="color: ${average_iv_data.skew_proxy > 0 ? 'var(--green-text)' : 'var(--red-text)'}">${formatPercent(average_iv_data.skew_proxy)}</span></div></div><div class="oi-walls-container"><div class="wall-column puts"><h4><span class="tooltip">Top Put Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>${putWallsHtml}</div><div class="wall-column calls"><h4><span class="tooltip">Top Call Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>${callWallsHtml}</div></div><h4 class="oi-section-title"><span class="tooltip">Short Gamma Zones (Nearest Spot)<span class="tooltiptext">${data.definitions.short_gamma_near_spot.description}</span></span></h4><div class="table-wrapper"><table class="gamma-zone-table"><thead><tr><th>Strike</th><th>Dealer Gamma</th></tr></thead><tbody>${shortGammaHtml}</tbody></table></div></div></div>`;
                 }).join('');
-                
+
                 container.innerHTML = `${globalMetricsHtml}<div class="oi-dashboard-grid">${cardsHtml}</div>`;
             } catch (error) {
                 console.error("Could not fetch or render options data:", error);
                 container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Could not find or parse <strong>${jsonFile}</strong>. Please check the console.</p>`;
             }
         }
-        
+
+        // --- NEW, ROBUST CHART RENDERING FUNCTION ---
         function renderOrUpdateChart(canvasId, type, chartData, titleText, scalesConfig = {}, pluginsConfig = {}) {
             const ctx = document.getElementById(canvasId);
             if (!ctx) return;
 
-            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-            const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-            const textColor = isDarkMode ? '#e0e0e0' : '#333';
-
             const chartOptions = {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: false, // This is key for mobile sizing
                 plugins: {
-                    title: { display: true, text: titleText, font: { size: 18 }, color: textColor },
-                    legend: { labels: { color: textColor } },
+                    title: { display: true, text: titleText, font: { size: 18 } },
                     ...pluginsConfig
                 },
                 scales: {
-                    x: { 
-                        type: 'time', 
-                        time: { unit: 'hour', tooltipFormat: 'MMM dd, yyyy HH:mm', displayFormats: { hour: 'HH:mm' } }, 
-                        title: { display: true, text: 'Time (UTC)', color: textColor },
-                        grid: { color: gridColor },
-                        ticks: { color: textColor }
-                    },
+                    x: { type: 'time', time: { unit: 'hour', tooltipFormat: 'MMM dd, yyyy HH:mm', displayFormats: { hour: 'HH:mm' } }, title: { display: true, text: 'Time (UTC)' } },
                     ...scalesConfig
-                },
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
+                }
             };
 
+            // Check if a chart instance already exists in our persistent state object
             if (STATE.chartInstances[canvasId]) {
+                // If it exists, just update its data and options, then call update()
                 const chart = STATE.chartInstances[canvasId];
                 chart.data = chartData;
                 chart.options = chartOptions;
                 chart.update();
             } else {
+                // If it doesn't exist, create it for the first time and store it
                 STATE.chartInstances[canvasId] = new Chart(ctx, {
                     type,
                     data: chartData,
@@ -2427,74 +2638,33 @@
                 const response = await fetch('historical_market_data.json?v=' + new Date().getTime());
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-                
+
                 const lastUpdatedEl = document.getElementById('last-updated-charts');
                 if (data.length === 0) { lastUpdatedEl.innerText = 'No historical data. Run the Python script.'; return; }
                 lastUpdatedEl.innerText = `Last updated: ${new Date(data[data.length - 1].timestamp).toLocaleString()}`;
-
-                const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-                const textColor = isDarkMode ? '#e0e0e0' : '#333';
-                const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
 
                 const labels = data.map(d => new Date(d.timestamp));
                 const btcPrice = data.map(d => d.btc_price);
                 const totalOI = data.map(d => d.total_open_interest_btc);
                 const totalVolume = data.map(d => d.total_volume_24h_btc);
-                const pcrOI = data.map(d => d.pcr_by_oi);
-                const pcrVol = data.map(d => d.pcr_by_volume);
-                const totalGEX = data.map(d => d.total_gex);
-                const gammaFlip = data.map(d => d.gamma_flip_level);
+                const pcr = data.map(d => d.pcr_by_volume);
+                const shortGamma = data.map(d => d.total_short_gamma);
 
-                renderOrUpdateChart('priceChart', 'line', 
-                    { labels, datasets: [
-                        { label: 'BTC Price (USD)', data: btcPrice, borderColor: '#f97316', yAxisID: 'yPrice' }, 
-                        { label: 'Gamma Flip Level', data: gammaFlip, borderColor: '#8b5cf6', yAxisID: 'yPrice', borderDash: [5, 5], pointRadius: 0, fill: false, tension: 0.1 },
-                        { label: 'Total GEX', data: totalGEX, borderColor: '#3b82f6', yAxisID: 'yGEX' }
-                    ]}, 
-                    'Price, Gamma Flip, and Total GEX', 
-                    { 
-                        yPrice: { type: 'linear', position: 'left', title: { display: true, text: 'BTC Price (USD)', color: textColor }, grid: { color: gridColor }, ticks: { color: textColor } }, 
-                        yGEX: { type: 'linear', position: 'right', title: { display: true, text: 'Total GEX', color: textColor }, grid: { drawOnChartArea: false, color: gridColor }, ticks: { color: textColor } } 
-                    }
-                );
-                
-                renderOrUpdateChart('oiVolumeChart', 'bar', 
-                    { labels, datasets: [
-                        { label: 'Total OI (BTC)', data: totalOI, type: 'line', borderColor: '#16a34a', yAxisID: 'yOI', tension: 0.1 }, 
-                        { label: 'Total 24h Volume (BTC)', data: totalVolume, backgroundColor: 'rgba(168, 85, 247, 0.5)', yAxisID: 'yVolume' }
-                    ]}, 
-                    'Open Interest and 24h Volume', 
-                    { 
-                        yOI: { type: 'linear', position: 'left', title: { display: true, text: 'Open Interest (BTC)', color: textColor }, grid: { color: gridColor }, ticks: { color: textColor } }, 
-                        yVolume: { type: 'linear', position: 'right', title: { display: true, text: '24h Volume (BTC)', color: textColor }, grid: { drawOnChartArea: false, color: gridColor }, ticks: { color: textColor } } 
-                    }
-                );
-                
-                renderOrUpdateChart('sentimentChart', 'line', 
-                    { labels, datasets: [
-                        { label: 'P/C Ratio (by OI)', data: pcrOI, borderColor: '#dc2626', tension: 0.1 },
-                        { label: 'P/C Ratio (by Volume)', data: pcrVol, borderColor: '#ea580c', borderDash: [5, 5], tension: 0.1 }
-                    ]}, 
-                    'Market Sentiment (Put/Call Ratios)',
-                    { y: { title: { display: true, text: 'Ratio', color: textColor }, grid: { color: gridColor }, ticks: { color: textColor } } }
-                );
+                renderOrUpdateChart('priceChart', 'line', { labels, datasets: [{ label: 'BTC Price (USD)', data: btcPrice, borderColor: 'rgb(249, 115, 22)', yAxisID: 'yPrice' }, { label: 'Total Short Gamma', data: shortGamma, borderColor: 'rgb(59, 130, 246)', yAxisID: 'yGamma' }] }, 'Price and Gamma Exposure', { yPrice: { type: 'linear', position: 'left', title: { display: true, text: 'BTC Price' } }, yGamma: { type: 'linear', position: 'right', title: { display: true, text: 'Total Short Gamma' }, grid: { drawOnChartArea: false } } });
+                renderOrUpdateChart('oiVolumeChart', 'bar', { labels, datasets: [{ label: 'Total OI (BTC)', data: totalOI, type: 'line', borderColor: 'rgb(22, 163, 74)', yAxisID: 'yOI' }, { label: 'Total 24h Volume (BTC)', data: totalVolume, backgroundColor: 'rgba(168, 85, 247, 0.5)', yAxisID: 'yVolume' }] }, 'Open Interest and 24h Volume', { yOI: { type: 'linear', position: 'left', title: { display: true, text: 'Open Interest' } }, yVolume: { type: 'linear', position: 'right', title: { display: true, text: '24h Volume' }, grid: { drawOnChartArea: false } } });
+                renderOrUpdateChart('sentimentChart', 'line', { labels, datasets: [{ label: 'P/C Ratio (Volume)', data: pcr, borderColor: 'rgb(220, 38, 38)' }] }, 'Market Sentiment (Put/Call Ratio)');
 
                 const allStrikeKeys = new Set();
                 data.forEach(entry => { if (entry.per_strike_gamma) { Object.keys(entry.per_strike_gamma).forEach(strike => allStrikeKeys.add(strike)); } });
                 const sortedStrikes = Array.from(allStrikeKeys).sort((a, b) => parseInt(a) - parseInt(b));
-                
+
                 const perStrikeGammaData = {};
                 sortedStrikes.forEach(strike => { perStrikeGammaData[strike] = data.map(entry => (entry.per_strike_gamma && entry.per_strike_gamma[strike] !== undefined) ? entry.per_strike_gamma[strike] : null); });
 
                 const colors = ['#3498db', '#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#e67e22', '#34495e', '#7f8c8d'];
                 const perStrikeDatasets = sortedStrikes.map((strike, index) => ({ label: `$${(parseInt(strike)/1000)}K`, data: perStrikeGammaData[strike], borderColor: colors[index % colors.length], backgroundColor: colors[index % colors.length] + '1A', borderWidth: 2, spanGaps: true, pointRadius: 1, tension: 0.1 }));
-                
-                renderOrUpdateChart('perStrikeGammaChart', 'line', 
-                    { labels, datasets: perStrikeDatasets }, 
-                    'Historical Gamma Exposure for Key Strikes', 
-                    { y: { title: { display: true, text: 'Dealer Gamma', color: textColor }, grid: { color: gridColor }, ticks: { color: textColor } } }, 
-                    { legend: { position: 'bottom' } }
-                );
+
+                renderOrUpdateChart('perStrikeGammaChart', 'line', { labels, datasets: perStrikeDatasets }, 'Historical Gamma Exposure for Key Strikes', { y: { title: { display: true, text: 'Dealer Gamma' } } }, { legend: { position: 'bottom' } });
 
             } catch (error) {
                 console.error("Failed to render chart data:", error);
@@ -2527,7 +2697,7 @@
             button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
             adjustCollapsibleSize(button);
         }
-        
+
         function toggleHistoricalImages(containerId, button) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -2573,13 +2743,38 @@
         }
 
         function renderCrossoverSignals(signalData) {
-            // This function is empty in your provided code, keeping it for structure.
+            const ethContainer = document.getElementById('eth-crossover-signal-container');
+            const btcContainer = document.getElementById('btc-crossover-signal-container');
+            if (!ethContainer || !btcContainer) return;
+            let ethHtml = '';
+            let btcHtml = '';
+            const symbols = Object.keys(signalData).sort();
+            for (const symbol of symbols) {
+                if (Object.hasOwnProperty.call(signalData, symbol)) {
+                    const tableHtml = createCrossoverSignalTableHTML(symbol, signalData[symbol]);
+                    if (symbol.startsWith('ETH')) { ethHtml += tableHtml; } else if (symbol.startsWith('BTC')) { btcHtml += tableHtml; }
+                }
+            }
+            ethContainer.innerHTML = ethHtml;
+            btcContainer.innerHTML = btcHtml;
+            const lastUpdatedEl = document.getElementById('crossover-signals-last-updated');
+            if(lastUpdatedEl) lastUpdatedEl.textContent = `Last Updated: ${new Date().toLocaleString()}`;
+            adjustCollapsibleSize(ethContainer);
+            adjustCollapsibleSize(btcContainer);
         }
 
         function createCrossoverSignalTableHTML(symbol, symbolData) {
-            // This function is empty in your provided code, keeping it for structure.
+            const timeframes = ['1h', '2h', '4h', '1d', '1w', '1M'];
+            const tableRows = timeframes.map(tf => {
+                const data = symbolData[tf] || { stage: 'N/A', colour: 'Grey', Level: 'N/A' };
+                let colorClass = 'signal-cell-grey'; 
+                if (data.colour === 'Green') colorClass = 'signal-cell-green'; 
+                else if (data.colour === 'Red') colorClass = 'signal-cell-red';
+                const levelValue = data['0-Candle Support'] || data['0-Candle Resistance'] || data['Level'] || 'N/A';
+                return `<tr><td>${tf.toUpperCase()}</td><td class="signal-cell ${colorClass}">${data.stage}</td><td class="support-value">${levelValue}</td></tr>`;
+            }).join('');
+            return `<div class="crossover-signals-table-wrapper"><h3>${symbol.replace('USDT', '/USDT')} Crossover Signal</h3><div class="table-wrapper"><table class="crossover-signals-table"><thead><tr><th>Timeframe</th><th>Signal Stage</th><th>0candle Resistance</th></tr></thead><tbody>${tableRows}</tbody></table></div></div>`;
         }
-
         function renderAttachmentThumbnails(entry, entryId, entryType) {
             const images = entry.attachedImages || {};
             const masterDeleteBtn = (imageId, fileName) => (STATE.isMasterUser) ? `<button class="delete-trade-image" title="Delete Attachment" data-entry-id="${entryId}" data-entry-type="${entryType}" data-image-id="${imageId}" data-filename="${fileName}">×</button>` : '';
@@ -2590,7 +2785,7 @@
             }).join('');
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
-        
+
         function renderSentimentReceipts() {
             const tbody = DOM.sentimentReceiptsTbody;
             if (!tbody) return;
@@ -2828,6 +3023,72 @@
             container.innerHTML = lastUpdatedHtml + priceDisplayHtml + summaryTableHtml + tableHtml;
         }
 
+        function calculateAndDisplayPercentages(row) {
+            if (!row) return;
+            const cells = row.querySelectorAll('td');
+            if (cells.length === 0) return;
+            const setups = [ { entry: 0, target: 1, targetPct: 2, stoploss: 3, stoplossPct: 4 }, { entry: 5, target: 6, targetPct: 7, stoploss: 8, stoplossPct: 9 }, { entry: 10, target: 11, targetPct: 12, stoploss: 13, stoplossPct: 14 } ];
+            setups.forEach(setup => {
+                const entryVal = parseFloat(cells[setup.entry].textContent.replace(/,/g, ''));
+                const targetVal = parseFloat(cells[setup.target].textContent.replace(/,/g, ''));
+                const stoplossVal = parseFloat(cells[setup.stoploss].textContent.replace(/,/g, ''));
+                const targetPctCell = cells[setup.targetPct];
+                const stoplossPctCell = cells[setup.stoplossPct];
+                if (!isNaN(entryVal) && !isNaN(targetVal) && entryVal !== 0) { const percent = ((targetVal - entryVal) / entryVal) * 100; targetPctCell.textContent = percent.toFixed(1) + '%'; targetPctCell.style.color = percent >= 0 ? 'var(--green-text)' : 'var(--red-text)'; } else { targetPctCell.textContent = ''; }
+                if (!isNaN(entryVal) && !isNaN(stoplossVal) && entryVal !== 0) { const percent = ((stoplossVal - entryVal) / entryVal) * 100; stoplossPctCell.textContent = percent.toFixed(1) + '%'; stoplossPctCell.style.color = percent >= 0 ? 'var(--green-text)' : 'var(--red-text)'; } else { stoplossPctCell.textContent = ''; }
+            });
+        }
+
+        function applyHighlightingToSetupsTable(tableElement) {
+            if (!tableElement) return;
+            const tbody = tableElement.querySelector('tbody');
+            const letterCheckRegex = /[a-zA-Z]/; 
+            const setupTypes = [ { baseIndex: 0 }, { baseIndex: 5 }, { baseIndex: 10 } ];
+            tbody.querySelectorAll('tr').forEach(row => {
+                const cells = row.querySelectorAll('td'); if (cells.length === 0) return;
+                setupTypes.forEach(setup => {
+                    const [entryCell, targetCell, stoplossCell] = [cells[setup.baseIndex], cells[setup.baseIndex + 1], cells[setup.baseIndex + 3]];
+                    [entryCell, targetCell, stoplossCell].forEach(cell => cell.classList.remove('highlight-long', 'highlight-short'));
+                    const entryText = entryCell.textContent.trim(), targetText = targetCell.textContent.trim();
+                    if (letterCheckRegex.test(entryText) || letterCheckRegex.test(targetText)) return; 
+                    const entryValue = parseFloat(String(entryText).replace(/,/g, '')), targetValue = parseFloat(String(targetText).replace(/,/g, ''));
+                    if (isNaN(entryValue) || isNaN(targetValue)) return;
+                    if (targetValue > entryValue) [entryCell, targetCell, stoplossCell].forEach(cell => cell.classList.add('highlight-long'));
+                    else if (entryValue > targetValue) [entryCell, targetCell, stoplossCell].forEach(cell => cell.classList.add('highlight-short'));
+                });
+            });
+        }
+
+       // --- REPLACE WITH THIS CORRECTED VERSION ---
+function renderSetupsTable(tableElement, data, notesTextareaId) {
+    // This part is for the table, which you've removed.
+    // It's safe to keep, but we need to fix the notes part below.
+    if (tableElement) {
+        const tbody = tableElement.querySelector('tbody');
+        tbody.querySelectorAll('tr').forEach(row => {
+            const timeframe = row.firstElementChild.textContent.trim();
+            const rowData = data[timeframe] || {};
+            const cells = row.querySelectorAll('td');
+            cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
+            cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
+            cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
+            calculateAndDisplayPercentages(row);
+        });
+        applyHighlightingToSetupsTable(tableElement);
+        adjustCollapsibleSize(tableElement);
+    }
+
+    // --- THIS IS THE CRITICAL FIX ---
+    const notesTextarea = document.getElementById(notesTextareaId);
+    if (notesTextarea) {
+        // ONLY update the textarea's value if the user is NOT currently focused on it.
+        if (document.activeElement !== notesTextarea) {
+            notesTextarea.value = data.global_notes || '';
+        }
+        // Always adjust size, as this doesn't interfere with user input.
+        adjustCollapsibleSize(notesTextarea);
+    }
+}
         function renderSrSummaryTable(symbol) {
             const summaryTbody = document.getElementById('sr-summary-tbody');
             const summaryContainer = document.getElementById('sr-summary-zones-container');
@@ -2894,8 +3155,6 @@
                 }
             }
         }
-        
-        // --- DATA HANDLING AND SAVING ---
         const saveLevelNotes = (inputElement) => {
             if (!STATE.isMasterUser) return;
             clearTimeout(STATE.levelNotesSaveTimer);
@@ -2907,28 +3166,51 @@
                 dbRefs.levelNotes.child(getSafeSymbol(symbol)).child(timeframe).set(value).catch(e => console.error("Error saving level note:", e));
             }, 750);
         };
-        
+
+        // --- DATA HANDLING AND SAVING ---
+        function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
+            if (!STATE.isMasterUser) return;
+            const dataToSave = {};
+            const tbody = tableElement.querySelector('tbody');
+            tbody.querySelectorAll('tr').forEach(row => {
+                const timeframe = row.firstElementChild.textContent.trim();
+                const cells = row.querySelectorAll('td');
+                dataToSave[timeframe] = {
+                    zero_entry: cells[0].textContent.trim(), zero_target: cells[1].textContent.trim(), zero_stoploss: cells[3].textContent.trim(),
+                    four_entry: cells[5].textContent.trim(), four_target: cells[6].textContent.trim(), four_stoploss: cells[8].textContent.trim(),
+                    bounce_entry: cells[10].textContent.trim(), bounce_target: cells[11].textContent.trim(), bounce_stoploss: cells[13].textContent.trim()
+                };
+            });
+            const notesTextarea = document.getElementById(notesTextareaId);
+            if (notesTextarea) { dataToSave.global_notes = notesTextarea.value; }
+            statusElement.textContent = 'Saving...';
+            dbRef.set(dataToSave).then(() => { statusElement.textContent = 'Saved.'; setTimeout(() => { statusElement.textContent = '' }, 2000); }).catch(e => { statusElement.textContent = `Error: ${e.message}`; console.error("Error saving setups table:", e); });
+        }
+
         const saveJournalEntry = () => { clearTimeout(STATE.journalSaveTimer); STATE.journalSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value); const yyyymmdd = getYYYYMMDD(STATE.selectedDate); const timeframe = DOM.journalTimeframeEl.value; const text = DOM.journalEntryEl.value; DOM.saveStatus.textContent = 'Saving...'; if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {}; if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {}; STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text; dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text).then(() => { DOM.saveStatus.textContent = 'Saved.'; renderDateNavigation(); setTimeout(() => DOM.saveStatus.textContent = '', 2000); }).catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`); }, 750); };
         const savePersistentNotes = () => { clearTimeout(STATE.notesSaveTimer); STATE.notesSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.persistentNotes.set(DOM.persistentNotesEl.value).catch(e => console.error("Error saving persistent notes:", e)); }, 750); };
         const saveTrackerScratchpad = () => { clearTimeout(STATE.trackerSaveTimer); STATE.trackerSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.trackerScratchpad.set(DOM.trackerScratchpadEl.value).catch(e => console.error("Error saving tracker scratchpad:", e)); }, 750); };
-        
-        function savePrimaryNotesOnly() {
-            if (!STATE.isMasterUser) return;
-            const notesTextarea = DOM.primarySetupsNotes;
-            if (notesTextarea) {
-                dbRefs.setups1.child('global_notes').set(notesTextarea.value)
-                    .catch(e => console.error("Error saving primary notes:", e));
-            }
-        }
+        const savePrimarySetupsNotes = () => { if (!STATE.isMasterUser) return; saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); };
+        const saveSecondarySetupsNotes = () => { if (!STATE.isMasterUser) return; saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'); };
 
-        function saveSecondaryNotesOnly() {
-            if (!STATE.isMasterUser) return;
-            const notesTextarea = DOM.secondarySetupsNotes;
-            if (notesTextarea) {
-                dbRefs.setups2.child('global_notes').set(notesTextarea.value)
-                    .catch(e => console.error("Error saving secondary notes:", e));
-            }
-        }
+
+                function savePrimaryNotesOnly() {
+    if (!STATE.isMasterUser) return;
+    const notesTextarea = DOM.primarySetupsNotes;
+    if (notesTextarea) {
+        dbRefs.setups1.child('global_notes').set(notesTextarea.value)
+            .catch(e => console.error("Error saving primary notes:", e));
+    }
+}
+
+function saveSecondaryNotesOnly() {
+    if (!STATE.isMasterUser) return;
+    const notesTextarea = DOM.secondarySetupsNotes;
+    if (notesTextarea) {
+        dbRefs.setups2.child('global_notes').set(notesTextarea.value)
+            .catch(e => console.error("Error saving secondary notes:", e));
+    }
+}
         function handleFileUpload(files) {
             if (!STATE.isMasterUser || !files || files.length === 0) return;
             DOM.uploadProgress.style.display = 'block';
@@ -3027,7 +3309,7 @@
             DOM.modalNextBtn.style.display = STATE.modalImageIndex < STATE.modalImageGallery.length - 1 ? 'flex' : 'none';
         }
 
-        function closeModal() {
+function closeModal() {
             DOM.imageModal.style.display = 'none';
             STATE.modalImageGallery = [];
             STATE.modalImageIndex = -1;
@@ -3069,16 +3351,14 @@
         }
 
         // --- EVENT LISTENERS ---
-        function setupEventListeners() {
+         function setupEventListeners() {
             document.getElementById('key-opens-container').addEventListener('input', e => {
                 if(e.target.matches('.key-open-note')) { autoResizeTextarea(e.target); saveLevelNotes(e.target); }
             });
-
             DOM.themeToggle.addEventListener('change', (e) => {
                 const theme = e.target.checked ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
                 localStorage.setItem('theme', theme);
-                fetchAndRenderHistoricalCharts(); // Re-render charts on theme change
             });
 
             DOM.tabs.addEventListener('click', (e) => {
@@ -3105,7 +3385,7 @@
             });
 
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
-            
+
             document.body.addEventListener('click', (e) => {
                 const header = e.target.closest('.collapsible-header');
                 if (header) {
@@ -3176,12 +3456,32 @@
             DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
             DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
 
+            document.body.addEventListener('blur', (e) => {
+                if (e.target.matches('.setups-table .editable-setup-cell')) {
+                    const table = e.target.closest('.setups-table');
+                    const row = e.target.closest('tr');
+                    applyHighlightingToSetupsTable(table);
+                    if (row) { calculateAndDisplayPercentages(row); }
+                    if (table.id === 'primary-setups-table') { saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); } else { saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'); }
+                }
+            }, true);
+
             DOM.trackerScratchpadEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveTrackerScratchpad(); });
-            
-            DOM.primarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); });
-            DOM.secondarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); });
-            DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
-            DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
+         // --- REPLACE WITH THIS ---
+
+// Keep listening to 'input' for resizing the textarea as the user types.
+DOM.primarySetupsNotes.addEventListener('input', (e) => {
+    autoResizeTextarea(e.target);
+    debouncedResizeParent(e.target);
+});
+DOM.secondarySetupsNotes.addEventListener('input', (e) => {
+    autoResizeTextarea(e.target);
+    debouncedResizeParent(e.target);
+});
+
+// Add a NEW 'blur' event listener to save the content when the user clicks away.
+DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
+DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
 
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
@@ -3220,6 +3520,289 @@
             DOM.srLegendHeader.addEventListener('click', () => { const isCollapsed = DOM.srLegendContent.style.display === 'none'; DOM.srLegendContent.style.display = isCollapsed ? 'block' : 'none'; DOM.srLegendHeader.classList.toggle('collapsed', !isCollapsed); DOM.srLegendToggleBtn.textContent = isCollapsed ? '−' : '+'; DOM.srLegendToggleBtn.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)'; });
         }
 
+        // --- EVENT HANDLER LOGIC ---
+        function calculateTradeMetrics(tradeData) {
+            const entry = parseFloat(tradeData.entry); const stoploss = parseFloat(tradeData.stoploss); const target = parseFloat(tradeData.target); const size = parseFloat(tradeData.size); const type = tradeData.type;
+            if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return { rr: 0, estimated_total_fee: 0, expected_profit: 0, expected_loss: 0, expected_profit_percent: 0, expected_loss_percent: 0 }; }
+            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const positionQty = size / entry; const entryFee = size * FEE_RATE;
+            let potentialProfit, potentialLoss;
+            if (type === 'Long') { potentialProfit = positionQty * (target - entry); potentialLoss = positionQty * (entry - stoploss); } else { potentialProfit = positionQty * (entry - target); potentialLoss = positionQty * (stoploss - entry); }
+            const rr = (potentialLoss > 0) ? (potentialProfit / potentialLoss) : 0;
+            const exitValueAtTarget = (target / entry) * size; const exitFeeAtTarget = exitValueAtTarget * FEE_RATE; const estimated_total_fee = entryFee + exitFeeAtTarget; const expected_profit = potentialProfit - estimated_total_fee;
+            const exitValueAtStop = (stoploss / entry) * size; const exitFeeAtStop = exitValueAtStop * FEE_RATE; const expected_loss = potentialLoss + entryFee + exitFeeAtStop;
+            const expected_profit_percent = (expected_profit / size) * 100; const expected_loss_percent = (expected_loss / size) * 100;
+            return { rr: rr.toFixed(2), estimated_total_fee: estimated_total_fee, expected_profit: expected_profit, expected_loss: expected_loss, expected_profit_percent: expected_profit_percent, expected_loss_percent: expected_loss_percent };
+        }
+
+        function handleAddTradeSubmit(e) {
+            e.preventDefault(); if (!STATE.isMasterUser) return;
+            const trade = { symbol: document.getElementById('trade-symbol').value, type: document.getElementById('trade-type').value, entry: parseFloat(document.getElementById('entry-price').value), stoploss: parseFloat(document.getElementById('stop-loss').value), target: parseFloat(document.getElementById('target').value), size: parseFloat(document.getElementById('position-value').value), date: firebase.database.ServerValue.TIMESTAMP, entry_prices: [] };
+            if (Object.values(trade).some(val => val === null || (isNaN(val) && typeof val === 'number'))) return alert('Please fill all fields correctly.');
+            trade.entry_prices.push(trade.entry);
+            const metrics = calculateTradeMetrics(trade);
+            const tradeWithMetrics = { ...trade, ...metrics };
+            dbRefs.trades.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error adding trade: ${error.message}`));
+        }
+
+        function handleLiveTradeUpdate(cell) {
+            if (!STATE.isMasterUser) return;
+            const tradeId = cell.dataset.id;
+            const fieldToUpdate = cell.dataset.field;
+            const tradeRef = dbRefs.trades.child(tradeId);
+            tradeRef.once('value', snapshot => {
+                const trade = snapshot.val(); if (!trade) { alert('Error: Trade not found.'); return; }
+                const updates = {};
+                if (fieldToUpdate === 'entry_prices') {
+                    const newPricesArray = cell.textContent.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0);
+                    if (newPricesArray.length === 0) { alert("Invalid entry prices list."); cell.textContent = (trade.entry_prices || [trade.entry]).join(', '); return; }
+                    updates.entry_prices = newPricesArray; updates.note = (trade.note || '') + `\nEntry list updated ${new Date().toLocaleString()}`; tradeRef.update(updates); return; 
+                } 
+                let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, ''));
+                const precision = ['entry', 'stoploss', 'target'].includes(fieldToUpdate) ? 4 : 2;
+                if (isNaN(newValue)) { alert('Invalid number.'); cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); return; }
+                if (parseFloat(trade[fieldToUpdate]).toFixed(precision) === newValue.toFixed(precision)) { cell.textContent = newValue.toFixed(precision); return; }
+                updates[fieldToUpdate] = newValue;
+                const tempTradeForCalc = { ...trade, ...updates };
+                const newMetrics = calculateTradeMetrics(tempTradeForCalc);
+                Object.assign(updates, newMetrics);
+                updates.note = (trade.note || '') + `\n${fieldToUpdate} updated to ${newValue.toFixed(precision)} on ${new Date().toLocaleString()}`;
+                tradeRef.update(updates).catch(error => { alert('Failed to update trade: ' + error.message); cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); });
+            });
+        }
+
+        function handleSentimentLog(e) { const button = e.target.closest('.sentiment-buttons button'); if (!button) return; const { asset, sentiment } = button.dataset; if (!asset || !sentiment) return; dbRefs.sentimentReceipts.push({ asset, sentiment, timestamp: firebase.database.ServerValue.TIMESTAMP, viewerId: getViewerId() }); }
+        function handleSentimentAction(e) { if (!STATE.isMasterUser) return; const editBtn = e.target.closest('.edit-sentiment-note-btn'); if (editBtn) handleSentimentNoteEdit(editBtn); const deleteBtn = e.target.closest('.delete-sentiment-btn'); if (deleteBtn) handleSentimentDelete(deleteBtn); }
+        function handleSentimentDelete(button) { const receiptId = button.dataset.id; if (!receiptId) return; if (confirm('Delete this log entry?')) dbRefs.sentimentReceipts.child(receiptId).remove(); }
+        function handleSentimentNoteEdit(button) { const receiptId = button.dataset.id; if (!receiptId) return; const receiptRef = dbRefs.sentimentReceipts.child(receiptId); receiptRef.child('note').once('value', snapshot => { const newNote = prompt('Enter note:', snapshot.val() || ""); if (newNote !== null) receiptRef.update({ note: newNote }); }); }
+
+        function handleAddStaggeredEntry(tradeId) {
+            if (!STATE.isMasterUser) return;
+            const tradeRef = dbRefs.trades.child(tradeId);
+            tradeRef.once('value', snapshot => {
+                const currentTrade = snapshot.val(); if (!currentTrade) return alert('Error: Trade not found.');
+                const newEntryPriceStr = prompt("Enter NEW entry price:"); if (newEntryPriceStr === null) return;
+                const newPositionValueStr = prompt("Enter value ($) of this NEW position:"); if (newPositionValueStr === null) return;
+                const newEntryPrice = parseFloat(newEntryPriceStr), newPositionValue = parseFloat(newPositionValueStr);
+                if (isNaN(newEntryPrice) || isNaN(newPositionValue) || newEntryPrice <= 0 || newPositionValue <= 0) return alert("Invalid input.");
+                const currentSize = parseFloat(currentTrade.size), currentEntry = parseFloat(currentTrade.entry);
+                const totalValue = currentSize + newPositionValue, totalQuantity = (currentSize / currentEntry) + (newPositionValue / newEntryPrice);
+                const newAverageEntryPrice = totalValue / totalQuantity;
+                const updatedEntryPrices = currentTrade.entry_prices || [currentTrade.entry]; updatedEntryPrices.push(newEntryPrice);
+                const tempTradeForCalc = { ...currentTrade, entry: newAverageEntryPrice, size: totalValue };
+                const newMetrics = calculateTradeMetrics(tempTradeForCalc);
+                const updatedTrade = { ...currentTrade, entry: newAverageEntryPrice, size: totalValue, entry_prices: updatedEntryPrices, ...newMetrics, note: (currentTrade.note || '') + `\n+ Added $${newPositionValue.toFixed(2)} @ $${newEntryPrice.toFixed(4)} on ${new Date().toLocaleString()}` };
+                tradeRef.update(updatedTrade);
+            });
+        }
+
+        function handleGenericImageLibraryClick(e) {
+            const clickedImg = e.target.closest('img');
+            if (clickedImg?.dataset.fullSrc) {
+                const galleryContainer = clickedImg.closest('#image-library-container, #setups-image-container, .cl2-image-grid, #chart-library-2-preview-container, .trade-image-thumbnails');
+                if (galleryContainer) { const allImageElements = galleryContainer.querySelectorAll('img'); const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })); const clickedIndex = Array.from(allImageElements).indexOf(clickedImg); if (clickedIndex > -1) openImageModal(imageArray, clickedIndex); }
+                return;
+            }
+            if (e.target.closest('#image-library-container')) handleLibraryActions(e, 'image_library', dbRefs.imageLibrary);
+            else if (e.target.closest('#setups-image-container')) handleLibraryActions(e, 'setups_images', dbRefs.setupsImages);
+            else if (e.target.closest('#chart-library-2-container')) handleChartLibrary2Click(e);
+        }
+
+        function handleLibraryActions(e, libraryType, dbRef) {
+            const deleteBtn = e.target.closest('.delete-library-image'), editBtn = e.target.closest('.edit-caption-btn');
+            if (deleteBtn && STATE.isMasterUser) {
+                const { id, filename } = deleteBtn.dataset;
+                if (confirm(`Delete this image?\n\n${filename}`)) { const storagePath = `${libraryType}/${filename}`; storage.ref(storagePath).delete().then(() => dbRef.child(id).remove()).catch((err) => { if (err.code === 'storage/object-not-found') dbRef.child(id).remove(); else alert('Error deleting image.'); }); }
+            } else if (editBtn && STATE.isMasterUser) {
+                const { id } = editBtn.dataset;
+                const imageRef = dbRef.child(id);
+                imageRef.child('caption').once('value', snapshot => { const newCaption = prompt('Enter image caption:', snapshot.val() || ""); if (newCaption !== null) imageRef.update({ caption: newCaption.trim() }); });
+            }
+        }
+
+        function handleChartLibrary2Click(e) {
+            const folderCard = e.target.closest('.cl2-folder-card'), backBtn = e.target.closest('.cl2-back-button'), deleteBtn = e.target.closest('.delete-library-image');
+            if (folderCard) { STATE.currentCl2Folder = folderCard.dataset.folder; renderFolderContents(STATE.currentCl2Folder); return; }
+            if (backBtn) { STATE.currentCl2Folder = null; renderChartLibrary2Folders(); return; }
+            if (deleteBtn && STATE.isMasterUser) {
+                const { folder, id, filename } = deleteBtn.dataset;
+                if (confirm(`Delete this image from ${folder}?\n\n${filename}`)) { const storagePath = `chart_library_2/${folder}/${filename}`; storage.ref(storagePath).delete().then(() => dbRefs.chartLibrary2.child(folder).child(id).remove()).catch((err) => { if (err.code === 'storage/object-not-found') dbRefs.chartLibrary2.child(folder).child(id).remove(); else alert('Error deleting image.'); }); }
+            }
+        }
+
+        function handleTradeAction(e) {
+            if (!STATE.isMasterUser) return;
+            if (STATE.isMerging) {
+                const targetRow = e.target.closest('tr');
+                if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody' && !e.target.closest('button')) { const absorbedTradeId = targetRow.querySelector('.action-buttons button')?.dataset.id; if (absorbedTradeId) executeMerge(STATE.mergeBaseTradeId, absorbedTradeId); }
+                return;
+            }
+            const button = e.target.closest('button'); if (!button) return;
+            const { id } = button.dataset;
+            const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
+            const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
+            if (button.matches('.win-btn')) completeTrade(id, 'win');
+            else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
+            else if (button.matches('.add-to-position-btn')) handleAddStaggeredEntry(id);
+            else if (button.matches('.merge-btn-completed')) initiateMerge(id);
+            else if (button.matches('.delete-btn, .delete-btn-completed')) { if (confirm('Delete this trade?')) { resetMergeState(); tradeRef.remove(); } } 
+            else if (button.matches('.note-btn, .note-btn-completed')) { tradeRef.child('note').once('value', snapshot => { const newNote = prompt("Enter note:", snapshot.val() || ""); if (newNote !== null) tradeRef.update({ note: newNote }); }); }
+        }
+
+        function handleAttachmentActions(e) {
+            const attachBtn = e.target.closest('.attach-image-btn'); if (attachBtn) { handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type); return true; }
+            const delImgBtn = e.target.closest('.delete-trade-image'); if (delImgBtn) { const { entryId, entryType, imageId, filename } = delImgBtn.dataset; handleDeleteAttachmentImage(entryId, entryType, imageId, filename); return true; }
+            const img = e.target.closest('.trade-image-thumbnails img'); if (img) { handleGenericImageLibraryClick(e); return true; }
+            return false;
+        }
+
+        function handleAttachAttachmentClick(entryId, entryType) {
+            if (!STATE.isMasterUser) return;
+            STATE.imageUploadContext = { id: entryId, type: entryType };
+            DOM.tradeImageUploader.value = null; DOM.tradeImageUploader.click();
+        }
+
+        function handleAttachmentImageUpload(files) {
+            if (!STATE.isMasterUser || !files || files.length === 0) return;
+            const { id, type } = STATE.imageUploadContext; if (!id || !type) return;
+            let dbRefPath, storagePathPrefix;
+            switch (type) {
+                case 'live': dbRefPath = CONFIG.DB_PATHS.TRADES; storagePathPrefix = `trade_attachments/${id}/`; break;
+                case 'completed': dbRefPath = CONFIG.DB_PATHS.COMPLETED_TRADES; storagePathPrefix = `trade_attachments/${id}/`; break;
+                case 'sentiment': dbRefPath = CONFIG.DB_PATHS.SENTIMENT_RECEIPTS; storagePathPrefix = `sentiment_attachments/${id}/`; break;
+                default: return;
+            }
+            const entryDbRef = database.ref(dbRefPath).child(id);
+            Array.from(files).forEach((file) => {
+                if (!file.type.startsWith('image/')) return;
+                const fileName = `${Date.now()}_${file.name}`;
+                const storagePath = `${storagePathPrefix}${fileName}`;
+                const uploadTask = storage.ref(storagePath).put(file);
+                uploadTask.on('state_changed', null, (e) => { alert(`Upload failed for ${file.name}.`); }, () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+                        entryDbRef.child('attachedImages').push({ url, fileName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+                    });
+                });
+            });
+        }
+
+        function handleDeleteAttachmentImage(entryId, entryType, imageId, fileName) {
+            if (!STATE.isMasterUser || !entryId || !entryType || !imageId || !fileName) return;
+            if (confirm(`Delete this attachment?\n\n${fileName}`)) {
+                let dbRefPath, storagePathPrefix;
+                switch (entryType) {
+                    case 'live': dbRefPath = CONFIG.DB_PATHS.TRADES; storagePathPrefix = `trade_attachments/${entryId}/`; break;
+                    case 'completed': dbRefPath = CONFIG.DB_PATHS.COMPLETED_TRADES; storagePathPrefix = `trade_attachments/${entryId}/`; break;
+                    case 'sentiment': dbRefPath = CONFIG.DB_PATHS.SENTIMENT_RECEIPTS; storagePathPrefix = `sentiment_attachments/${entryId}/`; break;
+                    default: return;
+                }
+                const storagePath = `${storagePathPrefix}${fileName}`;
+                const imageDbRef = database.ref(dbRefPath).child(entryId).child('attachedImages').child(imageId);
+                storage.ref(storagePath).delete().then(() => imageDbRef.remove()).catch((err) => {
+                    if (err.code === 'storage/object-not-found') imageDbRef.remove(); else alert('Error deleting attachment.');
+                });
+            }
+        }
+
+        function handleImageDelete(e) {
+            const button = e.target.closest('.delete-journal-image'); if (!STATE.isMasterUser || !button) return;
+            if (DOM.imageModal.style.display === 'flex' && DOM.modalImageContent.src === button.closest('.journal-image-wrapper').querySelector('img').src) closeModal();
+            const { safeSymbol, timeframe, id, filename } = button.dataset;
+            if (confirm(`Delete this image?\n\n${filename}`)) {
+                const storagePath = `journal_images/${safeSymbol}/${timeframe}/${filename}`;
+                const dbPath = `${CONFIG.DB_PATHS.JOURNAL_IMAGES}/${safeSymbol}/${timeframe}/${id}`;
+                storage.ref(storagePath).delete().then(() => database.ref(dbPath).remove()).catch((err) => { if (err.code === 'storage/object-not-found') database.ref(dbPath).remove(); });
+            }
+        }
+
+        function handleFavouriteClick() {
+            if (!STATE.isMasterUser) return;
+            const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value), timeframe = DOM.journalTimeframeEl.value;
+            const currentText = DOM.journalEntryEl.value.trim();
+            const dbFavouriteRef = dbRefs.favourites.child(safeSymbol).child(timeframe);
+            if (DOM.favouriteBtn.classList.contains('active')) dbFavouriteRef.remove();
+            else { if (!currentText) return alert('Cannot pin an empty note.'); dbFavouriteRef.set(currentText); }
+        }
+
+        function resetMergeState() {
+            STATE.isMerging = false; STATE.mergeBaseTradeId = null;
+            document.body.classList.remove('in-merge-mode');
+            document.querySelectorAll('#completed-trades-tbody tr.is-merge-base').forEach(row => row.classList.remove('is-merge-base'));
+        }
+
+        function initiateMerge(baseTradeId) {
+            if (STATE.isMerging && STATE.mergeBaseTradeId === baseTradeId) { resetMergeState(); alert('Merge cancelled.'); return; }
+            resetMergeState(); STATE.isMerging = true; STATE.mergeBaseTradeId = baseTradeId;
+            document.body.classList.add('in-merge-mode');
+            const baseRow = document.querySelector(`#completed-trades-tbody button[data-id='${baseTradeId}']`).closest('tr');
+            if (baseRow) baseRow.classList.add('is-merge-base');
+            alert('MERGE MODE: Click another trade to merge into this one. Click "Merge" again to cancel.');
+        }
+
+        function executeMerge(baseTradeId, absorbedTradeId) {
+            if (!baseTradeId || !absorbedTradeId || baseTradeId === absorbedTradeId) { resetMergeState(); return; }
+            const completedTradesRef = dbRefs.completedTrades;
+            completedTradesRef.once('value', snapshot => {
+                const allTrades = snapshot.val(), baseTrade = allTrades[baseTradeId], absorbedTrade = allTrades[absorbedTradeId];
+                if (!baseTrade || !absorbedTrade) { alert('Error: Could not find one of the trades.'); resetMergeState(); return; }
+                if (baseTrade.symbol !== absorbedTrade.symbol || baseTrade.type !== absorbedTrade.type) { alert('Error: Cannot merge trades with different symbols or types.'); resetMergeState(); return; }
+                const baseSize = parseFloat(baseTrade.size), baseEntry = parseFloat(baseTrade.entry), baseQty = baseSize / baseEntry;
+                const absorbedSize = parseFloat(absorbedTrade.size), absorbedEntry = parseFloat(absorbedTrade.entry), absorbedQty = absorbedSize / absorbedEntry;
+                const totalQty = baseQty + absorbedQty, totalValue = baseSize + absorbedSize;
+                const mergedEntry = totalValue / totalQty;
+                const baseExitValue = parseFloat(baseTrade.exit_price) * baseQty, absorbedExitValue = parseFloat(absorbedTrade.exit_price) * absorbedQty;
+                const mergedExitPrice = (baseExitValue + absorbedExitValue) / totalQty;
+                const mergedEntryPrices = [...(baseTrade.entry_prices || [baseTrade.entry]), ...(absorbedTrade.entry_prices || [absorbedTrade.entry])];
+                const mergedTrade = {
+                    ...baseTrade, entry: mergedEntry, size: totalValue, exit_price: mergedExitPrice, entry_prices: mergedEntryPrices,
+                    net_result: (baseTrade.net_result || 0) + (absorbedTrade.net_result || 0),
+                    entry_fee: (baseTrade.entry_fee || 0) + (absorbedTrade.entry_fee || 0),
+                    exit_fee: (baseTrade.exit_fee || 0) + (absorbedTrade.exit_fee || 0),
+                    date: Math.min(new Date(baseTrade.date).getTime(), new Date(absorbedTrade.date).getTime()),
+                    closed_date: Math.max(new Date(baseTrade.closed_date).getTime(), new Date(absorbedTrade.closed_date).getTime()),
+                    note: `${baseTrade.note || ''}\n--- MERGED ---\n${absorbedTrade.note || ''}`.trim(),
+                };
+                const updates = { [baseTradeId]: mergedTrade, [absorbedTradeId]: null };
+                completedTradesRef.update(updates).then(() => { alert('Trades merged successfully!'); resetMergeState(); }).catch(e => { alert(`Error merging trades: ${e.message}`); resetMergeState(); });
+            });
+        }
+
+        function subscribeToData() {
+            dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
+            dbRefs.completedTrades.on('value', s => {
+                const completedData = s.val() || {}; renderCompletedTable(completedData);
+                let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
+                Object.values(completedData).forEach(trade => {
+                    const netResult = trade.net_result || 0;
+                    if (netResult > 0) { wins++; grossProfit += netResult; } else { losses++; grossLoss += Math.abs(netResult); }
+                });
+                const totalCompleted = wins + losses, winRate = totalCompleted > 0 ? (wins / totalCompleted) * 100 : 0;
+                const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0, avgWin = wins > 0 ? grossProfit / wins : 0;
+                const avgLoss = losses > 0 ? grossLoss / losses : 0, rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
+                const totalPL = grossProfit - grossLoss, newBalance = CONFIG.TRADE_SETTINGS.STARTING_BALANCE + totalPL;
+                DOM.statBalance.textContent = formatCurrency(newBalance); DOM.statBalanceAud.textContent = formatCurrency(newBalance * STATE.usdToAudRate, 'A$');
+                DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}${formatCurrency(totalPL)}`; DOM.statTotalPl.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}${formatCurrency(totalPL * STATE.usdToAudRate, 'A$')}`; DOM.statTotalPlAud.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                DOM.statCompletedTrades.textContent = totalCompleted; DOM.statWins.textContent = wins; DOM.statLosses.textContent = losses;
+                DOM.statWinRate.textContent = `${winRate.toFixed(1)}%`; DOM.statProfitFactor.textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
+                DOM.statAvgWin.textContent = formatCurrency(avgWin); DOM.statAvgLoss.textContent = formatCurrency(avgLoss); DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
+                dbRefs.bank.set({ currentBalance: newBalance });
+            });
+            dbRefs.journalText.on('value', (s) => { STATE.journalText = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
+            dbRefs.journalImages.on('value', (s) => { STATE.journalImages = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
+            dbRefs.imageLibrary.on('value', (s) => renderGenericImageLibrary(s.val(), DOM.imageLibraryContainer, 'image_library'));
+            dbRefs.setupsImages.on('value', (s) => renderGenericImageLibrary(s.val(), DOM.setupsImageContainer, 'setups_images'));
+            dbRefs.chartLibrary2.on('value', s => { STATE.chartLibrary2Data = s.val() || {}; if (STATE.currentCl2Folder) renderFolderContents(STATE.currentCl2Folder); else renderChartLibrary2Folders(); renderChartLibrary2Preview(); });
+            dbRefs.favourites.on('value', (s) => { STATE.favouriteEntries = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
+            dbRefs.setups1.on('value', (s) => { STATE.setupsData1 = s.val() || {}; renderSetupsTable(DOM.setupsTable1, STATE.setupsData1, 'primary-setups-notes'); });
+            dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(DOM.setupsTable2, STATE.setupsData2, 'secondary-setups-notes'); });
+            dbRefs.persistentNotes.on('value', (s) => { STATE.persistentNotes = s.val() || ''; if (document.activeElement !== DOM.persistentNotesEl) { DOM.persistentNotesEl.value = STATE.persistentNotes; } adjustCollapsibleSize(DOM.persistentNotesEl); });
+            dbRefs.trackerScratchpad.on('value', (s) => { STATE.trackerScratchpadText = s.val() || ''; if (document.activeElement !== DOM.trackerScratchpadEl) { DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; } adjustCollapsibleSize(DOM.trackerScratchpadEl); });
+            dbRefs.sentimentReceipts.on('value', (s) => { STATE.allSentimentReceipts = s.val() || {}; renderSentimentReceipts(); });
+            dbRefs.levelNotes.on('value', (s) => renderLevelNotes(s.val()));
+            dbRefs.generalNotes.on('value', (s) => { STATE.generalNotes = s.val() || {}; if (DOM.noteEditModal.style.display === 'none') { renderNotes(STATE.generalNotes); } });
+        }
+
         // --- INITIALIZATION ---
         function openCollapsibleSection(sectionElement) {
             if (!sectionElement || sectionElement.classList.contains('is-open')) return;
@@ -3238,7 +3821,7 @@
         function openDefaultSectionsInContainer(containerElement) {
             if (!containerElement) return;
             const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'Persistent Notes'];
-            
+
             containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 const title = h2.textContent.trim();
                 if (sectionsToOpen.includes(title)) {
@@ -3249,7 +3832,7 @@
                 }
             });
         }
-        
+
         function checkMasterMode() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('master') === 'true') {
@@ -3285,22 +3868,22 @@
                 }
             });
         }
-        
+
         async function initializeApp() {
             checkMasterMode(); 
             getViewerId();
-            
             await fetchLiveConversionRate();
             fetchEmaData();
             fetchSrData();
             fetchMarketOpens();
             fetchCrossoverSignalData();
-            
+
             fetchAndRenderOptionsData();
             fetchAndRenderHistoricalCharts();
 
+            setInterval(fetchCrossoverSignalData, 5 * 60 * 1000);
+
             setInterval(() => {
-                fetchCrossoverSignalData();
                 fetchAndRenderOptionsData();
                 fetchAndRenderHistoricalCharts();
             }, 60000);
@@ -3329,7 +3912,6 @@
 
         initializeApp();
     });
-</script>
+        </script>
 </body>
-
 </html>
