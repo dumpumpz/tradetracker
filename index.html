@@ -2349,24 +2349,7 @@
         </div>
         
         <div id="options-oi-tab" class="tab-content">
-            <!-- PASTE THE CHART HTML HERE -->
-            <p id="last-updated-charts">Loading chart data...</p>
-
-            <div class="chart-container">
-                <canvas id="priceChart"></canvas>
-            </div>
-            <div class="chart-container">
-                <canvas id="oiVolumeChart"></canvas>
-            </div>
-            <div class="chart-container">
-                <canvas id="sentimentChart"></canvas>
-            </div>
-               <!-- ADD THIS NEW CHART CONTAINER -->
-            <div class="chart-container">
-                <canvas id="perStrikeGammaChart"></canvas>
-            </div>
-
-            <!-- END OF PASTED BLOCK -->
+        
 
             <!-- The content will be dynamically inserted here by JavaScript -->
             <div id="options-snapshot-container">
@@ -3869,13 +3852,12 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
             fetchCrossoverSignalData();
             
             fetchAndRenderOptionsData();
-            fetchAndRenderHistoricalCharts();
+
 
             setInterval(fetchCrossoverSignalData, 5 * 60 * 1000);
 
-            setInterval(() => {
+                        setInterval(() => {
                 fetchAndRenderOptionsData();
-                fetchAndRenderHistoricalCharts();
             }, 60000);
 
             const savedTheme = localStorage.getItem('theme');
