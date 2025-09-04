@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -2556,30 +2556,35 @@
             try {
                 const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
                 
-                const formatNumber = (num, digits = 2) => num != null ? num.toLocaleString('en-US', {minimumFractionDigits: digits, maximumFractionDigits: digits}) : 'N/A';
-                const formatCompact = (num) => { if (num == null) return 'N/A'; if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2)}B`; if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`; if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`; return num.toString(); };
-                const formatPercent = (val) => val != null ? `${(val * 100).toFixed(2)}%` : 'N/A';
-                const formatCurrencyNoSymbol = (num) => num != null ? num.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0}) : 'N/A';
+                // Get the raw text of the JSON file
+                const jsonDataText = await response.text();
+                
+                // Clear the container of any previous content (like "Loading...")
+                container.innerHTML = '';
+                
+                // Create a <pre> element to display the formatted JSON
+                const preElement = document.createElement('pre');
+                
+                // Parse and then stringify with an indent of 2 spaces for pretty printing
+                const jsonData = JSON.parse(jsonDataText);
+                preElement.textContent = JSON.stringify(jsonData, null, 2); 
+                
+                // Apply some basic styling for better readability and to match the page's theme
+                preElement.style.whiteSpace = 'pre-wrap';
+                preElement.style.wordBreak = 'break-all';
+                preElement.style.backgroundColor = 'var(--card-bg)';
+                preElement.style.padding = '15px';
+                preElement.style.borderRadius = '8px';
+                preElement.style.border = '1px solid var(--border-color)';
+                preElement.style.fontSize = '14px';
+                
+                // Add the new element to the container
+                container.appendChild(preElement);
 
-                const pcr = data.metadata.put_call_ratio_24h_volume.ratio_by_volume;
-                const pcrClass = pcr >= 0.7 ? 'pcr-bearish' : pcr <= 0.5 ? 'pcr-bullish' : '';
-                
-                const globalMetricsHtml = `<div class="oi-global-metrics"><div class="oi-global-metric"><span class="label"><span class="tooltip">24h P/C Ratio (Vol)<span class="tooltiptext">${data.definitions.put_call_ratio_24h_volume}</span></span></span><span class="value ${pcrClass}">${pcr.toFixed(2)}</span></div><div class="oi-global-metric"><span class="label"><span class="tooltip">BTC Index Price<span class="tooltiptext">${data.definitions.btc_index_price_usd}</span></span></span><span class="value">$${formatNumber(data.metadata.btc_index_price_usd)}</span></div><div class="oi-global-metric"><span class="label">Last Updated (UTC)</span><span class="value" style="font-size: 14px;">${new Date(data.metadata.calculation_timestamp_utc).toLocaleTimeString()}</span></div></div>`;
-
-                const cardsHtml = data.expirations.map(expiry => {
-                    const { expiration_date, day_of_week, option_type, notional_value_usd, total_volume_24h_btc, max_pain_strike, average_iv_data, open_interest_walls, short_gamma_near_spot } = expiry;
-                    const callWallsHtml = open_interest_walls.top_call_strikes.map(item => `<div class="wall-item"><span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span><span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span></div>`).join('');
-                    const putWallsHtml = open_interest_walls.top_put_strikes.map(item => `<div class="wall-item"><span class="strike">$${formatCurrencyNoSymbol(item.strike)}</span><span class="oi">${formatNumber(item.open_interest_btc, 1)} BTC</span></div>`).join('');
-                    const shortGammaHtml = short_gamma_near_spot.slice(0, 5).map(item => `<tr><td class="strike">$${formatCurrencyNoSymbol(item.strike)}</td><td>${formatNumber(item.dealer_gamma)}</td></tr>`).join('') || `<tr><td colspan="2" style="text-align:center; padding: 10px;">None near spot</td></tr>`;
-                    return `<div class="oi-card"><div class="oi-card-header"><h3>${expiration_date} <span style="font-weight:400; color:var(--subtle-text)">(${day_of_week})</span></h3><span class="oi-type-pill oi-type-${option_type.toLowerCase()}">${option_type}</span></div><div class="oi-card-body"><div class="oi-metric-grid"><div class="oi-metric-item"><span class="label"><span class="tooltip">Notional Value<span class="tooltiptext">${data.definitions.notional_value_usd}</span></span></span><span class="value">$${formatCompact(notional_value_usd)}</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">24h Volume<span class="tooltiptext">${data.definitions.total_volume_24h_btc}</span></span></span><span class="value">${formatCompact(total_volume_24h_btc)} BTC</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">Max Pain<span class="tooltiptext">${data.definitions.max_pain_strike}</span></span></span><span class="value">${max_pain_strike ? '$' + formatCurrencyNoSymbol(max_pain_strike) : 'N/A'}</span></div><div class="oi-metric-item"><span class="label"><span class="tooltip">IV Skew<span class="tooltiptext">${data.definitions.average_iv_data.skew_proxy}</span></span></span><span class="value" style="color: ${average_iv_data.skew_proxy > 0 ? 'var(--green-text)' : 'var(--red-text)'}">${formatPercent(average_iv_data.skew_proxy)}</span></div></div><div class="oi-walls-container"><div class="wall-column puts"><h4><span class="tooltip">Top Put Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>${putWallsHtml}</div><div class="wall-column calls"><h4><span class="tooltip">Top Call Walls<span class="tooltiptext">${data.definitions.open_interest_walls}</span></span></h4>${callWallsHtml}</div></div><h4 class="oi-section-title"><span class="tooltip">Short Gamma Zones (Nearest Spot)<span class="tooltiptext">${data.definitions.short_gamma_near_spot.description}</span></span></h4><div class="table-wrapper"><table class="gamma-zone-table"><thead><tr><th>Strike</th><th>Dealer Gamma</th></tr></thead><tbody>${shortGammaHtml}</tbody></table></div></div></div>`;
-                }).join('');
-                
-                container.innerHTML = `${globalMetricsHtml}<div class="oi-dashboard-grid">${cardsHtml}</div>`;
             } catch (error) {
-                console.error("Could not fetch or render options data:", error);
-                container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Could not find or parse <strong>${jsonFile}</strong>. Please check the console.</p>`;
+                console.error("Could not fetch or display options JSON data:", error);
+                container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options JSON. Could not find or parse <strong>${jsonFile}</strong>. Please check the console.</p>`;
             }
         }
         
@@ -3900,3 +3905,6 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
         </script>
 </body>
 </html>
+
+
+
