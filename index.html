@@ -1817,7 +1817,27 @@
             }
         }
 
-        
+                /* --- STYLE FOR COPY JSON BUTTON --- */
+        #options-snapshot-container {
+            position: relative; /* This is needed to position the button inside */
+        }
+        #copy-json-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 10;
+            padding: 6px 12px;
+            font-size: 12px;
+            background-color: var(--header-bg);
+            border: 1px solid var(--border-color);
+            color: var(--subtle-text);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #copy-json-btn:hover {
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
     </style>
 </head>
 <body>
@@ -2531,7 +2551,7 @@
         async function fetchMarketOpens() { try { const response = await fetch(`market_opens.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.marketOpens = await response.json(); renderMarketOpens(); } catch (error) { console.error("Could not fetch market_opens.json:", error); } }
         async function fetchCrossoverSignalData() { const signalJsonUrl = 'crypto_signals.json'; try { const response = await fetch(`${signalJsonUrl}?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); renderCrossoverSignals(data); } catch (error) { console.error("Could not fetch or parse crossover signal data:", error); const ethContainer = document.getElementById('eth-crossover-signal-container'); const btcContainer = document.getElementById('btc-crossover-signal-container'); const errorMsg = '<p style="color: red; text-align: center;">Error loading signal data.</p>'; if (ethContainer) ethContainer.innerHTML = errorMsg; if (btcContainer) btcContainer.innerHTML = errorMsg; const lastUpdatedEl = document.getElementById('crossover-signals-last-updated'); if(lastUpdatedEl) lastUpdatedEl.textContent = 'Failed to load data.'; } }
         
-        async function fetchAndRenderOptionsData() {
+                async function fetchAndRenderOptionsData() {
             if (!DOM.optionsOiTab) return;
             const jsonFile = 'deribit_options_market_analysis.json';
             const container = document.getElementById('options-snapshot-container');
@@ -2540,20 +2560,14 @@
                 const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
-                // Get the raw text of the JSON file
                 const jsonDataText = await response.text();
                 
-                // Clear the container of any previous content (like "Loading...")
-                container.innerHTML = '';
+                container.innerHTML = ''; // Clear previous content
                 
-                // Create a <pre> element to display the formatted JSON
+                // Create the <pre> element for the JSON text
                 const preElement = document.createElement('pre');
-                
-                // Parse and then stringify with an indent of 2 spaces for pretty printing
                 const jsonData = JSON.parse(jsonDataText);
                 preElement.textContent = JSON.stringify(jsonData, null, 2); 
-                
-                // Apply some basic styling for better readability and to match the page's theme
                 preElement.style.whiteSpace = 'pre-wrap';
                 preElement.style.wordBreak = 'break-all';
                 preElement.style.backgroundColor = 'var(--card-bg)';
@@ -2562,7 +2576,27 @@
                 preElement.style.border = '1px solid var(--border-color)';
                 preElement.style.fontSize = '14px';
                 
-                // Add the new element to the container
+                // Create the "Copy All" button
+                const copyButton = document.createElement('button');
+                copyButton.id = 'copy-json-btn';
+                copyButton.textContent = 'Copy All';
+
+                // Add the click event listener to the button
+                copyButton.addEventListener('click', () => {
+                    navigator.clipboard.writeText(preElement.textContent).then(() => {
+                        // Provide user feedback on success
+                        copyButton.textContent = 'Copied!';
+                        setTimeout(() => {
+                            copyButton.textContent = 'Copy All';
+                        }, 2000); // Revert back after 2 seconds
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                        alert('Failed to copy text. See console for details.');
+                    });
+                });
+
+                // Add the new elements to the container
+                container.appendChild(copyButton); // Add button first so it appears on top
                 container.appendChild(preElement);
 
             } catch (error) {
