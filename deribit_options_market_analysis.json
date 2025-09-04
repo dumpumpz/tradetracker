@@ -1,194 +1,280 @@
 {
   "metadata": {
-    "calculation_timestamp_utc": "2025-09-03T09:24:05.337743Z",
-    "btc_index_price_usd": 111147.04,
+    "calculation_timestamp_utc": "2025-09-04T04:27:35.392300Z",
+    "btc_index_price_usd": 111217.13,
     "currency": "BTC"
   },
   "definitions": {
-    "gamma_flip_level_usd": "The estimated BTC price where total dealer gamma exposure flips from negative to positive. Below this level, dealer hedging tends to suppress volatility (buy dips, sell rips). Above this level, hedging can amplify volatility (sell dips, buy rips). It's a key pivot point.",
-    "total_dealer_gamma_exposure": "The sum of all dealer gamma positions across all strikes and expiries. A large negative value indicates the market is vulnerable to volatile moves as dealers are net short gamma.",
-    "pcr_by_open_interest": "Put/Call Ratio calculated from total Open Interest. A more stable indicator of overall market sentiment and positioning than the volume-based ratio.",
-    "pcr_by_24h_volume": "Put/Call Ratio from the last 24h of trading volume. More indicative of short-term hedging/speculative activity."
+    "total_dealer_gamma_exposure": "Total Gamma Exposure for dealers. Large negative values mean dealers are net short gamma, which amplifies volatility (hedging follows momentum). Positive values suppress volatility (hedging opposes momentum).",
+    "total_dealer_delta_exposure_btc": "Total Delta Exposure for dealers, in BTC. Represents the amount of BTC dealers must hold to hedge their net options position. A positive value means they are net long BTC to hedge (likely from selling puts); negative means they are net short BTC.",
+    "total_dealer_vega_exposure_usd": "Total Vega Exposure for dealers, in USD. Represents the P&L change for a 1% rise in IV across all options. Typically negative, meaning dealers profit if volatility falls (a 'vol crush').",
+    "total_dealer_theta_exposure_usd": "Total Theta Exposure for dealers, in USD. Represents the daily P&L change from time decay. Typically positive, meaning dealers profit from the passage of time as the options they sold lose value.",
+    "gamma_flip_level_usd": "The estimated BTC price where total dealer gamma exposure flips sign. A key pivot point for the market's volatility regime.",
+    "pcr_by_open_interest": "Put/Call Ratio by Open Interest. A stable indicator of overall market sentiment.",
+    "pcr_by_24h_volume": "Put/Call Ratio from the last 24h trading volume. Indicates short-term activity.",
+    "volatility_surface": "A mapping of Implied Volatility (IV) for calls and puts at each strike for a given expiration. The 'shape' of this surface (skew/smile) reveals market expectations of risk."
   },
   "market_summary": {
-    "total_open_interest_btc": 160260.1,
-    "total_notional_oi_usd": 17812435745.1,
-    "total_volume_24h_btc": 15485.3,
-    "pcr_by_open_interest": 0.8032,
+    "total_open_interest_btc": 162449.9,
+    "total_notional_oi_usd": 18067211646.79,
+    "total_volume_24h_btc": 19885.9,
+    "pcr_by_open_interest": 0.9527,
     "pcr_by_24h_volume": {
       "ratio": 0.0,
       "call_volume_24h_btc": 0.0,
       "put_volume_24h_btc": 0.0
     },
-    "total_dealer_gamma_exposure": -3.998,
+    "total_dealer_gamma_exposure": -5.0569,
+    "total_dealer_delta_exposure_btc": -5852.09,
+    "total_dealer_vega_exposure_usd": -11518896.73,
+    "total_dealer_theta_exposure_usd": 10089891.38,
     "gamma_flip_level_usd": null
   },
   "expirations": [
     {
       "expiration_date": "2025-09-04",
       "option_type": "Daily",
-      "open_interest_btc": 2305.4,
-      "notional_value_usd": 256238386.02,
-      "total_volume_24h_btc": 1743.4,
-      "pcr_by_oi": 1.0933,
+      "open_interest_btc": 2922.1,
+      "notional_value_usd": 324987575.57,
+      "total_volume_24h_btc": 3260.8,
+      "pcr_by_oi": 1.312,
       "max_pain_strike": null,
+      "greeks_summary": {
+        "total_delta_exposure_btc": -152.56,
+        "total_gamma_exposure": -0.6297,
+        "total_vega_exposure_usd": -8450.38,
+        "total_theta_exposure_usd": 102995.95
+      },
       "open_interest_walls": {
         "top_call_strikes": [
           {
             "strike": 111000.0,
-            "open_interest_btc": 485.9
-          },
-          {
-            "strike": 109000.0,
-            "open_interest_btc": 111.2
-          },
-          {
-            "strike": 116000.0,
-            "open_interest_btc": 109.1
-          },
-          {
-            "strike": 114000.0,
-            "open_interest_btc": 90.5
+            "open_interest_btc": 405.0
           },
           {
             "strike": 112000.0,
-            "open_interest_btc": 83.5
+            "open_interest_btc": 244.3
+          },
+          {
+            "strike": 113000.0,
+            "open_interest_btc": 175.4
+          },
+          {
+            "strike": 116000.0,
+            "open_interest_btc": 118.2
+          },
+          {
+            "strike": 114000.0,
+            "open_interest_btc": 109.5
           }
         ],
         "top_put_strikes": [
           {
+            "strike": 111000.0,
+            "open_interest_btc": 348.7
+          },
+          {
             "strike": 100000.0,
-            "open_interest_btc": 267.5
+            "open_interest_btc": 267.6
           },
           {
             "strike": 107000.0,
-            "open_interest_btc": 173.1
+            "open_interest_btc": 170.5
           },
           {
-            "strike": 111000.0,
-            "open_interest_btc": 146.0
+            "strike": 112000.0,
+            "open_interest_btc": 146.4
           },
           {
             "strike": 102000.0,
-            "open_interest_btc": 123.6
-          },
-          {
-            "strike": 110000.0,
-            "open_interest_btc": 122.8
+            "open_interest_btc": 135.4
           }
         ]
-      },
-      "average_iv_data": {
-        "call_iv": 0.3095,
-        "put_iv": 0.5241,
-        "skew_proxy": -0.2146
       },
       "dealer_gamma_by_strike": [
         {
           "strike": 100000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 102000.0,
-          "dealer_gamma": -0.0012360000000000001
+          "dealer_gamma": 0.0
         },
         {
           "strike": 104000.0,
-          "dealer_gamma": -1.0000000000000002e-06
+          "dealer_gamma": 0.0
         },
         {
           "strike": 105000.0,
-          "dealer_gamma": -3e-06
+          "dealer_gamma": 0.0
         },
         {
           "strike": 106000.0,
-          "dealer_gamma": -0.00014800000000000002
+          "dealer_gamma": 0.0
         },
         {
           "strike": 107000.0,
-          "dealer_gamma": -0.005193
+          "dealer_gamma": 0.0
         },
         {
           "strike": 108000.0,
-          "dealer_gamma": -0.0063300000000000006
+          "dealer_gamma": -0.001582
         },
         {
           "strike": 109000.0,
-          "dealer_gamma": -0.012232000000000002
+          "dealer_gamma": -0.009065
         },
         {
           "strike": 110000.0,
-          "dealer_gamma": -0.01386
+          "dealer_gamma": -0.03272
         },
         {
           "strike": 111000.0,
-          "dealer_gamma": -0.121475
+          "dealer_gamma": -0.482368
         },
         {
           "strike": 112000.0,
-          "dealer_gamma": -0.01837
+          "dealer_gamma": -0.10158199999999999
         },
         {
           "strike": 113000.0,
-          "dealer_gamma": -0.009932
+          "dealer_gamma": -0.00239
         },
         {
           "strike": 114000.0,
-          "dealer_gamma": -0.00543
+          "dealer_gamma": 0.0
         },
         {
           "strike": 116000.0,
-          "dealer_gamma": -0.002182
+          "dealer_gamma": 0.0
+        }
+      ],
+      "volatility_surface": [
+        {
+          "strike": 100000.0,
+          "call_iv": null,
+          "put_iv": 0.8469
+        },
+        {
+          "strike": 102000.0,
+          "call_iv": null,
+          "put_iv": 0.7889
+        },
+        {
+          "strike": 104000.0,
+          "call_iv": 0.6491,
+          "put_iv": 0.6491
+        },
+        {
+          "strike": 105000.0,
+          "call_iv": 0.5819,
+          "put_iv": 0.5819
+        },
+        {
+          "strike": 106000.0,
+          "call_iv": 0.5681,
+          "put_iv": 0.5681
+        },
+        {
+          "strike": 107000.0,
+          "call_iv": 0.5681,
+          "put_iv": 0.5681
+        },
+        {
+          "strike": 108000.0,
+          "call_iv": 0.5674,
+          "put_iv": 0.5674
+        },
+        {
+          "strike": 109000.0,
+          "call_iv": 0.5196,
+          "put_iv": 0.5196
+        },
+        {
+          "strike": 110000.0,
+          "call_iv": 0.3717,
+          "put_iv": 0.3717
+        },
+        {
+          "strike": 111000.0,
+          "call_iv": 0.2579,
+          "put_iv": 0.2579
+        },
+        {
+          "strike": 112000.0,
+          "call_iv": 0.241,
+          "put_iv": 0.241
+        },
+        {
+          "strike": 113000.0,
+          "call_iv": 0.2835,
+          "put_iv": 0.2835
+        },
+        {
+          "strike": 114000.0,
+          "call_iv": 0.3034,
+          "put_iv": null
+        },
+        {
+          "strike": 116000.0,
+          "call_iv": 0.4046,
+          "put_iv": null
         }
       ]
     },
     {
       "expiration_date": "2025-09-05",
       "option_type": "Weekly",
-      "open_interest_btc": 28491.9,
-      "notional_value_usd": 3166790348.98,
-      "total_volume_24h_btc": 5009.3,
-      "pcr_by_oi": 1.4399,
+      "open_interest_btc": 29553.3,
+      "notional_value_usd": 3286833208.03,
+      "total_volume_24h_btc": 4896.4,
+      "pcr_by_oi": 1.3585,
       "max_pain_strike": null,
+      "greeks_summary": {
+        "total_delta_exposure_btc": 2365.65,
+        "total_gamma_exposure": -1.8738,
+        "total_vega_exposure_usd": -247777.64,
+        "total_theta_exposure_usd": 3099649.12
+      },
       "open_interest_walls": {
         "top_call_strikes": [
           {
             "strike": 117000.0,
-            "open_interest_btc": 1974.6
+            "open_interest_btc": 1972.7
+          },
+          {
+            "strike": 112000.0,
+            "open_interest_btc": 1263.0
           },
           {
             "strike": 111000.0,
-            "open_interest_btc": 1137.2
+            "open_interest_btc": 1022.1
           },
           {
             "strike": 115000.0,
-            "open_interest_btc": 1005.2
-          },
-          {
-            "strike": 120000.0,
-            "open_interest_btc": 830.8
+            "open_interest_btc": 919.1
           },
           {
             "strike": 113000.0,
-            "open_interest_btc": 695.9
+            "open_interest_btc": 907.7
           }
         ],
         "top_put_strikes": [
           {
             "strike": 105000.0,
-            "open_interest_btc": 2844.5
+            "open_interest_btc": 2846.3
           },
           {
             "strike": 110000.0,
-            "open_interest_btc": 2318.5
+            "open_interest_btc": 2301.0
           },
           {
             "strike": 108000.0,
-            "open_interest_btc": 2082.9
+            "open_interest_btc": 2040.7
           },
           {
             "strike": 102000.0,
-            "open_interest_btc": 1712.4
+            "open_interest_btc": 1719.0
           },
           {
             "strike": 116000.0,
@@ -196,185 +282,353 @@
           }
         ]
       },
-      "average_iv_data": {
-        "call_iv": 0.4113,
-        "put_iv": 0.4818,
-        "skew_proxy": -0.0705
-      },
       "dealer_gamma_by_strike": [
         {
           "strike": 80000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 85000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 90000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 95000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 100000.0,
-          "dealer_gamma": -0.007618
+          "dealer_gamma": 0.0
         },
         {
           "strike": 102000.0,
-          "dealer_gamma": -0.017124000000000004
+          "dealer_gamma": -0.017194
         },
         {
           "strike": 104000.0,
-          "dealer_gamma": -0.005648
+          "dealer_gamma": -0.0030760000000000006
         },
         {
           "strike": 105000.0,
-          "dealer_gamma": -0.05689
+          "dealer_gamma": -0.05728800000000001
         },
         {
           "strike": 106000.0,
-          "dealer_gamma": -0.016632
+          "dealer_gamma": -0.017079
         },
         {
           "strike": 107000.0,
-          "dealer_gamma": -0.018945
+          "dealer_gamma": -0.015368
         },
         {
           "strike": 108000.0,
-          "dealer_gamma": -0.005361999999999999
+          "dealer_gamma": -0.14777
         },
         {
           "strike": 109000.0,
-          "dealer_gamma": -0.03168
+          "dealer_gamma": -0.04129
         },
         {
           "strike": 110000.0,
-          "dealer_gamma": -0.301405
+          "dealer_gamma": -0.46564800000000006
         },
         {
           "strike": 111000.0,
-          "dealer_gamma": -0.17057999999999998
+          "dealer_gamma": -0.28096
         },
         {
           "strike": 112000.0,
-          "dealer_gamma": -0.07485
+          "dealer_gamma": -0.36168
         },
         {
           "strike": 113000.0,
-          "dealer_gamma": -0.07279200000000001
+          "dealer_gamma": -0.211148
         },
         {
           "strike": 114000.0,
-          "dealer_gamma": -0.038349
+          "dealer_gamma": -0.07388800000000001
         },
         {
           "strike": 115000.0,
-          "dealer_gamma": -0.026748
+          "dealer_gamma": -0.06818500000000001
         },
         {
           "strike": 116000.0,
-          "dealer_gamma": -0.023252
+          "dealer_gamma": -0.045714
         },
         {
           "strike": 117000.0,
-          "dealer_gamma": -0.039492
+          "dealer_gamma": -0.045968
         },
         {
           "strike": 118000.0,
-          "dealer_gamma": -0.005654
+          "dealer_gamma": -0.0075320000000000005
         },
         {
           "strike": 119000.0,
-          "dealer_gamma": -0.000134
+          "dealer_gamma": -0.005094
         },
         {
           "strike": 120000.0,
-          "dealer_gamma": -0.000621
+          "dealer_gamma": -0.008877000000000001
         },
         {
           "strike": 121000.0,
-          "dealer_gamma": -0.0012430000000000002
+          "dealer_gamma": 0.0
         },
         {
           "strike": 122000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 123000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 124000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 125000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 126000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 128000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 130000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 135000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 140000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
+        }
+      ],
+      "volatility_surface": [
+        {
+          "strike": 80000.0,
+          "call_iv": null,
+          "put_iv": 1.4243
+        },
+        {
+          "strike": 85000.0,
+          "call_iv": null,
+          "put_iv": 1.4115
+        },
+        {
+          "strike": 90000.0,
+          "call_iv": null,
+          "put_iv": 1.2011
+        },
+        {
+          "strike": 95000.0,
+          "call_iv": null,
+          "put_iv": 0.9527
+        },
+        {
+          "strike": 100000.0,
+          "call_iv": 0.774,
+          "put_iv": 0.774
+        },
+        {
+          "strike": 102000.0,
+          "call_iv": 0.6801,
+          "put_iv": 0.6801
+        },
+        {
+          "strike": 104000.0,
+          "call_iv": null,
+          "put_iv": 0.5652
+        },
+        {
+          "strike": 105000.0,
+          "call_iv": 0.5412,
+          "put_iv": 0.541
+        },
+        {
+          "strike": 106000.0,
+          "call_iv": 0.5006,
+          "put_iv": 0.5006
+        },
+        {
+          "strike": 107000.0,
+          "call_iv": 0.4519,
+          "put_iv": 0.4519
+        },
+        {
+          "strike": 108000.0,
+          "call_iv": 0.4128,
+          "put_iv": 0.4128
+        },
+        {
+          "strike": 109000.0,
+          "call_iv": 0.3708,
+          "put_iv": 0.3708
+        },
+        {
+          "strike": 110000.0,
+          "call_iv": 0.335,
+          "put_iv": 0.335
+        },
+        {
+          "strike": 111000.0,
+          "call_iv": 0.3094,
+          "put_iv": 0.3094
+        },
+        {
+          "strike": 112000.0,
+          "call_iv": 0.2978,
+          "put_iv": 0.2978
+        },
+        {
+          "strike": 113000.0,
+          "call_iv": 0.3029,
+          "put_iv": 0.3029
+        },
+        {
+          "strike": 114000.0,
+          "call_iv": 0.3326,
+          "put_iv": 0.3326
+        },
+        {
+          "strike": 115000.0,
+          "call_iv": 0.3528,
+          "put_iv": 0.3528
+        },
+        {
+          "strike": 116000.0,
+          "call_iv": 0.3973,
+          "put_iv": 0.3973
+        },
+        {
+          "strike": 117000.0,
+          "call_iv": 0.421,
+          "put_iv": 0.421
+        },
+        {
+          "strike": 118000.0,
+          "call_iv": 0.48,
+          "put_iv": 0.48
+        },
+        {
+          "strike": 119000.0,
+          "call_iv": 0.5386,
+          "put_iv": 0.5386
+        },
+        {
+          "strike": 120000.0,
+          "call_iv": 0.5391,
+          "put_iv": 0.5391
+        },
+        {
+          "strike": 121000.0,
+          "call_iv": 0.5391,
+          "put_iv": 0.5391
+        },
+        {
+          "strike": 122000.0,
+          "call_iv": 0.5391,
+          "put_iv": 0.5391
+        },
+        {
+          "strike": 123000.0,
+          "call_iv": 0.5392,
+          "put_iv": null
+        },
+        {
+          "strike": 124000.0,
+          "call_iv": 0.5509,
+          "put_iv": null
+        },
+        {
+          "strike": 125000.0,
+          "call_iv": 0.5663,
+          "put_iv": 0.5663
+        },
+        {
+          "strike": 126000.0,
+          "call_iv": 0.5916,
+          "put_iv": 0.5916
+        },
+        {
+          "strike": 128000.0,
+          "call_iv": 0.6402,
+          "put_iv": null
+        },
+        {
+          "strike": 130000.0,
+          "call_iv": 0.6782,
+          "put_iv": 0.6782
+        },
+        {
+          "strike": 135000.0,
+          "call_iv": 0.7179,
+          "put_iv": null
+        },
+        {
+          "strike": 140000.0,
+          "call_iv": 0.7432,
+          "put_iv": 0.7432
         }
       ]
     },
     {
       "expiration_date": "2025-09-06",
       "option_type": "Daily",
-      "open_interest_btc": 935.0,
-      "notional_value_usd": 103922482.4,
-      "total_volume_24h_btc": 940.9,
-      "pcr_by_oi": 1.2,
+      "open_interest_btc": 1534.9,
+      "notional_value_usd": 170707172.84,
+      "total_volume_24h_btc": 802.4,
+      "pcr_by_oi": 0.718,
       "max_pain_strike": null,
+      "greeks_summary": {
+        "total_delta_exposure_btc": -114.41,
+        "total_gamma_exposure": -0.1454,
+        "total_vega_exposure_usd": -41293.3,
+        "total_theta_exposure_usd": 373764.68
+      },
       "open_interest_walls": {
         "top_call_strikes": [
           {
+            "strike": 113000.0,
+            "open_interest_btc": 346.4
+          },
+          {
             "strike": 112000.0,
-            "open_interest_btc": 199.6
+            "open_interest_btc": 199.3
           },
           {
             "strike": 111000.0,
-            "open_interest_btc": 57.4
+            "open_interest_btc": 105.6
           },
           {
-            "strike": 110000.0,
-            "open_interest_btc": 47.6
+            "strike": 115000.0,
+            "open_interest_btc": 54.8
           },
           {
             "strike": 116000.0,
-            "open_interest_btc": 45.1
-          },
-          {
-            "strike": 114000.0,
-            "open_interest_btc": 36.9
+            "open_interest_btc": 52.4
           }
         ],
         "top_put_strikes": [
           {
             "strike": 111000.0,
-            "open_interest_btc": 215.9
+            "open_interest_btc": 262.7
           },
           {
             "strike": 106000.0,
-            "open_interest_btc": 79.8
+            "open_interest_btc": 81.0
           },
           {
             "strike": 105000.0,
@@ -382,27 +636,22 @@
           },
           {
             "strike": 110000.0,
-            "open_interest_btc": 44.0
+            "open_interest_btc": 47.2
           },
           {
             "strike": 107000.0,
-            "open_interest_btc": 41.4
+            "open_interest_btc": 47.1
           }
         ]
-      },
-      "average_iv_data": {
-        "call_iv": 0.361,
-        "put_iv": 0.3953,
-        "skew_proxy": -0.0343
       },
       "dealer_gamma_by_strike": [
         {
           "strike": 102000.0,
-          "dealer_gamma": -0.000122
+          "dealer_gamma": -0.000393
         },
         {
           "strike": 104000.0,
-          "dealer_gamma": -0.000194
+          "dealer_gamma": -0.00023800000000000004
         },
         {
           "strike": 105000.0,
@@ -410,977 +659,1789 @@
         },
         {
           "strike": 106000.0,
-          "dealer_gamma": -0.003192
+          "dealer_gamma": -0.0032400000000000003
         },
         {
           "strike": 107000.0,
-          "dealer_gamma": -0.002484
+          "dealer_gamma": -0.0023550000000000003
         },
         {
           "strike": 108000.0,
-          "dealer_gamma": -7e-06
+          "dealer_gamma": -0.0024149999999999996
         },
         {
           "strike": 109000.0,
-          "dealer_gamma": -0.001836
+          "dealer_gamma": -0.002421
         },
         {
           "strike": 110000.0,
-          "dealer_gamma": -0.0044
+          "dealer_gamma": -0.010758
         },
         {
           "strike": 111000.0,
-          "dealer_gamma": -0.023749000000000003
+          "dealer_gamma": -0.044196
         },
         {
           "strike": 112000.0,
-          "dealer_gamma": -0.00025299999999999997
+          "dealer_gamma": -0.028536000000000002
         },
         {
           "strike": 113000.0,
-          "dealer_gamma": -0.00182
+          "dealer_gamma": -0.038324
         },
         {
           "strike": 114000.0,
-          "dealer_gamma": -0.002952
+          "dealer_gamma": -0.0039510000000000005
         },
         {
           "strike": 115000.0,
-          "dealer_gamma": -0.001022
+          "dealer_gamma": -0.0038359999999999996
         },
         {
           "strike": 116000.0,
-          "dealer_gamma": -0.002255
+          "dealer_gamma": -0.00262
         },
         {
           "strike": 118000.0,
-          "dealer_gamma": -3.6e-05
+          "dealer_gamma": -0.000116
         },
         {
           "strike": 120000.0,
-          "dealer_gamma": -1.0000000000000002e-06
+          "dealer_gamma": -0.000292
+        }
+      ],
+      "volatility_surface": [
+        {
+          "strike": 102000.0,
+          "call_iv": null,
+          "put_iv": 0.5978
+        },
+        {
+          "strike": 104000.0,
+          "call_iv": null,
+          "put_iv": 0.5371
+        },
+        {
+          "strike": 105000.0,
+          "call_iv": null,
+          "put_iv": 0.508
+        },
+        {
+          "strike": 106000.0,
+          "call_iv": null,
+          "put_iv": 0.48
+        },
+        {
+          "strike": 107000.0,
+          "call_iv": null,
+          "put_iv": 0.4519
+        },
+        {
+          "strike": 108000.0,
+          "call_iv": 0.4289,
+          "put_iv": 0.4289
+        },
+        {
+          "strike": 109000.0,
+          "call_iv": 0.4096,
+          "put_iv": 0.4096
+        },
+        {
+          "strike": 110000.0,
+          "call_iv": 0.3923,
+          "put_iv": 0.3923
+        },
+        {
+          "strike": 111000.0,
+          "call_iv": 0.3822,
+          "put_iv": 0.3822
+        },
+        {
+          "strike": 112000.0,
+          "call_iv": 0.3759,
+          "put_iv": 0.3759
+        },
+        {
+          "strike": 113000.0,
+          "call_iv": 0.3784,
+          "put_iv": 0.3784
+        },
+        {
+          "strike": 114000.0,
+          "call_iv": 0.3815,
+          "put_iv": null
+        },
+        {
+          "strike": 115000.0,
+          "call_iv": 0.3916,
+          "put_iv": null
+        },
+        {
+          "strike": 116000.0,
+          "call_iv": 0.407,
+          "put_iv": null
+        },
+        {
+          "strike": 118000.0,
+          "call_iv": 0.4415,
+          "put_iv": null
+        },
+        {
+          "strike": 120000.0,
+          "call_iv": 0.4803,
+          "put_iv": null
         }
       ]
     },
     {
       "expiration_date": "2025-09-07",
       "option_type": "Daily",
-      "open_interest_btc": 115.9,
-      "notional_value_usd": 12881941.94,
-      "total_volume_24h_btc": 115.9,
-      "pcr_by_oi": 8.3468,
+      "open_interest_btc": 1607.1,
+      "notional_value_usd": 178737049.62,
+      "total_volume_24h_btc": 3436.6,
+      "pcr_by_oi": 0.2554,
       "max_pain_strike": null,
+      "greeks_summary": {
+        "total_delta_exposure_btc": -170.15,
+        "total_gamma_exposure": -0.1186,
+        "total_vega_exposure_usd": -46249.74,
+        "total_theta_exposure_usd": 264664.64
+      },
       "open_interest_walls": {
         "top_call_strikes": [
           {
-            "strike": 111000.0,
-            "open_interest_btc": 10.4
+            "strike": 116000.0,
+            "open_interest_btc": 449.7
           },
           {
-            "strike": 116000.0,
-            "open_interest_btc": 2.0
+            "strike": 115000.0,
+            "open_interest_btc": 313.4
+          },
+          {
+            "strike": 113000.0,
+            "open_interest_btc": 300.2
+          },
+          {
+            "strike": 114000.0,
+            "open_interest_btc": 148.1
+          },
+          {
+            "strike": 111000.0,
+            "open_interest_btc": 30.3
           }
         ],
         "top_put_strikes": [
           {
+            "strike": 107000.0,
+            "open_interest_btc": 149.5
+          },
+          {
             "strike": 111000.0,
-            "open_interest_btc": 101.0
+            "open_interest_btc": 126.1
+          },
+          {
+            "strike": 112000.0,
+            "open_interest_btc": 16.0
           },
           {
             "strike": 110000.0,
-            "open_interest_btc": 2.5
+            "open_interest_btc": 13.3
+          },
+          {
+            "strike": 108000.0,
+            "open_interest_btc": 8.8
           }
         ]
       },
-      "average_iv_data": {
-        "call_iv": 0.3339,
-        "put_iv": 0.3338,
-        "skew_proxy": 0.0001
-      },
       "dealer_gamma_by_strike": [
         {
+          "strike": 104000.0,
+          "dealer_gamma": -5e-05
+        },
+        {
+          "strike": 106000.0,
+          "dealer_gamma": -0.000224
+        },
+        {
+          "strike": 107000.0,
+          "dealer_gamma": -0.007475000000000001
+        },
+        {
+          "strike": 108000.0,
+          "dealer_gamma": -0.000616
+        },
+        {
+          "strike": 109000.0,
+          "dealer_gamma": -0.000288
+        },
+        {
           "strike": 110000.0,
-          "dealer_gamma": -0.00022500000000000002
+          "dealer_gamma": -0.0013700000000000003
         },
         {
           "strike": 111000.0,
-          "dealer_gamma": -0.010100000000000001
+          "dealer_gamma": -0.017204
+        },
+        {
+          "strike": 112000.0,
+          "dealer_gamma": -0.0045650000000000005
+        },
+        {
+          "strike": 113000.0,
+          "dealer_gamma": -0.03022
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.011848000000000001
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.021937999999999996
         },
         {
           "strike": 116000.0,
-          "dealer_gamma": -0.0001
+          "dealer_gamma": -0.022485
+        },
+        {
+          "strike": 118000.0,
+          "dealer_gamma": -0.000144
+        },
+        {
+          "strike": 120000.0,
+          "dealer_gamma": -0.000154
+        }
+      ],
+      "volatility_surface": [
+        {
+          "strike": 104000.0,
+          "call_iv": null,
+          "put_iv": 0.4675
+        },
+        {
+          "strike": 106000.0,
+          "call_iv": null,
+          "put_iv": 0.4233
+        },
+        {
+          "strike": 107000.0,
+          "call_iv": null,
+          "put_iv": 0.403
+        },
+        {
+          "strike": 108000.0,
+          "call_iv": null,
+          "put_iv": 0.385
+        },
+        {
+          "strike": 109000.0,
+          "call_iv": null,
+          "put_iv": 0.3677
+        },
+        {
+          "strike": 110000.0,
+          "call_iv": 0.3565,
+          "put_iv": 0.3565
+        },
+        {
+          "strike": 111000.0,
+          "call_iv": 0.3476,
+          "put_iv": 0.3476
+        },
+        {
+          "strike": 112000.0,
+          "call_iv": 0.342,
+          "put_iv": 0.342
+        },
+        {
+          "strike": 113000.0,
+          "call_iv": 0.3447,
+          "put_iv": 0.3447
+        },
+        {
+          "strike": 114000.0,
+          "call_iv": 0.3499,
+          "put_iv": null
+        },
+        {
+          "strike": 115000.0,
+          "call_iv": 0.3571,
+          "put_iv": null
+        },
+        {
+          "strike": 116000.0,
+          "call_iv": 0.3803,
+          "put_iv": null
+        },
+        {
+          "strike": 118000.0,
+          "call_iv": 0.4115,
+          "put_iv": null
+        },
+        {
+          "strike": 120000.0,
+          "call_iv": 0.4387,
+          "put_iv": null
         }
       ]
     },
     {
       "expiration_date": "2025-09-12",
       "option_type": "Weekly",
-      "open_interest_btc": 14742.2,
-      "notional_value_usd": 1638551893.09,
-      "total_volume_24h_btc": 1854.2,
-      "pcr_by_oi": 2.3418,
+      "open_interest_btc": 15338.1,
+      "notional_value_usd": 1705859461.65,
+      "total_volume_24h_btc": 1599.2,
+      "pcr_by_oi": 3.1638,
       "max_pain_strike": null,
+      "greeks_summary": {
+        "total_delta_exposure_btc": 1931.85,
+        "total_gamma_exposure": -0.667,
+        "total_vega_exposure_usd": -713253.29,
+        "total_theta_exposure_usd": 1733050.54
+      },
       "open_interest_walls": {
         "top_call_strikes": [
           {
             "strike": 115000.0,
-            "open_interest_btc": 1032.8
+            "open_interest_btc": 1016.8
           },
           {
-            "strike": 111000.0,
-            "open_interest_btc": 577.3
+            "strike": 120000.0,
+            "open_interest_btc": 687.7
           },
           {
             "strike": 114000.0,
-            "open_interest_btc": 526.2
+            "open_interest_btc": 517.3
           },
           {
             "strike": 130000.0,
-            "open_interest_btc": 440.9
+            "open_interest_btc": 431.0
           },
           {
-            "strike": 122000.0,
-            "open_interest_btc": 419.1
+            "strike": 113000.0,
+            "open_interest_btc": 329.0
           }
         ],
         "top_put_strikes": [
           {
             "strike": 108000.0,
-            "open_interest_btc": 2532.1
+            "open_interest_btc": 2533.6
           },
           {
             "strike": 100000.0,
-            "open_interest_btc": 2155.7
+            "open_interest_btc": 2109.9
           },
           {
             "strike": 110000.0,
-            "open_interest_btc": 1377.7
+            "open_interest_btc": 1368.3
           },
           {
             "strike": 105000.0,
-            "open_interest_btc": 1016.1
+            "open_interest_btc": 1243.7
           },
           {
-            "strike": 109000.0,
-            "open_interest_btc": 543.1
+            "strike": 112000.0,
+            "open_interest_btc": 1030.7
           }
         ]
-      },
-      "average_iv_data": {
-        "call_iv": 0.385,
-        "put_iv": 0.409,
-        "skew_proxy": -0.0239
       },
       "dealer_gamma_by_strike": [
         {
           "strike": 90000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 95000.0,
-          "dealer_gamma": -0.0028770000000000002
+          "dealer_gamma": -0.002712
         },
         {
           "strike": 100000.0,
-          "dealer_gamma": -0.043114
+          "dealer_gamma": -0.042202
         },
         {
           "strike": 104000.0,
-          "dealer_gamma": -0.014556
+          "dealer_gamma": -0.019275
         },
         {
           "strike": 105000.0,
-          "dealer_gamma": -0.000112
+          "dealer_gamma": -0.05010800000000001
         },
         {
           "strike": 106000.0,
-          "dealer_gamma": -0.020604000000000004
+          "dealer_gamma": -0.022512000000000004
         },
         {
           "strike": 107000.0,
-          "dealer_gamma": -0.0013650000000000001
+          "dealer_gamma": -0.02995
         },
         {
           "strike": 108000.0,
-          "dealer_gamma": -0.126605
+          "dealer_gamma": -0.13191000000000003
         },
         {
           "strike": 109000.0,
-          "dealer_gamma": -0.032586000000000004
+          "dealer_gamma": -0.040122
         },
         {
           "strike": 110000.0,
-          "dealer_gamma": -0.014004
+          "dealer_gamma": -0.096762
         },
         {
           "strike": 111000.0,
-          "dealer_gamma": -0.013392
+          "dealer_gamma": -0.01293
         },
         {
           "strike": 112000.0,
-          "dealer_gamma": -0.017916
+          "dealer_gamma": -0.061842
         },
         {
           "strike": 113000.0,
-          "dealer_gamma": -0.006864
+          "dealer_gamma": -0.026778
         },
         {
           "strike": 114000.0,
-          "dealer_gamma": -0.031572
+          "dealer_gamma": -0.037596
         },
         {
           "strike": 115000.0,
-          "dealer_gamma": -0.004254000000000001
+          "dealer_gamma": -0.065262
         },
         {
-          "strike": 116000.0,
-          "dealer_gamma": -0.004625000000000001
+          "strike": 119000.0,
+          "dealer_gamma": -0.000198
         },
         {
-          "strike": 117000.0,
-          "dealer_gamma": -0.0027560000000000006
+          "strike": 120000.0,
+          "dealer_gamma": -0.020901000000000003
         },
         {
           "strike": 122000.0,
           "dealer_gamma": -0.00012000000000000002
         },
         {
-          "strike": 130000.0,
-          "dealer_gamma": -0.00037600000000000003
+          "strike": 124000.0,
+          "dealer_gamma": -0.0015530000000000003
         },
         {
-          "strike": 135000.0,
-          "dealer_gamma": -0.0
+          "strike": 130000.0,
+          "dealer_gamma": -0.0043100000000000005
+        }
+      ],
+      "volatility_surface": [
+        {
+          "strike": 90000.0,
+          "call_iv": null,
+          "put_iv": 0.6414
+        },
+        {
+          "strike": 95000.0,
+          "call_iv": null,
+          "put_iv": 0.542
+        },
+        {
+          "strike": 100000.0,
+          "call_iv": 0.4777,
+          "put_iv": 0.4777
+        },
+        {
+          "strike": 104000.0,
+          "call_iv": null,
+          "put_iv": 0.4303
+        },
+        {
+          "strike": 105000.0,
+          "call_iv": 0.4186,
+          "put_iv": 0.4186
+        },
+        {
+          "strike": 106000.0,
+          "call_iv": 0.4091,
+          "put_iv": 0.4091
+        },
+        {
+          "strike": 107000.0,
+          "call_iv": 0.4028,
+          "put_iv": 0.4028
+        },
+        {
+          "strike": 108000.0,
+          "call_iv": 0.394,
+          "put_iv": 0.394
+        },
+        {
+          "strike": 109000.0,
+          "call_iv": 0.3869,
+          "put_iv": 0.3869
+        },
+        {
+          "strike": 110000.0,
+          "call_iv": 0.3818,
+          "put_iv": 0.3818
+        },
+        {
+          "strike": 111000.0,
+          "call_iv": null,
+          "put_iv": 0.3766
+        },
+        {
+          "strike": 112000.0,
+          "call_iv": null,
+          "put_iv": 0.3739
+        },
+        {
+          "strike": 113000.0,
+          "call_iv": 0.3718,
+          "put_iv": 0.3718
+        },
+        {
+          "strike": 114000.0,
+          "call_iv": 0.3722,
+          "put_iv": 0.3722
+        },
+        {
+          "strike": 115000.0,
+          "call_iv": 0.3725,
+          "put_iv": 0.3725
+        },
+        {
+          "strike": 119000.0,
+          "call_iv": null,
+          "put_iv": 0.3855
+        },
+        {
+          "strike": 120000.0,
+          "call_iv": 0.3895,
+          "put_iv": 0.3895
+        },
+        {
+          "strike": 122000.0,
+          "call_iv": null,
+          "put_iv": 0.4077
+        },
+        {
+          "strike": 124000.0,
+          "call_iv": 0.4301,
+          "put_iv": null
+        },
+        {
+          "strike": 130000.0,
+          "call_iv": 0.4967,
+          "put_iv": null
         }
       ]
     },
     {
       "expiration_date": "2025-09-19",
       "option_type": "Weekly",
-      "open_interest_btc": 1800.8,
-      "notional_value_usd": 200153589.63,
-      "total_volume_24h_btc": 553.0,
-      "pcr_by_oi": 0.8003,
+      "open_interest_btc": 3602.5,
+      "notional_value_usd": 400659710.82,
+      "total_volume_24h_btc": 934.0,
+      "pcr_by_oi": 2.2661,
       "max_pain_strike": null,
+      "greeks_summary": {
+        "total_delta_exposure_btc": 247.94,
+        "total_gamma_exposure": -0.1243,
+        "total_vega_exposure_usd": -254907.64,
+        "total_theta_exposure_usd": 327805.88
+      },
       "open_interest_walls": {
         "top_call_strikes": [
           {
-            "strike": 125000.0,
-            "open_interest_btc": 358.7
-          },
-          {
-            "strike": 113000.0,
-            "open_interest_btc": 198.7
-          },
-          {
-            "strike": 118000.0,
-            "open_interest_btc": 173.1
-          },
-          {
-            "strike": 130000.0,
-            "open_interest_btc": 136.2
+            "strike": 116000.0,
+            "open_interest_btc": 356.0
           },
           {
             "strike": 115000.0,
-            "open_interest_btc": 115.7
+            "open_interest_btc": 347.0
+          },
+          {
+            "strike": 114000.0,
+            "open_interest_btc": 228.2
+          },
+          {
+            "strike": 130000.0,
+            "open_interest_btc": 139.0
+          },
+          {
+            "strike": 102000.0,
+            "open_interest_btc": 15.1
           }
         ],
         "top_put_strikes": [
           {
+            "strike": 108000.0,
+            "open_interest_btc": 733.8
+          },
+          {
+            "strike": 102000.0,
+            "open_interest_btc": 502.8
+          },
+          {
+            "strike": 105000.0,
+            "open_interest_btc": 483.6
+          },
+          {
             "strike": 106000.0,
-            "open_interest_btc": 362.1
+            "open_interest_btc": 355.1
           },
           {
-            "strike": 110000.0,
-            "open_interest_btc": 290.2
-          },
-          {
-            "strike": 107000.0,
-            "open_interest_btc": 72.4
-          },
-          {
-            "strike": 109000.0,
-            "open_interest_btc": 65.1
-          },
-          {
-            "strike": 115000.0,
-            "open_interest_btc": 10.1
+            "strike": 104000.0,
+            "open_interest_btc": 296.0
           }
         ]
       },
-      "average_iv_data": {
-        "call_iv": 0.371,
-        "put_iv": 0.377,
-        "skew_proxy": -0.0061
-      },
       "dealer_gamma_by_strike": [
         {
+          "strike": 102000.0,
+          "dealer_gamma": -0.010358000000000001
+        },
+        {
+          "strike": 104000.0,
+          "dealer_gamma": -0.009186000000000001
+        },
+        {
+          "strike": 105000.0,
+          "dealer_gamma": -0.014508000000000002
+        },
+        {
           "strike": 106000.0,
-          "dealer_gamma": -0.014484000000000002
+          "dealer_gamma": -0.014204000000000001
         },
         {
           "strike": 107000.0,
-          "dealer_gamma": -0.0028960000000000006
+          "dealer_gamma": -0.003788
         },
         {
           "strike": 108000.0,
-          "dealer_gamma": -0.000308
-        },
-        {
-          "strike": 109000.0,
-          "dealer_gamma": -0.002604
-        },
-        {
-          "strike": 110000.0,
-          "dealer_gamma": -0.01451
+          "dealer_gamma": -0.029352
         },
         {
           "strike": 113000.0,
-          "dealer_gamma": -0.009935
+          "dealer_gamma": -0.001115
+        },
+        {
+          "strike": 114000.0,
+          "dealer_gamma": -0.011814999999999999
         },
         {
           "strike": 115000.0,
-          "dealer_gamma": -0.000404
+          "dealer_gamma": -0.014288000000000002
         },
         {
-          "strike": 117000.0,
-          "dealer_gamma": -1.2e-05
-        },
-        {
-          "strike": 118000.0,
-          "dealer_gamma": -1.2e-05
-        },
-        {
-          "strike": 125000.0,
-          "dealer_gamma": -0.007174000000000001
+          "strike": 116000.0,
+          "dealer_gamma": -0.014256000000000001
         },
         {
           "strike": 130000.0,
-          "dealer_gamma": -0.001362
+          "dealer_gamma": -0.0013900000000000002
+        }
+      ],
+      "volatility_surface": [
+        {
+          "strike": 102000.0,
+          "call_iv": 0.4199,
+          "put_iv": 0.4199
+        },
+        {
+          "strike": 104000.0,
+          "call_iv": 0.4079,
+          "put_iv": 0.4079
+        },
+        {
+          "strike": 105000.0,
+          "call_iv": null,
+          "put_iv": 0.3999
+        },
+        {
+          "strike": 106000.0,
+          "call_iv": null,
+          "put_iv": 0.3947
+        },
+        {
+          "strike": 107000.0,
+          "call_iv": 0.3909,
+          "put_iv": 0.3909
+        },
+        {
+          "strike": 108000.0,
+          "call_iv": null,
+          "put_iv": 0.3853
+        },
+        {
+          "strike": 113000.0,
+          "call_iv": null,
+          "put_iv": 0.3713
+        },
+        {
+          "strike": 114000.0,
+          "call_iv": 0.3713,
+          "put_iv": 0.3713
+        },
+        {
+          "strike": 115000.0,
+          "call_iv": 0.3718,
+          "put_iv": 0.3718
+        },
+        {
+          "strike": 116000.0,
+          "call_iv": 0.3722,
+          "put_iv": 0.3722
+        },
+        {
+          "strike": 130000.0,
+          "call_iv": 0.4262,
+          "put_iv": null
         }
       ]
     },
     {
       "expiration_date": "2025-09-26",
       "option_type": "Quarterly",
-      "open_interest_btc": 58873.8,
-      "notional_value_usd": 6543648603.55,
-      "total_volume_24h_btc": 3112.2,
-      "pcr_by_oi": 0.5423,
-      "max_pain_strike": 108000.0,
+      "open_interest_btc": 53719.4,
+      "notional_value_usd": 5974517493.32,
+      "total_volume_24h_btc": 3435.9,
+      "pcr_by_oi": 1.1749,
+      "max_pain_strike": 114000.0,
+      "greeks_summary": {
+        "total_delta_exposure_btc": -4180.73,
+        "total_gamma_exposure": -0.9896,
+        "total_vega_exposure_usd": -2851652.85,
+        "total_theta_exposure_usd": 2524471.74
+      },
       "open_interest_walls": {
         "top_call_strikes": [
           {
-            "strike": 140000.0,
-            "open_interest_btc": 9995.8
-          },
-          {
-            "strike": 125000.0,
-            "open_interest_btc": 4290.3
-          },
-          {
-            "strike": 200000.0,
-            "open_interest_btc": 3987.0
+            "strike": 115000.0,
+            "open_interest_btc": 6269.4
           },
           {
             "strike": 122000.0,
-            "open_interest_btc": 3977.1
+            "open_interest_btc": 3722.7
           },
           {
             "strike": 100000.0,
-            "open_interest_btc": 2709.1
+            "open_interest_btc": 2708.6
+          },
+          {
+            "strike": 300000.0,
+            "open_interest_btc": 2036.3
+          },
+          {
+            "strike": 118000.0,
+            "open_interest_btc": 1727.2
           }
         ],
         "top_put_strikes": [
           {
+            "strike": 95000.0,
+            "open_interest_btc": 9758.4
+          },
+          {
             "strike": 100000.0,
-            "open_interest_btc": 4453.5
+            "open_interest_btc": 4352.0
           },
           {
-            "strike": 108000.0,
-            "open_interest_btc": 3910.3
+            "strike": 80000.0,
+            "open_interest_btc": 3335.4
           },
           {
-            "strike": 105000.0,
-            "open_interest_btc": 3190.4
+            "strike": 98000.0,
+            "open_interest_btc": 2345.8
           },
           {
-            "strike": 60000.0,
-            "open_interest_btc": 1954.9
-          },
-          {
-            "strike": 75000.0,
-            "open_interest_btc": 1358.1
+            "strike": 115000.0,
+            "open_interest_btc": 1549.5
           }
         ]
-      },
-      "average_iv_data": {
-        "call_iv": 0.4926,
-        "put_iv": 0.505,
-        "skew_proxy": -0.0123
       },
       "dealer_gamma_by_strike": [
         {
           "strike": 30000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 40000.0,
+          "dealer_gamma": 0.0
         },
         {
           "strike": 50000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 55000.0,
-          "dealer_gamma": -0.0
-        },
-        {
-          "strike": 60000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 65000.0,
-          "dealer_gamma": -0.0
-        },
-        {
-          "strike": 70000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 75000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 80000.0,
+          "dealer_gamma": 0.0
         },
         {
           "strike": 90000.0,
-          "dealer_gamma": -0.011809000000000002
+          "dealer_gamma": -0.011738
+        },
+        {
+          "strike": 95000.0,
+          "dealer_gamma": -0.107435
+        },
+        {
+          "strike": 98000.0,
+          "dealer_gamma": -0.024014000000000004
         },
         {
           "strike": 100000.0,
-          "dealer_gamma": -0.08907000000000001
-        },
-        {
-          "strike": 104000.0,
-          "dealer_gamma": -0.004011
-        },
-        {
-          "strike": 105000.0,
-          "dealer_gamma": -0.095712
-        },
-        {
-          "strike": 106000.0,
-          "dealer_gamma": -0.000273
-        },
-        {
-          "strike": 108000.0,
-          "dealer_gamma": -0.15641200000000002
+          "dealer_gamma": -0.141212
         },
         {
           "strike": 114000.0,
-          "dealer_gamma": -0.053180000000000005
+          "dealer_gamma": -0.084484
+        },
+        {
+          "strike": 115000.0,
+          "dealer_gamma": -0.31275600000000003
         },
         {
           "strike": 116000.0,
-          "dealer_gamma": -0.035136
+          "dealer_gamma": -0.09682800000000001
         },
         {
           "strike": 118000.0,
-          "dealer_gamma": -0.02775
-        },
-        {
-          "strike": 120000.0,
-          "dealer_gamma": -0.034431
+          "dealer_gamma": -0.079554
         },
         {
           "strike": 122000.0,
-          "dealer_gamma": -0.00642
-        },
-        {
-          "strike": 124000.0,
-          "dealer_gamma": -0.021436
-        },
-        {
-          "strike": 125000.0,
-          "dealer_gamma": -0.08580600000000001
+          "dealer_gamma": -0.111681
         },
         {
           "strike": 128000.0,
-          "dealer_gamma": -7.2e-05
+          "dealer_gamma": -0.010444
+        },
+        {
+          "strike": 130000.0,
+          "dealer_gamma": -0.0007300000000000001
         },
         {
           "strike": 132000.0,
-          "dealer_gamma": -0.008194
+          "dealer_gamma": -5.3e-05
         },
         {
-          "strike": 135000.0,
-          "dealer_gamma": -0.026403000000000003
+          "strike": 134000.0,
+          "dealer_gamma": -0.005098000000000001
         },
         {
           "strike": 136000.0,
-          "dealer_gamma": -0.003519
+          "dealer_gamma": -0.0035230000000000005
         },
         {
-          "strike": 138000.0,
-          "dealer_gamma": -1e-05
-        },
-        {
-          "strike": 140000.0,
-          "dealer_gamma": -0.0
+          "strike": 150000.0,
+          "dealer_gamma": 0.0
         },
         {
           "strike": 160000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 170000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 180000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 190000.0,
+          "dealer_gamma": 0.0
         },
         {
           "strike": 200000.0,
-          "dealer_gamma": -0.0
-        },
-        {
-          "strike": 210000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 220000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
-          "strike": 240000.0,
-          "dealer_gamma": -0.0
+          "strike": 260000.0,
+          "dealer_gamma": 0.0
         },
         {
-          "strike": 400000.0,
-          "dealer_gamma": -0.0
+          "strike": 300000.0,
+          "dealer_gamma": 0.0
+        }
+      ],
+      "volatility_surface": [
+        {
+          "strike": 30000.0,
+          "call_iv": null,
+          "put_iv": 1.2144
+        },
+        {
+          "strike": 40000.0,
+          "call_iv": 1.1165,
+          "put_iv": 1.1165
+        },
+        {
+          "strike": 50000.0,
+          "call_iv": 0.9783,
+          "put_iv": 0.9783
+        },
+        {
+          "strike": 55000.0,
+          "call_iv": 0.9245,
+          "put_iv": 0.9245
+        },
+        {
+          "strike": 65000.0,
+          "call_iv": 0.8041,
+          "put_iv": null
+        },
+        {
+          "strike": 75000.0,
+          "call_iv": null,
+          "put_iv": 0.6709
+        },
+        {
+          "strike": 80000.0,
+          "call_iv": null,
+          "put_iv": 0.6059
+        },
+        {
+          "strike": 90000.0,
+          "call_iv": null,
+          "put_iv": 0.5004
+        },
+        {
+          "strike": 95000.0,
+          "call_iv": 0.4517,
+          "put_iv": 0.4517
+        },
+        {
+          "strike": 98000.0,
+          "call_iv": 0.4315,
+          "put_iv": 0.4315
+        },
+        {
+          "strike": 100000.0,
+          "call_iv": 0.417,
+          "put_iv": 0.417
+        },
+        {
+          "strike": 114000.0,
+          "call_iv": 0.3628,
+          "put_iv": 0.3628
+        },
+        {
+          "strike": 115000.0,
+          "call_iv": 0.3633,
+          "put_iv": 0.3633
+        },
+        {
+          "strike": 116000.0,
+          "call_iv": 0.3633,
+          "put_iv": 0.3633
+        },
+        {
+          "strike": 118000.0,
+          "call_iv": 0.3634,
+          "put_iv": 0.3634
+        },
+        {
+          "strike": 122000.0,
+          "call_iv": 0.3716,
+          "put_iv": null
+        },
+        {
+          "strike": 128000.0,
+          "call_iv": 0.3941,
+          "put_iv": 0.3941
+        },
+        {
+          "strike": 130000.0,
+          "call_iv": null,
+          "put_iv": 0.4028
+        },
+        {
+          "strike": 132000.0,
+          "call_iv": null,
+          "put_iv": 0.414
+        },
+        {
+          "strike": 134000.0,
+          "call_iv": 0.4255,
+          "put_iv": 0.4255
+        },
+        {
+          "strike": 136000.0,
+          "call_iv": 0.4377,
+          "put_iv": null
+        },
+        {
+          "strike": 150000.0,
+          "call_iv": null,
+          "put_iv": 0.5146
+        },
+        {
+          "strike": 160000.0,
+          "call_iv": null,
+          "put_iv": 0.5626
+        },
+        {
+          "strike": 170000.0,
+          "call_iv": 0.6236,
+          "put_iv": 0.6236
+        },
+        {
+          "strike": 180000.0,
+          "call_iv": null,
+          "put_iv": 0.6832
+        },
+        {
+          "strike": 190000.0,
+          "call_iv": 0.7511,
+          "put_iv": null
+        },
+        {
+          "strike": 200000.0,
+          "call_iv": null,
+          "put_iv": 0.8148
+        },
+        {
+          "strike": 220000.0,
+          "call_iv": 0.8461,
+          "put_iv": null
+        },
+        {
+          "strike": 260000.0,
+          "call_iv": null,
+          "put_iv": 0.925
+        },
+        {
+          "strike": 300000.0,
+          "call_iv": 0.9261,
+          "put_iv": 0.9261
         }
       ]
     },
     {
       "expiration_date": "2025-10-31",
       "option_type": "Monthly",
-      "open_interest_btc": 15774.9,
-      "notional_value_usd": 1753333441.3,
-      "total_volume_24h_btc": 947.6,
-      "pcr_by_oi": 0.5924,
-      "max_pain_strike": 112000.0,
+      "open_interest_btc": 13508.9,
+      "notional_value_usd": 1502421087.46,
+      "total_volume_24h_btc": 685.5,
+      "pcr_by_oi": 0.5731,
+      "max_pain_strike": 118000.0,
+      "greeks_summary": {
+        "total_delta_exposure_btc": -238.14,
+        "total_gamma_exposure": -0.2063,
+        "total_vega_exposure_usd": -1723670.75,
+        "total_theta_exposure_usd": 577630.19
+      },
       "open_interest_walls": {
         "top_call_strikes": [
           {
-            "strike": 130000.0,
-            "open_interest_btc": 1829.7
+            "strike": 120000.0,
+            "open_interest_btc": 2715.9
           },
           {
-            "strike": 160000.0,
-            "open_interest_btc": 1694.7
+            "strike": 135000.0,
+            "open_interest_btc": 1436.8
           },
           {
-            "strike": 150000.0,
-            "open_interest_btc": 1429.2
+            "strike": 140000.0,
+            "open_interest_btc": 1119.2
           },
           {
-            "strike": 124000.0,
-            "open_interest_btc": 1215.3
+            "strike": 136000.0,
+            "open_interest_btc": 764.4
           },
           {
-            "strike": 128000.0,
-            "open_interest_btc": 885.4
+            "strike": 155000.0,
+            "open_interest_btc": 676.3
           }
         ],
         "top_put_strikes": [
           {
-            "strike": 108000.0,
-            "open_interest_btc": 1548.5
-          },
-          {
-            "strike": 112000.0,
-            "open_interest_btc": 1092.4
-          },
-          {
             "strike": 110000.0,
-            "open_interest_btc": 1009.8
+            "open_interest_btc": 1024.9
           },
           {
-            "strike": 105000.0,
-            "open_interest_btc": 829.4
+            "strike": 100000.0,
+            "open_interest_btc": 906.9
           },
           {
-            "strike": 85000.0,
-            "open_interest_btc": 515.2
+            "strike": 115000.0,
+            "open_interest_btc": 866.4
+          },
+          {
+            "strike": 116000.0,
+            "open_interest_btc": 683.9
+          },
+          {
+            "strike": 102000.0,
+            "open_interest_btc": 338.5
           }
         ]
       },
-      "average_iv_data": {
-        "call_iv": 0.4011,
-        "put_iv": 0.3974,
-        "skew_proxy": 0.0037
-      },
       "dealer_gamma_by_strike": [
         {
-          "strike": 50000.0,
-          "dealer_gamma": -0.0
+          "strike": 40000.0,
+          "dealer_gamma": 0.0
         },
         {
-          "strike": 80000.0,
-          "dealer_gamma": -0.0
+          "strike": 50000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 70000.0,
+          "dealer_gamma": 0.0
         },
         {
           "strike": 85000.0,
-          "dealer_gamma": -0.005152000000000001
+          "dealer_gamma": -0.0005290000000000001
         },
         {
-          "strike": 95000.0,
-          "dealer_gamma": -4e-05
+          "strike": 100000.0,
+          "dealer_gamma": -0.021660000000000002
         },
         {
           "strike": 102000.0,
-          "dealer_gamma": -6.2e-05
+          "dealer_gamma": -0.006770000000000001
+        },
+        {
+          "strike": 104000.0,
+          "dealer_gamma": -0.00527
         },
         {
           "strike": 105000.0,
-          "dealer_gamma": -0.016588000000000002
+          "dealer_gamma": -0.000506
         },
         {
           "strike": 106000.0,
-          "dealer_gamma": -0.003564
-        },
-        {
-          "strike": 108000.0,
-          "dealer_gamma": -0.03097
+          "dealer_gamma": -0.000272
         },
         {
           "strike": 110000.0,
-          "dealer_gamma": -0.020196000000000002
+          "dealer_gamma": -0.020498000000000002
         },
         {
-          "strike": 112000.0,
-          "dealer_gamma": -0.021848000000000003
+          "strike": 115000.0,
+          "dealer_gamma": -0.017328
+        },
+        {
+          "strike": 116000.0,
+          "dealer_gamma": -0.013678000000000001
         },
         {
           "strike": 118000.0,
-          "dealer_gamma": -0.001806
+          "dealer_gamma": -0.014744
         },
         {
           "strike": 120000.0,
-          "dealer_gamma": -0.005122000000000001
+          "dealer_gamma": -0.05944000000000001
         },
         {
-          "strike": 124000.0,
-          "dealer_gamma": -0.024306
-        },
-        {
-          "strike": 125000.0,
-          "dealer_gamma": -0.007588
-        },
-        {
-          "strike": 126000.0,
-          "dealer_gamma": -0.010480000000000001
-        },
-        {
-          "strike": 128000.0,
-          "dealer_gamma": -0.017708
+          "strike": 122000.0,
+          "dealer_gamma": -0.012020000000000001
         },
         {
           "strike": 130000.0,
-          "dealer_gamma": -0.036594
+          "dealer_gamma": -0.00037400000000000004
         },
         {
           "strike": 134000.0,
           "dealer_gamma": -8.000000000000001e-06
         },
         {
+          "strike": 135000.0,
+          "dealer_gamma": -0.014369
+        },
+        {
           "strike": 136000.0,
-          "dealer_gamma": -1.9e-05
+          "dealer_gamma": -0.0076630000000000005
         },
         {
-          "strike": 138000.0,
-          "dealer_gamma": -2.0000000000000003e-06
-        },
-        {
-          "strike": 145000.0,
-          "dealer_gamma": -5.6e-05
-        },
-        {
-          "strike": 150000.0,
-          "dealer_gamma": -0.014292000000000001
+          "strike": 140000.0,
+          "dealer_gamma": -0.011192
         },
         {
           "strike": 155000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
-          "strike": 160000.0,
-          "dealer_gamma": -0.0
+          "strike": 180000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 190000.0,
+          "dealer_gamma": 0.0
         },
         {
           "strike": 200000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
+        }
+      ],
+      "volatility_surface": [
+        {
+          "strike": 40000.0,
+          "call_iv": null,
+          "put_iv": 0.9205
         },
         {
-          "strike": 210000.0,
-          "dealer_gamma": -0.0
+          "strike": 50000.0,
+          "call_iv": 0.7711,
+          "put_iv": null
+        },
+        {
+          "strike": 70000.0,
+          "call_iv": null,
+          "put_iv": 0.5809
+        },
+        {
+          "strike": 85000.0,
+          "call_iv": 0.4738,
+          "put_iv": null
+        },
+        {
+          "strike": 100000.0,
+          "call_iv": 0.4045,
+          "put_iv": 0.4045
+        },
+        {
+          "strike": 102000.0,
+          "call_iv": null,
+          "put_iv": 0.3981
+        },
+        {
+          "strike": 104000.0,
+          "call_iv": 0.393,
+          "put_iv": 0.393
+        },
+        {
+          "strike": 105000.0,
+          "call_iv": 0.3897,
+          "put_iv": null
+        },
+        {
+          "strike": 106000.0,
+          "call_iv": 0.3875,
+          "put_iv": null
+        },
+        {
+          "strike": 110000.0,
+          "call_iv": null,
+          "put_iv": 0.3803
+        },
+        {
+          "strike": 115000.0,
+          "call_iv": null,
+          "put_iv": 0.375
+        },
+        {
+          "strike": 116000.0,
+          "call_iv": null,
+          "put_iv": 0.3736
+        },
+        {
+          "strike": 118000.0,
+          "call_iv": 0.3741,
+          "put_iv": 0.3741
+        },
+        {
+          "strike": 120000.0,
+          "call_iv": 0.3742,
+          "put_iv": 0.3742
+        },
+        {
+          "strike": 122000.0,
+          "call_iv": 0.3743,
+          "put_iv": null
+        },
+        {
+          "strike": 130000.0,
+          "call_iv": null,
+          "put_iv": 0.3809
+        },
+        {
+          "strike": 134000.0,
+          "call_iv": null,
+          "put_iv": 0.387
+        },
+        {
+          "strike": 135000.0,
+          "call_iv": 0.387,
+          "put_iv": 0.387
+        },
+        {
+          "strike": 136000.0,
+          "call_iv": 0.3908,
+          "put_iv": 0.3908
+        },
+        {
+          "strike": 140000.0,
+          "call_iv": 0.397,
+          "put_iv": null
+        },
+        {
+          "strike": 155000.0,
+          "call_iv": 0.4306,
+          "put_iv": null
+        },
+        {
+          "strike": 180000.0,
+          "call_iv": 0.5059,
+          "put_iv": null
+        },
+        {
+          "strike": 190000.0,
+          "call_iv": 0.5292,
+          "put_iv": null
+        },
+        {
+          "strike": 200000.0,
+          "call_iv": 0.554,
+          "put_iv": null
         }
       ]
     },
     {
       "expiration_date": "2025-11-28",
       "option_type": "Monthly",
-      "open_interest_btc": 2346.9,
-      "notional_value_usd": 260850988.18,
-      "total_volume_24h_btc": 332.0,
-      "pcr_by_oi": 0.8334,
-      "max_pain_strike": 106000.0,
+      "open_interest_btc": 2167.4,
+      "notional_value_usd": 241052007.56,
+      "total_volume_24h_btc": 273.5,
+      "pcr_by_oi": 1.3928,
+      "max_pain_strike": 120000.0,
+      "greeks_summary": {
+        "total_delta_exposure_btc": -99.9,
+        "total_gamma_exposure": -0.0329,
+        "total_vega_exposure_usd": -351502.76,
+        "total_theta_exposure_usd": 83611.98
+      },
       "open_interest_walls": {
         "top_call_strikes": [
           {
             "strike": 125000.0,
-            "open_interest_btc": 354.2
+            "open_interest_btc": 479.2
           },
           {
             "strike": 120000.0,
-            "open_interest_btc": 314.9
+            "open_interest_btc": 331.3
           },
           {
-            "strike": 130000.0,
-            "open_interest_btc": 255.5
+            "strike": 122000.0,
+            "open_interest_btc": 64.1
           },
           {
-            "strike": 90000.0,
-            "open_interest_btc": 78.4
+            "strike": 124000.0,
+            "open_interest_btc": 30.5
           },
           {
-            "strike": 126000.0,
-            "open_interest_btc": 75.7
+            "strike": 104000.0,
+            "open_interest_btc": 0.6
           }
         ],
         "top_put_strikes": [
           {
             "strike": 90000.0,
-            "open_interest_btc": 893.0
+            "open_interest_btc": 899.1
           },
           {
-            "strike": 106000.0,
-            "open_interest_btc": 128.8
+            "strike": 100000.0,
+            "open_interest_btc": 134.1
           },
           {
-            "strike": 108000.0,
-            "open_interest_btc": 30.7
+            "strike": 110000.0,
+            "open_interest_btc": 132.1
           },
           {
-            "strike": 114000.0,
-            "open_interest_btc": 13.6
+            "strike": 105000.0,
+            "open_interest_btc": 48.0
           },
           {
-            "strike": 104000.0,
-            "open_interest_btc": 0.5
+            "strike": 120000.0,
+            "open_interest_btc": 18.4
           }
         ]
       },
-      "average_iv_data": {
-        "call_iv": 0.3963,
-        "put_iv": 0.4268,
-        "skew_proxy": -0.0306
-      },
       "dealer_gamma_by_strike": [
         {
-          "strike": 50000.0,
-          "dealer_gamma": -0.0
-        },
-        {
-          "strike": 70000.0,
-          "dealer_gamma": -0.0
-        },
-        {
-          "strike": 80000.0,
-          "dealer_gamma": -0.0
-        },
-        {
           "strike": 90000.0,
-          "dealer_gamma": -0.00893
+          "dealer_gamma": -0.008991
+        },
+        {
+          "strike": 100000.0,
+          "dealer_gamma": -0.001341
+        },
+        {
+          "strike": 102000.0,
+          "dealer_gamma": -4.7e-05
         },
         {
           "strike": 104000.0,
-          "dealer_gamma": -1e-05
+          "dealer_gamma": -2.2e-05
         },
         {
-          "strike": 106000.0,
-          "dealer_gamma": -0.0025760000000000006
+          "strike": 105000.0,
+          "dealer_gamma": -0.0009600000000000001
         },
         {
-          "strike": 108000.0,
-          "dealer_gamma": -0.0006140000000000001
+          "strike": 110000.0,
+          "dealer_gamma": -0.0026420000000000003
         },
         {
           "strike": 114000.0,
-          "dealer_gamma": -0.000272
+          "dealer_gamma": -0.00027600000000000004
+        },
+        {
+          "strike": 118000.0,
+          "dealer_gamma": -0.000146
         },
         {
           "strike": 120000.0,
-          "dealer_gamma": -0.006298
+          "dealer_gamma": -0.006994000000000001
         },
         {
           "strike": 122000.0,
-          "dealer_gamma": -0.001282
+          "dealer_gamma": -0.0013
         },
         {
           "strike": 124000.0,
-          "dealer_gamma": -0.0006060000000000001
+          "dealer_gamma": -0.0006100000000000001
         },
         {
           "strike": 125000.0,
-          "dealer_gamma": -0.007084
+          "dealer_gamma": -0.009584
         },
         {
-          "strike": 126000.0,
-          "dealer_gamma": -0.0015140000000000002
+          "strike": 140000.0,
+          "dealer_gamma": -6e-06
         },
         {
-          "strike": 130000.0,
-          "dealer_gamma": -0.005110000000000001
+          "strike": 150000.0,
+          "dealer_gamma": -2.2000000000000003e-05
+        }
+      ],
+      "volatility_surface": [
+        {
+          "strike": 90000.0,
+          "call_iv": null,
+          "put_iv": 0.4369
+        },
+        {
+          "strike": 100000.0,
+          "call_iv": null,
+          "put_iv": 0.4094
+        },
+        {
+          "strike": 102000.0,
+          "call_iv": 0.4052,
+          "put_iv": 0.4052
+        },
+        {
+          "strike": 104000.0,
+          "call_iv": 0.4018,
+          "put_iv": 0.4018
+        },
+        {
+          "strike": 105000.0,
+          "call_iv": null,
+          "put_iv": 0.4001
+        },
+        {
+          "strike": 110000.0,
+          "call_iv": null,
+          "put_iv": 0.3936
+        },
+        {
+          "strike": 114000.0,
+          "call_iv": null,
+          "put_iv": 0.3911
+        },
+        {
+          "strike": 118000.0,
+          "call_iv": null,
+          "put_iv": 0.3895
+        },
+        {
+          "strike": 120000.0,
+          "call_iv": 0.3898,
+          "put_iv": 0.3898
+        },
+        {
+          "strike": 122000.0,
+          "call_iv": 0.39,
+          "put_iv": 0.39
+        },
+        {
+          "strike": 124000.0,
+          "call_iv": 0.3907,
+          "put_iv": null
+        },
+        {
+          "strike": 125000.0,
+          "call_iv": 0.3913,
+          "put_iv": null
+        },
+        {
+          "strike": 140000.0,
+          "call_iv": null,
+          "put_iv": 0.4013
+        },
+        {
+          "strike": 150000.0,
+          "call_iv": null,
+          "put_iv": 0.4145
         }
       ]
     },
     {
       "expiration_date": "2025-12-26",
       "option_type": "Quarterly",
-      "open_interest_btc": 34873.3,
-      "notional_value_usd": 3876064070.03,
-      "total_volume_24h_btc": 876.8,
-      "pcr_by_oi": 0.6697,
-      "max_pain_strike": 105000.0,
+      "open_interest_btc": 38496.2,
+      "notional_value_usd": 4281436879.91,
+      "total_volume_24h_btc": 561.6,
+      "pcr_by_oi": 0.3629,
+      "max_pain_strike": 95000.0,
+      "greeks_summary": {
+        "total_delta_exposure_btc": -5441.64,
+        "total_gamma_exposure": -0.2693,
+        "total_vega_exposure_usd": -5280138.39,
+        "total_theta_exposure_usd": 1002246.66
+      },
       "open_interest_walls": {
         "top_call_strikes": [
           {
-            "strike": 160000.0,
-            "open_interest_btc": 6148.2
+            "strike": 140000.0,
+            "open_interest_btc": 10248.8
           },
           {
-            "strike": 150000.0,
-            "open_interest_btc": 5184.9
+            "strike": 200000.0,
+            "open_interest_btc": 8447.5
           },
           {
-            "strike": 170000.0,
-            "open_interest_btc": 2687.6
+            "strike": 125000.0,
+            "open_interest_btc": 3801.9
           },
           {
-            "strike": 190000.0,
-            "open_interest_btc": 1777.6
+            "strike": 115000.0,
+            "open_interest_btc": 1385.7
           },
           {
-            "strike": 110000.0,
-            "open_interest_btc": 1518.8
+            "strike": 135000.0,
+            "open_interest_btc": 1208.8
           }
         ],
         "top_put_strikes": [
           {
             "strike": 85000.0,
-            "open_interest_btc": 2304.2
-          },
-          {
-            "strike": 105000.0,
-            "open_interest_btc": 2264.9
-          },
-          {
-            "strike": 100000.0,
-            "open_interest_btc": 2242.6
+            "open_interest_btc": 2299.4
           },
           {
             "strike": 90000.0,
             "open_interest_btc": 2119.6
           },
           {
-            "strike": 110000.0,
-            "open_interest_btc": 1881.6
+            "strike": 95000.0,
+            "open_interest_btc": 1869.6
+          },
+          {
+            "strike": 75000.0,
+            "open_interest_btc": 1792.0
+          },
+          {
+            "strike": 70000.0,
+            "open_interest_btc": 1013.5
           }
         ]
-      },
-      "average_iv_data": {
-        "call_iv": 0.4391,
-        "put_iv": 0.475,
-        "skew_proxy": -0.0359
       },
       "dealer_gamma_by_strike": [
         {
           "strike": 20000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 30000.0,
+          "dealer_gamma": 0.0
         },
         {
           "strike": 40000.0,
-          "dealer_gamma": -0.0
-        },
-        {
-          "strike": 50000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 60000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
-          "strike": 65000.0,
-          "dealer_gamma": -0.0
+          "strike": 70000.0,
+          "dealer_gamma": 0.0
+        },
+        {
+          "strike": 75000.0,
+          "dealer_gamma": 0.0
         },
         {
           "strike": 85000.0,
-          "dealer_gamma": -0.023042
+          "dealer_gamma": -0.024703000000000003
         },
         {
           "strike": 90000.0,
-          "dealer_gamma": -0.021196
+          "dealer_gamma": -0.030260000000000002
         },
         {
-          "strike": 100000.0,
-          "dealer_gamma": -0.022426
+          "strike": 95000.0,
+          "dealer_gamma": -0.026144
         },
         {
-          "strike": 105000.0,
-          "dealer_gamma": -0.022649000000000002
+          "strike": 115000.0,
+          "dealer_gamma": -0.027714000000000003
         },
         {
-          "strike": 110000.0,
-          "dealer_gamma": -0.018816
+          "strike": 125000.0,
+          "dealer_gamma": -0.038019000000000004
         },
         {
-          "strike": 130000.0,
-          "dealer_gamma": -0.0023480000000000003
+          "strike": 135000.0,
+          "dealer_gamma": -0.013188
         },
         {
           "strike": 140000.0,
-          "dealer_gamma": -0.001585
+          "dealer_gamma": -0.104073
         },
         {
-          "strike": 150000.0,
-          "dealer_gamma": -3.6e-05
-        },
-        {
-          "strike": 160000.0,
-          "dealer_gamma": -0.00476
+          "strike": 145000.0,
+          "dealer_gamma": -0.005234
         },
         {
           "strike": 170000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
-          "strike": 180000.0,
-          "dealer_gamma": -0.0
+          "strike": 200000.0,
+          "dealer_gamma": 0.0
         },
         {
-          "strike": 190000.0,
-          "dealer_gamma": -0.0
+          "strike": 230000.0,
+          "dealer_gamma": 0.0
         },
         {
           "strike": 240000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
           "strike": 260000.0,
-          "dealer_gamma": -0.0
+          "dealer_gamma": 0.0
         },
         {
-          "strike": 280000.0,
-          "dealer_gamma": -0.0
+          "strike": 300000.0,
+          "dealer_gamma": 0.0
+        }
+      ],
+      "volatility_surface": [
+        {
+          "strike": 20000.0,
+          "call_iv": 0.8697,
+          "put_iv": 0.8697
         },
         {
-          "strike": 320000.0,
-          "dealer_gamma": -0.0
+          "strike": 30000.0,
+          "call_iv": 0.8363,
+          "put_iv": 0.8363
+        },
+        {
+          "strike": 40000.0,
+          "call_iv": 0.751,
+          "put_iv": null
+        },
+        {
+          "strike": 60000.0,
+          "call_iv": 0.5976,
+          "put_iv": null
+        },
+        {
+          "strike": 70000.0,
+          "call_iv": null,
+          "put_iv": 0.5369
+        },
+        {
+          "strike": 75000.0,
+          "call_iv": null,
+          "put_iv": 0.5054
+        },
+        {
+          "strike": 85000.0,
+          "call_iv": 0.4644,
+          "put_iv": 0.4644
+        },
+        {
+          "strike": 90000.0,
+          "call_iv": 0.4447,
+          "put_iv": 0.4447
+        },
+        {
+          "strike": 95000.0,
+          "call_iv": 0.4309,
+          "put_iv": 0.4309
+        },
+        {
+          "strike": 115000.0,
+          "call_iv": 0.4057,
+          "put_iv": null
+        },
+        {
+          "strike": 125000.0,
+          "call_iv": 0.4071,
+          "put_iv": null
+        },
+        {
+          "strike": 135000.0,
+          "call_iv": 0.4127,
+          "put_iv": 0.4127
+        },
+        {
+          "strike": 140000.0,
+          "call_iv": 0.4176,
+          "put_iv": 0.4176
+        },
+        {
+          "strike": 145000.0,
+          "call_iv": 0.4211,
+          "put_iv": 0.4211
+        },
+        {
+          "strike": 170000.0,
+          "call_iv": null,
+          "put_iv": 0.45
+        },
+        {
+          "strike": 200000.0,
+          "call_iv": 0.4972,
+          "put_iv": 0.4972
+        },
+        {
+          "strike": 230000.0,
+          "call_iv": 0.5351,
+          "put_iv": null
+        },
+        {
+          "strike": 240000.0,
+          "call_iv": null,
+          "put_iv": 0.545
+        },
+        {
+          "strike": 260000.0,
+          "call_iv": 0.5692,
+          "put_iv": null
+        },
+        {
+          "strike": 300000.0,
+          "call_iv": 0.6171,
+          "put_iv": null
         }
       ]
     }
