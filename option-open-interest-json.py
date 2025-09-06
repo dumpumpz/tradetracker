@@ -19,6 +19,7 @@ DEFAULT_HISTORICAL_TEMPLATE = "historical_market_data_{currency}.json"
 # --- Constants ---
 END_DATE = datetime(2025, 12, 31)
 DERIBIT_API_URL = "https://www.deribit.com/api/v2/public/"
+MAX_WORKERS = 8
 TOP_N_OI_WALLS = 5
 MAX_HISTORY_POINTS = 288
 STATIC_STRIKES_BY_CURRENCY = {
@@ -26,15 +27,14 @@ STATIC_STRIKES_BY_CURRENCY = {
     'ETH': {3000, 3500, 4000, 4500, 5000, 5500, 6000}
 }
 
-# ### THE FIX IS HERE: TUNED FOR RELIABILITY ###
-MAX_WORKERS = 8          # REDUCED: Prevents overwhelming the API and fixes connection pool errors.
-API_RETRY_ATTEMPTS = 5   # INCREASED: More resilient to temporary rate limits.
-API_RETRY_DELAY = 2      # INCREASED: Gives the API more time to recover before retrying.
-API_TIMEOUT = 20         # INCREASED: More patient with slow network responses.
-
+# --- API Client Configuration ---
+API_TIMEOUT = 15
+API_RETRY_ATTEMPTS = 5
+API_RETRY_DELAY = 2
 
 # --- Setup Logging ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
 
 class DeribitAPIClient:
     def __init__(self, base_url: str, session: Optional[requests.Session] = None):
@@ -51,7 +51,8 @@ class DeribitAPIClient:
                 return response.json()
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 429:
-                    logging.warning(f"Rate limit on '{endpoint}'. Attempt {attempt + 1}/{API_RETRY_ATTEMPTS}. Retrying in {delay}s...")
+                    logging.warning(
+                        f"Rate limit on '{endpoint}'. Attempt {attempt + 1}/{API_RETRY_ATTEMPTS}. Retrying in {delay}s...")
                 else:
                     logging.error(f"HTTP Error on '{endpoint}'. Attempt {attempt + 1}/{API_RETRY_ATTEMPTS}: {e}")
             except requests.exceptions.RequestException as e:
@@ -61,6 +62,7 @@ class DeribitAPIClient:
                 delay *= 2
         logging.critical(f"API request to '{endpoint}' failed after {API_RETRY_ATTEMPTS} attempts.")
         return None
+
 
 class DeribitMarketAnalyzer:
     def __init__(self, currency: str, output_file: str, historical_file: str):
@@ -89,7 +91,8 @@ class DeribitMarketAnalyzer:
             raise SystemExit(f"Fatal: No valid options data after processing for {self.currency}.")
         self._process_and_save_data(grouped_options, total_greeks)
         end_time = time.time()
-        logging.info(f"--- Analysis for {self.currency} finished successfully in {end_time - start_time:.2f} seconds! ---")
+        logging.info(
+            f"--- Analysis for {self.currency} finished successfully in {end_time - start_time:.2f} seconds! ---")
 
     def _fetch_initial_market_state(self) -> bool:
         logging.info(f"Fetching initial market state for {self.currency} (Index Price)...")
@@ -122,7 +125,8 @@ class DeribitMarketAnalyzer:
 
     def _get_all_tickers_in_parallel(self, instrument_names: List[str]) -> List[Dict[str, Any]]:
         all_tickers, total = [], len(instrument_names)
-        logging.info(f"Fetching full ticker data for {total} {self.currency} instruments using {MAX_WORKERS} parallel workers...")
+        logging.info(
+            f"Fetching full ticker data for {total} {self.currency} instruments using {MAX_WORKERS} parallel workers...")
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             future_to_name = {executor.submit(self._fetch_ticker_data, name): name for name in instrument_names}
             for i, future in enumerate(as_completed(future_to_name), 1):
@@ -150,7 +154,7 @@ class DeribitMarketAnalyzer:
 
             gamma, delta = -float(greeks.get('gamma', 0.0)), -float(greeks.get('delta', 0.0))
             vega, theta = -float(greeks.get('vega', 0.0)), -float(greeks.get('theta', 0.0))
-            
+
             contributions = {'gamma': gamma * oi, 'delta': delta * oi, 'vega': vega * oi, 'theta': theta * oi}
             grouped_options[expiry_dt].append({
                 'strike': strike, 'type': opt_type, 'oi': oi,
@@ -169,7 +173,8 @@ class DeribitMarketAnalyzer:
         expirations_list, market_totals = self._build_expirations_list(grouped_options)
         market_summary = self._build_market_summary(market_totals, total_greeks)
         output_data = {
-            "metadata": {"calculation_timestamp_utc": now_timestamp, "spot_price_usd": self.spot_price, "currency": self.currency},
+            "metadata": {"calculation_timestamp_utc": now_timestamp, "spot_price_usd": self.spot_price,
+                         "currency": self.currency},
             "definitions": self._get_definitions(),
             "market_summary": market_summary,
             "expirations": expirations_list
@@ -189,17 +194,18 @@ class DeribitMarketAnalyzer:
             market_totals['total_oi'] += expiry_total_oi
             market_totals['total_volume_24h'] += expiry_volume
             for opt in options_list:
+                # ### THIS IS THE FIX ###
                 if opt['type'] == 'call':
                     market_totals['total_call_volume_24h'] += opt['volume_24h']
                 else:
                     market_totals['total_put_volume_24h'] += opt['volume_24h']
-            
+
             otype = self._get_option_type(expiry_dt)
             max_pain = self._calculate_max_pain(options_list) if otype in ["Monthly", "Quarterly"] else None
-            
+
             gex_by_strike = defaultdict(float)
             for opt in options_list: gex_by_strike[opt['strike']] += opt['contributions']['gamma']
-            
+
             expirations_list.append({
                 "expiration_date": expiry_dt.strftime('%Y-%m-%d'), "option_type": otype,
                 f"open_interest_{self.cur_lower}": round(expiry_total_oi, 2),
@@ -209,16 +215,20 @@ class DeribitMarketAnalyzer:
                 "max_pain_strike": max_pain,
                 "greeks_summary": self._summarize_greeks_for_expiry(options_list),
                 "open_interest_walls": self._find_oi_walls(options_list),
-                "dealer_gamma_by_strike": sorted([{'strike': s, 'dealer_gamma': g} for s, g in gex_by_strike.items()], key=lambda x: x['strike']),
+                "dealer_gamma_by_strike": sorted([{'strike': s, 'dealer_gamma': g} for s, g in gex_by_strike.items()],
+                                                 key=lambda x: x['strike']),
                 "volatility_surface": self._build_volatility_surface(options_list)
             })
         return expirations_list, market_totals
 
     def _build_market_summary(self, market_totals: Dict, total_greeks: Dict) -> Dict:
-        pcr_by_oi = market_totals['total_put_oi'] / market_totals['total_call_oi'] if market_totals['total_call_oi'] > 0 else 0
+        pcr_by_oi = market_totals['total_put_oi'] / market_totals['total_call_oi'] if market_totals[
+                                                                                          'total_call_oi'] > 0 else 0
         call_vol, put_vol = market_totals['total_call_volume_24h'], market_totals['total_put_volume_24h']
         pcr_by_vol_ratio = put_vol / call_vol if call_vol > 0 else 0.0
-        pcr_by_24h_volume = {"ratio": round(pcr_by_vol_ratio, 4), f"call_volume_24h_{self.cur_lower}": round(call_vol, 2), f"put_volume_24h_{self.cur_lower}": round(put_vol, 2)}
+        pcr_by_24h_volume = {"ratio": round(pcr_by_vol_ratio, 4),
+                             f"call_volume_24h_{self.cur_lower}": round(call_vol, 2),
+                             f"put_volume_24h_{self.cur_lower}": round(put_vol, 2)}
         return {
             f"total_open_interest_{self.cur_lower}": round(market_totals['total_oi'], 2),
             "total_notional_oi_usd": round(market_totals['total_oi'] * self.spot_price, 2),
@@ -248,24 +258,31 @@ class DeribitMarketAnalyzer:
         history = []
         if os.path.exists(self.historical_file):
             try:
-                with open(self.historical_file, 'r') as f: history = json.load(f)
+                with open(self.historical_file, 'r') as f:
+                    history = json.load(f)
                 if not isinstance(history, list): history = []
-            except (json.JSONDecodeError, IOError): history = []
+            except (json.JSONDecodeError, IOError):
+                history = []
         history.append(new_entry)
         self._save_json_file(self.historical_file, history[-MAX_HISTORY_POINTS:])
 
     def _save_json_file(self, filename: str, data: Any):
         try:
-            with open(filename, 'w') as f: json.dump(data, f, indent=2)
+            with open(filename, 'w') as f:
+                json.dump(data, f, indent=2)
             logging.info(f"✅ Data successfully saved to {filename}")
-        except IOError as e: logging.error(f"Could not write to file {filename}. Error: {e}")
-    
+        except IOError as e:
+            logging.error(f"Could not write to file {filename}. Error: {e}")
+
     def _find_oi_walls(self, options_list: List[Dict]) -> Dict[str, List[Dict]]:
         calls, puts = defaultdict(float), defaultdict(float)
         for opt in options_list: (calls if opt['type'] == 'call' else puts)[opt['strike']] += opt['oi']
         sorted_calls = sorted(calls.items(), key=lambda i: i[1], reverse=True)
         sorted_puts = sorted(puts.items(), key=lambda i: i[1], reverse=True)
-        return {"top_call_strikes": [{"strike": k, f"open_interest_{self.cur_lower}": round(v, 2)} for k, v in sorted_calls[:TOP_N_OI_WALLS]], "top_put_strikes": [{"strike": k, f"open_interest_{self.cur_lower}": round(v, 2)} for k, v in sorted_puts[:TOP_N_OI_WALLS]]}
+        return {"top_call_strikes": [{"strike": k, f"open_interest_{self.cur_lower}": round(v, 2)} for k, v in
+                                     sorted_calls[:TOP_N_OI_WALLS]],
+                "top_put_strikes": [{"strike": k, f"open_interest_{self.cur_lower}": round(v, 2)} for k, v in
+                                    sorted_puts[:TOP_N_OI_WALLS]]}
 
     @staticmethod
     def _get_definitions() -> Dict[str, str]:
@@ -286,12 +303,16 @@ class DeribitMarketAnalyzer:
     @staticmethod
     def _parse_instrument(instrument_name: str) -> Optional[Tuple[str, datetime, float, str]]:
         try:
-            parts = instrument_name.split('-'); return parts[0], datetime.strptime(parts[1], "%d%b%y"), float(parts[2]), 'call' if parts[3] == 'C' else 'put'
-        except (ValueError, IndexError): return None
+            parts = instrument_name.split('-');
+            return parts[0], datetime.strptime(parts[1], "%d%b%y"), float(parts[2]), 'call' if parts[
+                                                                                                   3] == 'C' else 'put'
+        except (ValueError, IndexError):
+            return None
 
     @staticmethod
     def _get_option_type(expiration_date: datetime) -> str:
-        is_friday, is_last_friday = (expiration_date.weekday() == 4), (expiration_date.weekday() == 4) and (expiration_date + timedelta(days=7)).month != expiration_date.month
+        is_friday, is_last_friday = (expiration_date.weekday() == 4), (expiration_date.weekday() == 4) and (
+                    expiration_date + timedelta(days=7)).month != expiration_date.month
         if is_last_friday and expiration_date.month in [3, 6, 9, 12]: return "Quarterly"
         if is_last_friday: return "Monthly"
         if is_friday: return "Weekly"
@@ -302,7 +323,10 @@ class DeribitMarketAnalyzer:
         if not options_list: return None
         strikes, (min_pain, max_pain_strike) = sorted(list(set(opt['strike'] for opt in options_list))), (inf, None)
         for test_price in strikes:
-            pain = sum((test_price - opt['strike']) * opt['oi'] for opt in options_list if opt['type'] == 'call' and test_price > opt['strike']) + sum((opt['strike'] - test_price) * opt['oi'] for opt in options_list if opt['type'] == 'put' and test_price < opt['strike'])
+            pain = sum((test_price - opt['strike']) * opt['oi'] for opt in options_list if
+                       opt['type'] == 'call' and test_price > opt['strike']) + sum(
+                (opt['strike'] - test_price) * opt['oi'] for opt in options_list if
+                opt['type'] == 'put' and test_price < opt['strike'])
             if pain < min_pain: min_pain, max_pain_strike = pain, test_price
         return max_pain_strike
 
@@ -334,9 +358,12 @@ class DeribitMarketAnalyzer:
         key_strikes = sorted(list(self.statically_tracked_strikes | dynamic_strikes))
         return {str(int(s)): round(total_gamma_by_strike.get(s, 0.0), 4) for s in key_strikes}
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Fetch and analyze Deribit options market data for multiple currencies.")
-    parser.add_argument('-c', '--currencies', nargs='+', default=TARGET_CURRENCIES, help=f"Space-separated list of currencies to analyze (e.g., BTC ETH). Default: {' '.join(TARGET_CURRENCIES)}")
+    parser = argparse.ArgumentParser(
+        description="Fetch and analyze Deribit options market data for multiple currencies.")
+    parser.add_argument('-c', '--currencies', nargs='+', default=TARGET_CURRENCIES,
+                        help=f"Space-separated list of currencies to analyze (e.g., BTC ETH). Default: {' '.join(TARGET_CURRENCIES)}")
     args = parser.parse_args()
     for currency in args.currencies:
         try:
@@ -348,6 +375,7 @@ def main():
             logging.critical(f"Execution halted for {currency}: {e}")
         except Exception as e:
             logging.exception(f"An unexpected error occurred during analysis for {currency}: {e}")
+
 
 if __name__ == "__main__":
     main()
