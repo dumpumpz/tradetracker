@@ -51,8 +51,12 @@ def get_safe_symbol(symbol):
 
 
 def get_minutes_from_timeframe(tf_string):
-    num = int(re.search(r'\d+', tf_string).group(0))
-    unit = re.search(r'[a-zA-Z]', tf_string).group(0).lower()
+    num_match = re.search(r'\d+', tf_string)
+    unit_match = re.search(r'[a-zA-Z]', tf_string)
+    if not num_match or not unit_match:
+        return 0
+    num = int(num_match.group(0))
+    unit = unit_match.group(0).lower()
     return num if unit == 'm' else num * 60 if unit == 'h' else num * 60 * 24 if unit == 'd' else num * 60 * 24 * 7
 
 
@@ -85,6 +89,7 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days=None, limit=1000):
                 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume',
                 'Taker buy quote asset volume', 'Ignore'
             ])
+            # Ensure we don't have more data than needed, which can happen with pagination logic
             df = df.tail(int(total_candles_needed))
         else:
             url = f'{API_ENDPOINT}?symbol={symbol}&interval={interval}&limit={limit}'
@@ -109,7 +114,7 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days=None, limit=1000):
         logging.error(f'Error fetching {symbol} {interval}: {e}')
         return None
 
-# <<< NEW FUNCTION START >>>
+
 def get_market_opens(symbols_list: List[str]) -> Dict[str, Dict[str, float]]:
     """
     Fetches the current daily, weekly, and monthly open prices for a list of symbols.
@@ -139,7 +144,6 @@ def get_market_opens(symbols_list: List[str]) -> Dict[str, Dict[str, float]]:
             opens_data[safe_symbol] = symbol_opens
             
     return opens_data
-# <<< NEW FUNCTION END >>>
 
 
 def calc_atr(df, period=ATR_LOOKBACK):
@@ -261,6 +265,10 @@ def run_analysis_for_lookback(symbol, days):
         return None
 
     atr_series = calc_atr(df_for_atr)
+    if atr_series.empty:
+        logging.warning(f'ATR series empty for {symbol} {days}d; skipping.')
+        return None
+        
     atr_val = atr_series.iloc[-1] if not atr_series.empty else np.nan
     if np.isnan(atr_val) or df_for_atr['Close'].iloc[-1] == 0:
         logging.warning(f'ATR NaN/invalid for {symbol} {days}d; skipping.')
@@ -302,42 +310,55 @@ def run_analysis_for_lookback(symbol, days):
     }
 
 
-# <<< MODIFIED MAIN FUNCTION >>>
 def main():
     # --- Part 1: S/R Level Analysis ---
     logging.info("===== STARTING ADAPTIVE S/R ANALYSIS =====")
     results = {}
     for symbol in SYMBOLS:
         safe_symbol = get_safe_symbol(symbol)
+        logging.info(f"--- Analyzing S/R for {safe_symbol} ---")
         for days in LOOKBACK_PERIODS_DAYS:
+            logging.info(f"  ... using {days}d lookback period.")
             res = run_analysis_for_lookback(symbol, days)
             if res:
                 if safe_symbol not in results:
                     results[safe_symbol] = {}
                 results[safe_symbol][f'{days}d'] = res
-            time.sleep(1)
+            time.sleep(1) # Be nice to the API
 
-    sr_payload = {'data': results, 'last_updated': datetime.now(timezone.utc).isoformat()}
-    with open(SR_OUTPUT_FILENAME, 'w') as f:
-        json.dump(sr_payload, f, indent=4)
-    logging.info(f"S/R analysis complete. Saved to {SR_OUTPUT_FILENAME}")
+    try:
+        sr_payload = {'data': results, 'last_updated': datetime.now(timezone.utc).isoformat()}
+        with open(SR_OUTPUT_FILENAME, 'w') as f:
+            json.dump(sr_payload, f, indent=4)
+        logging.info(f"S/R analysis complete. Saved to {SR_OUTPUT_FILENAME}")
+    except IOError as e:
+        logging.error(f"Could not write to file {SR_OUTPUT_FILENAME}: {e}")
 
     # --- Part 2: Market Opens Analysis ---
     logging.info("===== STARTING MARKET OPENS ANALYSIS =====")
     market_opens_data = get_market_opens(SYMBOLS)
     
     if market_opens_data:
-        opens_payload = {
-            'last_updated': datetime.now(timezone.utc).isoformat(),
-            'opens': market_opens_data
-        }
-        with open(OPENS_OUTPUT_FILENAME, 'w') as f:
-            json.dump(opens_payload, f, indent=4)
-        logging.info(f"Market opens data saved to {OPENS_OUTPUT_FILENAME}")
+        try:
+            opens_payload = {
+                'last_updated': datetime.now(timezone.utc).isoformat(),
+                'opens': market_opens_data
+            }
+            with open(OPENS_OUTPUT_FILENAME, 'w') as f:
+                json.dump(opens_payload, f, indent=4)
+            logging.info(f"Market opens data saved to {OPENS_OUTPUT_FILENAME}")
+        except IOError as e:
+            logging.error(f"Could not write to file {OPENS_OUTPUT_FILENAME}: {e}")
     else:
         logging.error("Failed to fetch any market open data. File not written.")
 
     logging.info("===== ALL ANALYSIS COMPLETE =====")
+
+    ### THIS IS THE FIX ###
+    # This line explicitly closes all connections in the session pool,
+    # allowing the Python process to terminate cleanly and immediately.
+    logging.info("Closing network session...")
+    SESSION.close()
 
 
 if __name__ == "__main__":
