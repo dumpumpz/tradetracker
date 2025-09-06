@@ -1817,27 +1817,61 @@
             }
         }
 
-                /* --- STYLE FOR COPY JSON BUTTON --- */
-        #options-snapshot-container {
-            position: relative; /* This is needed to position the button inside */
-        }
-        #copy-json-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            z-index: 10;
-            padding: 6px 12px;
-            font-size: 12px;
-            background-color: var(--header-bg);
-            border: 1px solid var(--border-color);
-            color: var(--subtle-text);
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        #copy-json-btn:hover {
-            border-color: var(--link-color);
-            color: var(--link-color);
-        }
+ /* --- STYLES FOR TWO-COLUMN OPTIONS VIEW --- */
+#options-snapshot-container {
+    display: flex;
+    gap: 20px; /* spacing between the boxes */
+    align-items: stretch; /* Make columns equal height */
+}
+
+.options-json-wrapper {
+    flex: 1; /* each takes up equal space */
+    width: 50%;
+    position: relative; /* for positioning the copy button */
+    display: flex;
+    flex-direction: column;
+}
+
+.options-json-wrapper h3 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--subtle-text);
+}
+
+.options-json-wrapper pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+    background-color: var(--card-bg);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 13px;
+    flex-grow: 1; /* take remaining vertical space */
+    overflow: auto; /* scroll if needed */
+    margin: 0;
+}
+
+.copy-json-btn {
+    position: absolute;
+    top: 35px; /* Positioned below the title */
+    right: 15px;
+    z-index: 10;
+    padding: 5px 10px;
+    font-size: 12px;
+    background-color: var(--header-bg);
+    border: 1px solid var(--border-color);
+    color: var(--subtle-text);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.copy-json-btn:hover {
+    border-color: var(--link-color);
+    color: var(--link-color);
+}
     </style>
 </head>
 <body>
@@ -2551,59 +2585,79 @@
         async function fetchMarketOpens() { try { const response = await fetch(`market_opens.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.marketOpens = await response.json(); renderMarketOpens(); } catch (error) { console.error("Could not fetch market_opens.json:", error); } }
         async function fetchCrossoverSignalData() { const signalJsonUrl = 'crypto_signals.json'; try { const response = await fetch(`${signalJsonUrl}?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); renderCrossoverSignals(data); } catch (error) { console.error("Could not fetch or parse crossover signal data:", error); const ethContainer = document.getElementById('eth-crossover-signal-container'); const btcContainer = document.getElementById('btc-crossover-signal-container'); const errorMsg = '<p style="color: red; text-align: center;">Error loading signal data.</p>'; if (ethContainer) ethContainer.innerHTML = errorMsg; if (btcContainer) btcContainer.innerHTML = errorMsg; const lastUpdatedEl = document.getElementById('crossover-signals-last-updated'); if(lastUpdatedEl) lastUpdatedEl.textContent = 'Failed to load data.'; } }
         
-                async function fetchAndRenderOptionsData() {
-            if (!DOM.optionsOiTab) return;
-            const jsonFile = 'deribit_options_market_analysis.json';
-            const container = document.getElementById('options-snapshot-container');
-            
-            try {
-                const response = await fetch(`${jsonFile}?cache_bust=${new Date().getTime()}`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
-                const jsonDataText = await response.text();
-                
-                container.innerHTML = ''; // Clear previous content
-                
-                // Create the <pre> element for the JSON text
-                const preElement = document.createElement('pre');
-                const jsonData = JSON.parse(jsonDataText);
-                preElement.textContent = JSON.stringify(jsonData, null, 2); 
-                preElement.style.whiteSpace = 'pre-wrap';
-                preElement.style.wordBreak = 'break-all';
-                preElement.style.backgroundColor = 'var(--card-bg)';
-                preElement.style.padding = '15px';
-                preElement.style.borderRadius = '8px';
-                preElement.style.border = '1px solid var(--border-color)';
-                preElement.style.fontSize = '14px';
-                
-                // Create the "Copy All" button
-                const copyButton = document.createElement('button');
-                copyButton.id = 'copy-json-btn';
-                copyButton.textContent = 'Copy All';
+             async function fetchAndRenderOptionsData() {
+    if (!DOM.optionsOiTab) return;
+    
+    const jsonSources = [
+        { file: 'deribit_eth_options_analysis.json', title: 'ETH Options Analysis' },
+        { file: 'deribit_btc_options_analysis.json', title: 'BTC Options Analysis' }
+    ];
+    
+    const container = document.getElementById('options-snapshot-container');
+    // Set a loading message while fetching
+    container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>`;
 
-                // Add the click event listener to the button
-                copyButton.addEventListener('click', () => {
-                    navigator.clipboard.writeText(preElement.textContent).then(() => {
-                        // Provide user feedback on success
-                        copyButton.textContent = 'Copied!';
-                        setTimeout(() => {
-                            copyButton.textContent = 'Copy All';
-                        }, 2000); // Revert back after 2 seconds
-                    }).catch(err => {
-                        console.error('Failed to copy text: ', err);
-                        alert('Failed to copy text. See console for details.');
-                    });
-                });
+    try {
+        // Fetch both files concurrently
+        const responses = await Promise.all(
+            jsonSources.map(src => fetch(`${src.file}?cache_bust=${new Date().getTime()}`))
+        );
 
-                // Add the new elements to the container
-                container.appendChild(copyButton); // Add button first so it appears on top
-                container.appendChild(preElement);
-
-            } catch (error) {
-                console.error("Could not fetch or display options JSON data:", error);
-                container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options JSON. Could not find or parse <strong>${jsonFile}</strong>. Please check the console.</p>`;
+        // Check if any response failed
+        for (const response of responses) {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} for ${response.url}`);
             }
         }
+
+        const jsonDataTexts = await Promise.all(responses.map(res => res.text()));
+
+        container.innerHTML = ''; // Clear loading message
+
+        // Create a display box for each JSON file
+        jsonDataTexts.forEach((text, index) => {
+            const source = jsonSources[index];
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'options-json-wrapper';
+
+            const titleElement = document.createElement('h3');
+            titleElement.textContent = source.title;
+
+            const preElement = document.createElement('pre');
+            try {
+                const jsonData = JSON.parse(text);
+                preElement.textContent = JSON.stringify(jsonData, null, 2); 
+            } catch (parseError) {
+                console.error(`Error parsing JSON from ${source.file}:`, parseError);
+                preElement.textContent = `Error: Could not parse JSON from ${source.file}.`;
+                preElement.style.color = 'var(--red-text)';
+            }
+            
+            const copyButton = document.createElement('button');
+            copyButton.className = 'copy-json-btn';
+            copyButton.textContent = 'Copy';
+            copyButton.addEventListener('click', () => {
+                navigator.clipboard.writeText(preElement.textContent).then(() => {
+                    copyButton.textContent = 'Copied!';
+                    setTimeout(() => { copyButton.textContent = 'Copy'; }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                });
+            });
+
+            wrapper.appendChild(titleElement);
+            wrapper.appendChild(copyButton);
+            wrapper.appendChild(preElement);
+
+            container.appendChild(wrapper);
+        });
+
+    } catch (error) {
+        console.error("Could not fetch or display options JSON data:", error);
+        container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Please check the console.</p>`;
+    }
+}
         
         // --- NEW, ROBUST CHART RENDERING FUNCTION ---
         function renderOrUpdateChart(canvasId, type, chartData, titleText, scalesConfig = {}, pluginsConfig = {}) {
