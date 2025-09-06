@@ -7,7 +7,7 @@ import time
 import argparse
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
-from math import inf
+from math import inf, isclose
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any, Optional, Tuple, Set
 
@@ -167,20 +167,35 @@ class DeribitMarketAnalyzer:
         logging.info("Finished processing tickers.")
         return grouped_options, total_greeks
 
+    ### MODIFIED ### Main processing function now includes new calculations
     def _process_and_save_data(self, grouped_options: Dict, total_greeks: Dict):
         logging.info("Calculating final metrics and preparing JSON files...")
         now_timestamp = datetime.now(timezone.utc).isoformat()
         expirations_list, market_totals = self._build_expirations_list(grouped_options)
+
+        # ### NEW ### Calculate the three new features
+        exposure_by_expiry_buckets = self._calculate_exposure_by_expiry(grouped_options)
+        oi_change_by_strike = self._calculate_oi_change_by_strike()
+        volatility_summary = self._calculate_volatility_summary()
+        
+        # ### MODIFIED ### Build market summary and add it to the final output
         market_summary = self._build_market_summary(market_totals, total_greeks)
+
         output_data = {
-            "metadata": {"calculation_timestamp_utc": now_timestamp, "spot_price_usd": self.spot_price,
-                         "currency": self.currency},
-            "definitions": self._get_definitions(),
+            "metadata": {
+                "calculation_timestamp_utc": now_timestamp,
+                "asset": self.currency
+            },
             "market_summary": market_summary,
+            "volatility_summary": volatility_summary,
+            "exposure_by_expiry": exposure_by_expiry_buckets,
+            "oi_change_by_strike": oi_change_by_strike,
             "expirations": expirations_list
         }
+
         self._save_json_file(self.output_file, output_data)
         self._update_historical_data(now_timestamp, market_summary, total_greeks['gamma'])
+
 
     def _build_expirations_list(self, grouped_options: Dict) -> Tuple[List[Dict], Dict]:
         expirations_list, market_totals = [], defaultdict(float)
@@ -194,7 +209,6 @@ class DeribitMarketAnalyzer:
             market_totals['total_oi'] += expiry_total_oi
             market_totals['total_volume_24h'] += expiry_volume
             for opt in options_list:
-                # ### THIS IS THE FIX ###
                 if opt['type'] == 'call':
                     market_totals['total_call_volume_24h'] += opt['volume_24h']
                 else:
@@ -230,16 +244,143 @@ class DeribitMarketAnalyzer:
                              f"call_volume_24h_{self.cur_lower}": round(call_vol, 2),
                              f"put_volume_24h_{self.cur_lower}": round(put_vol, 2)}
         return {
+            "spot_price_usd": self.spot_price, ### MODIFIED: Added spot price here for GUI convenience
             f"total_open_interest_{self.cur_lower}": round(market_totals['total_oi'], 2),
             "total_notional_oi_usd": round(market_totals['total_oi'] * self.spot_price, 2),
             f"total_volume_24h_{self.cur_lower}": round(market_totals['total_volume_24h'], 2),
             "pcr_by_open_interest": round(pcr_by_oi, 4), "pcr_by_24h_volume": pcr_by_24h_volume,
-            "total_dealer_gamma_exposure": round(sum(total_greeks['gamma'].values()), 4),
+            "total_dealer_gamma_exposure": round(sum(total_greeks['gamma'].values()) * (self.spot_price**2) / 100, 2),
             f"total_dealer_delta_exposure_{self.cur_lower}": round(sum(total_greeks['delta'].values()), 2),
-            "total_dealer_vega_exposure_usd": round(sum(total_greeks['vega'].values()), 2),
+            "total_dealer_vega_exposure_usd": round(sum(total_greeks['vega'].values()) / 100, 2), # Per 1% IV change
             "total_dealer_theta_exposure_usd": round(sum(total_greeks['theta'].values()), 2),
             "gamma_flip_level_usd": self._calculate_gamma_flip(total_greeks['gamma'], self.spot_price)
         }
+    
+    ### NEW ### GEX/DEX by Expiry Buckets
+    def _calculate_exposure_by_expiry(self, grouped_options: Dict) -> List[Dict]:
+        logging.info("Calculating GEX/DEX by expiry buckets...")
+        now = datetime.now(timezone.utc)
+        buckets = {
+            "0DTE": {"gamma": 0.0, "delta": 0.0},
+            "1-7 Days": {"gamma": 0.0, "delta": 0.0},
+            "8-30 Days": {"gamma": 0.0, "delta": 0.0},
+            "30-90 Days": {"gamma": 0.0, "delta": 0.0},
+            "90+ Days": {"gamma": 0.0, "delta": 0.0},
+        }
+
+        for expiry_dt, options_list in grouped_options.items():
+            days_to_expiry = (expiry_dt - now).total_seconds() / 86400
+            
+            summary = self._summarize_greeks_for_expiry(options_list)
+            gex = summary['total_gamma_exposure'] * (self.spot_price**2) / 100 # Notional Gamma
+            dex = summary[f'total_delta_exposure_{self.cur_lower}'] * self.spot_price # Notional Delta
+            
+            if days_to_expiry <= 1:
+                bucket_name = "0DTE"
+            elif 1 < days_to_expiry <= 7:
+                bucket_name = "1-7 Days"
+            elif 7 < days_to_expiry <= 30:
+                bucket_name = "8-30 Days"
+            elif 30 < days_to_expiry <= 90:
+                bucket_name = "30-90 Days"
+            else:
+                bucket_name = "90+ Days"
+            
+            buckets[bucket_name]["gamma"] += gex
+            buckets[bucket_name]["delta"] += dex
+
+        return [
+            {"bucket": name, "total_gamma_exposure": round(data["gamma"], 2), "total_delta_exposure": round(data["delta"], 2)}
+            for name, data in buckets.items()
+        ]
+
+    ### NEW ### OI Change by Strike (24h)
+    def _calculate_oi_change_by_strike(self) -> List[Dict]:
+        logging.info("Calculating 24h OI change by strike...")
+        changes = defaultdict(lambda: {"call_oi_change": 0.0, "put_oi_change": 0.0})
+
+        for ticker in self.all_tickers:
+            parsed = self._parse_instrument(ticker['instrument_name'])
+            if not parsed: continue
+            
+            _, _, strike, opt_type = parsed
+            oi_change = ticker.get('stats', {}).get('open_interest_change', 0.0)
+            
+            if opt_type == 'call':
+                changes[strike]['call_oi_change'] += oi_change
+            else:
+                changes[strike]['put_oi_change'] += oi_change
+        
+        return sorted([
+            {"strike": strike, **data} for strike, data in changes.items() if data['call_oi_change'] != 0 or data['put_oi_change'] != 0
+        ], key=lambda x: x['strike'])
+
+    ### NEW ### Volatility Summary including 25-delta Skew
+    def _calculate_volatility_summary(self, term_days: int = 30) -> Dict:
+        logging.info(f"Calculating {term_days}-day 25-delta skew...")
+        now = datetime.now(timezone.utc)
+        target_expiry = now + timedelta(days=term_days)
+        
+        # Find the expiry date closest to the target term
+        closest_expiry = None
+        min_diff = float('inf')
+        
+        unique_expiries = {self._parse_instrument(t['instrument_name'])[1] for t in self.all_tickers if self._parse_instrument(t['instrument_name'])}
+        for expiry_dt in unique_expiries:
+            diff = abs((expiry_dt - target_expiry).total_seconds())
+            if diff < min_diff:
+                min_diff = diff
+                closest_expiry = expiry_dt
+
+        if not closest_expiry:
+            logging.warning("Could not find a suitable expiry to calculate skew.")
+            return {"d25_skew_1m": None}
+
+        # Filter tickers for the chosen expiry
+        term_options = [t for t in self.all_tickers if self._parse_instrument(t['instrument_name']) and self._parse_instrument(t['instrument_name'])[1] == closest_expiry]
+
+        calls = sorted([o for o in term_options if o['instrument_name'].endswith('-C')], key=lambda x: x.get('greeks', {}).get('delta', 1))
+        puts = sorted([o for o in term_options if o['instrument_name'].endswith('-P')], key=lambda x: x.get('greeks', {}).get('delta', 0))
+
+        # Interpolate IV for 25-delta call and put
+        iv_call_25d = self._interpolate_iv_for_delta(calls, 0.25)
+        iv_put_25d = self._interpolate_iv_for_delta(puts, -0.25)
+
+        if iv_call_25d is not None and iv_put_25d is not None:
+            skew = (iv_put_25d - iv_call_25d) 
+            return {"d25_skew_1m": round(skew, 4)}
+        else:
+            logging.warning("Could not interpolate IV for 25-delta options to calculate skew.")
+            return {"d25_skew_1m": None}
+
+    ### NEW ### Helper for skew calculation
+    def _interpolate_iv_for_delta(self, options: List[Dict], target_delta: float) -> Optional[float]:
+        if not options: return None
+        
+        # Find two options that bracket the target delta
+        d1, iv1, d2, iv2 = None, None, None, None
+        
+        for i in range(len(options) - 1):
+            opt1_greeks = options[i].get('greeks', {})
+            opt2_greeks = options[i+1].get('greeks', {})
+
+            if 'delta' in opt1_greeks and 'delta' in opt2_greeks:
+                d1_val = opt1_greeks['delta']
+                d2_val = opt2_greeks['delta']
+                
+                # Check if target_delta is between d1_val and d2_val
+                if (d1_val <= target_delta <= d2_val) or (d2_val <= target_delta <= d1_val):
+                    d1, iv1 = d1_val, options[i]['mark_iv']
+                    d2, iv2 = d2_val, options[i+1]['mark_iv']
+                    break
+        
+        if d1 is None or d2 is None or isclose(d1, d2):
+            return None # Cannot interpolate
+
+        # Linear interpolation: y = y1 + (x - x1) * (y2 - y1) / (x2 - x1)
+        interpolated_iv = iv1 + (target_delta - d1) * (iv2 - iv1) / (d2 - d1)
+        return interpolated_iv / 100.0 # Return as decimal
+
 
     def _update_historical_data(self, timestamp: str, market_summary: Dict, total_gamma_by_strike: Dict):
         key_gamma_data = self._get_key_gamma_strikes_for_history(total_gamma_by_strike)
@@ -304,8 +445,9 @@ class DeribitMarketAnalyzer:
     def _parse_instrument(instrument_name: str) -> Optional[Tuple[str, datetime, float, str]]:
         try:
             parts = instrument_name.split('-');
-            return parts[0], datetime.strptime(parts[1], "%d%b%y"), float(parts[2]), 'call' if parts[
-                                                                                                   3] == 'C' else 'put'
+            # ### MODIFIED: Added timezone info for accurate date comparisons
+            expiry_dt = datetime.strptime(parts[1], "%d%b%y").replace(hour=8, tzinfo=timezone.utc)
+            return parts[0], expiry_dt, float(parts[2]), 'call' if parts[3] == 'C' else 'put'
         except (ValueError, IndexError):
             return None
 
