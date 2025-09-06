@@ -131,7 +131,8 @@ def aggregate_market_data(all_summaries: List[Dict[str, Any]], end_date: datetim
         oi = float(summary.get('open_interest', 0.0))
         if oi == 0: continue
         
-        # CORRECTED: Greeks are read directly from the summary object
+        ### THIS IS THE CRITICAL FIX ###
+        # Greeks are read directly from the summary object, not a nested 'greeks' key
         gamma = float(summary.get('gamma', 0.0))
         delta = float(summary.get('delta', 0.0))
         vega = float(summary.get('vega', 0.0))
