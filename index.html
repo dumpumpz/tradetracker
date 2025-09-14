@@ -4095,16 +4095,24 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
 
 
         // --- EVENT HANDLER LOGIC ---
-        function calculateTradeMetrics(tradeData) {
+               function calculateTradeMetrics(tradeData) {
             const entry = parseFloat(tradeData.entry); const stoploss = parseFloat(tradeData.stoploss); const target = parseFloat(tradeData.target); const size = parseFloat(tradeData.size); const type = tradeData.type;
             if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return { rr: 0, estimated_total_fee: 0, expected_profit: 0, expected_loss: 0, expected_profit_percent: 0, expected_loss_percent: 0 }; }
             const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
             const positionQty = size / entry; const entryFee = size * FEE_RATE;
             let potentialProfit, potentialLoss;
             if (type === 'Long') { potentialProfit = positionQty * (target - entry); potentialLoss = positionQty * (entry - stoploss); } else { potentialProfit = positionQty * (entry - target); potentialLoss = positionQty * (stoploss - entry); }
-            const rr = (potentialLoss > 0) ? (potentialProfit / potentialLoss) : 0;
+            
+            // --- CHANGE IS HERE ---
+            // The old 'rr' calculation line has been removed from this spot.
+            
+            // First, calculate the net profit and loss in dollars, including all fees.
             const exitValueAtTarget = (target / entry) * size; const exitFeeAtTarget = exitValueAtTarget * FEE_RATE; const estimated_total_fee = entryFee + exitFeeAtTarget; const expected_profit = potentialProfit - estimated_total_fee;
             const exitValueAtStop = (stoploss / entry) * size; const exitFeeAtStop = exitValueAtStop * FEE_RATE; const expected_loss = potentialLoss + entryFee + exitFeeAtStop;
+            
+            // **NEW:** Now, calculate RR using the fee-adjusted dollar values.
+            const rr = (expected_loss > 0) ? (expected_profit / expected_loss) : 0;
+
             const expected_profit_percent = (expected_profit / size) * 100; const expected_loss_percent = (expected_loss / size) * 100;
             return { rr: rr.toFixed(2), estimated_total_fee: estimated_total_fee, expected_profit: expected_profit, expected_loss: expected_loss, expected_profit_percent: expected_profit_percent, expected_loss_percent: expected_loss_percent };
         }
