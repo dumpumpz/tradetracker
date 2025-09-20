@@ -2725,7 +2725,7 @@
             }
         }
         
-        function renderVolumeProfileChart() {
+                function renderVolumeProfileChart() {
             const selectedSymbol = DOM.vpSymbolEl.value.replace('/', '-');
             const selectedLookback = DOM.vpLookbackEl.value;
             if (DOM.vpLastUpdatedTime) { DOM.vpLastUpdatedTime.textContent = STATE.vpData.last_updated ? new Date(STATE.vpData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--'; }
@@ -2752,7 +2752,13 @@
                 plugins: {
                     legend: { display: false },
                     title: { display: true, text: `${selectedSymbol} Volume Profile (${selectedLookback})`, font: { size: 18 } },
-                    tooltip: { callbacks: { title: (context) => `Price: ${formatCurrency(context[0].label)}`, label: (context) => `Volume: ${context.raw.toLocaleString(undefined, {maximumFractionDigits: 0})}` } },
+                    tooltip: { 
+                        callbacks: { 
+                            // FIX 1: Convert the label (which is a string) to a number before formatting
+                            title: (context) => `Price: ${formatCurrency(parseFloat(context[0].label))}`, // <-- FIX HERE
+                            label: (context) => `Volume: ${context.raw.toLocaleString(undefined, {maximumFractionDigits: 0})}` 
+                        } 
+                    },
                     annotation: {
                         annotations: {
                             pocLine: { type: 'line', yMin: point_of_control, yMax: point_of_control, borderColor: 'rgba(255, 193, 7, 1)', borderWidth: 2, borderDash: [6, 6], label: { content: `POC: ${formatCurrency(point_of_control)}`, enabled: true, position: 'start', backgroundColor: 'rgba(255, 193, 7, 0.8)', font: { weight: 'bold' } } },
@@ -2761,7 +2767,19 @@
                         }
                     }
                 },
-                scales: { y: { title: { display: true, text: 'Price (USD)' }, ticks: { callback: function(value, index, values) { return formatCurrency(this.getLabelForValue(value)); } } }, x: { title: { display: true, text: 'Volume' } } }
+                scales: { 
+                    y: { 
+                        title: { display: true, text: 'Price (USD)' }, 
+                        ticks: { 
+                            callback: function(value, index, values) {
+                                // FIX 2: Also convert the axis label string to a number for formatting
+                                const label = this.getLabelForValue(value);
+                                return formatCurrency(parseFloat(label)); // <-- FIX HERE
+                            } 
+                        } 
+                    }, 
+                    x: { title: { display: true, text: 'Volume' } } 
+                }
             };
             if (STATE.chartInstances.volumeProfileChart) {
                 const chart = STATE.chartInstances.volumeProfileChart;
