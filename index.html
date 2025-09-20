@@ -2329,20 +2329,19 @@
             <div id="vp-summary-container" class="setups-container" style="margin-top: 25px; display: none;">
     <h3 style="text-align: center; margin-top: 0; margin-bottom: 15px;">Volume Profile Key Levels Summary</h3>
     <div class="table-wrapper">
-        <table id="vp-summary-table" class="sr-table">
-            <thead>
-                <tr>
-                    <th style="text-align: left; padding-left: 15px;">Lookback</th>
-                    <th class="vp-poc-header">Point of Control (POC)</th>
-                    <th class="vp-va-header">Value Area (VA)</th>
-                    <th class="vp-hvn-header">Top High-Volume Node (HVN)</th>
-                    <th class="vp-lvn-header">Top Low-Volume Node (LVN)</th>
-                </tr>
-            </thead>
-            <tbody id="vp-summary-tbody">
-                <!-- Rows will be dynamically inserted here -->
-            </tbody>
-        </table>
+  <!-- REPLACE the existing vp-summary-table with this new one -->
+<table id="vp-summary-table" class="sr-table">
+    <thead>
+        <tr>
+            <th style="text-align: left; padding-left: 15px; width: 15%;">Lookback</th>
+            <th style="text-align: left; padding-left: 10px; width: 35%;">Level</th>
+            <th style="text-align: right; padding-right: 15px; width: 50%;">Price (% Away)</th>
+        </tr>
+    </thead>
+    <tbody id="vp-summary-tbody">
+        <!-- Rows will be dynamically inserted here -->
+    </tbody>
+</table>
     </div>
 </div>
             <div class="chart-container" style="height: 600px; max-height: 70vh;">
@@ -3395,13 +3394,17 @@
         }
 
                 // ADD THIS ENTIRE NEW FUNCTION
+              // REPLACE the old renderVolumeProfileSummaryTable function with this new one
         function renderVolumeProfileSummaryTable(symbol) {
             const summaryTbody = document.getElementById('vp-summary-tbody');
             const summaryContainer = document.getElementById('vp-summary-container');
             if (!summaryTbody || !summaryContainer) return;
 
-            const symbolData = STATE.vpData.data?.[symbol];
-            if (!symbolData || Object.keys(STATE.vpData.data).length === 0) {
+            const symbolVpData = STATE.vpData.data?.[symbol];
+            // Get current price from EMA data for context
+            const currentPrice = STATE.emaData?.data?.[symbol]?.['15min']?.price;
+
+            if (!symbolVpData || !currentPrice || Object.keys(STATE.vpData.data).length === 0) {
                 summaryContainer.style.display = 'none';
                 return;
             }
@@ -3409,48 +3412,74 @@
             const lookbackOptions = Array.from(document.getElementById('vp-lookback').options);
             const lookbacks = lookbackOptions.map(opt => ({ value: opt.value, text: opt.text }));
             
-            let rowsHtml = '';
-            lookbacks.forEach(lookback => {
-                const lookbackData = symbolData[lookback.value];
+            let allRowsHtml = '';
+
+            lookbacks.forEach((lookback, index) => {
+                const lookbackData = symbolVpData[lookback.value];
+                let levelsToShow = [];
 
                 if (lookbackData) {
-                    const poc = lookbackData.point_of_control ? Math.round(lookbackData.point_of_control).toLocaleString() : '--';
-                    const va = (lookbackData.value_area_low && lookbackData.value_area_high)
-                        ? `${Math.round(lookbackData.value_area_low).toLocaleString()} - ${Math.round(lookbackData.value_area_high).toLocaleString()}`
-                        : '--';
-                    
-                    // Find top HVN (highest volume)
-                    const topHVN = lookbackData.high_volume_nodes && lookbackData.high_volume_nodes.length > 0
-                        ? lookbackData.high_volume_nodes.sort((a, b) => b.volume - a.volume)[0]
-                        : null;
-                    const hvnText = topHVN ? Math.round(topHVN.price_level).toLocaleString() : '--';
+                    // Helper to find closest node above/below a price
+                    const findClosestNode = (nodes, price, findAbove) => {
+                        if (!nodes || nodes.length === 0) return null;
+                        const filteredNodes = findAbove 
+                            ? nodes.filter(n => n.price_level > price) 
+                            : nodes.filter(n => n.price_level < price);
+                        
+                        if (filteredNodes.length === 0) return null;
 
-                    // Find top LVN (lowest volume)
-                    const topLVN = lookbackData.low_volume_nodes && lookbackData.low_volume_nodes.length > 0
-                        ? lookbackData.low_volume_nodes.sort((a, b) => a.volume - b.volume)[0]
-                        : null;
-                    const lvnText = topLVN ? Math.round(topLVN.price_level).toLocaleString() : '--';
+                        return filteredNodes.reduce((closest, current) => 
+                            Math.abs(current.price_level - price) < Math.abs(closest.price_level - price) ? current : closest
+                        );
+                    };
+
+                    // Add core levels
+                    if (lookbackData.point_of_control) levelsToShow.push({ label: 'Point of Control (POC)', price: lookbackData.point_of_control });
+                    if (lookbackData.value_area_high) levelsToShow.push({ label: 'Value Area High (VAH)', price: lookbackData.value_area_high });
+                    if (lookbackData.value_area_low) levelsToShow.push({ label: 'Value Area Low (VAL)', price: lookbackData.value_area_low });
                     
-                    rowsHtml += `
-                        <tr>
-                            <td style="text-align: left; padding-left: 15px; font-weight: 500;">${lookback.text}</td>
-                            <td class="sr-center-price" style="color: #ffc107;">${poc}</td>
-                            <td class="sr-center-price">${va}</td>
-                            <td class="sr-center-price" style="color: var(--red-text);">${hvnText}</td>
-                            <td class="sr-center-price" style="color: var(--green-text);">${lvnText}</td>
-                        </tr>
-                    `;
-                } else {
-                     rowsHtml += `
-                        <tr>
-                            <td style="text-align: left; padding-left: 15px; font-weight: 500;">${lookback.text}</td>
-                            <td colspan="4" style="text-align: center; color: var(--subtle-text);">No data</td>
-                        </tr>
-                    `;
+                    // Find and add closest HVNs and LVNs
+                    const closestHVNAbove = findClosestNode(lookbackData.high_volume_nodes, currentPrice, true);
+                    if (closestHVNAbove) levelsToShow.push({ label: 'Closest HVN (Resistance)', price: closestHVNAbove.price_level });
+
+                    const closestHVNBelow = findClosestNode(lookbackData.high_volume_nodes, currentPrice, false);
+                    if (closestHVNBelow) levelsToShow.push({ label: 'Closest HVN (Support)', price: closestHVNBelow.price_level });
+
+                    const closestLVNAbove = findClosestNode(lookbackData.low_volume_nodes, currentPrice, true);
+                    if (closestLVNAbove) levelsToShow.push({ label: 'Closest LVN (Void)', price: closestLVNAbove.price_level });
+
+                    const closestLVNBelow = findClosestNode(lookbackData.low_volume_nodes, currentPrice, false);
+                    if (closestLVNBelow) levelsToShow.push({ label: 'Closest LVN (Void)', price: closestLVNBelow.price_level });
+
+                    // Sort levels by price, descending
+                    levelsToShow.sort((a, b) => b.price - a.price);
+                    
+                    if (levelsToShow.length > 0) {
+                        const firstRowOfGroup = levelsToShow.map((level, levelIndex) => {
+                            const isAbove = level.price > currentPrice;
+                            const priceClass = isAbove ? 'price-above' : 'price-below';
+                            const distPercent = (Math.abs(level.price - currentPrice) / currentPrice) * 100;
+
+                            // Add a border-top to the first row of each lookback group (except the very first one)
+                            const rowStyle = (index > 0 && levelIndex === 0) ? 'style="border-top: 2px solid var(--border-color);"' : '';
+
+                            return `
+                                <tr ${rowStyle}>
+                                    ${levelIndex === 0 ? `<td rowspan="${levelsToShow.length}" style="font-weight: 500; vertical-align: middle;">${lookback.text}</td>` : ''}
+                                    <td style="text-align: left; padding-left: 10px;">${level.label}</td>
+                                    <td class="sr-center-price ${priceClass}" style="text-align: right; padding-right: 15px;">
+                                        ${Math.round(level.price).toLocaleString()} 
+                                        <span style="font-size: 11px; color: var(--subtle-text); font-weight: normal;">(${distPercent.toFixed(2)}%)</span>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                        allRowsHtml += firstRowOfGroup;
+                    }
                 }
             });
 
-            summaryTbody.innerHTML = rowsHtml;
+            summaryTbody.innerHTML = allRowsHtml;
             summaryContainer.style.display = 'block';
             resizeParentCollapsible(summaryContainer);
         }
