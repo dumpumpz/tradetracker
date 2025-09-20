@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Trade & Journal Tracker</title>
-    <!-- ADD THESE TWO LINES -->
+    <!-- ADD THESE LINES -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <!-- ADD THIS NEW SCRIPT TAG FOR ANNOTATIONS -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
     <style>
         :root {
             --bg-color: #f4f7f6;
@@ -756,22 +758,22 @@
         }
 
        .modal-overlay {
-    position: fixed;
-    z-index: 2000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.85);
-    display: flex;
-    flex-direction: column;   /* <--- ADD THIS LINE */
-    justify-content: center;
-    align-items: center;      /* <--- CHANGE THIS LINE */
-    padding: 20px 0;
-    overflow-y: auto;
-    animation-name: fadeIn;
-    animation-duration: 0.3s;
-}
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 0;
+            overflow-y: auto;
+            animation-name: fadeIn;
+            animation-duration: 0.3s;
+        }
         #image-modal .modal-content {
             margin: auto;
             display: block;
@@ -1272,15 +1274,15 @@
             outline: none;
             border-bottom-color: var(--link-color);
         }
-      #note-modal-content {
-        flex-grow: 1;
-        font-size: 16px;
-        line-height: 1.7;
-        border: 1px solid var(--border-color);
-        padding: 15px;
-        resize: none;
-        overflow-y: auto; /* <--- THIS IS THE FIX */
-      }
+        #note-modal-content {
+            flex-grow: 1;
+            font-size: 16px;
+            line-height: 1.7;
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            resize: none;
+            overflow-y: auto;
+        }
         .note-modal-actions {
             margin-top: 20px;
             text-align: right;
@@ -1297,7 +1299,7 @@
         .key-open-note-cell {
             padding-left: 15px;
         }
-             .key-open-note {
+        .key-open-note {
             width: 100%;
             padding: 4px 6px;
             font-size: 12px;
@@ -1532,6 +1534,217 @@
           opacity: 1;
         }
         
+        /* --- NEW STYLES FOR HISTORICAL CHARTS --- */
+        #charts-tab .chart-container,
+        #options-oi-tab .chart-container {
+            position: relative;
+            margin: 0 auto 40px auto;
+            padding: 20px;
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            max-width: 1200px;
+            
+        }
+        #charts-tab #last-updated-charts,
+        #options-oi-tab #last-updated-charts {
+            text-align: center; 
+            color: var(--subtle-text); 
+            margin-top: 0;
+            margin-bottom: 20px; 
+        }
+
+        /* --- NEW STYLES FOR VOLUME PROFILE TAB --- */
+        #volume-profile-tab .chart-container {
+            padding: 10px;
+        }
+        #volume-profile-tab .controls-container {
+            margin-bottom: 5px;
+            padding: 10px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        /* --- STYLES FOR TWO-COLUMN OPTIONS VIEW --- */
+        #options-snapshot-container {
+            display: flex;
+            gap: 20px;
+            align-items: stretch;
+        }
+
+        .options-json-wrapper {
+            flex: 1;
+            width: 50%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .options-json-wrapper h3 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--subtle-text);
+        }
+
+        .options-json-wrapper pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 13px;
+            flex-grow: 1;
+            overflow: auto;
+            margin: 0;
+        }
+
+        .copy-json-btn {
+            position: absolute;
+            top: 35px;
+            right: 15px;
+            z-index: 10;
+            padding: 5px 10px;
+            font-size: 12px;
+            background-color: var(--header-bg);
+            border: 1px solid var(--border-color);
+            color: var(--subtle-text);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .copy-json-btn:hover {
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
+
+        /* --- NEW STYLES FOR CALCULATOR TAB --- */
+        #calculator-tab .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+        #calculator-tab .radio-group {
+            display: flex;
+            gap: 10px;
+        }
+        #calculator-tab .radio-group label {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #calculator-tab .radio-group input[type="radio"] {
+            display: none;
+        }
+        #calculator-tab .radio-group input[type="radio"]:checked + label {
+            background-color: var(--link-color);
+            color: white;
+            border-color: var(--link-color);
+        }
+        #calculator-tab .result-display {
+            text-align: center;
+            font-size: 14px;
+            color: var(--subtle-text);
+            margin: 15px 0;
+        }
+        #calculator-tab .result-display span {
+            font-weight: bold;
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #calculator-tab .quick-fill-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        #calculator-tab .quick-fill-group button {
+            flex: 1;
+            min-width: 60px;
+            margin-top: 0;
+            padding: 6px 10px;
+            font-size: 12px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--subtle-text);
+        }
+        #calculator-tab .quick-fill-group button:hover {
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
+        #calculator-tab .targets-table th, 
+        #calculator-tab .targets-table td {
+            padding: 8px;
+            font-size: 13px;
+            text-align: right;
+            vertical-align: middle;
+        }
+        #calculator-tab .targets-table th:first-child,
+        #calculator-tab .targets-table td:first-child {
+            text-align: left;
+        }
+        #calculator-tab .targets-table input[type="number"] {
+            padding: 6px;
+            text-align: right;
+        }
+        #calculator-tab .remove-row-btn {
+            background-color: transparent;
+            border: none;
+            color: var(--red-text);
+            font-weight: bold;
+            font-size: 18px;
+            padding: 0 5px;
+            cursor: pointer;
+            margin: 0;
+            opacity: 0.7;
+        }
+        #calculator-tab .remove-row-btn:hover {
+            opacity: 1;
+        }
+        #calculator-tab .risk-sizer-instance {
+            position: relative;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: var(--bg-color);
+        }
+        #calculator-tab .risk-sizer-output {
+            text-align: center;
+            margin-top: 15px;
+        }
+        #calculator-tab .risk-sizer-output .label {
+            font-size: 13px;
+            color: var(--subtle-text);
+        }
+        #calculator-tab .risk-sizer-output .value {
+            display: block;
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 4px;
+            color: var(--green-text);
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #calculator-tab .risk-sizer-output .sub-value {
+            font-size: 13px;
+            font-weight: normal;
+            color: var(--red-text);
+        }
+        #calculator-tab .remove-sizer-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -1600,402 +1813,11 @@
                 grid-template-columns: 1fr;
                 gap: 25px;
             }
-        }
-
-
-
-
-        /* --- NEW STYLES FOR OPTIONS OI DASHBOARD --- */
-        #options-oi-tab .oi-global-metrics {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 20px;
-            padding: 15px;
-            margin-bottom: 25px;
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            text-align: center;
-        }
-        .oi-global-metric { font-size: 14px; }
-        .oi-global-metric .label { color: var(--subtle-text); display: block; font-size: 12px; margin-bottom: 4px; }
-        .oi-global-metric .value { font-weight: 600; font-size: 16px; font-family: 'Courier New', Courier, monospace; }
-        .oi-global-metric .value.pcr-bearish { color: var(--red-text); }
-        .oi-global-metric .value.pcr-bullish { color: var(--green-text); }
-
-        .oi-dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 20px;
-        }
-        .oi-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 1px 4px var(--shadow-color);
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-        .oi-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 10px var(--shadow-color);
-        }
-        .oi-card-header {
-            padding: 12px 15px;
-            background-color: var(--header-bg);
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .oi-card-header h3 {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 600;
-        }
-        .oi-card-header .oi-type-pill { margin-left: 10px; }
-        .oi-card-body {
-            padding: 15px;
-            flex-grow: 1;
-        }
-        .oi-metric-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .oi-metric-item {
-            text-align: center;
-            padding: 10px;
-            background-color: var(--bg-color);
-            border-radius: 6px;
-        }
-        .oi-metric-item .label {
-            font-size: 11px;
-            color: var(--subtle-text);
-            text-transform: uppercase;
-            margin-bottom: 4px;
-            display: block;
-        }
-        .oi-metric-item .value {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-color);
-        }
-        .oi-section-title {
-            font-size: 14px;
-            font-weight: 500;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--subtle-text);
-        }
-        .oi-walls-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        .wall-column h4 {
-            margin: 0 0 8px 0;
-            font-size: 13px;
-            text-align: center;
-        }
-        .wall-column.calls h4 { color: var(--red-text); }
-        .wall-column.puts h4 { color: var(--green-text); }
-        .wall-item {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            padding: 4px 0;
-            border-bottom: 1px solid var(--header-bg);
-        }
-        .wall-item:last-child { border-bottom: none; }
-        .wall-item .strike { font-weight: bold; font-family: 'Courier New', Courier, monospace; }
-        .wall-item .oi { color: var(--subtle-text); }
-        .gamma-zone-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 5px;
-            font-size: 12px;
-        }
-        .gamma-zone-table th, .gamma-zone-table td {
-            padding: 6px;
-            text-align: right;
-            border-bottom: 1px solid var(--header-bg);
-        }
-        .gamma-zone-table th { font-weight: 500; color: var(--subtle-text); }
-        .gamma-zone-table tr:last-child td { border-bottom: none; }
-        .gamma-zone-table .strike { font-weight: bold; font-family: 'Courier New', Courier, monospace; }
-        .oi-type-pill {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            text-align: center;
-            min-width: 80px;
-        }
-        .oi-type-quarterly { background-color: #ffc107; color: #333; }
-        .oi-type-monthly { background-color: var(--link-color); color: white; }
-        .oi-type-weekly { background-color: var(--card-bg); color: var(--subtle-text); border: 1px solid var(--border-color); }
-        .oi-type-daily { background-color: var(--header-bg); color: var(--subtle-text); }
-        .oi-card .tooltip {
-          position: relative;
-          display: inline-block;
-          cursor: help;
-          border-bottom: 1px dotted var(--subtle-text);
-        }
-        .oi-card .tooltip .tooltiptext {
-          visibility: hidden;
-          width: 250px;
-          background-color: var(--header-bg);
-          color: var(--text-color);
-          text-align: left;
-          border-radius: 6px;
-          padding: 8px;
-          position: absolute;
-          z-index: 1;
-          bottom: 125%;
-          left: 50%;
-          margin-left: -125px;
-          opacity: 0;
-          transition: opacity 0.3s;
-          border: 1px solid var(--border-color);
-          box-shadow: 0 2px 5px var(--shadow-color);
-          font-size: 12px;
-          line-height: 1.5;
-        }
-        .oi-card .tooltip:hover .tooltiptext {
-          visibility: visible;
-          opacity: 1;
-        }
-
-        /* --- NEW STYLES FOR HISTORICAL CHARTS --- */
-        #charts-tab .chart-container {
-            position: relative;
-            margin: 0 auto 40px auto;
-            padding: 20px;
-            background-color: var(--container-bg);
-            border-radius: 8px;
-            box-shadow: 0 4px 6px var(--shadow-color);
-            max-width: 1200px;
-        }
-        #charts-tab #last-updated-charts { text-align: center; color: var(--subtle-text); margin-top: -10px; margin-bottom: 20px; }
-
-
-                /* --- NEW STYLES FOR HISTORICAL CHARTS --- */
-        #charts-tab .chart-container,
-        #options-oi-tab .chart-container { /* <--- ADD THIS LINE */
-            position: relative;
-            margin: 0 auto 40px auto;
-            padding: 20px;
-            background-color: var(--container-bg);
-            border-radius: 8px;
-            box-shadow: 0 4px 6px var(--shadow-color);
-            max-width: 1200px;
-            
-        }
-        #charts-tab #last-updated-charts,
-        #options-oi-tab #last-updated-charts { /* <--- ADD THIS LINE */
-            text-align: center; 
-            color: var(--subtle-text); 
-            margin-top: 0; /* Changed from -10px */
-            margin-bottom: 20px; 
-        }
-
-        @media (max-width: 768px) { 
-            /* ... your other mobile styles ... */
-
-            /* ADD THIS NEW RULE FOR THE CHARTS */
             #options-oi-tab .chart-container {
-                aspect-ratio: 1 / 1.1; /* Makes the chart nearly square (width / height) */
-                min-height: 350px; /* Optional: ensures it's never TOO small */
+                aspect-ratio: 1 / 1.1;
+                min-height: 350px;
             }
         }
-
- /* --- STYLES FOR TWO-COLUMN OPTIONS VIEW --- */
-#options-snapshot-container {
-    display: flex;
-    gap: 20px; /* spacing between the boxes */
-    align-items: stretch; /* Make columns equal height */
-}
-
-.options-json-wrapper {
-    flex: 1; /* each takes up equal space */
-    width: 50%;
-    position: relative; /* for positioning the copy button */
-    display: flex;
-    flex-direction: column;
-}
-
-.options-json-wrapper h3 {
-    text-align: center;
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--subtle-text);
-}
-
-.options-json-wrapper pre {
-    white-space: pre-wrap;
-    word-break: break-all;
-    background-color: var(--card-bg);
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    font-size: 13px;
-    flex-grow: 1; /* take remaining vertical space */
-    overflow: auto; /* scroll if needed */
-    margin: 0;
-}
-
-.copy-json-btn {
-    position: absolute;
-    top: 35px; /* Positioned below the title */
-    right: 15px;
-    z-index: 10;
-    padding: 5px 10px;
-    font-size: 12px;
-    background-color: var(--header-bg);
-    border: 1px solid var(--border-color);
-    color: var(--subtle-text);
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.copy-json-btn:hover {
-    border-color: var(--link-color);
-    color: var(--link-color);
-}
-
-/* --- NEW STYLES FOR CALCULATOR TAB --- */
-#calculator-tab .calculator-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    align-items: end;
-}
-#calculator-tab .radio-group {
-    display: flex;
-    gap: 10px;
-}
-#calculator-tab .radio-group label {
-    flex: 1;
-    text-align: center;
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-#calculator-tab .radio-group input[type="radio"] {
-    display: none;
-}
-#calculator-tab .radio-group input[type="radio"]:checked + label {
-    background-color: var(--link-color);
-    color: white;
-    border-color: var(--link-color);
-}
-#calculator-tab .result-display {
-    text-align: center;
-    font-size: 14px;
-    color: var(--subtle-text);
-    margin: 15px 0;
-}
-#calculator-tab .result-display span {
-    font-weight: bold;
-    color: var(--text-color);
-    font-family: 'Courier New', Courier, monospace;
-}
-#calculator-tab .quick-fill-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-#calculator-tab .quick-fill-group button {
-    flex: 1;
-    min-width: 60px;
-    margin-top: 0;
-    padding: 6px 10px;
-    font-size: 12px;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    color: var(--subtle-text);
-}
-#calculator-tab .quick-fill-group button:hover {
-    border-color: var(--link-color);
-    color: var(--link-color);
-}
-#calculator-tab .targets-table th, 
-#calculator-tab .targets-table td {
-    padding: 8px;
-    font-size: 13px;
-    text-align: right;
-    vertical-align: middle;
-}
-#calculator-tab .targets-table th:first-child,
-#calculator-tab .targets-table td:first-child {
-    text-align: left;
-}
-#calculator-tab .targets-table input[type="number"] {
-    padding: 6px;
-    text-align: right;
-}
-#calculator-tab .remove-row-btn {
-    background-color: transparent;
-    border: none;
-    color: var(--red-text);
-    font-weight: bold;
-    font-size: 18px;
-    padding: 0 5px;
-    cursor: pointer;
-    margin: 0;
-    opacity: 0.7;
-}
-#calculator-tab .remove-row-btn:hover {
-    opacity: 1;
-}
-#calculator-tab .risk-sizer-instance {
-    position: relative;
-    border: 1px dashed var(--border-color);
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    background-color: var(--bg-color);
-}
-#calculator-tab .risk-sizer-output {
-    text-align: center;
-    margin-top: 15px;
-}
-#calculator-tab .risk-sizer-output .label {
-    font-size: 13px;
-    color: var(--subtle-text);
-}
-#calculator-tab .risk-sizer-output .value {
-    display: block;
-    font-size: 20px;
-    font-weight: bold;
-    margin-top: 4px;
-    color: var(--green-text);
-    font-family: 'Courier New', Courier, monospace;
-}
-#calculator-tab .risk-sizer-output .sub-value {
-    font-size: 13px;
-    font-weight: normal;
-    color: var(--red-text);
-}
-#calculator-tab .remove-sizer-btn {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-}
-
     </style>
 </head>
 <body>
@@ -2041,6 +1863,7 @@
             <button class="tab-link active" data-tab="tracker">Trade Tracker</button>
             <button class="tab-link" data-tab="journal">Journal & Setups</button>
             <button class="tab-link" data-tab="sr-levels">S/R Levels</button>
+            <button class="tab-link" data-tab="volume-profile">Volume Profile</button>
             <button class="tab-link" data-tab="charts">Charts</button>
             <button class="tab-link" data-tab="notes">Notes</button>
             <button class="tab-link" data-tab="options-oi">Options OI</button>
@@ -2215,21 +2038,19 @@
                 </div>
             </div>
 
-            <!-- Trading Setups Section (Combined) -->
         <!-- Trading Setups Section (Combined) -->
-<div class="collapsible-section">
-    <div class="collapsible-header">
-        <h2>Trading Setups</h2>
-        <button class="collapsible-toggle-btn">+</button>
-    </div>
-    <div class="collapsible-content">
-        <div class="collapsible-content-inner">
-            <!-- This is correct. No save buttons or status elements. -->
-            <textarea id="primary-setups-notes" class="setups-notes-area" placeholder=""></textarea>
-            <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder=""></textarea>
+        <div class="collapsible-section">
+            <div class="collapsible-header">
+                <h2>Trading Setups</h2>
+                <button class="collapsible-toggle-btn">+</button>
+            </div>
+            <div class="collapsible-content">
+                <div class="collapsible-content-inner">
+                    <textarea id="primary-setups-notes" class="setups-notes-area" placeholder=""></textarea>
+                    <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder=""></textarea>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
             <!-- Setups Image Library Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -2475,6 +2296,35 @@
             
         </div>
 
+        <!-- NEW VOLUME PROFILE TAB -->
+        <div id="volume-profile-tab" class="tab-content">
+            <div class="controls-container">
+                <div>
+                    <label for="vp-symbol">Symbol:</label>
+                    <select id="vp-symbol">
+                        <option value="BTC-USDT">BTC/USDT</option>
+                        <option value="ETH-USDT">ETH/USDT</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="vp-lookback">Lookback:</label>
+                    <select id="vp-lookback">
+                        <option value="60d">60 Days</option>
+                        <option value="30d">30 Days</option>
+                        <option value="21d">21 Days</option>
+                        <option value="14d">14 Days</option>
+                        <option value="7d">7 Days</option>
+                        <option value="3d">3 Days</option>
+                        <option value="2d">2 Days</option>
+                    </select>
+                </div>
+            </div>
+            <p class="ema-last-updated">Last Updated: <span id="vp-last-updated-time">--</span></p>
+            <div class="chart-container" style="height: 600px; max-height: 70vh;">
+                <canvas id="volumeProfileChart"></canvas>
+            </div>
+        </div>
+
         <div id="charts-tab" class="tab-content">
             <!-- CHART LIBRARY 2 SECTION -->
             <div class="collapsible-section">
@@ -2652,9 +2502,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
-
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
 
         // --- CONFIGURATION ---
         const CONFIG = {
@@ -2663,7 +2512,7 @@
                 authDomain: "journal-a003f.firebaseapp.com",
                 databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
                 projectId: "journal-a003f",
-                storageBucket: "journal-a003f.firebasestorage.app",
+                storageBucket: "journal-a003f.appspot.com",
                 messagingSenderId: "1038636626553",
                 appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
             },
@@ -2730,10 +2579,8 @@
             createNewNoteBtn: document.getElementById('create-new-note-btn'),
             notesContainer: document.getElementById('notes-container'),
             persistentNotesEl: document.getElementById('persistent-notes-entry'),
-
             primarySetupsNotes: document.getElementById('primary-setups-notes'),
             secondarySetupsNotes: document.getElementById('secondary-setups-notes'),
-
             journalSymbolEl: document.getElementById('journal-symbol'),
             journalTimeframeEl: document.getElementById('journal-timeframe'),
             journalImageFilterEl: document.getElementById('journal-image-filter'),
@@ -2765,7 +2612,11 @@
             noteModalContent: document.getElementById('note-modal-content'),
             noteModalClose: document.getElementById('note-modal-close'),
             optionsOiTab: document.getElementById('options-oi-tab'),
-            // NEW CALCULATOR DOM ELEMENTS
+            volumeProfileTab: document.getElementById('volume-profile-tab'),
+            vpSymbolEl: document.getElementById('vp-symbol'),
+            vpLookbackEl: document.getElementById('vp-lookback'),
+            vpLastUpdatedTime: document.getElementById('vp-last-updated-time'),
+            volumeProfileChartCanvas: document.getElementById('volumeProfileChart'),
             calculatorTab: document.getElementById('calculator-tab'),
             calcEntryPrice: document.getElementById('calc-entry-price'),
             calcPositionSize: document.getElementById('calc-position-size'),
@@ -2781,9 +2632,7 @@
 
         // --- APPLICATION STATE ---
         const STATE = {
-            isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, marketOpens: {}, journalText: {}, journalImages: {}, chartLibrary2Data: {}, currentCl2Folder: null, emaData: {}, srData: {}, favouriteEntries: {}, persistentNotes: '', trackerScratchpadText: '', setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, trackerSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null }, levelNotes: {}, levelNotesSaveTimer: null, allSentimentReceipts: {}, sentimentShowAll: false, sentimentCurrentPage: 1, sentimentItemsPerPage: 15,
-            
-            // --- NEW: Object to hold persistent chart instances ---
+            isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, marketOpens: {}, journalText: {}, journalImages: {}, chartLibrary2Data: {}, currentCl2Folder: null, emaData: {}, srData: {}, vpData: {}, favouriteEntries: {}, persistentNotes: '', trackerScratchpadText: '', setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, trackerSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null }, levelNotes: {}, levelNotesSaveTimer: null, allSentimentReceipts: {}, sentimentShowAll: false, sentimentCurrentPage: 1, sentimentItemsPerPage: 15,
             chartInstances: {}
         };
 
@@ -2812,112 +2661,115 @@
         async function fetchMarketOpens() { try { const response = await fetch(`market_opens.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.marketOpens = await response.json(); renderMarketOpens(); } catch (error) { console.error("Could not fetch market_opens.json:", error); } }
         async function fetchCrossoverSignalData() { const signalJsonUrl = 'crypto_signals.json'; try { const response = await fetch(`${signalJsonUrl}?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); renderCrossoverSignals(data); } catch (error) { console.error("Could not fetch or parse crossover signal data:", error); const ethContainer = document.getElementById('eth-crossover-signal-container'); const btcContainer = document.getElementById('btc-crossover-signal-container'); const errorMsg = '<p style="color: red; text-align: center;">Error loading signal data.</p>'; if (ethContainer) ethContainer.innerHTML = errorMsg; if (btcContainer) btcContainer.innerHTML = errorMsg; const lastUpdatedEl = document.getElementById('crossover-signals-last-updated'); if(lastUpdatedEl) lastUpdatedEl.textContent = 'Failed to load data.'; } }
         
-             async function fetchAndRenderOptionsData() {
-    if (!DOM.optionsOiTab) return;
-    
-    const jsonSources = [
-        { file: 'deribit_options_eth_analysis.json', title: 'ETH Options Analysis' },
-        { file: 'deribit_options_btc_analysis.json', title: 'BTC Options Analysis' }
-    ];
-    
-    const container = document.getElementById('options-snapshot-container');
-    // Set a loading message while fetching
-    container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>`;
+        async function fetchAndRenderOptionsData() {
+            if (!DOM.optionsOiTab) return;
+            const jsonSources = [ { file: 'deribit_options_eth_analysis.json', title: 'ETH Options Analysis' }, { file: 'deribit_options_btc_analysis.json', title: 'BTC Options Analysis' } ];
+            const container = document.getElementById('options-snapshot-container');
+            container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>`;
+            try {
+                const responses = await Promise.all( jsonSources.map(src => fetch(`${src.file}?cache_bust=${new Date().getTime()}`)) );
+                for (const response of responses) { if (!response.ok) { throw new Error(`HTTP error! status: ${response.status} for ${response.url}`); } }
+                const jsonDataTexts = await Promise.all(responses.map(res => res.text()));
+                container.innerHTML = '';
+                jsonDataTexts.forEach((text, index) => {
+                    const source = jsonSources[index];
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'options-json-wrapper';
+                    const titleElement = document.createElement('h3');
+                    titleElement.textContent = source.title;
+                    const preElement = document.createElement('pre');
+                    try { const jsonData = JSON.parse(text); preElement.textContent = JSON.stringify(jsonData, null, 2); } catch (parseError) { console.error(`Error parsing JSON from ${source.file}:`, parseError); preElement.textContent = `Error: Could not parse JSON from ${source.file}.`; preElement.style.color = 'var(--red-text)'; }
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'copy-json-btn'; copyButton.textContent = 'Copy';
+                    copyButton.addEventListener('click', () => { navigator.clipboard.writeText(preElement.textContent).then(() => { copyButton.textContent = 'Copied!'; setTimeout(() => { copyButton.textContent = 'Copy'; }, 2000); }).catch(err => { console.error('Failed to copy text: ', err); }); });
+                    wrapper.appendChild(titleElement);
+                    wrapper.appendChild(copyButton);
+                    wrapper.appendChild(preElement);
+                    container.appendChild(wrapper);
+                });
+            } catch (error) { console.error("Could not fetch or display options JSON data:", error); container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Please check the console.</p>`; }
+        }
 
-    try {
-        // Fetch both files concurrently
-        const responses = await Promise.all(
-            jsonSources.map(src => fetch(`${src.file}?cache_bust=${new Date().getTime()}`))
-        );
-
-        // Check if any response failed
-        for (const response of responses) {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status} for ${response.url}`);
+        async function fetchVolumeProfileData() {
+            try {
+                const response = await fetch(`volume_profile_analysis.json?cache_bust=${new Date().getTime()}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                STATE.vpData = await response.json();
+                if (DOM.volumeProfileTab.classList.contains('active')) {
+                    renderVolumeProfileChart();
+                }
+            } catch (error) {
+                console.error("Could not fetch volume_profile_analysis.json:", error);
+                if (DOM.volumeProfileChartCanvas) {
+                    const ctx = DOM.volumeProfileChartCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, DOM.volumeProfileChartCanvas.width, DOM.volumeProfileChartCanvas.height);
+                    ctx.fillStyle = 'red';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Error loading Volume Profile data.', DOM.volumeProfileChartCanvas.width / 2, DOM.volumeProfileChartCanvas.height / 2);
+                }
             }
         }
 
-        const jsonDataTexts = await Promise.all(responses.map(res => res.text()));
-
-        container.innerHTML = ''; // Clear loading message
-
-        // Create a display box for each JSON file
-        jsonDataTexts.forEach((text, index) => {
-            const source = jsonSources[index];
-
-            const wrapper = document.createElement('div');
-            wrapper.className = 'options-json-wrapper';
-
-            const titleElement = document.createElement('h3');
-            titleElement.textContent = source.title;
-
-            const preElement = document.createElement('pre');
-            try {
-                const jsonData = JSON.parse(text);
-                preElement.textContent = JSON.stringify(jsonData, null, 2); 
-            } catch (parseError) {
-                console.error(`Error parsing JSON from ${source.file}:`, parseError);
-                preElement.textContent = `Error: Could not parse JSON from ${source.file}.`;
-                preElement.style.color = 'var(--red-text)';
-            }
-            
-            const copyButton = document.createElement('button');
-            copyButton.className = 'copy-json-btn';
-            copyButton.textContent = 'Copy';
-            copyButton.addEventListener('click', () => {
-                navigator.clipboard.writeText(preElement.textContent).then(() => {
-                    copyButton.textContent = 'Copied!';
-                    setTimeout(() => { copyButton.textContent = 'Copy'; }, 2000);
-                }).catch(err => {
-                    console.error('Failed to copy text: ', err);
-                });
-            });
-
-            wrapper.appendChild(titleElement);
-            wrapper.appendChild(copyButton);
-            wrapper.appendChild(preElement);
-
-            container.appendChild(wrapper);
-        });
-
-    } catch (error) {
-        console.error("Could not fetch or display options JSON data:", error);
-        container.innerHTML = `<p style="text-align: center; padding: 40px; color: var(--red-text);">Error loading options data. Please check the console.</p>`;
-    }
-}
-        
-        // --- NEW, ROBUST CHART RENDERING FUNCTION ---
+        // --- RENDERING FUNCTIONS ---
         function renderOrUpdateChart(canvasId, type, chartData, titleText, scalesConfig = {}, pluginsConfig = {}) {
             const ctx = document.getElementById(canvasId);
             if (!ctx) return;
-
-            const chartOptions = {
-                responsive: true,
-                maintainAspectRatio: false, // This is key for mobile sizing
-                plugins: {
-                    title: { display: true, text: titleText, font: { size: 18 } },
-                    ...pluginsConfig
-                },
-                scales: {
-                    x: { type: 'time', time: { unit: 'hour', tooltipFormat: 'MMM dd, yyyy HH:mm', displayFormats: { hour: 'HH:mm' } }, title: { display: true, text: 'Time (UTC)' } },
-                    ...scalesConfig
-                }
-            };
-
-            // Check if a chart instance already exists in our persistent state object
+            const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: titleText, font: { size: 18 } }, ...pluginsConfig }, scales: { x: { type: 'time', time: { unit: 'hour', tooltipFormat: 'MMM dd, yyyy HH:mm', displayFormats: { hour: 'HH:mm' } }, title: { display: true, text: 'Time (UTC)' } }, ...scalesConfig } };
             if (STATE.chartInstances[canvasId]) {
-                // If it exists, just update its data and options, then call update()
                 const chart = STATE.chartInstances[canvasId];
                 chart.data = chartData;
                 chart.options = chartOptions;
                 chart.update();
             } else {
-                // If it doesn't exist, create it for the first time and store it
-                STATE.chartInstances[canvasId] = new Chart(ctx, {
-                    type,
-                    data: chartData,
-                    options: chartOptions
-                });
+                STATE.chartInstances[canvasId] = new Chart(ctx, { type, data: chartData, options: chartOptions });
+            }
+        }
+        
+        function renderVolumeProfileChart() {
+            const selectedSymbol = DOM.vpSymbolEl.value.replace('/', '-');
+            const selectedLookback = DOM.vpLookbackEl.value;
+            if (DOM.vpLastUpdatedTime) { DOM.vpLastUpdatedTime.textContent = STATE.vpData.last_updated ? new Date(STATE.vpData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--'; }
+            const profileData = STATE.vpData?.data?.[selectedSymbol]?.[selectedLookback];
+            if (!profileData || !profileData.full_profile) {
+                console.warn(`No volume profile data for ${selectedSymbol} ${selectedLookback}`);
+                if (STATE.chartInstances.volumeProfileChart) { STATE.chartInstances.volumeProfileChart.destroy(); delete STATE.chartInstances.volumeProfileChart; }
+                const ctx = DOM.volumeProfileChartCanvas.getContext('2d');
+                ctx.clearRect(0, 0, DOM.volumeProfileChartCanvas.width, DOM.volumeProfileChartCanvas.height);
+                return;
+            }
+            const { point_of_control, value_area_low, value_area_high, full_profile } = profileData;
+            const labels = full_profile.map(item => item.price_level);
+            const volumes = full_profile.map(item => item.volume);
+            const backgroundColors = labels.map(price => {
+                if (price >= value_area_low && price <= value_area_high) { return 'rgba(88, 166, 255, 0.4)'; }
+                return 'rgba(136, 136, 136, 0.4)';
+            });
+            const pocIndex = labels.findIndex(label => label === point_of_control);
+            if (pocIndex !== -1) { backgroundColors[pocIndex] = 'rgba(255, 193, 7, 0.7)'; }
+            const chartData = { labels: labels, datasets: [{ label: `${selectedSymbol} Volume Profile (${selectedLookback})`, data: volumes, backgroundColor: backgroundColors, borderColor: backgroundColors.map(c => c.replace('0.4', '1').replace('0.7', '1')), borderWidth: 1 }] };
+            const chartOptions = {
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: `${selectedSymbol} Volume Profile (${selectedLookback})`, font: { size: 18 } },
+                    tooltip: { callbacks: { title: (context) => `Price: ${formatCurrency(context[0].label)}`, label: (context) => `Volume: ${context.raw.toLocaleString(undefined, {maximumFractionDigits: 0})}` } },
+                    annotation: {
+                        annotations: {
+                            pocLine: { type: 'line', yMin: point_of_control, yMax: point_of_control, borderColor: 'rgba(255, 193, 7, 1)', borderWidth: 2, borderDash: [6, 6], label: { content: `POC: ${formatCurrency(point_of_control)}`, enabled: true, position: 'start', backgroundColor: 'rgba(255, 193, 7, 0.8)', font: { weight: 'bold' } } },
+                            vaHighLine: { type: 'line', yMin: value_area_high, yMax: value_area_high, borderColor: 'rgba(220, 53, 69, 0.7)', borderWidth: 1, borderDash: [2, 2], label: { content: `VAH: ${formatCurrency(value_area_high)}`, enabled: true, position: 'start', backgroundColor: 'rgba(220, 53, 69, 0.7)', font: { size: 10 } } },
+                            vaLowLine: { type: 'line', yMin: value_area_low, yMax: value_area_low, borderColor: 'rgba(40, 167, 69, 0.7)', borderWidth: 1, borderDash: [2, 2], label: { content: `VAL: ${formatCurrency(value_area_low)}`, enabled: true, position: 'end', backgroundColor: 'rgba(40, 167, 69, 0.7)', font: { size: 10 } } }
+                        }
+                    }
+                },
+                scales: { y: { title: { display: true, text: 'Price (USD)' }, ticks: { callback: function(value, index, values) { return formatCurrency(this.getLabelForValue(value)); } } }, x: { title: { display: true, text: 'Volume' } } }
+            };
+            if (STATE.chartInstances.volumeProfileChart) {
+                const chart = STATE.chartInstances.volumeProfileChart;
+                chart.data = chartData;
+                chart.options = chartOptions;
+                chart.update();
+            } else {
+                 STATE.chartInstances.volumeProfileChart = new Chart(DOM.volumeProfileChartCanvas, { type: 'bar', data: chartData, options: chartOptions });
             }
         }
 
@@ -2926,41 +2778,31 @@
                 const response = await fetch('historical_market_data.json?v=' + new Date().getTime());
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-                
                 const lastUpdatedEl = document.getElementById('last-updated-charts');
                 if (data.length === 0) { lastUpdatedEl.innerText = 'No historical data. Run the Python script.'; return; }
                 lastUpdatedEl.innerText = `Last updated: ${new Date(data[data.length - 1].timestamp).toLocaleString()}`;
-
                 const labels = data.map(d => new Date(d.timestamp));
                 const btcPrice = data.map(d => d.btc_price);
                 const totalOI = data.map(d => d.total_open_interest_btc);
                 const totalVolume = data.map(d => d.total_volume_24h_btc);
                 const pcr = data.map(d => d.pcr_by_volume);
                 const shortGamma = data.map(d => d.total_short_gamma);
-
                 renderOrUpdateChart('priceChart', 'line', { labels, datasets: [{ label: 'BTC Price (USD)', data: btcPrice, borderColor: 'rgb(249, 115, 22)', yAxisID: 'yPrice' }, { label: 'Total Short Gamma', data: shortGamma, borderColor: 'rgb(59, 130, 246)', yAxisID: 'yGamma' }] }, 'Price and Gamma Exposure', { yPrice: { type: 'linear', position: 'left', title: { display: true, text: 'BTC Price' } }, yGamma: { type: 'linear', position: 'right', title: { display: true, text: 'Total Short Gamma' }, grid: { drawOnChartArea: false } } });
                 renderOrUpdateChart('oiVolumeChart', 'bar', { labels, datasets: [{ label: 'Total OI (BTC)', data: totalOI, type: 'line', borderColor: 'rgb(22, 163, 74)', yAxisID: 'yOI' }, { label: 'Total 24h Volume (BTC)', data: totalVolume, backgroundColor: 'rgba(168, 85, 247, 0.5)', yAxisID: 'yVolume' }] }, 'Open Interest and 24h Volume', { yOI: { type: 'linear', position: 'left', title: { display: true, text: 'Open Interest' } }, yVolume: { type: 'linear', position: 'right', title: { display: true, text: '24h Volume' }, grid: { drawOnChartArea: false } } });
                 renderOrUpdateChart('sentimentChart', 'line', { labels, datasets: [{ label: 'P/C Ratio (Volume)', data: pcr, borderColor: 'rgb(220, 38, 38)' }] }, 'Market Sentiment (Put/Call Ratio)');
-
                 const allStrikeKeys = new Set();
                 data.forEach(entry => { if (entry.per_strike_gamma) { Object.keys(entry.per_strike_gamma).forEach(strike => allStrikeKeys.add(strike)); } });
                 const sortedStrikes = Array.from(allStrikeKeys).sort((a, b) => parseInt(a) - parseInt(b));
-                
                 const perStrikeGammaData = {};
                 sortedStrikes.forEach(strike => { perStrikeGammaData[strike] = data.map(entry => (entry.per_strike_gamma && entry.per_strike_gamma[strike] !== undefined) ? entry.per_strike_gamma[strike] : null); });
-
                 const colors = ['#3498db', '#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#e67e22', '#34495e', '#7f8c8d'];
                 const perStrikeDatasets = sortedStrikes.map((strike, index) => ({ label: `$${(parseInt(strike)/1000)}K`, data: perStrikeGammaData[strike], borderColor: colors[index % colors.length], backgroundColor: colors[index % colors.length] + '1A', borderWidth: 2, spanGaps: true, pointRadius: 1, tension: 0.1 }));
-                
                 renderOrUpdateChart('perStrikeGammaChart', 'line', { labels, datasets: perStrikeDatasets }, 'Historical Gamma Exposure for Key Strikes', { y: { title: { display: true, text: 'Dealer Gamma' } } }, { legend: { position: 'bottom' } });
-
             } catch (error) {
                 console.error("Failed to render chart data:", error);
                 document.getElementById('last-updated-charts').innerText = 'Error loading chart data.';
             }
         }
-
-        // --- HISTORY TOGGLE LOGIC ---
         function updateToggleButtonsVisibility() {
             const tradesBody = document.getElementById('completed-trades-tbody');
             const tradesButton = document.getElementById('toggle-old-trades');
@@ -2998,8 +2840,6 @@
             adjustCollapsibleSize(button);
         }
 
-
-        // --- RENDERING FUNCTIONS ---
         function renderNotes(notesData) {
             const container = DOM.notesContainer;
             if (!container) return;
@@ -3347,36 +3187,29 @@
             });
         }
         
-       // --- REPLACE WITH THIS CORRECTED VERSION ---
-function renderSetupsTable(tableElement, data, notesTextareaId) {
-    // This part is for the table, which you've removed.
-    // It's safe to keep, but we need to fix the notes part below.
-    if (tableElement) {
-        const tbody = tableElement.querySelector('tbody');
-        tbody.querySelectorAll('tr').forEach(row => {
-            const timeframe = row.firstElementChild.textContent.trim();
-            const rowData = data[timeframe] || {};
-            const cells = row.querySelectorAll('td');
-            cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
-            cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
-            cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
-            calculateAndDisplayPercentages(row);
-        });
-        applyHighlightingToSetupsTable(tableElement);
-        adjustCollapsibleSize(tableElement);
-    }
-    
-    // --- THIS IS THE CRITICAL FIX ---
-    const notesTextarea = document.getElementById(notesTextareaId);
-    if (notesTextarea) {
-        // ONLY update the textarea's value if the user is NOT currently focused on it.
-        if (document.activeElement !== notesTextarea) {
-            notesTextarea.value = data.global_notes || '';
+       function renderSetupsTable(tableElement, data, notesTextareaId) {
+            if (tableElement) {
+                const tbody = tableElement.querySelector('tbody');
+                tbody.querySelectorAll('tr').forEach(row => {
+                    const timeframe = row.firstElementChild.textContent.trim();
+                    const rowData = data[timeframe] || {};
+                    const cells = row.querySelectorAll('td');
+                    cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
+                    cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
+                    cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
+                    calculateAndDisplayPercentages(row);
+                });
+                applyHighlightingToSetupsTable(tableElement);
+                adjustCollapsibleSize(tableElement);
+            }
+            const notesTextarea = document.getElementById(notesTextareaId);
+            if (notesTextarea) {
+                if (document.activeElement !== notesTextarea) {
+                    notesTextarea.value = data.global_notes || '';
+                }
+                adjustCollapsibleSize(notesTextarea);
+            }
         }
-        // Always adjust size, as this doesn't interfere with user input.
-        adjustCollapsibleSize(notesTextarea);
-    }
-}
         function renderSrSummaryTable(symbol) {
             const summaryTbody = document.getElementById('sr-summary-tbody');
             const summaryContainer = document.getElementById('sr-summary-zones-container');
@@ -3478,27 +3311,24 @@ function renderSetupsTable(tableElement, data, notesTextareaId) {
         const saveJournalEntry = () => { clearTimeout(STATE.journalSaveTimer); STATE.journalSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value); const yyyymmdd = getYYYYMMDD(STATE.selectedDate); const timeframe = DOM.journalTimeframeEl.value; const text = DOM.journalEntryEl.value; DOM.saveStatus.textContent = 'Saving...'; if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {}; if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {}; STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text; dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text).then(() => { DOM.saveStatus.textContent = 'Saved.'; renderDateNavigation(); setTimeout(() => DOM.saveStatus.textContent = '', 2000); }).catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`); }, 750); };
         const savePersistentNotes = () => { clearTimeout(STATE.notesSaveTimer); STATE.notesSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.persistentNotes.set(DOM.persistentNotesEl.value).catch(e => console.error("Error saving persistent notes:", e)); }, 750); };
         const saveTrackerScratchpad = () => { clearTimeout(STATE.trackerSaveTimer); STATE.trackerSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.trackerScratchpad.set(DOM.trackerScratchpadEl.value).catch(e => console.error("Error saving tracker scratchpad:", e)); }, 750); };
-        const savePrimarySetupsNotes = () => { if (!STATE.isMasterUser) return; saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); };
-        const saveSecondarySetupsNotes = () => { if (!STATE.isMasterUser) return; saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'); };
+        
+        function savePrimaryNotesOnly() {
+            if (!STATE.isMasterUser) return;
+            const notesTextarea = DOM.primarySetupsNotes;
+            if (notesTextarea) {
+                dbRefs.setups1.child('global_notes').set(notesTextarea.value)
+                    .catch(e => console.error("Error saving primary notes:", e));
+            }
+        }
 
-
-                function savePrimaryNotesOnly() {
-    if (!STATE.isMasterUser) return;
-    const notesTextarea = DOM.primarySetupsNotes;
-    if (notesTextarea) {
-        dbRefs.setups1.child('global_notes').set(notesTextarea.value)
-            .catch(e => console.error("Error saving primary notes:", e));
-    }
-}
-
-function saveSecondaryNotesOnly() {
-    if (!STATE.isMasterUser) return;
-    const notesTextarea = DOM.secondarySetupsNotes;
-    if (notesTextarea) {
-        dbRefs.setups2.child('global_notes').set(notesTextarea.value)
-            .catch(e => console.error("Error saving secondary notes:", e));
-    }
-}
+        function saveSecondaryNotesOnly() {
+            if (!STATE.isMasterUser) return;
+            const notesTextarea = DOM.secondarySetupsNotes;
+            if (notesTextarea) {
+                dbRefs.setups2.child('global_notes').set(notesTextarea.value)
+                    .catch(e => console.error("Error saving secondary notes:", e));
+            }
+        }
         function handleFileUpload(files) {
             if (!STATE.isMasterUser || !files || files.length === 0) return;
             DOM.uploadProgress.style.display = 'block';
@@ -3597,7 +3427,7 @@ function saveSecondaryNotesOnly() {
             DOM.modalNextBtn.style.display = STATE.modalImageIndex < STATE.modalImageGallery.length - 1 ? 'flex' : 'none';
         }
 
-function closeModal() {
+        function closeModal() {
             DOM.imageModal.style.display = 'none';
             STATE.modalImageGallery = [];
             STATE.modalImageIndex = -1;
@@ -3662,7 +3492,10 @@ function closeModal() {
                 DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'journal') ? 'block' : 'none';
                 if (tabId === 'journal') updateJournalView();
                 if (tabId === 'sr-levels') renderSrLevels();
-                // NEW: Initialize calculators when tab is first opened
+                if (tabId === 'volume-profile') {
+                    renderVolumeProfileChart();
+                    openDefaultSectionsInContainer(newTabContent);
+                }
                 if (tabId === 'calculator' && !DOM.calculatorTab.dataset.initialized) {
                     initializeCalculators();
                     DOM.calculatorTab.dataset.initialized = 'true';
@@ -3760,21 +3593,16 @@ function closeModal() {
             }, true);
 
             DOM.trackerScratchpadEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveTrackerScratchpad(); });
-         // --- REPLACE WITH THIS ---
-
-// Keep listening to 'input' for resizing the textarea as the user types.
-DOM.primarySetupsNotes.addEventListener('input', (e) => {
-    autoResizeTextarea(e.target);
-    debouncedResizeParent(e.target);
-});
-DOM.secondarySetupsNotes.addEventListener('input', (e) => {
-    autoResizeTextarea(e.target);
-    debouncedResizeParent(e.target);
-});
-
-// Add a NEW 'blur' event listener to save the content when the user clicks away.
-DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
-DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
+            DOM.primarySetupsNotes.addEventListener('input', (e) => {
+                autoResizeTextarea(e.target);
+                debouncedResizeParent(e.target);
+            });
+            DOM.secondarySetupsNotes.addEventListener('input', (e) => {
+                autoResizeTextarea(e.target);
+                debouncedResizeParent(e.target);
+            });
+            DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
+            DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
 
             DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
@@ -3809,62 +3637,25 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
             DOM.journalTab.addEventListener('drop', (e) => { DOM.journalTab.classList.remove('drag-over'); if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); });
 
             [DOM.srSymbolEl, DOM.srLookbackEl].forEach(el => el.addEventListener('change', renderSrLevels));
-
+            [DOM.vpSymbolEl, DOM.vpLookbackEl].forEach(el => el.addEventListener('change', renderVolumeProfileChart));
             DOM.srLegendHeader.addEventListener('click', () => { const isCollapsed = DOM.srLegendContent.style.display === 'none'; DOM.srLegendContent.style.display = isCollapsed ? 'block' : 'none'; DOM.srLegendHeader.classList.toggle('collapsed', !isCollapsed); DOM.srLegendToggleBtn.textContent = isCollapsed ? '−' : '+'; DOM.srLegendToggleBtn.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)'; });
         }
         
         // --- NEW CALCULATOR LOGIC ---
         function initializeCalculators() {
-            // Setup listeners for the main profit calculator
             [DOM.calcEntryPrice, DOM.calcPositionSize].forEach(input => {
                 input.addEventListener('input', calculateAllProfits);
                 setupSpinbox(input);
             });
             DOM.calcPositionType.addEventListener('change', calculateAllProfits);
             DOM.addTargetRowBtn.addEventListener('click', addTargetRow);
-
-            // Setup listeners for quick fill buttons
-            DOM.calcPercentTargets.addEventListener('click', e => {
-                if (e.target.tagName === 'BUTTON') {
-                    autofillTargetByPercent(parseFloat(e.target.dataset.value));
-                }
-            });
-            DOM.calcDollarTargets.addEventListener('click', e => {
-                if (e.target.tagName === 'BUTTON') {
-                    autofillTargetByDollar(parseFloat(e.target.dataset.value));
-                }
-            });
-
-            // Event delegation for removing target rows
-            DOM.profitTargetsTbody.addEventListener('click', e => {
-                if (e.target.classList.contains('remove-row-btn')) {
-                    const row = e.target.closest('tr');
-                    if (row) {
-                        row.remove();
-                        calculateAllProfits();
-                    }
-                }
-            });
-            
-            // Setup listener for adding new risk sizers
+            DOM.calcPercentTargets.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { autofillTargetByPercent(parseFloat(e.target.dataset.value)); } });
+            DOM.calcDollarTargets.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { autofillTargetByDollar(parseFloat(e.target.dataset.value)); } });
+            DOM.profitTargetsTbody.addEventListener('click', e => { if (e.target.classList.contains('remove-row-btn')) { const row = e.target.closest('tr'); if (row) { row.remove(); calculateAllProfits(); } } });
             DOM.addRiskSizerBtn.addEventListener('click', addRiskSizer);
-
-            // Event delegation for risk sizer inputs and removal
-            DOM.riskSizersContainer.addEventListener('input', e => {
-                const sizer = e.target.closest('.risk-sizer-instance');
-                if (sizer) calculateRiskSizer(sizer);
-            });
-            DOM.riskSizersContainer.addEventListener('click', e => {
-                 if (e.target.classList.contains('remove-sizer-btn')) {
-                    const sizer = e.target.closest('.risk-sizer-instance');
-                    if (sizer) sizer.remove();
-                }
-            });
-
-            // Add initial rows/sizers
-            addTargetRow();
-            addRiskSizer();
-            openDefaultSectionsInContainer(DOM.calculatorTab);
+            DOM.riskSizersContainer.addEventListener('input', e => { const sizer = e.target.closest('.risk-sizer-instance'); if (sizer) calculateRiskSizer(sizer); });
+            DOM.riskSizersContainer.addEventListener('click', e => { if (e.target.classList.contains('remove-sizer-btn')) { const sizer = e.target.closest('.risk-sizer-instance'); if (sizer) sizer.remove(); } });
+            addTargetRow(); addRiskSizer(); openDefaultSectionsInContainer(DOM.calculatorTab);
         }
 
         function setupSpinbox(inputElement) {
@@ -3872,85 +3663,41 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
                 let currentValue = parseFloat(inputElement.value) || 0;
                 const valueStr = inputElement.value;
                 let step = 1;
-
-                if (valueStr.includes('.')) {
-                    const decimalPart = valueStr.split('.')[1];
-                    step = Math.pow(10, -decimalPart.length);
-                }
-                
-                // Use a trick to avoid floating point precision issues
+                if (valueStr.includes('.')) { const decimalPart = valueStr.split('.')[1]; step = Math.pow(10, -decimalPart.length); }
                 const precision = Math.pow(10, (valueStr.split('.')[1] || '').length);
                 let newValue = (Math.round(currentValue * precision) + Math.round(step * multiplier * precision)) / precision;
-
-                // Format to remove trailing zeros from precision math if not needed
                 const decimalPlaces = (valueStr.split('.')[1] || '').length;
                 inputElement.value = newValue.toFixed(decimalPlaces);
-                
-                // Trigger the input event to recalculate
                 inputElement.dispatchEvent(new Event('input'));
             };
-
             inputElement.addEventListener('keydown', e => {
-                if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    handleAdjustment(1);
-                } else if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    handleAdjustment(-1);
-                }
+                if (e.key === 'ArrowUp') { e.preventDefault(); handleAdjustment(1); } else if (e.key === 'ArrowDown') { e.preventDefault(); handleAdjustment(-1); }
             });
-            inputElement.addEventListener('wheel', e => {
-                e.preventDefault();
-                handleAdjustment(e.deltaY < 0 ? 1 : -1);
-            });
+            inputElement.addEventListener('wheel', e => { e.preventDefault(); handleAdjustment(e.deltaY < 0 ? 1 : -1); });
         }
 
         function calculateAllProfits() {
             const entryPrice = parseFloat(DOM.calcEntryPrice.value);
             const positionSize = parseFloat(DOM.calcPositionSize.value);
             const positionType = document.querySelector('input[name="position-type"]:checked').value;
-            
-            if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) {
-                DOM.calcBreakevenPrice.textContent = '--';
-                return;
-            }
-
+            if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) { DOM.calcBreakevenPrice.textContent = '--'; return; }
             const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
-            const breakevenPrice = positionType === "Long" 
-                ? entryPrice * (1 + FEE_RATE) / (1 - FEE_RATE)
-                : entryPrice * (1 - FEE_RATE) / (1 + FEE_RATE);
+            const breakevenPrice = positionType === "Long" ? entryPrice * (1 + FEE_RATE) / (1 - FEE_RATE) : entryPrice * (1 - FEE_RATE) / (1 + FEE_RATE);
             DOM.calcBreakevenPrice.textContent = `~${breakevenPrice.toFixed(8).replace(/\.?0+$/, "")}`;
-
             const quantity = positionSize / entryPrice;
             const entryFee = positionSize * FEE_RATE;
-
             DOM.profitTargetsTbody.querySelectorAll('tr').forEach(row => {
                 const targetPriceInput = row.querySelector('.target-price-input');
                 const targetPrice = parseFloat(targetPriceInput.value);
-                
                 const profitCell = row.cells[1];
                 const feeCell = row.cells[2];
                 const percentCell = row.cells[3];
-
-                if (isNaN(targetPrice) || targetPrice <= 0) {
-                    profitCell.textContent = '--';
-                    feeCell.textContent = '--';
-                    percentCell.textContent = '--';
-                    profitCell.style.color = 'var(--text-color)';
-                    percentCell.style.color = 'var(--text-color)';
-                    return;
-                }
-
-                const grossProfit = positionType === 'Long'
-                    ? (targetPrice - entryPrice) * quantity
-                    : (entryPrice - targetPrice) * quantity;
-                
+                if (isNaN(targetPrice) || targetPrice <= 0) { profitCell.textContent = '--'; feeCell.textContent = '--'; percentCell.textContent = '--'; profitCell.style.color = 'var(--text-color)'; percentCell.style.color = 'var(--text-color)'; return; }
+                const grossProfit = positionType === 'Long' ? (targetPrice - entryPrice) * quantity : (entryPrice - targetPrice) * quantity;
                 const totalFee = entryFee + (quantity * targetPrice * FEE_RATE);
                 const netProfit = grossProfit - totalFee;
                 const profitPercent = (netProfit / positionSize) * 100;
-                
                 const resultColor = netProfit >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-
                 profitCell.textContent = netProfit.toFixed(2);
                 feeCell.textContent = totalFee.toFixed(2);
                 percentCell.textContent = profitPercent.toFixed(2) + '%';
@@ -3987,11 +3734,7 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
             const entryPrice = parseFloat(DOM.calcEntryPrice.value);
             if (isNaN(entryPrice) || entryPrice <= 0) return;
             const positionType = document.querySelector('input[name="position-type"]:checked').value;
-
-            const targetPrice = positionType === "Long"
-                ? entryPrice * (1 + percent)
-                : entryPrice * (1 - percent);
-            
+            const targetPrice = positionType === "Long" ? entryPrice * (1 + percent) : entryPrice * (1 - percent);
             const targetInput = findNextEmptyTargetInput();
             targetInput.value = targetPrice.toFixed(8).replace(/\.?0+$/, "");
             targetInput.dispatchEvent(new Event('input'));
@@ -4001,12 +3744,10 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
             const entryPrice = parseFloat(DOM.calcEntryPrice.value);
             const positionSize = parseFloat(DOM.calcPositionSize.value);
             if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) return;
-            
             const positionType = document.querySelector('input[name="position-type"]:checked').value;
             const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
             const q = positionSize / entryPrice;
             let targetPrice;
-
             if (positionType === "Long") {
                 const denominator = q * (1 - FEE_RATE);
                 if (denominator === 0) return;
@@ -4016,7 +3757,6 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
                 if (denominator === 0) return;
                 targetPrice = (positionSize * (1 - FEE_RATE) - dollarAmount) / denominator;
             }
-
             if (targetPrice > 0) {
                 const targetInput = findNextEmptyTargetInput();
                 targetInput.value = targetPrice.toFixed(8).replace(/\.?0+$/, "");
@@ -4055,7 +3795,7 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
             `;
             DOM.riskSizersContainer.appendChild(sizerInstance);
             sizerInstance.querySelectorAll('input[type="number"]').forEach(setupSpinbox);
-            calculateRiskSizer(sizerInstance); // Calculate initial state
+            calculateRiskSizer(sizerInstance);
             resizeParentCollapsible(DOM.addRiskSizerBtn);
         }
         
@@ -4064,10 +3804,8 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
             const riskPercent = parseFloat(sizerElement.querySelector('.risk-percent').value);
             const entryPrice = parseFloat(sizerElement.querySelector('.risk-entry').value);
             const stopLoss = parseFloat(sizerElement.querySelector('.risk-stop').value);
-            
             const valueEl = sizerElement.querySelector('.value');
             const subValueEl = sizerElement.querySelector('.sub-value');
-
             if (isNaN(balance) || isNaN(riskPercent) || isNaN(entryPrice) || isNaN(stopLoss) ||
                 balance <= 0 || riskPercent <= 0 || entryPrice <= 0 || stopLoss <= 0) {
                 valueEl.textContent = '--';
@@ -4080,46 +3818,31 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
                 subValueEl.textContent = 'Amount to Risk: --';
                 return;
             }
-
             const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
             const riskAmountDollars = balance * (riskPercent / 100.0);
-            
             const totalLossPerUnit = Math.abs(entryPrice - stopLoss) + (entryPrice * FEE_RATE) + (stopLoss * FEE_RATE);
             if (totalLossPerUnit <= 0) {
                  valueEl.textContent = '--';
                  subValueEl.textContent = 'Amount to Risk: --';
                  return;
             }
-
             const quantity = riskAmountDollars / totalLossPerUnit;
             const positionSize = quantity * entryPrice;
-
             valueEl.textContent = `$${positionSize.toFixed(2)}`;
             valueEl.style.color = 'var(--green-text)';
             subValueEl.textContent = `Amount to Risk: $${riskAmountDollars.toFixed(2)} (${riskPercent}%)`;
         }
-        // --- END OF NEW CALCULATOR LOGIC ---
-
-
-        // --- EVENT HANDLER LOGIC ---
-               function calculateTradeMetrics(tradeData) {
+        
+        function calculateTradeMetrics(tradeData) {
             const entry = parseFloat(tradeData.entry); const stoploss = parseFloat(tradeData.stoploss); const target = parseFloat(tradeData.target); const size = parseFloat(tradeData.size); const type = tradeData.type;
             if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return { rr: 0, estimated_total_fee: 0, expected_profit: 0, expected_loss: 0, expected_profit_percent: 0, expected_loss_percent: 0 }; }
             const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
             const positionQty = size / entry; const entryFee = size * FEE_RATE;
             let potentialProfit, potentialLoss;
             if (type === 'Long') { potentialProfit = positionQty * (target - entry); potentialLoss = positionQty * (entry - stoploss); } else { potentialProfit = positionQty * (entry - target); potentialLoss = positionQty * (stoploss - entry); }
-            
-            // --- CHANGE IS HERE ---
-            // The old 'rr' calculation line has been removed from this spot.
-            
-            // First, calculate the net profit and loss in dollars, including all fees.
             const exitValueAtTarget = (target / entry) * size; const exitFeeAtTarget = exitValueAtTarget * FEE_RATE; const estimated_total_fee = entryFee + exitFeeAtTarget; const expected_profit = potentialProfit - estimated_total_fee;
             const exitValueAtStop = (stoploss / entry) * size; const exitFeeAtStop = exitValueAtStop * FEE_RATE; const expected_loss = potentialLoss + entryFee + exitFeeAtStop;
-            
-            // **NEW:** Now, calculate RR using the fee-adjusted dollar values.
             const rr = (expected_loss > 0) ? (expected_profit / expected_loss) : 0;
-
             const expected_profit_percent = (expected_profit / size) * 100; const expected_loss_percent = (expected_loss / size) * 100;
             return { rr: rr.toFixed(2), estimated_total_fee: estimated_total_fee, expected_profit: expected_profit, expected_loss: expected_loss, expected_profit_percent: expected_profit_percent, expected_loss_percent: expected_loss_percent };
         }
@@ -4385,8 +4108,8 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
             dbRefs.setupsImages.on('value', (s) => renderGenericImageLibrary(s.val(), DOM.setupsImageContainer, 'setups_images'));
             dbRefs.chartLibrary2.on('value', s => { STATE.chartLibrary2Data = s.val() || {}; if (STATE.currentCl2Folder) renderFolderContents(STATE.currentCl2Folder); else renderChartLibrary2Folders(); renderChartLibrary2Preview(); });
             dbRefs.favourites.on('value', (s) => { STATE.favouriteEntries = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
-            dbRefs.setups1.on('value', (s) => { STATE.setupsData1 = s.val() || {}; renderSetupsTable(DOM.setupsTable1, STATE.setupsData1, 'primary-setups-notes'); });
-            dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(DOM.setupsTable2, STATE.setupsData2, 'secondary-setups-notes'); });
+            dbRefs.setups1.on('value', (s) => { STATE.setupsData1 = s.val() || {}; renderSetupsTable(null, STATE.setupsData1, 'primary-setups-notes'); });
+            dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(null, STATE.setupsData2, 'secondary-setups-notes'); });
             dbRefs.persistentNotes.on('value', (s) => { STATE.persistentNotes = s.val() || ''; if (document.activeElement !== DOM.persistentNotesEl) { DOM.persistentNotesEl.value = STATE.persistentNotes; } adjustCollapsibleSize(DOM.persistentNotesEl); });
             dbRefs.trackerScratchpad.on('value', (s) => { STATE.trackerScratchpadText = s.val() || ''; if (document.activeElement !== DOM.trackerScratchpadEl) { DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; } adjustCollapsibleSize(DOM.trackerScratchpadEl); });
             dbRefs.sentimentReceipts.on('value', (s) => { STATE.allSentimentReceipts = s.val() || {}; renderSentimentReceipts(); });
@@ -4412,7 +4135,6 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
         function openDefaultSectionsInContainer(containerElement) {
             if (!containerElement) return;
             const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'Persistent Notes', 'Position Profit & Target Calculator', 'Risk-Based Position Sizer'];
-            
             containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 const title = h2.textContent.trim();
                 if (sectionsToOpen.includes(title)) {
@@ -4450,7 +4172,6 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
                 DOM.journalEntryEl.readOnly = true; DOM.persistentNotesEl.readOnly = true; DOM.trackerScratchpadEl.readOnly = true;
                 DOM.primarySetupsNotes.readOnly = true; DOM.secondarySetupsNotes.readOnly = true;
             }
-
             document.querySelectorAll('.key-open-note').forEach(input => {
                 input.readOnly = !STATE.isMasterUser;
                 if (!STATE.isMasterUser) {
@@ -4467,14 +4188,12 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
             fetchEmaData();
             fetchSrData();
             fetchMarketOpens();
+            fetchVolumeProfileData();
             fetchCrossoverSignalData();
-            
             fetchAndRenderOptionsData();
-
-
+            
             setInterval(fetchCrossoverSignalData, 5 * 60 * 1000);
-
-                        setInterval(() => {
+            setInterval(() => {
                 fetchAndRenderOptionsData();
             }, 60000);
 
@@ -4499,9 +4218,427 @@ DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
                 activeTabContent.dataset.sectionsInitialized = 'true';
             }
         }
+        
+        // --- EVENT LISTENERS ---
+        function setupEventListeners() {
+            document.getElementById('key-opens-container').addEventListener('input', e => {
+                if(e.target.matches('.key-open-note')) { autoResizeTextarea(e.target); saveLevelNotes(e.target); }
+            });
+            DOM.themeToggle.addEventListener('change', (e) => {
+                const theme = e.target.checked ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+            });
 
+            DOM.tabs.addEventListener('click', (e) => {
+                if (!e.target.matches('.tab-link')) return;
+                document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
+                e.target.classList.add('active');
+                const tabId = e.target.dataset.tab;
+                const newTabContent = document.getElementById(`${tabId}-tab`);
+                if (newTabContent) {
+                    newTabContent.classList.add('active');
+                    if (!newTabContent.dataset.sectionsInitialized) { openDefaultSectionsInContainer(newTabContent); newTabContent.dataset.sectionsInitialized = 'true'; }
+                }
+                DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'journal') ? 'block' : 'none';
+                if (tabId === 'journal') updateJournalView();
+                if (tabId === 'sr-levels') renderSrLevels();
+                if (tabId === 'volume-profile') {
+                    renderVolumeProfileChart();
+                    openDefaultSectionsInContainer(newTabContent);
+                }
+                if (tabId === 'calculator' && !DOM.calculatorTab.dataset.initialized) {
+                    initializeCalculators();
+                    DOM.calculatorTab.dataset.initialized = 'true';
+                }
+            });
+
+            DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
+            DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
+            document.addEventListener('click', (e) => {
+                if (!DOM.statsPanel.contains(e.target) && !DOM.statsFab.contains(e.target) && DOM.statsPanel.classList.contains('active')) {
+                    DOM.statsPanel.classList.remove('active');
+                }
+            });
+
+            DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
+            
+            document.body.addEventListener('click', (e) => {
+                const header = e.target.closest('.collapsible-header');
+                if (header) {
+                    const section = header.parentElement;
+                    const content = section.querySelector('.collapsible-content');
+                    const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+                    section.classList.toggle('is-open');
+                    toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
+                    toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                    if (section.classList.contains('is-open')) {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
+                    } else { content.style.maxHeight = '0px'; }
+                }
+
+                if (handleAttachmentActions(e)) return;
+
+                if (e.target.matches('.ema-pill-btn')) {
+                    e.stopPropagation();
+                    const pillBtn = e.target;
+                    const group = pillBtn.closest('.pill-button-group');
+                    group.querySelectorAll('.ema-pill-btn').forEach(btn => btn.classList.remove('active'));
+                    pillBtn.classList.add('active');
+                    renderEmaSnapshot(pillBtn.dataset.symbol);
+                } else if (e.target.closest('.sentiment-buttons button')) {
+                    handleSentimentLog(e);
+                } else if (e.target.closest('#setups-image-container, #image-library-container, #chart-library-2-container, #chart-library-2-preview-container')) {
+                    handleGenericImageLibraryClick(e);
+                } else if (e.target.closest('#trades-tbody, #completed-trades-tbody')) {
+                    handleTradeAction(e);
+                } else if (e.target.closest('#sentiment-receipts-tbody')) {
+                    handleSentimentAction(e);
+                } else if (e.target.id === 'toggle-all-sentiments') {
+                    STATE.sentimentShowAll = true;
+                    STATE.sentimentCurrentPage = 1;
+                    renderSentimentReceipts();
+                } else if (e.target.id === 'sentiment-prev-page') {
+                    if (STATE.sentimentCurrentPage > 1) { STATE.sentimentCurrentPage--; renderSentimentReceipts(); }
+                } else if (e.target.id === 'sentiment-next-page') {
+                    const totalPages = Math.ceil(Object.keys(STATE.allSentimentReceipts).length / STATE.sentimentItemsPerPage);
+                    if (STATE.sentimentCurrentPage < totalPages) { STATE.sentimentCurrentPage++; renderSentimentReceipts(); }
+                } else if (e.target.id === 'toggle-old-trades') {
+                    toggleHistoricalRows('completed-trades-tbody', e.target);
+                } else if (e.target.id === 'toggle-old-setups-images') {
+                    toggleHistoricalImages('setups-image-container', e.target);
+                }
+            });
+
+            if (DOM.createNewNoteBtn) {
+                DOM.createNewNoteBtn.addEventListener('click', () => {
+                    if (!STATE.isMasterUser) return;
+                    const title = prompt("Enter a title for the new note:");
+                    if (title && title.trim()) { dbRefs.generalNotes.push({ title: title.trim(), content: '', timestamp: firebase.database.ServerValue.TIMESTAMP }); }
+                });
+            }
+
+            if (DOM.notesContainer) {
+                DOM.notesContainer.addEventListener('click', (e) => {
+                    const header = e.target.closest('.note-item-header');
+                    const deleteBtn = e.target.closest('.note-delete-btn');
+                    if (deleteBtn && STATE.isMasterUser) { e.stopPropagation(); const noteId = deleteBtn.dataset.noteId; if (confirm(`Are you sure you want to delete this note?`)) { dbRefs.generalNotes.child(noteId).remove(); } return; }
+                    if (header) { const noteId = header.dataset.noteId; openNoteForEditing(noteId); }
+                });
+            }
+
+            DOM.noteModalClose.addEventListener('click', closeNoteModal);
+            DOM.noteEditModal.addEventListener('click', e => { if (e.target.id === 'note-edit-modal') closeNoteModal(); });
+            DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
+            DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
+
+            document.body.addEventListener('blur', (e) => {
+                if (e.target.matches('.setups-table .editable-setup-cell')) {
+                    const table = e.target.closest('.setups-table');
+                    const row = e.target.closest('tr');
+                    applyHighlightingToSetupsTable(table);
+                    if (row) { calculateAndDisplayPercentages(row); }
+                    if (table.id === 'primary-setups-table') { saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); } else { saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'); }
+                }
+            }, true);
+
+            DOM.trackerScratchpadEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveTrackerScratchpad(); });
+            DOM.primarySetupsNotes.addEventListener('input', (e) => {
+                autoResizeTextarea(e.target);
+                debouncedResizeParent(e.target);
+            });
+            DOM.secondarySetupsNotes.addEventListener('input', (e) => {
+                autoResizeTextarea(e.target);
+                debouncedResizeParent(e.target);
+            });
+            DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
+            DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
+
+            DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
+            DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
+            DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
+
+            DOM.modalClose.addEventListener('click', closeModal);
+            DOM.imageModal.addEventListener('click', (e) => { if (e.target.id === 'image-modal') closeModal(); });
+            DOM.modalPrevBtn.addEventListener('click', () => { if (STATE.modalImageIndex > 0) { STATE.modalImageIndex--; displayModalImage(); } });
+            DOM.modalNextBtn.addEventListener('click', () => { if (STATE.modalImageIndex < STATE.modalImageGallery.length - 1) { STATE.modalImageIndex++; displayModalImage(); } });
+
+            DOM.tradesTbody.addEventListener('blur', (e) => { if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); }, true);
+
+            [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', updateJournalView));
+            DOM.dateButtonsContainer.addEventListener('click', (e) => { if (e.target.matches('.date-nav-btn')) { const parts = e.target.dataset.date.split('-'); STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); STATE.centerDate = new Date(STATE.selectedDate); updateJournalView(); } });
+            DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
+            DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
+
+            DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveJournalEntry(); });
+            DOM.persistentNotesEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); savePersistentNotes(); });
+            DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
+            DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
+
+            DOM.journalTab.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-journal-image')) { handleImageDelete(e); return; }
+                const img = e.target.closest('#journal-images-container img');
+                if(img) { const allImageElements = DOM.journalImagesContainer.querySelectorAll('img'); const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })); const clickedIndex = Array.from(allImageElements).indexOf(img); openImageModal(imageArray, clickedIndex); }
+            });
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { DOM.journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }); });
+            ['dragenter', 'dragover'].forEach(eventName => { DOM.journalTab.addEventListener(eventName, () => { if (STATE.isMasterUser) DOM.journalTab.classList.add('drag-over'); }); });
+            DOM.journalTab.addEventListener('dragleave', () => DOM.journalTab.classList.remove('drag-over'));
+            DOM.journalTab.addEventListener('drop', (e) => { DOM.journalTab.classList.remove('drag-over'); if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); });
+
+            [DOM.srSymbolEl, DOM.srLookbackEl].forEach(el => el.addEventListener('change', renderSrLevels));
+            [DOM.vpSymbolEl, DOM.vpLookbackEl].forEach(el => el.addEventListener('change', renderVolumeProfileChart));
+            DOM.srLegendHeader.addEventListener('click', () => { const isCollapsed = DOM.srLegendContent.style.display === 'none'; DOM.srLegendContent.style.display = isCollapsed ? 'block' : 'none'; DOM.srLegendHeader.classList.toggle('collapsed', !isCollapsed); DOM.srLegendToggleBtn.textContent = isCollapsed ? '−' : '+'; DOM.srLegendToggleBtn.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)'; });
+        }
+        
+        // --- NEW CALCULATOR LOGIC ---
+        function initializeCalculators() {
+            [DOM.calcEntryPrice, DOM.calcPositionSize].forEach(input => {
+                input.addEventListener('input', calculateAllProfits);
+                setupSpinbox(input);
+            });
+            DOM.calcPositionType.addEventListener('change', calculateAllProfits);
+            DOM.addTargetRowBtn.addEventListener('click', addTargetRow);
+            DOM.calcPercentTargets.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { autofillTargetByPercent(parseFloat(e.target.dataset.value)); } });
+            DOM.calcDollarTargets.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { autofillTargetByDollar(parseFloat(e.target.dataset.value)); } });
+            DOM.profitTargetsTbody.addEventListener('click', e => { if (e.target.classList.contains('remove-row-btn')) { const row = e.target.closest('tr'); if (row) { row.remove(); calculateAllProfits(); } } });
+            DOM.addRiskSizerBtn.addEventListener('click', addRiskSizer);
+            DOM.riskSizersContainer.addEventListener('input', e => { const sizer = e.target.closest('.risk-sizer-instance'); if (sizer) calculateRiskSizer(sizer); });
+            DOM.riskSizersContainer.addEventListener('click', e => { if (e.target.classList.contains('remove-sizer-btn')) { const sizer = e.target.closest('.risk-sizer-instance'); if (sizer) sizer.remove(); } });
+            addTargetRow(); addRiskSizer(); openDefaultSectionsInContainer(DOM.calculatorTab);
+        }
+
+        function setupSpinbox(inputElement) {
+            const handleAdjustment = (multiplier) => {
+                let currentValue = parseFloat(inputElement.value) || 0;
+                const valueStr = inputElement.value;
+                let step = 1;
+                if (valueStr.includes('.')) { const decimalPart = valueStr.split('.')[1]; step = Math.pow(10, -decimalPart.length); }
+                const precision = Math.pow(10, (valueStr.split('.')[1] || '').length);
+                let newValue = (Math.round(currentValue * precision) + Math.round(step * multiplier * precision)) / precision;
+                const decimalPlaces = (valueStr.split('.')[1] || '').length;
+                inputElement.value = newValue.toFixed(decimalPlaces);
+                inputElement.dispatchEvent(new Event('input'));
+            };
+            inputElement.addEventListener('keydown', e => {
+                if (e.key === 'ArrowUp') { e.preventDefault(); handleAdjustment(1); } else if (e.key === 'ArrowDown') { e.preventDefault(); handleAdjustment(-1); }
+            });
+            inputElement.addEventListener('wheel', e => { e.preventDefault(); handleAdjustment(e.deltaY < 0 ? 1 : -1); });
+        }
+
+        function calculateAllProfits() {
+            const entryPrice = parseFloat(DOM.calcEntryPrice.value);
+            const positionSize = parseFloat(DOM.calcPositionSize.value);
+            const positionType = document.querySelector('input[name="position-type"]:checked').value;
+            if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) { DOM.calcBreakevenPrice.textContent = '--'; return; }
+            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const breakevenPrice = positionType === "Long" ? entryPrice * (1 + FEE_RATE) / (1 - FEE_RATE) : entryPrice * (1 - FEE_RATE) / (1 + FEE_RATE);
+            DOM.calcBreakevenPrice.textContent = `~${breakevenPrice.toFixed(8).replace(/\.?0+$/, "")}`;
+            const quantity = positionSize / entryPrice;
+            const entryFee = positionSize * FEE_RATE;
+            DOM.profitTargetsTbody.querySelectorAll('tr').forEach(row => {
+                const targetPriceInput = row.querySelector('.target-price-input');
+                const targetPrice = parseFloat(targetPriceInput.value);
+                const profitCell = row.cells[1];
+                const feeCell = row.cells[2];
+                const percentCell = row.cells[3];
+                if (isNaN(targetPrice) || targetPrice <= 0) { profitCell.textContent = '--'; feeCell.textContent = '--'; percentCell.textContent = '--'; profitCell.style.color = 'var(--text-color)'; percentCell.style.color = 'var(--text-color)'; return; }
+                const grossProfit = positionType === 'Long' ? (targetPrice - entryPrice) * quantity : (entryPrice - targetPrice) * quantity;
+                const totalFee = entryFee + (quantity * targetPrice * FEE_RATE);
+                const netProfit = grossProfit - totalFee;
+                const profitPercent = (netProfit / positionSize) * 100;
+                const resultColor = netProfit >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                profitCell.textContent = netProfit.toFixed(2);
+                feeCell.textContent = totalFee.toFixed(2);
+                percentCell.textContent = profitPercent.toFixed(2) + '%';
+                profitCell.style.color = resultColor;
+                percentCell.style.color = resultColor;
+            });
+        }
+        
+        function addTargetRow() {
+            const row = DOM.profitTargetsTbody.insertRow();
+            row.innerHTML = `
+                <td><input type="number" class="target-price-input" placeholder="" step="0.01"></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td><button class="remove-row-btn">×</button></td>
+            `;
+            const input = row.querySelector('input');
+            input.addEventListener('input', calculateAllProfits);
+            setupSpinbox(input);
+            resizeParentCollapsible(DOM.addTargetRowBtn);
+        }
+
+        function findNextEmptyTargetInput() {
+            let emptyInput = Array.from(DOM.profitTargetsTbody.querySelectorAll('.target-price-input')).find(input => !input.value);
+            if (!emptyInput) {
+                addTargetRow();
+                emptyInput = DOM.profitTargetsTbody.lastElementChild.querySelector('.target-price-input');
+            }
+            return emptyInput;
+        }
+
+        function autofillTargetByPercent(percent) {
+            const entryPrice = parseFloat(DOM.calcEntryPrice.value);
+            if (isNaN(entryPrice) || entryPrice <= 0) return;
+            const positionType = document.querySelector('input[name="position-type"]:checked').value;
+            const targetPrice = positionType === "Long" ? entryPrice * (1 + percent) : entryPrice * (1 - percent);
+            const targetInput = findNextEmptyTargetInput();
+            targetInput.value = targetPrice.toFixed(8).replace(/\.?0+$/, "");
+            targetInput.dispatchEvent(new Event('input'));
+        }
+
+        function autofillTargetByDollar(dollarAmount) {
+            const entryPrice = parseFloat(DOM.calcEntryPrice.value);
+            const positionSize = parseFloat(DOM.calcPositionSize.value);
+            if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) return;
+            const positionType = document.querySelector('input[name="position-type"]:checked').value;
+            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const q = positionSize / entryPrice;
+            let targetPrice;
+            if (positionType === "Long") {
+                const denominator = q * (1 - FEE_RATE);
+                if (denominator === 0) return;
+                targetPrice = (dollarAmount + positionSize * (1 + FEE_RATE)) / denominator;
+            } else {
+                const denominator = q * (1 + FEE_RATE);
+                if (denominator === 0) return;
+                targetPrice = (positionSize * (1 - FEE_RATE) - dollarAmount) / denominator;
+            }
+            if (targetPrice > 0) {
+                const targetInput = findNextEmptyTargetInput();
+                targetInput.value = targetPrice.toFixed(8).replace(/\.?0+$/, "");
+                targetInput.dispatchEvent(new Event('input'));
+            }
+        }
+
+        function addRiskSizer() {
+            const sizerInstance = document.createElement('div');
+            sizerInstance.className = 'risk-sizer-instance';
+            sizerInstance.innerHTML = `
+                <button class="remove-row-btn remove-sizer-btn">×</button>
+                <div class="calculator-grid">
+                    <div>
+                        <label>Account Balance ($)</label>
+                        <input type="number" class="risk-balance" placeholder="" step="100">
+                    </div>
+                    <div>
+                        <label>Risk Per Trade (%)</label>
+                        <input type="number" class="risk-percent" value="1" step="0.1">
+                    </div>
+                    <div>
+                        <label>Entry Price</label>
+                        <input type="number" class="risk-entry" placeholder="" step="0.1">
+                    </div>
+                    <div>
+                        <label>Stop-Loss Price</label>
+                        <input type="number" class="risk-stop" placeholder="" step="0.1">
+                    </div>
+                </div>
+                <div class="risk-sizer-output">
+                    <span class="sub-value">Amount to Risk: --</span>
+                    <span class="value">--</span>
+                    <span class="label">Recommended Position Size</span>
+                </div>
+            `;
+            DOM.riskSizersContainer.appendChild(sizerInstance);
+            sizerInstance.querySelectorAll('input[type="number"]').forEach(setupSpinbox);
+            calculateRiskSizer(sizerInstance);
+            resizeParentCollapsible(DOM.addRiskSizerBtn);
+        }
+        
+        function calculateRiskSizer(sizerElement) {
+            const balance = parseFloat(sizerElement.querySelector('.risk-balance').value);
+            const riskPercent = parseFloat(sizerElement.querySelector('.risk-percent').value);
+            const entryPrice = parseFloat(sizerElement.querySelector('.risk-entry').value);
+            const stopLoss = parseFloat(sizerElement.querySelector('.risk-stop').value);
+            const valueEl = sizerElement.querySelector('.value');
+            const subValueEl = sizerElement.querySelector('.sub-value');
+            if (isNaN(balance) || isNaN(riskPercent) || isNaN(entryPrice) || isNaN(stopLoss) ||
+                balance <= 0 || riskPercent <= 0 || entryPrice <= 0 || stopLoss <= 0) {
+                valueEl.textContent = '--';
+                subValueEl.textContent = 'Amount to Risk: --';
+                return;
+            }
+            if (entryPrice === stopLoss) {
+                valueEl.textContent = 'Invalid Stop';
+                valueEl.style.color = 'var(--red-text)';
+                subValueEl.textContent = 'Amount to Risk: --';
+                return;
+            }
+            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const riskAmountDollars = balance * (riskPercent / 100.0);
+            const totalLossPerUnit = Math.abs(entryPrice - stopLoss) + (entryPrice * FEE_RATE) + (stopLoss * FEE_RATE);
+            if (totalLossPerUnit <= 0) {
+                 valueEl.textContent = '--';
+                 subValueEl.textContent = 'Amount to Risk: --';
+                 return;
+            }
+            const quantity = riskAmountDollars / totalLossPerUnit;
+            const positionSize = quantity * entryPrice;
+            valueEl.textContent = `$${positionSize.toFixed(2)}`;
+            valueEl.style.color = 'var(--green-text)';
+            subValueEl.textContent = `Amount to Risk: $${riskAmountDollars.toFixed(2)} (${riskPercent}%)`;
+        }
+        
+        function calculateTradeMetrics(tradeData) {
+            const entry = parseFloat(tradeData.entry); const stoploss = parseFloat(tradeData.stoploss); const target = parseFloat(tradeData.target); const size = parseFloat(tradeData.size); const type = tradeData.type;
+            if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return { rr: 0, estimated_total_fee: 0, expected_profit: 0, expected_loss: 0, expected_profit_percent: 0, expected_loss_percent: 0 }; }
+            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const positionQty = size / entry; const entryFee = size * FEE_RATE;
+            let potentialProfit, potentialLoss;
+            if (type === 'Long') { potentialProfit = positionQty * (target - entry); potentialLoss = positionQty * (entry - stoploss); } else { potentialProfit = positionQty * (entry - target); potentialLoss = positionQty * (stoploss - entry); }
+            const exitValueAtTarget = (target / entry) * size; const exitFeeAtTarget = exitValueAtTarget * FEE_RATE; const estimated_total_fee = entryFee + exitFeeAtTarget; const expected_profit = potentialProfit - estimated_total_fee;
+            const exitValueAtStop = (stoploss / entry) * size; const exitFeeAtStop = exitValueAtStop * FEE_RATE; const expected_loss = potentialLoss + entryFee + exitFeeAtStop;
+            const rr = (expected_loss > 0) ? (expected_profit / expected_loss) : 0;
+            const expected_profit_percent = (expected_profit / size) * 100; const expected_loss_percent = (expected_loss / size) * 100;
+            return { rr: rr.toFixed(2), estimated_total_fee: estimated_total_fee, expected_profit: expected_profit, expected_loss: expected_loss, expected_profit_percent: expected_profit_percent, expected_loss_percent: expected_loss_percent };
+        }
+
+        // --- INITIALIZATION ---
+        function initializeApp() {
+            checkMasterMode(); 
+            getViewerId();
+            fetchLiveConversionRate();
+            fetchEmaData();
+            fetchSrData();
+            fetchMarketOpens();
+            fetchVolumeProfileData();
+            fetchCrossoverSignalData();
+            fetchAndRenderOptionsData();
+            
+            setInterval(fetchCrossoverSignalData, 5 * 60 * 1000);
+            setInterval(() => {
+                fetchAndRenderOptionsData();
+            }, 60000);
+
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) { 
+                document.documentElement.setAttribute('data-theme', savedTheme); 
+                DOM.themeToggle.checked = savedTheme === 'dark'; 
+            }
+            const today = new Date(); 
+            today.setUTCHours(0, 0, 0, 0);
+            STATE.selectedDate = new Date(today); 
+            STATE.centerDate = new Date(today);
+            setupEventListeners(); 
+            subscribeToData();
+            renderDateNavigation(); 
+            renderChartLibrary2Folders(); 
+            renderChartLibrary2Preview();
+
+            const activeTabContent = document.querySelector('.tab-content.active');
+            if (activeTabContent) {
+                openDefaultSectionsInContainer(activeTabContent);
+                activeTabContent.dataset.sectionsInitialized = 'true';
+            }
+        }
+        
         initializeApp();
     });
-        </script>
-</body>
+    </script>
+    </body>
 </html>
