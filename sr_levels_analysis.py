@@ -14,7 +14,8 @@ from sklearn.cluster import DBSCAN
 # --- Unified Configuration ---
 SYMBOLS = ['BTCUSDT', 'ETHUSDT']
 TIMEFRAMES_TO_ANALYZE = ['15m', '30m', '1h', '2h', '4h']
-LOOKBACK_PERIODS_DAYS = [60, 30, 21, 14, 7, 3, 2]
+# MODIFIED LINE: Added 270, 180, and 120 day lookbacks
+LOOKBACK_PERIODS_DAYS = [270, 180, 120, 60, 30, 21, 14, 7, 3, 2]
 BASE_PIVOT_WINDOWS = [5, 8, 13, 21, 34]
 TOP_N_CLUSTERS_TO_SEND = 10
 SR_OUTPUT_FILENAME = "sr_levels_analysis.json"
