@@ -3142,30 +3142,29 @@
                 });
             }
             
-            function renderSetupsTable(tableElement, data, notesTextareaId) {
-                if (tableElement) {
-                    const tbody = tableElement.querySelector('tbody');
-                    tbody.querySelectorAll('tr').forEach(row => {
-                        const timeframe = row.firstElementChild.textContent.trim();
-                        const rowData = data[timeframe] || {};
-                        const cells = row.querySelectorAll('td');
-                        cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
-                        cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
-                        cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
-                        calculateAndDisplayPercentages(row);
-                    });
-                    applyHighlightingToSetupsTable(tableElement);
-                    adjustCollapsibleSize(tableElement);
+                   function renderSetupsTable(tableElement, data, notesTextareaId) {
+            const tbody = tableElement.querySelector('tbody');
+            tbody.querySelectorAll('tr').forEach(row => {
+                const timeframe = row.firstElementChild.textContent.trim();
+                const rowData = data[timeframe] || {};
+                const cells = row.querySelectorAll('td');
+                cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
+                cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
+                cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
+                calculateAndDisplayPercentages(row);
+            });
+            applyHighlightingToSetupsTable(tableElement);
+            
+            const notesTextarea = document.getElementById(notesTextareaId);
+            if (notesTextarea) {
+                // ONLY update the textarea's value if the user is NOT currently focused on it.
+                if (document.activeElement !== notesTextarea) {
+                    notesTextarea.value = data.global_notes || '';
                 }
-                const notesTextarea = document.getElementById(notesTextareaId);
-                if (notesTextarea) {
-                    if (document.activeElement !== notesTextarea) {
-                        notesTextarea.value = data.global_notes || '';
-                    }
-                    adjustCollapsibleSize(notesTextarea);
-                }
+                adjustCollapsibleSize(notesTextarea);
             }
-
+            adjustCollapsibleSize(tableElement);
+        }
             function renderSrLevels() {
                 const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
                 DOM.srLastUpdatedTime.textContent = STATE.srData.last_updated ? new Date(STATE.srData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--';
@@ -3243,59 +3242,24 @@
                 }, 750);
             };
             
-            function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
-                if (!STATE.isMasterUser) return;
-                const dataToSave = {};
-                const tbody = tableElement.querySelector('tbody');
-                tbody.querySelectorAll('tr').forEach(row => {
-                    const timeframe = row.firstElementChild.textContent.trim();
-                    const cells = row.querySelectorAll('td');
-                    dataToSave[timeframe] = {
-                        zero_entry: cells[0].textContent.trim(), zero_target: cells[1].textContent.trim(), zero_stoploss: cells[3].textContent.trim(),
-                        four_entry: cells[5].textContent.trim(), four_target: cells[6].textContent.trim(), four_stoploss: cells[8].textContent.trim(),
-                        bounce_entry: cells[10].textContent.trim(), bounce_target: cells[11].textContent.trim(), bounce_stoploss: cells[13].textContent.trim()
-                    };
-                });
-                const notesTextarea = document.getElementById(notesTextareaId);
-                if (notesTextarea) { dataToSave.global_notes = notesTextarea.value; }
-                statusElement.textContent = 'Saving...';
-                dbRef.set(dataToSave).then(() => { statusElement.textContent = 'Saved.'; setTimeout(() => { statusElement.textContent = '' }, 2000); }).catch(e => { statusElement.textContent = `Error: ${e.message}`; console.error("Error saving setups table:", e); });
-            }
-
-            const saveJournalEntry = () => { clearTimeout(STATE.journalSaveTimer); STATE.journalSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value); const yyyymmdd = getYYYYMMDD(STATE.selectedDate); const timeframe = DOM.journalTimeframeEl.value; const text = DOM.journalEntryEl.value; DOM.saveStatus.textContent = 'Saving...'; if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {}; if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {}; STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text; dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text).then(() => { DOM.saveStatus.textContent = 'Saved.'; renderDateNavigation(); setTimeout(() => DOM.saveStatus.textContent = '', 2000); }).catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`); }, 750); };
-            const savePersistentNotes = () => { clearTimeout(STATE.notesSaveTimer); STATE.notesSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.persistentNotes.set(DOM.persistentNotesEl.value).catch(e => console.error("Error saving persistent notes:", e)); }, 750); };
-            const saveTrackerScratchpad = () => { clearTimeout(STATE.trackerSaveTimer); STATE.trackerSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.trackerScratchpad.set(DOM.trackerScratchpadEl.value).catch(e => console.error("Error saving tracker scratchpad:", e)); }, 750); };
-            
-            function savePrimaryNotesOnly() {
-                if (!STATE.isMasterUser) return;
-                const notesTextarea = DOM.primarySetupsNotes;
-                if (notesTextarea) { dbRefs.setups1.child('global_notes').set(notesTextarea.value).catch(e => console.error("Error saving primary notes:", e)); }
-            }
-
-            function saveSecondaryNotesOnly() {
-                if (!STATE.isMasterUser) return;
-                const notesTextarea = DOM.secondarySetupsNotes;
-                if (notesTextarea) { dbRefs.setups2.child('global_notes').set(notesTextarea.value).catch(e => console.error("Error saving secondary notes:", e)); }
-            }
-            function handleFileUpload(files) {
-                if (!STATE.isMasterUser || !files || files.length === 0) return;
-                DOM.uploadProgress.style.display = 'block';
-                const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
-                const timeframe = DOM.journalTimeframeEl.value;
-                Array.from(files).forEach((file, index) => {
-                    if (!file.type.startsWith('image/')) return;
-                    const fileName = `${Date.now()}_${file.name}`;
-                    const storagePath = `journal_images/${safeSymbol}/${timeframe}/${fileName}`;
-                    const uploadTask = storage.ref(storagePath).put(file);
-                    uploadTask.on('state_changed', (s) => { DOM.uploadProgress.textContent = `Uploading ${index + 1}/${files.length}: ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; }, (e) => { console.error("Upload Failed:", e); DOM.uploadProgress.textContent = `Upload Failed: ${e.code}`; }, () => {
-                        uploadTask.snapshot.ref.getDownloadURL().then((url) => {
-                            const imageData = { url, fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
-                            dbRefs.journalImages.child(safeSymbol).child(timeframe).push(imageData);
-                            if (index === files.length - 1) { DOM.uploadProgress.textContent = 'Upload Complete!'; setTimeout(() => { DOM.uploadProgress.textContent = ''; }, 2000); }
-                        });
-                    });
-                });
-            }
+                   function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
+            if (!STATE.isMasterUser) return;
+            const dataToSave = {};
+            const tbody = tableElement.querySelector('tbody');
+            tbody.querySelectorAll('tr').forEach(row => {
+                const timeframe = row.firstElementChild.textContent.trim();
+                const cells = row.querySelectorAll('td');
+                dataToSave[timeframe] = {
+                    zero_entry: cells[0].textContent.trim(), zero_target: cells[1].textContent.trim(), zero_stoploss: cells[3].textContent.trim(),
+                    four_entry: cells[5].textContent.trim(), four_target: cells[6].textContent.trim(), four_stoploss: cells[8].textContent.trim(),
+                    bounce_entry: cells[10].textContent.trim(), bounce_target: cells[11].textContent.trim(), bounce_stoploss: cells[13].textContent.trim()
+                };
+            });
+            const notesTextarea = document.getElementById(notesTextareaId);
+            if (notesTextarea) { dataToSave.global_notes = notesTextarea.value; }
+            statusElement.textContent = 'Saving...';
+            dbRef.set(dataToSave).then(() => { statusElement.textContent = 'Saved.'; setTimeout(() => { statusElement.textContent = '' }, 2000); }).catch(e => { statusElement.textContent = `Error: ${e.message}`; console.error("Error saving setups table:", e); });
+        }
 
             function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
                 if (!STATE.isMasterUser || !files || files.length === 0) return;
@@ -3527,21 +3491,27 @@
                 DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
                 DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
 
-                document.body.addEventListener('blur', (e) => {
-                    if (e.target.matches('.setups-table .editable-setup-cell')) {
-                        const table = e.target.closest('.setups-table');
-                        const row = e.target.closest('tr');
-                        applyHighlightingToSetupsTable(table);
-                        if (row) { calculateAndDisplayPercentages(row); }
-                        if (table.id === 'primary-setups-table') { saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); } else { saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'); }
-                    }
-                }, true);
+                     document.body.addEventListener('blur', (e) => {
+            if (e.target.matches('.setups-table .editable-setup-cell')) {
+                const table = e.target.closest('.setups-table');
+                const row = e.target.closest('tr');
+                applyHighlightingToSetupsTable(table);
+                if (row) { calculateAndDisplayPercentages(row); }
+
+                // Determine which table was edited and call the correct save function
+                if (table.id === 'primary-setups-table') {
+                    saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes');
+                } else if (table.id === 'secondary-setups-table') {
+                    saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
+                }
+            }
+        }, true);
 
                 DOM.trackerScratchpadEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveTrackerScratchpad(); });
                 DOM.primarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); });
                 DOM.secondarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); });
-                DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
-                DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
+                        DOM.primarySetupsNotes.addEventListener('blur', () => saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'));
+        DOM.secondarySetupsNotes.addEventListener('blur', () => saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'));
 
                 DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
                 DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
