@@ -1818,6 +1818,12 @@
                 min-height: 350px;
             }
         }
+
+        /* ADD THESE NEW STYLES */
+#vp-summary-table .vp-poc-header { color: #ffc107; }
+#vp-summary-table .vp-va-header { color: #58a6ff; }
+#vp-summary-table .vp-hvn-header { color: var(--red-text); }
+#vp-summary-table .vp-lvn-header { color: var(--green-text); }
     </style>
 </head>
 <body>
@@ -2320,6 +2326,25 @@
                 </div>
             </div>
             <p class="ema-last-updated">Last Updated: <span id="vp-last-updated-time">--</span></p>
+            <div id="vp-summary-container" class="setups-container" style="margin-top: 25px; display: none;">
+    <h3 style="text-align: center; margin-top: 0; margin-bottom: 15px;">Volume Profile Key Levels Summary</h3>
+    <div class="table-wrapper">
+        <table id="vp-summary-table" class="sr-table">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding-left: 15px;">Lookback</th>
+                    <th class="vp-poc-header">Point of Control (POC)</th>
+                    <th class="vp-va-header">Value Area (VA)</th>
+                    <th class="vp-hvn-header">Top High-Volume Node (HVN)</th>
+                    <th class="vp-lvn-header">Top Low-Volume Node (LVN)</th>
+                </tr>
+            </thead>
+            <tbody id="vp-summary-tbody">
+                <!-- Rows will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+</div>
             <div class="chart-container" style="height: 600px; max-height: 70vh;">
                 <canvas id="volumeProfileChart"></canvas>
             </div>
@@ -2728,6 +2753,8 @@
                 function renderVolumeProfileChart() {
             const selectedSymbol = DOM.vpSymbolEl.value.replace('/', '-');
             const selectedLookback = DOM.vpLookbackEl.value;
+                    renderVolumeProfileSummaryTable(selectedSymbol);
+
             if (DOM.vpLastUpdatedTime) { DOM.vpLastUpdatedTime.textContent = STATE.vpData.last_updated ? new Date(STATE.vpData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--'; }
             const profileData = STATE.vpData?.data?.[selectedSymbol]?.[selectedLookback];
             if (!profileData || !profileData.full_profile) {
@@ -3365,6 +3392,67 @@
                     });
                 });
             });
+        }
+
+                // ADD THIS ENTIRE NEW FUNCTION
+        function renderVolumeProfileSummaryTable(symbol) {
+            const summaryTbody = document.getElementById('vp-summary-tbody');
+            const summaryContainer = document.getElementById('vp-summary-container');
+            if (!summaryTbody || !summaryContainer) return;
+
+            const symbolData = STATE.vpData.data?.[symbol];
+            if (!symbolData || Object.keys(STATE.vpData.data).length === 0) {
+                summaryContainer.style.display = 'none';
+                return;
+            }
+
+            const lookbackOptions = Array.from(document.getElementById('vp-lookback').options);
+            const lookbacks = lookbackOptions.map(opt => ({ value: opt.value, text: opt.text }));
+            
+            let rowsHtml = '';
+            lookbacks.forEach(lookback => {
+                const lookbackData = symbolData[lookback.value];
+
+                if (lookbackData) {
+                    const poc = lookbackData.point_of_control ? Math.round(lookbackData.point_of_control).toLocaleString() : '--';
+                    const va = (lookbackData.value_area_low && lookbackData.value_area_high)
+                        ? `${Math.round(lookbackData.value_area_low).toLocaleString()} - ${Math.round(lookbackData.value_area_high).toLocaleString()}`
+                        : '--';
+                    
+                    // Find top HVN (highest volume)
+                    const topHVN = lookbackData.high_volume_nodes && lookbackData.high_volume_nodes.length > 0
+                        ? lookbackData.high_volume_nodes.sort((a, b) => b.volume - a.volume)[0]
+                        : null;
+                    const hvnText = topHVN ? Math.round(topHVN.price_level).toLocaleString() : '--';
+
+                    // Find top LVN (lowest volume)
+                    const topLVN = lookbackData.low_volume_nodes && lookbackData.low_volume_nodes.length > 0
+                        ? lookbackData.low_volume_nodes.sort((a, b) => a.volume - b.volume)[0]
+                        : null;
+                    const lvnText = topLVN ? Math.round(topLVN.price_level).toLocaleString() : '--';
+                    
+                    rowsHtml += `
+                        <tr>
+                            <td style="text-align: left; padding-left: 15px; font-weight: 500;">${lookback.text}</td>
+                            <td class="sr-center-price" style="color: #ffc107;">${poc}</td>
+                            <td class="sr-center-price">${va}</td>
+                            <td class="sr-center-price" style="color: var(--red-text);">${hvnText}</td>
+                            <td class="sr-center-price" style="color: var(--green-text);">${lvnText}</td>
+                        </tr>
+                    `;
+                } else {
+                     rowsHtml += `
+                        <tr>
+                            <td style="text-align: left; padding-left: 15px; font-weight: 500;">${lookback.text}</td>
+                            <td colspan="4" style="text-align: center; color: var(--subtle-text);">No data</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            summaryTbody.innerHTML = rowsHtml;
+            summaryContainer.style.display = 'block';
+            resizeParentCollapsible(summaryContainer);
         }
 
         function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
