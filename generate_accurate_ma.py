@@ -10,13 +10,17 @@ from typing import Optional, List, Any, Dict
 
 # --- Configuration ---
 SYMBOLS = ["BTC/USDT", "ETH/USDT"]
+
+# --- MODIFIED: Added '1w' for weekly and '1M' for monthly ---
 TIMEFRAME_CONFIG = {
     '15m': {'name': '15min'},
     '30m': {'name': '30min'},
     '1h': {'name': '1hour'},
     '2h': {'name': '2hour'},
     '4h': {'name': '4hour'},
-    '1d': {'name': 'daily'}
+    '1d': {'name': 'daily'},
+    '1w': {'name': 'weekly'},
+    '1M': {'name': 'monthly'}
 }
 MA_PERIODS = [13, 49, 100, 200, 500, 1000]
 OUTPUT_FILENAME = "ma_analysis.json"
@@ -40,8 +44,6 @@ def get_safe_symbol(symbol):
 
 # --- DataHandler Class ---
 class DataHandler:
-    # ### THIS IS THE FIX ###
-    # Use the global Binance endpoint for local execution
     BASE_URL = "https://api.binance.com/api/v3"
 
     @staticmethod
@@ -118,6 +120,7 @@ class DataHandler:
             last_candle_ts = int(klines_batch[-1][0])
             current_start_ms = last_candle_ts + 1
             if len(klines_batch) < API_KLINE_LIMIT: break
+            # A small delay to be kind to the API
             time.sleep(0.1)
 
         if not all_klines: return pd.DataFrame()
@@ -133,6 +136,11 @@ class DataHandler:
 # --- Indicator Calculation ---
 def add_indicators(df: pd.DataFrame, periods: list[int]) -> pd.DataFrame:
     if df.empty: return df
+    # Ensure there's enough data for the smallest period before calculating
+    if len(df) < min(periods):
+        logging.warning(f"Not enough data ({len(df)} candles) to calculate indicators. Smallest period is {min(periods)}. Skipping.")
+        return df
+    
     df_res = df[['open', 'high', 'low', 'close', 'volume']].copy()
     logging.info(f"Calculating indicators for {len(df_res)} candles...")
     for period in periods:
@@ -158,8 +166,16 @@ if __name__ == "__main__":
             if df_cache is not None and not df_cache.empty:
                 start_fetch_dt = df_cache.index[-1] + timedelta(milliseconds=1)
             else:
-                start_fetch_dt = datetime.now(timezone.utc) - timedelta(days=365 * 4)
-                logging.warning(f"[{symbol}/{tf_api}] No valid cache found. Performing a large historical fetch. This may take a moment.")
+                # --- MODIFIED: Smart lookback logic for warm-up ---
+                logging.warning(f"[{symbol}/{tf_api}] No valid cache found. Performing a large historical fetch.")
+                if tf_api in ['1w', '1M']:
+                    # For weekly/monthly, we need a much longer lookback to warm up large MAs
+                    start_fetch_dt = datetime(2017, 1, 1, tzinfo=timezone.utc)
+                    logging.info(f"--> Using extended lookback for {tf_api}, starting from {start_fetch_dt.date()}.")
+                else:
+                    # Standard lookback for smaller timeframes is sufficient
+                    start_fetch_dt = datetime.now(timezone.utc) - timedelta(days=365 * 4)
+                logging.warning(f"--> This may take a moment...")
 
             df_new = DataHandler.fetch_new_data(symbol, tf_api, start_dt=start_fetch_dt)
 
@@ -169,11 +185,19 @@ if __name__ == "__main__":
                 continue
 
             df_combined = pd.concat(df_list)
+            # Remove any potential duplicates from overlapping fetches and sort
             df_combined = df_combined[~df_combined.index.duplicated(keep='last')].sort_index()
             
             DataHandler.save_ohlc_to_cache(df_combined, symbol.replace('/',''), tf_api)
-            data_with_indicators = add_indicators(df_combined, MA_PERIODS)
             
+            # Make a copy for indicator calculation to avoid SettingWithCopyWarning
+            df_for_indicators = df_combined.copy()
+            data_with_indicators = add_indicators(df_for_indicators, MA_PERIODS)
+            
+            if data_with_indicators.empty:
+                logging.warning(f"[{symbol}/{tf_api}] DataFrame is empty after adding indicators. Skipping.")
+                continue
+
             latest_row = data_with_indicators.iloc[-1]
             indicator_values = {}
             indicator_values['price'] = float(round(latest_row['close'], 4))
