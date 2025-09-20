@@ -12,7 +12,8 @@ from typing import List, Dict, Optional
 
 # --- Configuration ---
 SYMBOLS = ['BTCUSDT', 'ETHUSDT']
-LOOKBACK_PERIODS_DAYS = [60, 30, 21, 14, 7, 3, 2]
+# MODIFIED LINE: Added 270, 180, and 120 day lookbacks
+LOOKBACK_PERIODS_DAYS = [270, 180, 120, 60, 30, 21, 14, 7, 3, 2]
 TIMEFRAME_FOR_PROFILE = '1h'  # Use 1h data for a good balance of detail and API efficiency
 OUTPUT_FILENAME = "volume_profile_analysis.json"
 
