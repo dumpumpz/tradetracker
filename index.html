@@ -2610,7 +2610,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 
-    <script>
+
+
+
+
+  <script>
     document.addEventListener('DOMContentLoaded', () => {
 
         // --- CONFIGURATION ---
@@ -2907,7 +2911,6 @@
         function clusterNodes(nodes, clusteringThreshold) {
             if (!nodes || nodes.length === 0) return [];
             
-            // For clustering, it's easier to sort by price consistently (ascending)
             const sortedNodes = [...nodes].sort((a, b) => a.price_level - b.price_level);
 
             const clusters = [];
@@ -2924,14 +2927,12 @@
                 const node = sortedNodes[i];
                 const lastNodeInCluster = currentCluster.nodes[currentCluster.nodes.length - 1];
                 
-                // If the new node is within the threshold of the last one, add it to the cluster
                 if (Math.abs(node.price_level - lastNodeInCluster.price_level) / lastNodeInCluster.price_level < clusteringThreshold) {
                     currentCluster.nodes.push(node);
                     currentCluster.top = Math.max(currentCluster.top, node.price_level);
                     currentCluster.bottom = Math.min(currentCluster.bottom, node.price_level);
                     currentCluster.total_volume += node.volume;
                 } else {
-                    // Finalize the old cluster and start a new one
                     clusters.push(currentCluster);
                     currentCluster = {
                         top: node.price_level,
@@ -2941,9 +2942,8 @@
                     };
                 }
             }
-            clusters.push(currentCluster); // Add the last cluster
+            clusters.push(currentCluster);
 
-            // Only consider clusters with more than one node as significant zones for clarity
             return clusters.filter(c => c.nodes.length > 1).sort((a,b) => b.total_volume - a.total_volume);
         }
 
@@ -4154,5 +4154,14 @@
         initializeApp();
     });
     </script>
+
+
+
+
+
+
+
+
+    
        </body>
 </html>
