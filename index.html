@@ -2865,7 +2865,7 @@
                     // NEW CODE (FIXED)
 tooltip: { 
     callbacks: { 
-        title: (context) => `Price: ${formatCurrency(parseFloat(context[0].label))}`, // <-- FIX IS HERE
+        title: (context) => `Price: ${formatCurrency(parseFloat(context[0].label))}`, 
         label: (context) => `Volume: ${context.raw.toLocaleString(undefined, {maximumFractionDigits: 0})}` 
     } 
 },
@@ -2882,10 +2882,10 @@ scales: {
     y: { 
         title: { display: true, text: 'Price (USD)' }, 
         ticks: { 
-            callback: function(value, index, values) {
-                const label = this.getLabelForValue(value);
-                return formatCurrency(parseFloat(label)); // <-- FIX IS HERE
-            } 
+          callback: function(value, index, values) {
+    const label = this.getLabelForValue(value);
+    return formatCurrency(parseFloat(label)); 
+}
         } 
     }, 
     x: { title: { display: true, text: 'Volume' } } 
@@ -4107,10 +4107,10 @@ scales: {
         }
 
         // --- INITIALIZATION ---
-        function initializeApp() {
+       async function initializeApp() {
             checkMasterMode(); 
             getViewerId();
-            fetchLiveConversionRate();
+            await fetchLiveConversionRate();
             fetchEmaData();
             fetchSrData();
             fetchMarketOpens();
