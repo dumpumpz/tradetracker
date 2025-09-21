@@ -1819,83 +1819,11 @@
             }
         }
 
-        /* --- STYLES FOR ZONAL VOLUME PROFILE SUMMARY --- */
-        #vp-zonal-summary-container {
-            padding: 15px;
-            background-color: var(--bg-color);
-            border-radius: 8px;
-        }
-        .vp-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-        .vp-summary-main {
-            grid-column: 1 / -1;
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            padding-bottom: 15px;
-            margin-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-            flex-wrap: wrap;
-        }
-        .vp-summary-item {
-            text-align: center;
-        }
-        .vp-summary-label {
-            font-size: 12px;
-            color: var(--subtle-text);
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-        .vp-summary-value {
-            font-size: 18px;
-            font-weight: 600;
-            font-family: 'Courier New', Courier, monospace;
-        }
-        .vp-summary-value.poc {
-            color: #ffc107; /* Gold/Yellow for POC */
-        }
-        .vp-summary-value.va {
-            color: var(--link-color);
-        }
-        .vp-summary-column h4 {
-            margin-top: 0;
-            margin-bottom: 12px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: 500;
-            padding-bottom: 8px;
-            border-bottom: 2px solid;
-        }
-        .vp-column-title.resistance { color: var(--red-text); border-color: var(--red-text); }
-        .vp-column-title.support { color: var(--green-text); border-color: var(--green-text); }
-        .vp-column-title.vacuum { color: var(--subtle-text); border-color: var(--subtle-text); }
-        .vp-zone-item {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            padding: 6px 4px;
-            border-bottom: 1px dashed var(--header-bg);
-        }
-        .vp-zone-item:last-child {
-            border-bottom: none;
-        }
-        .vp-zone-label {
-            color: var(--subtle-text);
-        }
-        .vp-zone-value {
-            font-weight: 500;
-            font-family: 'Courier New', Courier, monospace;
-        }
-        .vp-zone-item-empty {
-            font-size: 13px;
-            text-align: center;
-            color: var(--subtle-text);
-            padding: 10px;
-            font-style: italic;
-        }
+        /* ADD THESE NEW STYLES */
+#vp-summary-table .vp-poc-header { color: #ffc107; }
+#vp-summary-table .vp-va-header { color: #58a6ff; }
+#vp-summary-table .vp-hvn-header { color: var(--red-text); }
+#vp-summary-table .vp-lvn-header { color: var(--green-text); }
     </style>
 </head>
 <body>
@@ -2413,20 +2341,25 @@
                 </div>
             </div>
             <p class="ema-last-updated">Last Updated: <span id="vp-last-updated-time">--</span></p>
-            
-            <!-- Zonal Summary Section -->
-            <div class="collapsible-section" id="vp-summary-section">
-                <div class="collapsible-header">
-                    <h2>Volume Profile Zonal Summary</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner" id="vp-zonal-summary-container">
-                        <!-- Content will be dynamically inserted here -->
-                    </div>
-                </div>
-            </div>
-
+            <div id="vp-summary-container" class="setups-container" style="margin-top: 25px; display: none;">
+    <h3 style="text-align: center; margin-top: 0; margin-bottom: 15px;">Volume Profile Key Levels Summary</h3>
+    <div class="table-wrapper">
+        <table id="vp-summary-table" class="sr-table">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding-left: 15px;">Lookback</th>
+                    <th class="vp-poc-header">Point of Control (POC)</th>
+                    <th class="vp-va-header">Value Area (VA)</th>
+                    <th class="vp-hvn-header">Top High-Volume Node (HVN)</th>
+                    <th class="vp-lvn-header">Top Low-Volume Node (LVN)</th>
+                </tr>
+            </thead>
+            <tbody id="vp-summary-tbody">
+                <!-- Rows will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+</div>
             <div class="chart-container" style="height: 600px; max-height: 70vh;">
                 <canvas id="volumeProfileChart"></canvas>
             </div>
@@ -2607,7 +2540,9 @@
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script> <script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+
+    <script>
     document.addEventListener('DOMContentLoaded', () => {
 
         // --- CONFIGURATION ---
@@ -2801,7 +2736,7 @@
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 STATE.vpData = await response.json();
                 if (DOM.volumeProfileTab.classList.contains('active')) {
-                    handleVpDisplayUpdate();
+                    renderVolumeProfileChart();
                 }
             } catch (error) {
                 console.error("Could not fetch volume_profile_analysis.json:", error);
@@ -2830,14 +2765,11 @@
             }
         }
         
-        function handleVpDisplayUpdate() {
-            const selectedSymbol = DOM.vpSymbolEl.value;
+                function renderVolumeProfileChart() {
+            const selectedSymbol = DOM.vpSymbolEl.value.replace('/', '-');
             const selectedLookback = DOM.vpLookbackEl.value;
-            renderVolumeProfileChart(selectedSymbol, selectedLookback);
-            renderZonalVolumeProfileSummary(selectedSymbol, selectedLookback);
-        }
+                    renderVolumeProfileSummaryTable(selectedSymbol);
 
-        function renderVolumeProfileChart(selectedSymbol, selectedLookback) {
             if (DOM.vpLastUpdatedTime) { DOM.vpLastUpdatedTime.textContent = STATE.vpData.last_updated ? new Date(STATE.vpData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--'; }
             const profileData = STATE.vpData?.data?.[selectedSymbol]?.[selectedLookback];
             if (!profileData || !profileData.full_profile) {
@@ -2861,14 +2793,14 @@
                 indexAxis: 'y', responsive: true, maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    title: { display: true, text: `${selectedSymbol.replace('-','/')} Volume Profile (${selectedLookback})`, font: { size: 18 } },
-                    // NEW CODE (FIXED)
-tooltip: { 
-    callbacks: { 
-        title: (context) => `Price: ${formatCurrency(parseFloat(context[0].label))}`, 
-        label: (context) => `Volume: ${context.raw.toLocaleString(undefined, {maximumFractionDigits: 0})}` 
-    } 
-},
+                    title: { display: true, text: `${selectedSymbol} Volume Profile (${selectedLookback})`, font: { size: 18 } },
+                    tooltip: { 
+                        callbacks: { 
+                            // FIX 1: Convert the label (which is a string) to a number before formatting
+                            title: (context) => `Price: ${formatCurrency(parseFloat(context[0].label))}`, // <-- FIX HERE
+                            label: (context) => `Volume: ${context.raw.toLocaleString(undefined, {maximumFractionDigits: 0})}` 
+                        } 
+                    },
                     annotation: {
                         annotations: {
                             pocLine: { type: 'line', yMin: point_of_control, yMax: point_of_control, borderColor: 'rgba(255, 193, 7, 1)', borderWidth: 2, borderDash: [6, 6], label: { content: `POC: ${formatCurrency(point_of_control)}`, enabled: true, position: 'start', backgroundColor: 'rgba(255, 193, 7, 0.8)', font: { weight: 'bold' } } },
@@ -2877,19 +2809,20 @@ tooltip: {
                         }
                     }
                 },
-                // NEW CODE (FIXED)
-scales: { 
-    y: { 
-        title: { display: true, text: 'Price (USD)' }, 
-        ticks: { 
-          callback: function(value, index, values) {
-    const label = this.getLabelForValue(value);
-    return formatCurrency(parseFloat(label)); 
-}
-        } 
-    }, 
-    x: { title: { display: true, text: 'Volume' } } 
-}
+                scales: { 
+                    y: { 
+                        title: { display: true, text: 'Price (USD)' }, 
+                        ticks: { 
+                            callback: function(value, index, values) {
+                                // FIX 2: Also convert the axis label string to a number for formatting
+                                const label = this.getLabelForValue(value);
+                                return formatCurrency(parseFloat(label)); // <-- FIX HERE
+                            } 
+                        } 
+                    }, 
+                    x: { title: { display: true, text: 'Volume' } } 
+                }
+            };
             if (STATE.chartInstances.volumeProfileChart) {
                 const chart = STATE.chartInstances.volumeProfileChart;
                 chart.data = chartData;
@@ -2899,138 +2832,6 @@ scales: {
                  STATE.chartInstances.volumeProfileChart = new Chart(DOM.volumeProfileChartCanvas, { type: 'bar', data: chartData, options: chartOptions });
             }
         }
-
-        // --- ZONAL SUMMARY FUNCTIONS ---
-
-        function clusterNodes(nodes, clusteringThreshold) {
-            if (!nodes || nodes.length === 0) return [];
-            
-            const sortedNodes = [...nodes].sort((a, b) => a.price_level - b.price_level);
-
-            const clusters = [];
-            if (sortedNodes.length === 0) return clusters;
-
-            let currentCluster = {
-                top: sortedNodes[0].price_level,
-                bottom: sortedNodes[0].price_level,
-                total_volume: sortedNodes[0].volume,
-                nodes: [sortedNodes[0]]
-            };
-
-            for (let i = 1; i < sortedNodes.length; i++) {
-                const node = sortedNodes[i];
-                const lastNodeInCluster = currentCluster.nodes[currentCluster.nodes.length - 1];
-                
-                if (Math.abs(node.price_level - lastNodeInCluster.price_level) / lastNodeInCluster.price_level < clusteringThreshold) {
-                    currentCluster.nodes.push(node);
-                    currentCluster.top = Math.max(currentCluster.top, node.price_level);
-                    currentCluster.bottom = Math.min(currentCluster.bottom, node.price_level);
-                    currentCluster.total_volume += node.volume;
-                } else {
-                    clusters.push(currentCluster);
-                    currentCluster = {
-                        top: node.price_level,
-                        bottom: node.price_level,
-                        total_volume: node.volume,
-                        nodes: [node]
-                    };
-                }
-            }
-            clusters.push(currentCluster);
-
-            return clusters.filter(c => c.nodes.length > 1).sort((a,b) => b.total_volume - a.total_volume);
-        }
-
-        function generateZonalSummary(profileData, clusteringThreshold = 0.015) { // Threshold of 1.5%
-            if (!profileData) return null;
-
-            const { point_of_control, value_area_low, value_area_high, high_volume_nodes, low_volume_nodes } = profileData;
-
-            const summary = {
-                point_of_control,
-                value_area: { high: value_area_high, low: value_area_low },
-                resistance_zones: [],
-                support_zones: [],
-                volume_vacuums: []
-            };
-
-            const hvnsAbove = (high_volume_nodes || []).filter(n => n.price_level > value_area_high);
-            const hvnsBelow = (high_volume_nodes || []).filter(n => n.price_level < value_area_low);
-            const lvnsAbove = (low_volume_nodes || []).filter(n => n.price_level > value_area_high);
-            const lvnsBelow = (low_volume_nodes || []).filter(n => n.price_level < value_area_low);
-
-            summary.resistance_zones = clusterNodes(hvnsAbove, clusteringThreshold);
-            summary.support_zones = clusterNodes(hvnsBelow, clusteringThreshold);
-
-            if (lvnsAbove.length > 0) {
-                const keyGapAbove = lvnsAbove.sort((a, b) => a.volume - b.volume)[0];
-                summary.volume_vacuums.push({
-                    price_level: keyGapAbove.price_level,
-                    description: "Gap Above VA"
-                });
-            }
-            if (lvnsBelow.length > 0) {
-                const keyGapBelow = lvnsBelow.sort((a, b) => a.volume - b.volume)[0];
-                summary.volume_vacuums.push({
-                    price_level: keyGapBelow.price_level,
-                    description: "Gap Below VA"
-                });
-            }
-
-            return summary;
-        }
-
-        function renderZonalVolumeProfileSummary(symbol, lookback) {
-            const container = document.getElementById('vp-zonal-summary-container');
-            if (!container) return;
-
-            const profileData = STATE.vpData?.data?.[symbol]?.[lookback];
-            const zonalSummary = generateZonalSummary(profileData);
-
-            if (!zonalSummary) {
-                container.innerHTML = '<p style="text-align:center; color: var(--subtle-text);">No summary data available for this selection.</p>';
-                return;
-            }
-
-            const { point_of_control, value_area, resistance_zones, support_zones, volume_vacuums } = zonalSummary;
-            
-            const f = (val) => val ? val.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '--';
-
-            const pocHtml = `<div class="vp-summary-item"><div class="vp-summary-label">Point of Control</div><div class="vp-summary-value poc">${f(point_of_control)}</div></div>`;
-            const vaHtml = `<div class="vp-summary-item"><div class="vp-summary-label">Value Area</div><div class="vp-summary-value va">${f(value_area.low)} - ${f(value_area.high)}</div></div>`;
-
-            const resistanceHtml = resistance_zones.length > 0 ? resistance_zones.map((zone, i) => 
-                `<div class="vp-zone-item"><span class="vp-zone-label">Resistance Zone ${i+1}</span><span class="vp-zone-value">${f(zone.bottom)} - ${f(zone.top)}</span></div>`
-            ).join('') : '<div class="vp-zone-item-empty">No significant resistance zones identified.</div>';
-
-            const supportHtml = support_zones.length > 0 ? support_zones.map((zone, i) => 
-                `<div class="vp-zone-item"><span class="vp-zone-label">Support Zone ${i+1}</span><span class="vp-zone-value">${f(zone.bottom)} - ${f(zone.top)}</span></div>`
-            ).join('') : '<div class="vp-zone-item-empty">No significant support zones identified.</div>';
-
-            const vacuumHtml = volume_vacuums.length > 0 ? volume_vacuums.sort((a, b) => a.price_level - b.price_level).map(vac => 
-                `<div class="vp-zone-item"><span class="vp-zone-label">${vac.description} at</span><span class="vp-zone-value">${f(vac.price_level)}</span></div>`
-            ).join('') : '<div class="vp-zone-item-empty">No significant price gaps identified.</div>';
-
-            container.innerHTML = `
-                <div class="vp-summary-grid">
-                    <div class="vp-summary-main">${pocHtml}${vaHtml}</div>
-                    <div class="vp-summary-column">
-                        <h4 class="vp-column-title resistance">Resistance Zones (HVNs)</h4>
-                        ${resistanceHtml}
-                    </div>
-                    <div class="vp-summary-column">
-                        <h4 class="vp-column-title support">Support Zones (HVNs)</h4>
-                        ${supportHtml}
-                    </div>
-                     <div class="vp-summary-column">
-                        <h4 class="vp-column-title vacuum">Price Gaps (LVNs)</h4>
-                        ${vacuumHtml}
-                    </div>
-                </div>
-            `;
-            resizeParentCollapsible(container);
-        }
-
 
         async function fetchAndRenderHistoricalCharts() {
             try {
@@ -3608,6 +3409,67 @@ scales: {
             });
         }
 
+                // ADD THIS ENTIRE NEW FUNCTION
+        function renderVolumeProfileSummaryTable(symbol) {
+            const summaryTbody = document.getElementById('vp-summary-tbody');
+            const summaryContainer = document.getElementById('vp-summary-container');
+            if (!summaryTbody || !summaryContainer) return;
+
+            const symbolData = STATE.vpData.data?.[symbol];
+            if (!symbolData || Object.keys(STATE.vpData.data).length === 0) {
+                summaryContainer.style.display = 'none';
+                return;
+            }
+
+            const lookbackOptions = Array.from(document.getElementById('vp-lookback').options);
+            const lookbacks = lookbackOptions.map(opt => ({ value: opt.value, text: opt.text }));
+            
+            let rowsHtml = '';
+            lookbacks.forEach(lookback => {
+                const lookbackData = symbolData[lookback.value];
+
+                if (lookbackData) {
+                    const poc = lookbackData.point_of_control ? Math.round(lookbackData.point_of_control).toLocaleString() : '--';
+                    const va = (lookbackData.value_area_low && lookbackData.value_area_high)
+                        ? `${Math.round(lookbackData.value_area_low).toLocaleString()} - ${Math.round(lookbackData.value_area_high).toLocaleString()}`
+                        : '--';
+                    
+                    // Find top HVN (highest volume)
+                    const topHVN = lookbackData.high_volume_nodes && lookbackData.high_volume_nodes.length > 0
+                        ? lookbackData.high_volume_nodes.sort((a, b) => b.volume - a.volume)[0]
+                        : null;
+                    const hvnText = topHVN ? Math.round(topHVN.price_level).toLocaleString() : '--';
+
+                    // Find top LVN (lowest volume)
+                    const topLVN = lookbackData.low_volume_nodes && lookbackData.low_volume_nodes.length > 0
+                        ? lookbackData.low_volume_nodes.sort((a, b) => a.volume - b.volume)[0]
+                        : null;
+                    const lvnText = topLVN ? Math.round(topLVN.price_level).toLocaleString() : '--';
+                    
+                    rowsHtml += `
+                        <tr>
+                            <td style="text-align: left; padding-left: 15px; font-weight: 500;">${lookback.text}</td>
+                            <td class="sr-center-price" style="color: #ffc107;">${poc}</td>
+                            <td class="sr-center-price">${va}</td>
+                            <td class="sr-center-price" style="color: var(--red-text);">${hvnText}</td>
+                            <td class="sr-center-price" style="color: var(--green-text);">${lvnText}</td>
+                        </tr>
+                    `;
+                } else {
+                     rowsHtml += `
+                        <tr>
+                            <td style="text-align: left; padding-left: 15px; font-weight: 500;">${lookback.text}</td>
+                            <td colspan="4" style="text-align: center; color: var(--subtle-text);">No data</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            summaryTbody.innerHTML = rowsHtml;
+            summaryContainer.style.display = 'block';
+            resizeParentCollapsible(summaryContainer);
+        }
+
         function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
             if (!STATE.isMasterUser || !files || files.length === 0) return;
             progressElement.style.display = 'block';
@@ -3752,7 +3614,7 @@ scales: {
                 if (tabId === 'journal') updateJournalView();
                 if (tabId === 'sr-levels') renderSrLevels();
                 if (tabId === 'volume-profile') {
-                    handleVpDisplayUpdate();
+                    renderVolumeProfileChart();
                     openDefaultSectionsInContainer(newTabContent);
                 }
                 if (tabId === 'calculator' && !DOM.calculatorTab.dataset.initialized) {
@@ -3896,7 +3758,758 @@ scales: {
             DOM.journalTab.addEventListener('drop', (e) => { DOM.journalTab.classList.remove('drag-over'); if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); });
 
             [DOM.srSymbolEl, DOM.srLookbackEl].forEach(el => el.addEventListener('change', renderSrLevels));
-            [DOM.vpSymbolEl, DOM.vpLookbackEl].forEach(el => el.addEventListener('change', handleVpDisplayUpdate));
+            [DOM.vpSymbolEl, DOM.vpLookbackEl].forEach(el => el.addEventListener('change', renderVolumeProfileChart));
+            DOM.srLegendHeader.addEventListener('click', () => { const isCollapsed = DOM.srLegendContent.style.display === 'none'; DOM.srLegendContent.style.display = isCollapsed ? 'block' : 'none'; DOM.srLegendHeader.classList.toggle('collapsed', !isCollapsed); DOM.srLegendToggleBtn.textContent = isCollapsed ? '−' : '+'; DOM.srLegendToggleBtn.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)'; });
+        }
+        
+        // --- NEW CALCULATOR LOGIC ---
+        function initializeCalculators() {
+            [DOM.calcEntryPrice, DOM.calcPositionSize].forEach(input => {
+                input.addEventListener('input', calculateAllProfits);
+                setupSpinbox(input);
+            });
+            DOM.calcPositionType.addEventListener('change', calculateAllProfits);
+            DOM.addTargetRowBtn.addEventListener('click', addTargetRow);
+            DOM.calcPercentTargets.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { autofillTargetByPercent(parseFloat(e.target.dataset.value)); } });
+            DOM.calcDollarTargets.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { autofillTargetByDollar(parseFloat(e.target.dataset.value)); } });
+            DOM.profitTargetsTbody.addEventListener('click', e => { if (e.target.classList.contains('remove-row-btn')) { const row = e.target.closest('tr'); if (row) { row.remove(); calculateAllProfits(); } } });
+            DOM.addRiskSizerBtn.addEventListener('click', addRiskSizer);
+            DOM.riskSizersContainer.addEventListener('input', e => { const sizer = e.target.closest('.risk-sizer-instance'); if (sizer) calculateRiskSizer(sizer); });
+            DOM.riskSizersContainer.addEventListener('click', e => { if (e.target.classList.contains('remove-sizer-btn')) { const sizer = e.target.closest('.risk-sizer-instance'); if (sizer) sizer.remove(); } });
+            addTargetRow(); addRiskSizer(); openDefaultSectionsInContainer(DOM.calculatorTab);
+        }
+
+        function setupSpinbox(inputElement) {
+            const handleAdjustment = (multiplier) => {
+                let currentValue = parseFloat(inputElement.value) || 0;
+                const valueStr = inputElement.value;
+                let step = 1;
+                if (valueStr.includes('.')) { const decimalPart = valueStr.split('.')[1]; step = Math.pow(10, -decimalPart.length); }
+                const precision = Math.pow(10, (valueStr.split('.')[1] || '').length);
+                let newValue = (Math.round(currentValue * precision) + Math.round(step * multiplier * precision)) / precision;
+                const decimalPlaces = (valueStr.split('.')[1] || '').length;
+                inputElement.value = newValue.toFixed(decimalPlaces);
+                inputElement.dispatchEvent(new Event('input'));
+            };
+            inputElement.addEventListener('keydown', e => {
+                if (e.key === 'ArrowUp') { e.preventDefault(); handleAdjustment(1); } else if (e.key === 'ArrowDown') { e.preventDefault(); handleAdjustment(-1); }
+            });
+            inputElement.addEventListener('wheel', e => { e.preventDefault(); handleAdjustment(e.deltaY < 0 ? 1 : -1); });
+        }
+
+        function calculateAllProfits() {
+            const entryPrice = parseFloat(DOM.calcEntryPrice.value);
+            const positionSize = parseFloat(DOM.calcPositionSize.value);
+            const positionType = document.querySelector('input[name="position-type"]:checked').value;
+            if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) { DOM.calcBreakevenPrice.textContent = '--'; return; }
+            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const breakevenPrice = positionType === "Long" ? entryPrice * (1 + FEE_RATE) / (1 - FEE_RATE) : entryPrice * (1 - FEE_RATE) / (1 + FEE_RATE);
+            DOM.calcBreakevenPrice.textContent = `~${breakevenPrice.toFixed(8).replace(/\.?0+$/, "")}`;
+            const quantity = positionSize / entryPrice;
+            const entryFee = positionSize * FEE_RATE;
+            DOM.profitTargetsTbody.querySelectorAll('tr').forEach(row => {
+                const targetPriceInput = row.querySelector('.target-price-input');
+                const targetPrice = parseFloat(targetPriceInput.value);
+                const profitCell = row.cells[1];
+                const feeCell = row.cells[2];
+                const percentCell = row.cells[3];
+                if (isNaN(targetPrice) || targetPrice <= 0) { profitCell.textContent = '--'; feeCell.textContent = '--'; percentCell.textContent = '--'; profitCell.style.color = 'var(--text-color)'; percentCell.style.color = 'var(--text-color)'; return; }
+                const grossProfit = positionType === 'Long' ? (targetPrice - entryPrice) * quantity : (entryPrice - targetPrice) * quantity;
+                const totalFee = entryFee + (quantity * targetPrice * FEE_RATE);
+                const netProfit = grossProfit - totalFee;
+                const profitPercent = (netProfit / positionSize) * 100;
+                const resultColor = netProfit >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                profitCell.textContent = netProfit.toFixed(2);
+                feeCell.textContent = totalFee.toFixed(2);
+                percentCell.textContent = profitPercent.toFixed(2) + '%';
+                profitCell.style.color = resultColor;
+                percentCell.style.color = resultColor;
+            });
+        }
+        
+        function addTargetRow() {
+            const row = DOM.profitTargetsTbody.insertRow();
+            row.innerHTML = `
+                <td><input type="number" class="target-price-input" placeholder="" step="0.01"></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td><button class="remove-row-btn">×</button></td>
+            `;
+            const input = row.querySelector('input');
+            input.addEventListener('input', calculateAllProfits);
+            setupSpinbox(input);
+            resizeParentCollapsible(DOM.addTargetRowBtn);
+        }
+
+        function findNextEmptyTargetInput() {
+            let emptyInput = Array.from(DOM.profitTargetsTbody.querySelectorAll('.target-price-input')).find(input => !input.value);
+            if (!emptyInput) {
+                addTargetRow();
+                emptyInput = DOM.profitTargetsTbody.lastElementChild.querySelector('.target-price-input');
+            }
+            return emptyInput;
+        }
+
+        function autofillTargetByPercent(percent) {
+            const entryPrice = parseFloat(DOM.calcEntryPrice.value);
+            if (isNaN(entryPrice) || entryPrice <= 0) return;
+            const positionType = document.querySelector('input[name="position-type"]:checked').value;
+            const targetPrice = positionType === "Long" ? entryPrice * (1 + percent) : entryPrice * (1 - percent);
+            const targetInput = findNextEmptyTargetInput();
+            targetInput.value = targetPrice.toFixed(8).replace(/\.?0+$/, "");
+            targetInput.dispatchEvent(new Event('input'));
+        }
+
+        function autofillTargetByDollar(dollarAmount) {
+            const entryPrice = parseFloat(DOM.calcEntryPrice.value);
+            const positionSize = parseFloat(DOM.calcPositionSize.value);
+            if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) return;
+            const positionType = document.querySelector('input[name="position-type"]:checked').value;
+            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const q = positionSize / entryPrice;
+            let targetPrice;
+            if (positionType === "Long") {
+                const denominator = q * (1 - FEE_RATE);
+                if (denominator === 0) return;
+                targetPrice = (dollarAmount + positionSize * (1 + FEE_RATE)) / denominator;
+            } else {
+                const denominator = q * (1 + FEE_RATE);
+                if (denominator === 0) return;
+                targetPrice = (positionSize * (1 - FEE_RATE) - dollarAmount) / denominator;
+            }
+            if (targetPrice > 0) {
+                const targetInput = findNextEmptyTargetInput();
+                targetInput.value = targetPrice.toFixed(8).replace(/\.?0+$/, "");
+                targetInput.dispatchEvent(new Event('input'));
+            }
+        }
+
+        function addRiskSizer() {
+            const sizerInstance = document.createElement('div');
+            sizerInstance.className = 'risk-sizer-instance';
+            sizerInstance.innerHTML = `
+                <button class="remove-row-btn remove-sizer-btn">×</button>
+                <div class="calculator-grid">
+                    <div>
+                        <label>Account Balance ($)</label>
+                        <input type="number" class="risk-balance" placeholder="" step="100">
+                    </div>
+                    <div>
+                        <label>Risk Per Trade (%)</label>
+                        <input type="number" class="risk-percent" value="1" step="0.1">
+                    </div>
+                    <div>
+                        <label>Entry Price</label>
+                        <input type="number" class="risk-entry" placeholder="" step="0.1">
+                    </div>
+                    <div>
+                        <label>Stop-Loss Price</label>
+                        <input type="number" class="risk-stop" placeholder="" step="0.1">
+                    </div>
+                </div>
+                <div class="risk-sizer-output">
+                    <span class="sub-value">Amount to Risk: --</span>
+                    <span class="value">--</span>
+                    <span class="label">Recommended Position Size</span>
+                </div>
+            `;
+            DOM.riskSizersContainer.appendChild(sizerInstance);
+            sizerInstance.querySelectorAll('input[type="number"]').forEach(setupSpinbox);
+            calculateRiskSizer(sizerInstance);
+            resizeParentCollapsible(DOM.addRiskSizerBtn);
+        }
+        
+        function calculateRiskSizer(sizerElement) {
+            const balance = parseFloat(sizerElement.querySelector('.risk-balance').value);
+            const riskPercent = parseFloat(sizerElement.querySelector('.risk-percent').value);
+            const entryPrice = parseFloat(sizerElement.querySelector('.risk-entry').value);
+            const stopLoss = parseFloat(sizerElement.querySelector('.risk-stop').value);
+            const valueEl = sizerElement.querySelector('.value');
+            const subValueEl = sizerElement.querySelector('.sub-value');
+            if (isNaN(balance) || isNaN(riskPercent) || isNaN(entryPrice) || isNaN(stopLoss) ||
+                balance <= 0 || riskPercent <= 0 || entryPrice <= 0 || stopLoss <= 0) {
+                valueEl.textContent = '--';
+                subValueEl.textContent = 'Amount to Risk: --';
+                return;
+            }
+            if (entryPrice === stopLoss) {
+                valueEl.textContent = 'Invalid Stop';
+                valueEl.style.color = 'var(--red-text)';
+                subValueEl.textContent = 'Amount to Risk: --';
+                return;
+            }
+            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const riskAmountDollars = balance * (riskPercent / 100.0);
+            const totalLossPerUnit = Math.abs(entryPrice - stopLoss) + (entryPrice * FEE_RATE) + (stopLoss * FEE_RATE);
+            if (totalLossPerUnit <= 0) {
+                 valueEl.textContent = '--';
+                 subValueEl.textContent = 'Amount to Risk: --';
+                 return;
+            }
+            const quantity = riskAmountDollars / totalLossPerUnit;
+            const positionSize = quantity * entryPrice;
+            valueEl.textContent = `$${positionSize.toFixed(2)}`;
+            valueEl.style.color = 'var(--green-text)';
+            subValueEl.textContent = `Amount to Risk: $${riskAmountDollars.toFixed(2)} (${riskPercent}%)`;
+        }
+        
+        function calculateTradeMetrics(tradeData) {
+            const entry = parseFloat(tradeData.entry); const stoploss = parseFloat(tradeData.stoploss); const target = parseFloat(tradeData.target); const size = parseFloat(tradeData.size); const type = tradeData.type;
+            if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return { rr: 0, estimated_total_fee: 0, expected_profit: 0, expected_loss: 0, expected_profit_percent: 0, expected_loss_percent: 0 }; }
+            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const positionQty = size / entry; const entryFee = size * FEE_RATE;
+            let potentialProfit, potentialLoss;
+            if (type === 'Long') { potentialProfit = positionQty * (target - entry); potentialLoss = positionQty * (entry - stoploss); } else { potentialProfit = positionQty * (entry - target); potentialLoss = positionQty * (stoploss - entry); }
+            const exitValueAtTarget = (target / entry) * size; const exitFeeAtTarget = exitValueAtTarget * FEE_RATE; const estimated_total_fee = entryFee + exitFeeAtTarget; const expected_profit = potentialProfit - estimated_total_fee;
+            const exitValueAtStop = (stoploss / entry) * size; const exitFeeAtStop = exitValueAtStop * FEE_RATE; const expected_loss = potentialLoss + entryFee + exitFeeAtStop;
+            const rr = (expected_loss > 0) ? (expected_profit / expected_loss) : 0;
+            const expected_profit_percent = (expected_profit / size) * 100; const expected_loss_percent = (expected_loss / size) * 100;
+            return { rr: rr.toFixed(2), estimated_total_fee: estimated_total_fee, expected_profit: expected_profit, expected_loss: expected_loss, expected_profit_percent: expected_profit_percent, expected_loss_percent: expected_loss_percent };
+        }
+
+        function handleAddTradeSubmit(e) {
+            e.preventDefault(); if (!STATE.isMasterUser) return;
+            const trade = { symbol: document.getElementById('trade-symbol').value, type: document.getElementById('trade-type').value, entry: parseFloat(document.getElementById('entry-price').value), stoploss: parseFloat(document.getElementById('stop-loss').value), target: parseFloat(document.getElementById('target').value), size: parseFloat(document.getElementById('position-value').value), date: firebase.database.ServerValue.TIMESTAMP, entry_prices: [] };
+            if (Object.values(trade).some(val => val === null || (isNaN(val) && typeof val === 'number'))) return alert('Please fill all fields correctly.');
+            trade.entry_prices.push(trade.entry);
+            const metrics = calculateTradeMetrics(trade);
+            const tradeWithMetrics = { ...trade, ...metrics };
+            dbRefs.trades.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error adding trade: ${error.message}`));
+        }
+        
+        function handleLiveTradeUpdate(cell) {
+            if (!STATE.isMasterUser) return;
+            const tradeId = cell.dataset.id;
+            const fieldToUpdate = cell.dataset.field;
+            const tradeRef = dbRefs.trades.child(tradeId);
+            tradeRef.once('value', snapshot => {
+                const trade = snapshot.val(); if (!trade) { alert('Error: Trade not found.'); return; }
+                const updates = {};
+                if (fieldToUpdate === 'entry_prices') {
+                    const newPricesArray = cell.textContent.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0);
+                    if (newPricesArray.length === 0) { alert("Invalid entry prices list."); cell.textContent = (trade.entry_prices || [trade.entry]).join(', '); return; }
+                    updates.entry_prices = newPricesArray; updates.note = (trade.note || '') + `\nEntry list updated ${new Date().toLocaleString()}`; tradeRef.update(updates); return; 
+                } 
+                let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, ''));
+                const precision = ['entry', 'stoploss', 'target'].includes(fieldToUpdate) ? 4 : 2;
+                if (isNaN(newValue)) { alert('Invalid number.'); cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); return; }
+                if (parseFloat(trade[fieldToUpdate]).toFixed(precision) === newValue.toFixed(precision)) { cell.textContent = newValue.toFixed(precision); return; }
+                updates[fieldToUpdate] = newValue;
+                const tempTradeForCalc = { ...trade, ...updates };
+                const newMetrics = calculateTradeMetrics(tempTradeForCalc);
+                Object.assign(updates, newMetrics);
+                updates.note = (trade.note || '') + `\n${fieldToUpdate} updated to ${newValue.toFixed(precision)} on ${new Date().toLocaleString()}`;
+                tradeRef.update(updates).catch(error => { alert('Failed to update trade: ' + error.message); cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); });
+            });
+        }
+
+        function handleSentimentLog(e) { const button = e.target.closest('.sentiment-buttons button'); if (!button) return; const { asset, sentiment } = button.dataset; if (!asset || !sentiment) return; dbRefs.sentimentReceipts.push({ asset, sentiment, timestamp: firebase.database.ServerValue.TIMESTAMP, viewerId: getViewerId() }); }
+        function handleSentimentAction(e) { if (!STATE.isMasterUser) return; const editBtn = e.target.closest('.edit-sentiment-note-btn'); if (editBtn) handleSentimentNoteEdit(editBtn); const deleteBtn = e.target.closest('.delete-sentiment-btn'); if (deleteBtn) handleSentimentDelete(deleteBtn); }
+        function handleSentimentDelete(button) { const receiptId = button.dataset.id; if (!receiptId) return; if (confirm('Delete this log entry?')) dbRefs.sentimentReceipts.child(receiptId).remove(); }
+        function handleSentimentNoteEdit(button) { const receiptId = button.dataset.id; if (!receiptId) return; const receiptRef = dbRefs.sentimentReceipts.child(receiptId); receiptRef.child('note').once('value', snapshot => { const newNote = prompt('Enter note:', snapshot.val() || ""); if (newNote !== null) receiptRef.update({ note: newNote }); }); }
+
+        function handleAddStaggeredEntry(tradeId) {
+            if (!STATE.isMasterUser) return;
+            const tradeRef = dbRefs.trades.child(tradeId);
+            tradeRef.once('value', snapshot => {
+                const currentTrade = snapshot.val(); if (!currentTrade) return alert('Error: Trade not found.');
+                const newEntryPriceStr = prompt("Enter NEW entry price:"); if (newEntryPriceStr === null) return;
+                const newPositionValueStr = prompt("Enter value ($) of this NEW position:"); if (newPositionValueStr === null) return;
+                const newEntryPrice = parseFloat(newEntryPriceStr), newPositionValue = parseFloat(newPositionValueStr);
+                if (isNaN(newEntryPrice) || isNaN(newPositionValue) || newEntryPrice <= 0 || newPositionValue <= 0) return alert("Invalid input.");
+                const currentSize = parseFloat(currentTrade.size), currentEntry = parseFloat(currentTrade.entry);
+                const totalValue = currentSize + newPositionValue, totalQuantity = (currentSize / currentEntry) + (newPositionValue / newEntryPrice);
+                const newAverageEntryPrice = totalValue / totalQuantity;
+                const updatedEntryPrices = currentTrade.entry_prices || [currentTrade.entry]; updatedEntryPrices.push(newEntryPrice);
+                const tempTradeForCalc = { ...currentTrade, entry: newAverageEntryPrice, size: totalValue };
+                const newMetrics = calculateTradeMetrics(tempTradeForCalc);
+                const updatedTrade = { ...currentTrade, entry: newAverageEntryPrice, size: totalValue, entry_prices: updatedEntryPrices, ...newMetrics, note: (currentTrade.note || '') + `\n+ Added $${newPositionValue.toFixed(2)} @ $${newEntryPrice.toFixed(4)} on ${new Date().toLocaleString()}` };
+                tradeRef.update(updatedTrade);
+            });
+        }
+
+        function handleGenericImageLibraryClick(e) {
+            const clickedImg = e.target.closest('img');
+            if (clickedImg?.dataset.fullSrc) {
+                const galleryContainer = clickedImg.closest('#image-library-container, #setups-image-container, .cl2-image-grid, #chart-library-2-preview-container, .trade-image-thumbnails');
+                if (galleryContainer) { const allImageElements = galleryContainer.querySelectorAll('img'); const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })); const clickedIndex = Array.from(allImageElements).indexOf(clickedImg); if (clickedIndex > -1) openImageModal(imageArray, clickedIndex); }
+                return;
+            }
+            if (e.target.closest('#image-library-container')) handleLibraryActions(e, 'image_library', dbRefs.imageLibrary);
+            else if (e.target.closest('#setups-image-container')) handleLibraryActions(e, 'setups_images', dbRefs.setupsImages);
+            else if (e.target.closest('#chart-library-2-container')) handleChartLibrary2Click(e);
+        }
+
+        function handleLibraryActions(e, libraryType, dbRef) {
+            const deleteBtn = e.target.closest('.delete-library-image'), editBtn = e.target.closest('.edit-caption-btn');
+            if (deleteBtn && STATE.isMasterUser) {
+                const { id, filename } = deleteBtn.dataset;
+                if (confirm(`Delete this image?\n\n${filename}`)) { const storagePath = `${libraryType}/${filename}`; storage.ref(storagePath).delete().then(() => dbRef.child(id).remove()).catch((err) => { if (err.code === 'storage/object-not-found') dbRef.child(id).remove(); else alert('Error deleting image.'); }); }
+            } else if (editBtn && STATE.isMasterUser) {
+                const { id } = editBtn.dataset;
+                const imageRef = dbRef.child(id);
+                imageRef.child('caption').once('value', snapshot => { const newCaption = prompt('Enter image caption:', snapshot.val() || ""); if (newCaption !== null) imageRef.update({ caption: newCaption.trim() }); });
+            }
+        }
+
+        function handleChartLibrary2Click(e) {
+            const folderCard = e.target.closest('.cl2-folder-card'), backBtn = e.target.closest('.cl2-back-button'), deleteBtn = e.target.closest('.delete-library-image');
+            if (folderCard) { STATE.currentCl2Folder = folderCard.dataset.folder; renderFolderContents(STATE.currentCl2Folder); return; }
+            if (backBtn) { STATE.currentCl2Folder = null; renderChartLibrary2Folders(); return; }
+            if (deleteBtn && STATE.isMasterUser) {
+                const { folder, id, filename } = deleteBtn.dataset;
+                if (confirm(`Delete this image from ${folder}?\n\n${filename}`)) { const storagePath = `chart_library_2/${folder}/${filename}`; storage.ref(storagePath).delete().then(() => dbRefs.chartLibrary2.child(folder).child(id).remove()).catch((err) => { if (err.code === 'storage/object-not-found') dbRefs.chartLibrary2.child(folder).child(id).remove(); else alert('Error deleting image.'); }); }
+            }
+        }
+        function handleTradeAction(e) {
+            if (!STATE.isMasterUser) return;
+            if (STATE.isMerging) {
+                const targetRow = e.target.closest('tr');
+                if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody' && !e.target.closest('button')) {
+                    const absorbedTradeId = targetRow.querySelector('.action-buttons button')?.dataset.id;
+                    if (absorbedTradeId) executeMerge(STATE.mergeBaseTradeId, absorbedTradeId);
+                }
+                return;
+            }
+            const button = e.target.closest('button'); if (!button) return;
+            const { id } = button.dataset;
+            const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
+            const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
+            if (button.matches('.win-btn')) completeTrade(id, 'win');
+            else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
+            else if (button.matches('.add-to-position-btn')) handleAddStaggeredEntry(id);
+            else if (button.matches('.merge-btn-completed')) initiateMerge(id);
+            else if (button.matches('.delete-btn, .delete-btn-completed')) { if (confirm('Delete this trade?')) { resetMergeState(); tradeRef.remove(); } } 
+            else if (button.matches('.note-btn, .note-btn-completed')) { tradeRef.child('note').once('value', snapshot => { const newNote = prompt("Enter note:", snapshot.val() || ""); if (newNote !== null) tradeRef.update({ note: newNote }); }); }
+        }
+        
+        function handleAttachmentActions(e) {
+            const attachBtn = e.target.closest('.attach-image-btn'); if (attachBtn) { handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type); return true; }
+            const delImgBtn = e.target.closest('.delete-trade-image'); if (delImgBtn) { const { entryId, entryType, imageId, filename } = delImgBtn.dataset; handleDeleteAttachmentImage(entryId, entryType, imageId, filename); return true; }
+            const img = e.target.closest('.trade-image-thumbnails img'); if (img) { handleGenericImageLibraryClick(e); return true; }
+            return false;
+        }
+
+        function handleAttachAttachmentClick(entryId, entryType) {
+            if (!STATE.isMasterUser) return;
+            STATE.imageUploadContext = { id: entryId, type: entryType };
+            DOM.tradeImageUploader.value = null; DOM.tradeImageUploader.click();
+        }
+
+        function handleAttachmentImageUpload(files) {
+            if (!STATE.isMasterUser || !files || files.length === 0) return;
+            const { id, type } = STATE.imageUploadContext; if (!id || !type) return;
+            let dbRefPath, storagePathPrefix;
+            switch (type) {
+                case 'live': dbRefPath = CONFIG.DB_PATHS.TRADES; storagePathPrefix = `trade_attachments/${id}/`; break;
+                case 'completed': dbRefPath = CONFIG.DB_PATHS.COMPLETED_TRADES; storagePathPrefix = `trade_attachments/${id}/`; break;
+                case 'sentiment': dbRefPath = CONFIG.DB_PATHS.SENTIMENT_RECEIPTS; storagePathPrefix = `sentiment_attachments/${id}/`; break;
+                default: return;
+            }
+            const entryDbRef = database.ref(dbRefPath).child(id);
+            Array.from(files).forEach((file) => {
+                if (!file.type.startsWith('image/')) return;
+                const fileName = `${Date.now()}_${file.name}`;
+                const storagePath = `${storagePathPrefix}${fileName}`;
+                const uploadTask = storage.ref(storagePath).put(file);
+                uploadTask.on('state_changed', null, (e) => { alert(`Upload failed for ${file.name}.`); }, () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+                        entryDbRef.child('attachedImages').push({ url, fileName, timestamp: firebase.database.ServerValue.TIMESTAMP });
+                    });
+                });
+            });
+        }
+        
+        function handleDeleteAttachmentImage(entryId, entryType, imageId, fileName) {
+            if (!STATE.isMasterUser || !entryId || !entryType || !imageId || !fileName) return;
+            if (confirm(`Delete this attachment?\n\n${fileName}`)) {
+                let dbRefPath, storagePathPrefix;
+                switch (entryType) {
+                    case 'live': dbRefPath = CONFIG.DB_PATHS.TRADES; storagePathPrefix = `trade_attachments/${entryId}/`; break;
+                    case 'completed': dbRefPath = CONFIG.DB_PATHS.COMPLETED_TRADES; storagePathPrefix = `trade_attachments/${entryId}/`; break;
+                    case 'sentiment': dbRefPath = CONFIG.DB_PATHS.SENTIMENT_RECEIPTS; storagePathPrefix = `sentiment_attachments/${entryId}/`; break;
+                    default: return;
+                }
+                const storagePath = `${storagePathPrefix}${fileName}`;
+                const imageDbRef = database.ref(dbRefPath).child(entryId).child('attachedImages').child(imageId);
+                storage.ref(storagePath).delete().then(() => imageDbRef.remove()).catch((err) => {
+                    if (err.code === 'storage/object-not-found') imageDbRef.remove(); else alert('Error deleting attachment.');
+                });
+            }
+        }
+
+        function handleImageDelete(e) {
+            const button = e.target.closest('.delete-journal-image'); if (!STATE.isMasterUser || !button) return;
+            if (DOM.imageModal.style.display === 'flex' && DOM.modalImageContent.src === button.closest('.journal-image-wrapper').querySelector('img').src) closeModal();
+            const { safeSymbol, timeframe, id, filename } = button.dataset;
+            if (confirm(`Delete this image?\n\n${filename}`)) {
+                const storagePath = `journal_images/${safeSymbol}/${timeframe}/${filename}`;
+                const dbPath = `${CONFIG.DB_PATHS.JOURNAL_IMAGES}/${safeSymbol}/${timeframe}/${id}`;
+                storage.ref(storagePath).delete().then(() => database.ref(dbPath).remove()).catch((err) => { if (err.code === 'storage/object-not-found') database.ref(dbPath).remove(); });
+            }
+        }
+
+        function handleFavouriteClick() {
+            if (!STATE.isMasterUser) return;
+            const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value), timeframe = DOM.journalTimeframeEl.value;
+            const currentText = DOM.journalEntryEl.value.trim();
+            const dbFavouriteRef = dbRefs.favourites.child(safeSymbol).child(timeframe);
+            if (DOM.favouriteBtn.classList.contains('active')) dbFavouriteRef.remove();
+            else { if (!currentText) return alert('Cannot pin an empty note.'); dbFavouriteRef.set(currentText); }
+        }
+
+        function resetMergeState() {
+            STATE.isMerging = false; STATE.mergeBaseTradeId = null;
+            document.body.classList.remove('in-merge-mode');
+            document.querySelectorAll('#completed-trades-tbody tr.is-merge-base').forEach(row => row.classList.remove('is-merge-base'));
+        }
+
+        function initiateMerge(baseTradeId) {
+            if (STATE.isMerging && STATE.mergeBaseTradeId === baseTradeId) { resetMergeState(); alert('Merge cancelled.'); return; }
+            resetMergeState(); STATE.isMerging = true; STATE.mergeBaseTradeId = baseTradeId;
+            document.body.classList.add('in-merge-mode');
+            const baseRow = document.querySelector(`#completed-trades-tbody button[data-id='${baseTradeId}']`).closest('tr');
+            if (baseRow) baseRow.classList.add('is-merge-base');
+            alert('MERGE MODE: Click another trade to merge into this one. Click "Merge" again to cancel.');
+        }
+
+        function executeMerge(baseTradeId, absorbedTradeId) {
+            if (!baseTradeId || !absorbedTradeId || baseTradeId === absorbedTradeId) { resetMergeState(); return; }
+            const completedTradesRef = dbRefs.completedTrades;
+            completedTradesRef.once('value', snapshot => {
+                const allTrades = snapshot.val(), baseTrade = allTrades[baseTradeId], absorbedTrade = allTrades[absorbedTradeId];
+                if (!baseTrade || !absorbedTrade) { alert('Error: Could not find one of the trades.'); resetMergeState(); return; }
+                if (baseTrade.symbol !== absorbedTrade.symbol || baseTrade.type !== absorbedTrade.type) { alert('Error: Cannot merge trades with different symbols or types.'); resetMergeState(); return; }
+                const baseSize = parseFloat(baseTrade.size), baseEntry = parseFloat(baseTrade.entry), baseQty = baseSize / baseEntry;
+                const absorbedSize = parseFloat(absorbedTrade.size), absorbedEntry = parseFloat(absorbedTrade.entry), absorbedQty = absorbedSize / absorbedEntry;
+                const totalQty = baseQty + absorbedQty, totalValue = baseSize + absorbedSize;
+                const mergedEntry = totalValue / totalQty;
+                const baseExitValue = parseFloat(baseTrade.exit_price) * baseQty, absorbedExitValue = parseFloat(absorbedTrade.exit_price) * absorbedQty;
+                const mergedExitPrice = (baseExitValue + absorbedExitValue) / totalQty;
+                const mergedEntryPrices = [...(baseTrade.entry_prices || [baseTrade.entry]), ...(absorbedTrade.entry_prices || [absorbedTrade.entry])];
+                const mergedTrade = {
+                    ...baseTrade, entry: mergedEntry, size: totalValue, exit_price: mergedExitPrice, entry_prices: mergedEntryPrices,
+                    net_result: (baseTrade.net_result || 0) + (absorbedTrade.net_result || 0),
+                    entry_fee: (baseTrade.entry_fee || 0) + (absorbedTrade.entry_fee || 0),
+                    exit_fee: (baseTrade.exit_fee || 0) + (absorbedTrade.exit_fee || 0),
+                    date: Math.min(new Date(baseTrade.date).getTime(), new Date(absorbedTrade.date).getTime()),
+                    closed_date: Math.max(new Date(baseTrade.closed_date).getTime(), new Date(absorbedTrade.closed_date).getTime()),
+                    note: `${baseTrade.note || ''}\n--- MERGED ---\n${absorbedTrade.note || ''}`.trim(),
+                };
+                const updates = { [baseTradeId]: mergedTrade, [absorbedTradeId]: null };
+                completedTradesRef.update(updates).then(() => { alert('Trades merged successfully!'); resetMergeState(); }).catch(e => { alert(`Error merging trades: ${e.message}`); resetMergeState(); });
+            });
+        }
+
+        function subscribeToData() {
+            dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
+            dbRefs.completedTrades.on('value', s => {
+                const completedData = s.val() || {}; renderCompletedTable(completedData);
+                let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
+                Object.values(completedData).forEach(trade => {
+                    const netResult = trade.net_result || 0;
+                    if (netResult > 0) { wins++; grossProfit += netResult; } else { losses++; grossLoss += Math.abs(netResult); }
+                });
+                const totalCompleted = wins + losses, winRate = totalCompleted > 0 ? (wins / totalCompleted) * 100 : 0;
+                const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0, avgWin = wins > 0 ? grossProfit / wins : 0;
+                const avgLoss = losses > 0 ? grossLoss / losses : 0, rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
+                const totalPL = grossProfit - grossLoss, newBalance = CONFIG.TRADE_SETTINGS.STARTING_BALANCE + totalPL;
+                DOM.statBalance.textContent = formatCurrency(newBalance); DOM.statBalanceAud.textContent = formatCurrency(newBalance * STATE.usdToAudRate, 'A$');
+                DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}${formatCurrency(totalPL)}`; DOM.statTotalPl.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}${formatCurrency(totalPL * STATE.usdToAudRate, 'A$')}`; DOM.statTotalPlAud.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                DOM.statCompletedTrades.textContent = totalCompleted; DOM.statWins.textContent = wins; DOM.statLosses.textContent = losses;
+                DOM.statWinRate.textContent = `${winRate.toFixed(1)}%`; DOM.statProfitFactor.textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
+                DOM.statAvgWin.textContent = formatCurrency(avgWin); DOM.statAvgLoss.textContent = formatCurrency(avgLoss); DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
+                dbRefs.bank.set({ currentBalance: newBalance });
+            });
+            dbRefs.journalText.on('value', (s) => { STATE.journalText = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
+            dbRefs.journalImages.on('value', (s) => { STATE.journalImages = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
+            dbRefs.imageLibrary.on('value', (s) => renderGenericImageLibrary(s.val(), DOM.imageLibraryContainer, 'image_library'));
+            dbRefs.setupsImages.on('value', (s) => renderGenericImageLibrary(s.val(), DOM.setupsImageContainer, 'setups_images'));
+            dbRefs.chartLibrary2.on('value', s => { STATE.chartLibrary2Data = s.val() || {}; if (STATE.currentCl2Folder) renderFolderContents(STATE.currentCl2Folder); else renderChartLibrary2Folders(); renderChartLibrary2Preview(); });
+            dbRefs.favourites.on('value', (s) => { STATE.favouriteEntries = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
+            dbRefs.setups1.on('value', (s) => { STATE.setupsData1 = s.val() || {}; renderSetupsTable(null, STATE.setupsData1, 'primary-setups-notes'); });
+            dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(null, STATE.setupsData2, 'secondary-setups-notes'); });
+            dbRefs.persistentNotes.on('value', (s) => { STATE.persistentNotes = s.val() || ''; if (document.activeElement !== DOM.persistentNotesEl) { DOM.persistentNotesEl.value = STATE.persistentNotes; } adjustCollapsibleSize(DOM.persistentNotesEl); });
+            dbRefs.trackerScratchpad.on('value', (s) => { STATE.trackerScratchpadText = s.val() || ''; if (document.activeElement !== DOM.trackerScratchpadEl) { DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; } adjustCollapsibleSize(DOM.trackerScratchpadEl); });
+            dbRefs.sentimentReceipts.on('value', (s) => { STATE.allSentimentReceipts = s.val() || {}; renderSentimentReceipts(); });
+            dbRefs.levelNotes.on('value', (s) => renderLevelNotes(s.val()));
+            dbRefs.generalNotes.on('value', (s) => { STATE.generalNotes = s.val() || {}; if (DOM.noteEditModal.style.display === 'none') { renderNotes(STATE.generalNotes); } });
+        }
+
+        // --- INITIALIZATION ---
+        function openCollapsibleSection(sectionElement) {
+            if (!sectionElement || sectionElement.classList.contains('is-open')) return;
+            const content = sectionElement.querySelector('.collapsible-content');
+            const toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
+            if (content && toggleBtn) {
+                sectionElement.classList.add('is-open'); 
+                toggleBtn.textContent = '−'; 
+                toggleBtn.style.transform = 'rotate(180deg)';
+                setTimeout(() => {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                }, 50);
+            }
+        }
+
+        function openDefaultSectionsInContainer(containerElement) {
+            if (!containerElement) return;
+            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'Persistent Notes', 'Position Profit & Target Calculator', 'Risk-Based Position Sizer'];
+            containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
+                const title = h2.textContent.trim();
+                if (sectionsToOpen.includes(title)) {
+                    const section = h2.closest('.collapsible-section');
+                    if (section && !(section.classList.contains('master-only') && !STATE.isMasterUser)) {
+                        openCollapsibleSection(section);
+                    }
+                }
+            });
+        }
+
+        function checkMasterMode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('master') === 'true') {
+                const password = prompt("Please enter master password:");
+                if (password) {
+                    STATE.isMasterUser = true; STATE.masterPassword = password;
+                    document.querySelectorAll('.master-only').forEach(el => {
+                       if (el.classList.contains('collapsible-section') || el.id === 'favourite-btn' || el.classList.contains('sentiment-tracker')) {
+                           el.style.display = 'block';
+                       } else if (el.tagName === 'TH' || el.tagName === 'TD') {
+                           el.style.display = 'table-cell';
+                       } else if (el.id.startsWith('save-setups-')) {
+                           el.style.display = 'inline-block';
+                       } else {
+                           el.style.display = 'block';
+                       }
+                    });
+                    DOM.journalEntryEl.readOnly = false; DOM.persistentNotesEl.readOnly = false; DOM.trackerScratchpadEl.readOnly = false;
+                    document.querySelectorAll('.setups-table .editable-setup-cell').forEach(cell => cell.setAttribute('contenteditable', 'true'));
+                    DOM.primarySetupsNotes.readOnly = false; DOM.secondarySetupsNotes.readOnly = false;
+                }
+            }
+            if (!STATE.isMasterUser) {
+                DOM.journalEntryEl.readOnly = true; DOM.persistentNotesEl.readOnly = true; DOM.trackerScratchpadEl.readOnly = true;
+                DOM.primarySetupsNotes.readOnly = true; DOM.secondarySetupsNotes.readOnly = true;
+            }
+            document.querySelectorAll('.key-open-note').forEach(input => {
+                input.readOnly = !STATE.isMasterUser;
+                if (!STATE.isMasterUser) {
+                    input.style.cursor = 'not-allowed';
+                    input.style.backgroundColor = 'transparent';
+                }
+            });
+        }
+
+        async function initializeApp() {
+            checkMasterMode(); 
+            getViewerId();
+            await fetchLiveConversionRate();
+            fetchEmaData();
+            fetchSrData();
+            fetchMarketOpens();
+            fetchVolumeProfileData();
+            fetchCrossoverSignalData();
+            fetchAndRenderOptionsData();
+            
+            setInterval(fetchCrossoverSignalData, 5 * 60 * 1000);
+            setInterval(() => {
+                fetchAndRenderOptionsData();
+            }, 60000);
+
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) { 
+                document.documentElement.setAttribute('data-theme', savedTheme); 
+                DOM.themeToggle.checked = savedTheme === 'dark'; 
+            }
+            const today = new Date(); 
+            today.setUTCHours(0, 0, 0, 0);
+            STATE.selectedDate = new Date(today); 
+            STATE.centerDate = new Date(today);
+            setupEventListeners(); 
+            subscribeToData();
+            renderDateNavigation(); 
+            renderChartLibrary2Folders(); 
+            renderChartLibrary2Preview();
+
+            const activeTabContent = document.querySelector('.tab-content.active');
+            if (activeTabContent) {
+                openDefaultSectionsInContainer(activeTabContent);
+                activeTabContent.dataset.sectionsInitialized = 'true';
+            }
+        }
+        
+        // --- EVENT LISTENERS ---
+        function setupEventListeners() {
+            document.getElementById('key-opens-container').addEventListener('input', e => {
+                if(e.target.matches('.key-open-note')) { autoResizeTextarea(e.target); saveLevelNotes(e.target); }
+            });
+            DOM.themeToggle.addEventListener('change', (e) => {
+                const theme = e.target.checked ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+            });
+
+            DOM.tabs.addEventListener('click', (e) => {
+                if (!e.target.matches('.tab-link')) return;
+                document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
+                e.target.classList.add('active');
+                const tabId = e.target.dataset.tab;
+                const newTabContent = document.getElementById(`${tabId}-tab`);
+                if (newTabContent) {
+                    newTabContent.classList.add('active');
+                    if (!newTabContent.dataset.sectionsInitialized) { openDefaultSectionsInContainer(newTabContent); newTabContent.dataset.sectionsInitialized = 'true'; }
+                }
+                DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'journal') ? 'block' : 'none';
+                if (tabId === 'journal') updateJournalView();
+                if (tabId === 'sr-levels') renderSrLevels();
+                if (tabId === 'volume-profile') {
+                    renderVolumeProfileChart();
+                    openDefaultSectionsInContainer(newTabContent);
+                }
+                if (tabId === 'calculator' && !DOM.calculatorTab.dataset.initialized) {
+                    initializeCalculators();
+                    DOM.calculatorTab.dataset.initialized = 'true';
+                }
+            });
+
+            DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
+            DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
+            document.addEventListener('click', (e) => {
+                if (!DOM.statsPanel.contains(e.target) && !DOM.statsFab.contains(e.target) && DOM.statsPanel.classList.contains('active')) {
+                    DOM.statsPanel.classList.remove('active');
+                }
+            });
+
+            DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
+            
+            document.body.addEventListener('click', (e) => {
+                const header = e.target.closest('.collapsible-header');
+                if (header) {
+                    const section = header.parentElement;
+                    const content = section.querySelector('.collapsible-content');
+                    const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+                    section.classList.toggle('is-open');
+                    toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
+                    toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                    if (section.classList.contains('is-open')) {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
+                    } else { content.style.maxHeight = '0px'; }
+                }
+
+                if (handleAttachmentActions(e)) return;
+
+                if (e.target.matches('.ema-pill-btn')) {
+                    e.stopPropagation();
+                    const pillBtn = e.target;
+                    const group = pillBtn.closest('.pill-button-group');
+                    group.querySelectorAll('.ema-pill-btn').forEach(btn => btn.classList.remove('active'));
+                    pillBtn.classList.add('active');
+                    renderEmaSnapshot(pillBtn.dataset.symbol);
+                } else if (e.target.closest('.sentiment-buttons button')) {
+                    handleSentimentLog(e);
+                } else if (e.target.closest('#setups-image-container, #image-library-container, #chart-library-2-container, #chart-library-2-preview-container')) {
+                    handleGenericImageLibraryClick(e);
+                } else if (e.target.closest('#trades-tbody, #completed-trades-tbody')) {
+                    handleTradeAction(e);
+                } else if (e.target.closest('#sentiment-receipts-tbody')) {
+                    handleSentimentAction(e);
+                } else if (e.target.id === 'toggle-all-sentiments') {
+                    STATE.sentimentShowAll = true;
+                    STATE.sentimentCurrentPage = 1;
+                    renderSentimentReceipts();
+                } else if (e.target.id === 'sentiment-prev-page') {
+                    if (STATE.sentimentCurrentPage > 1) { STATE.sentimentCurrentPage--; renderSentimentReceipts(); }
+                } else if (e.target.id === 'sentiment-next-page') {
+                    const totalPages = Math.ceil(Object.keys(STATE.allSentimentReceipts).length / STATE.sentimentItemsPerPage);
+                    if (STATE.sentimentCurrentPage < totalPages) { STATE.sentimentCurrentPage++; renderSentimentReceipts(); }
+                } else if (e.target.id === 'toggle-old-trades') {
+                    toggleHistoricalRows('completed-trades-tbody', e.target);
+                } else if (e.target.id === 'toggle-old-setups-images') {
+                    toggleHistoricalImages('setups-image-container', e.target);
+                }
+            });
+
+            if (DOM.createNewNoteBtn) {
+                DOM.createNewNoteBtn.addEventListener('click', () => {
+                    if (!STATE.isMasterUser) return;
+                    const title = prompt("Enter a title for the new note:");
+                    if (title && title.trim()) { dbRefs.generalNotes.push({ title: title.trim(), content: '', timestamp: firebase.database.ServerValue.TIMESTAMP }); }
+                });
+            }
+
+            if (DOM.notesContainer) {
+                DOM.notesContainer.addEventListener('click', (e) => {
+                    const header = e.target.closest('.note-item-header');
+                    const deleteBtn = e.target.closest('.note-delete-btn');
+                    if (deleteBtn && STATE.isMasterUser) { e.stopPropagation(); const noteId = deleteBtn.dataset.noteId; if (confirm(`Are you sure you want to delete this note?`)) { dbRefs.generalNotes.child(noteId).remove(); } return; }
+                    if (header) { const noteId = header.dataset.noteId; openNoteForEditing(noteId); }
+                });
+            }
+
+            DOM.noteModalClose.addEventListener('click', closeNoteModal);
+            DOM.noteEditModal.addEventListener('click', e => { if (e.target.id === 'note-edit-modal') closeNoteModal(); });
+            DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
+            DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
+
+            document.body.addEventListener('blur', (e) => {
+                if (e.target.matches('.setups-table .editable-setup-cell')) {
+                    const table = e.target.closest('.setups-table');
+                    const row = e.target.closest('tr');
+                    applyHighlightingToSetupsTable(table);
+                    if (row) { calculateAndDisplayPercentages(row); }
+                    if (table.id === 'primary-setups-table') { saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); } else { saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'); }
+                }
+            }, true);
+
+            DOM.trackerScratchpadEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveTrackerScratchpad(); });
+            DOM.primarySetupsNotes.addEventListener('input', (e) => {
+                autoResizeTextarea(e.target);
+                debouncedResizeParent(e.target);
+            });
+            DOM.secondarySetupsNotes.addEventListener('input', (e) => {
+                autoResizeTextarea(e.target);
+                debouncedResizeParent(e.target);
+            });
+            DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
+            DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
+
+            DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
+            DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
+            DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
+
+            DOM.modalClose.addEventListener('click', closeModal);
+            DOM.imageModal.addEventListener('click', (e) => { if (e.target.id === 'image-modal') closeModal(); });
+            DOM.modalPrevBtn.addEventListener('click', () => { if (STATE.modalImageIndex > 0) { STATE.modalImageIndex--; displayModalImage(); } });
+            DOM.modalNextBtn.addEventListener('click', () => { if (STATE.modalImageIndex < STATE.modalImageGallery.length - 1) { STATE.modalImageIndex++; displayModalImage(); } });
+
+            DOM.tradesTbody.addEventListener('blur', (e) => { if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); }, true);
+
+            [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', updateJournalView));
+            DOM.dateButtonsContainer.addEventListener('click', (e) => { if (e.target.matches('.date-nav-btn')) { const parts = e.target.dataset.date.split('-'); STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); STATE.centerDate = new Date(STATE.selectedDate); updateJournalView(); } });
+            DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
+            DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
+
+            DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveJournalEntry(); });
+            DOM.persistentNotesEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); savePersistentNotes(); });
+            DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
+            DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
+
+            DOM.journalTab.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-journal-image')) { handleImageDelete(e); return; }
+                const img = e.target.closest('#journal-images-container img');
+                if(img) { const allImageElements = DOM.journalImagesContainer.querySelectorAll('img'); const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })); const clickedIndex = Array.from(allImageElements).indexOf(img); openImageModal(imageArray, clickedIndex); }
+            });
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { DOM.journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }); });
+            ['dragenter', 'dragover'].forEach(eventName => { DOM.journalTab.addEventListener(eventName, () => { if (STATE.isMasterUser) DOM.journalTab.classList.add('drag-over'); }); });
+            DOM.journalTab.addEventListener('dragleave', () => DOM.journalTab.classList.remove('drag-over'));
+            DOM.journalTab.addEventListener('drop', (e) => { DOM.journalTab.classList.remove('drag-over'); if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); });
+
+            [DOM.srSymbolEl, DOM.srLookbackEl].forEach(el => el.addEventListener('change', renderSrLevels));
+            [DOM.vpSymbolEl, DOM.vpLookbackEl].forEach(el => el.addEventListener('change', renderVolumeProfileChart));
             DOM.srLegendHeader.addEventListener('click', () => { const isCollapsed = DOM.srLegendContent.style.display === 'none'; DOM.srLegendContent.style.display = isCollapsed ? 'block' : 'none'; DOM.srLegendHeader.classList.toggle('collapsed', !isCollapsed); DOM.srLegendToggleBtn.textContent = isCollapsed ? '−' : '+'; DOM.srLegendToggleBtn.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)'; });
         }
         
@@ -4107,10 +4720,10 @@ scales: {
         }
 
         // --- INITIALIZATION ---
-       async function initializeApp() {
+        function initializeApp() {
             checkMasterMode(); 
             getViewerId();
-            await fetchLiveConversionRate();
+            fetchLiveConversionRate();
             fetchEmaData();
             fetchSrData();
             fetchMarketOpens();
