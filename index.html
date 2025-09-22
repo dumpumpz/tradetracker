@@ -4078,17 +4078,38 @@
             else if (e.target.closest('#chart-library-2-container')) handleChartLibrary2Click(e);
         }
 
-        function handleLibraryActions(e, libraryType, dbRef) {
-            const deleteBtn = e.target.closest('.delete-library-image'), editBtn = e.target.closest('.edit-caption-btn');
-            if (deleteBtn && STATE.isMasterUser) {
-                const { id, filename } = deleteBtn.dataset;
-                if (confirm(`Delete this image?\n\n${filename}`)) { const storagePath = `${libraryType}/${filename}`; storage.ref(storagePath).delete().then(() => dbRef.child(id).remove()).catch((err) => { if (err.code === 'storage/object-not-found') dbRef.child(id).remove(); else alert('Error deleting image.'); }); }
-            } else if (editBtn && STATE.isMasterUser) {
-                const { id } = editBtn.dataset;
-                const imageRef = dbRef.child(id);
-                imageRef.child('caption').once('value', snapshot => { const newCaption = prompt('Enter image caption:', snapshot.val() || ""); if (newCaption !== null) imageRef.update({ caption: newCaption.trim() }); });
-            }
+    function handleLibraryActions(e, libraryType, dbRef) {
+    const deleteBtn = e.target.closest('.delete-library-image');
+    const editBtn = e.target.closest('.edit-caption-btn');
+
+    if (deleteBtn && STATE.isMasterUser) {
+        const { id, filename } = deleteBtn.dataset;
+
+        // --- START: ADD THIS DEBUGGING CODE ---
+        console.log("--- ATTEMPTING TO DELETE IMAGE ---");
+        console.log("Library Type:", libraryType);
+        console.log("Image ID (from button):", id);
+        console.log("Filename (from button):", filename);
+        console.log("Database Reference Path:", dbRef.child(id).toString());
+        console.log("Storage Path:", `${libraryType}/${filename}`);
+        // --- END: ADD THIS DEBUGGING CODE ---
+
+        if (confirm(`Delete this image?\n\n${filename}`)) {
+            const storagePath = `${libraryType}/${filename}`;
+            storage.ref(storagePath).delete().then(() => dbRef.child(id).remove()).catch((err) => {
+                if (err.code === 'storage/object-not-found') {
+                     dbRef.child(id).remove();
+                } else {
+                     // Also log the error if it happens!
+                     console.error("Firebase deletion error:", err);
+                     alert('Error deleting image.');
+                }
+            });
         }
+    } else if (editBtn && STATE.isMasterUser) {
+        // ... (rest of the function)
+    }
+}
 
         function handleChartLibrary2Click(e) {
             const folderCard = e.target.closest('.cl2-folder-card'), backBtn = e.target.closest('.cl2-back-button'), deleteBtn = e.target.closest('.delete-library-image');
