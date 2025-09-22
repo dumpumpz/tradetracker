@@ -4078,39 +4078,56 @@
             else if (e.target.closest('#chart-library-2-container')) handleChartLibrary2Click(e);
         }
 
-    function handleLibraryActions(e, libraryType, dbRef) {
+ function handleLibraryActions(e, libraryType, dbRef) {
     const deleteBtn = e.target.closest('.delete-library-image');
     const editBtn = e.target.closest('.edit-caption-btn');
 
     if (deleteBtn && STATE.isMasterUser) {
         const { id, filename } = deleteBtn.dataset;
 
-        // --- START: ADD THIS DEBUGGING CODE ---
-        console.log("--- ATTEMPTING TO DELETE IMAGE ---");
-        console.log("Library Type:", libraryType);
-        console.log("Image ID (from button):", id);
-        console.log("Filename (from button):", filename);
-        console.log("Database Reference Path:", dbRef.child(id).toString());
-        console.log("Storage Path:", `${libraryType}/${filename}`);
-        // --- END: ADD THIS DEBUGGING CODE ---
+        // --- ROBUSTNESS CHECK ADDED HERE ---
+        // This stops the function if the filename is missing from the button's data attribute.
+        if (!filename || filename === 'undefined') {
+            alert("Cannot delete this image: The filename is missing from its database record. This likely happened with an older version of the app. Please fix it manually in the Firebase console.");
+            console.error("Attempted to delete image with a missing filename.", {
+                imageId: id,
+                libraryType: libraryType
+            });
+            return; // Exit the function immediately to prevent the error.
+        }
+        // --- END OF CHECK ---
 
         if (confirm(`Delete this image?\n\n${filename}`)) {
             const storagePath = `${libraryType}/${filename}`;
-            storage.ref(storagePath).delete().then(() => dbRef.child(id).remove()).catch((err) => {
+
+            storage.ref(storagePath).delete().then(() => {
+                // After successfully deleting from Storage, delete from the Database.
+                dbRef.child(id).remove();
+            }).catch((err) => {
+                // --- IMPROVED ERROR HANDLING ---
                 if (err.code === 'storage/object-not-found') {
-                     dbRef.child(id).remove();
+                    // If the file doesn't exist in Storage (maybe it was already deleted),
+                    // still try to remove the leftover record from the database.
+                    console.warn("Storage object not found, but deleting DB record anyway for:", filename);
+                    dbRef.child(id).remove();
                 } else {
-                     // Also log the error if it happens!
-                     console.error("Firebase deletion error:", err);
-                     alert('Error deleting image.');
+                    // For any other error (like a true permission issue), log it for debugging.
+                    console.error("Firebase Storage deletion failed:", err);
+                    alert('Error deleting image. Check the console for more details.');
                 }
             });
         }
     } else if (editBtn && STATE.isMasterUser) {
-        // ... (rest of the function)
+        const { id } = editBtn.dataset;
+        const imageRef = dbRef.child(id);
+        imageRef.child('caption').once('value', snapshot => {
+            const newCaption = prompt('Enter image caption:', snapshot.val() || "");
+            if (newCaption !== null) {
+                imageRef.update({ caption: newCaption.trim() });
+            }
+        });
     }
 }
-
         function handleChartLibrary2Click(e) {
             const folderCard = e.target.closest('.cl2-folder-card'), backBtn = e.target.closest('.cl2-back-button'), deleteBtn = e.target.closest('.delete-library-image');
             if (folderCard) { STATE.currentCl2Folder = folderCard.dataset.folder; renderFolderContents(STATE.currentCl2Folder); return; }
