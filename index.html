@@ -3239,12 +3239,19 @@ const CONFIG = {
             const priceDisplayHtml = `<div class="ema-table-container"><div class="current-price-display" style="font-size: 14px; margin-bottom: 15px;">Current Price (15m): <span class="price-value">${currentPrice > 0 ? formatCurrency(currentPrice) : '--'}</span></div></div>`;
             let summaryTableHtml = '';
             if (currentPrice > 0) {
-                const htfForSummary = ['daily', '4hour', '2hour', '1hour'];
-                const levelsHtf = [];
-                htfForSummary.forEach(tf => {
-                    const tfData = symbolEmaData[tf];
-                    if (tfData) { PERIODS.forEach(period => ['EMA', 'SMA'].forEach(type => { const val = tfData[`${type}_${period}`]; if (val !== undefined) { levelsHtf.push({ label: `${SHORT_NAMES[tf]} ${type} ${period}`, value: val, isSupport: val < currentPrice }); } })); }
-                });
+                const htfForSummary = ['monthly', 'weekly', 'daily', '4hour', '2hour', '1hour'];
+const levelsHtf = [];
+htfForSummary.forEach(tf => {
+    const tfData = symbolEmaData[tf];
+    if (tfData) {
+        PERIODS.forEach(period => ['EMA', 'SMA'].forEach(type => {
+            const val = tfData[`${type}_${period}`];
+            if (val !== undefined && val !== null) {
+                levelsHtf.push({ label: `${SHORT_NAMES[tf]} ${type} ${period}`, value: val, isSupport: val < currentPrice });
+            }
+        }));
+    }
+});
                 const supportsHtfAll = levelsHtf.filter(l => l.isSupport).sort((a, b) => b.value - a.value);
                 const resistancesHtfAll = levelsHtf.filter(l => !l.isSupport).sort((a, b) => a.value - b.value);
                 let tableRowsHtml = '';
