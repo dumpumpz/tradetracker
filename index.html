@@ -1,4 +1,6 @@
+Of course. Here is the complete, 100% updated code with both the second note column and pagination for the "Completed Trades" table fully implemented. You can directly replace your entire file with this code.
 
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -658,7 +660,7 @@
             cursor: not-allowed;
             opacity: 0.5;
         }
-        #sentiment-page-info {
+        #sentiment-page-info, #completed-trades-page-info {
             font-size: 14px;
             color: var(--subtle-text);
         }
@@ -2090,12 +2092,19 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
-                                    <!-- MODIFIED: Added RR column -->
-                                 <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>RR</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Note 2</th><th>Charts</th><th class="master-only">Actions</th></tr>  </thead>
+                                    <!-- MODIFIED: Added RR and Note 2 columns -->
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>RR</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Note 2</th><th>Charts</th><th class="master-only">Actions</th></tr>
+                                </thead>
                                 <tbody id="completed-trades-tbody"></tbody>
                             </table>
                         </div>
-                        <button id="toggle-old-trades" class="toggle-history-btn">Show All</button>
+                        <!-- MODIFIED: Replaced single button with pagination controls -->
+                        <button id="toggle-all-completed-trades" class="toggle-history-btn">Show All</button>
+                        <div id="completed-trades-pagination-controls" class="pagination-controls" style="display: none;">
+                            <button id="completed-trades-prev-page" class="pagination-btn">&lt; Prev</button>
+                            <span id="completed-trades-page-info"></span>
+                            <button id="completed-trades-next-page" class="pagination-btn">Next &gt;</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2678,6 +2687,7 @@ const CONFIG = {
         // --- APPLICATION STATE ---
         const STATE = {
             isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, marketOpens: {}, journalText: {}, journalImages: {}, chartLibrary2Data: {}, currentCl2Folder: null, emaData: {}, srData: {}, vpData: {}, favouriteEntries: {}, persistentNotes: '', trackerScratchpadText: '', setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, trackerSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null }, levelNotes: {}, levelNotesSaveTimer: null, allSentimentReceipts: {}, sentimentShowAll: false, sentimentCurrentPage: 1, sentimentItemsPerPage: 15,
+            allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 15,
             chartInstances: {}
         };
 
@@ -2867,11 +2877,6 @@ const CONFIG = {
             }
         }
         function updateToggleButtonsVisibility() {
-            const tradesBody = document.getElementById('completed-trades-tbody');
-            const tradesButton = document.getElementById('toggle-old-trades');
-            if (tradesBody && tradesButton) {
-                tradesButton.style.display = tradesBody.querySelector('.historical-entry') ? 'block' : 'none';
-            }
             const setupsContainer = document.getElementById('setups-image-container');
             const setupsButton = document.getElementById('toggle-old-setups-images');
              if (setupsContainer && setupsButton) {
@@ -3034,7 +3039,8 @@ const CONFIG = {
 
         function renderLiveTable(data) {
             const trades = data || {};
-            const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button><button class="note-btn-completed" data-id="${id}">Note 1</button><button class="note2-btn-completed" data-id="${id}">Note 2</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>` : ''; const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { const formattedValue = (typeof value === 'number') ? value.toFixed(digits) : value; return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; };
+            const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
+            const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { const formattedValue = (typeof value === 'number') ? value.toFixed(digits) : value; return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; };
             const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date)).map(id => {
                 const trade = trades[id];
                 const profitString = `$${parseFloat(trade.expected_profit || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent || 0).toFixed(2)}%)`;
@@ -3050,22 +3056,68 @@ const CONFIG = {
 
         function renderCompletedTable(data) {
             const trades = data || {};
+            const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
             const perthTodayStr = getPerthDateString();
-            const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button><button class="note-btn-completed" data-id="${id}">Edit</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>` : '';
-            const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date)).map(id => {
+            let rowsHtml = '';
+
+            const paginationControls = document.getElementById('completed-trades-pagination-controls');
+            const showAllButton = document.getElementById('toggle-all-completed-trades');
+
+            const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button><button class="note-btn-completed" data-id="${id}">Note 1</button><button class="note2-btn-completed" data-id="${id}">Note 2</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>` : '';
+
+            const createRowHtml = (id) => {
                 const trade = trades[id];
                 const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                 const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
                 let rrString;
                 if (trade.rr && !isNaN(parseFloat(trade.rr))) { rrString = `${parseFloat(trade.rr).toFixed(2)}:1`; } else { const metrics = calculateTradeMetrics(trade); rrString = metrics.rr > 0 ? `${parseFloat(metrics.rr).toFixed(2)}:1` : '--'; }
-                let closedPerthDateStr = '', isHistorical;
-                if (trade.closed_date) { const closedDate = new Date(trade.closed_date); closedPerthDateStr = getPerthDateString(closedDate); isHistorical = (closedPerthDateStr !== perthTodayStr); } else { isHistorical = true; }
-               return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedPerthDateStr}"><td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${rrString}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td><td class="note-cell" title="${trade.note2 || ''}">${trade.note2 || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}</tr>`;     }).join('');
+                return `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${rrString}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td><td class="note-cell" title="${trade.note2 || ''}">${trade.note2 || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
+            };
+
+            if (STATE.completedTradesShowAll) {
+                const totalItems = tradeIds.length;
+                const totalPages = Math.ceil(totalItems / STATE.completedTradesItemsPerPage);
+                if (STATE.completedTradesCurrentPage > totalPages && totalPages > 0) STATE.completedTradesCurrentPage = totalPages;
+                if (STATE.completedTradesCurrentPage < 1) STATE.completedTradesCurrentPage = 1;
+                
+                const startIndex = (STATE.completedTradesCurrentPage - 1) * STATE.completedTradesItemsPerPage;
+                const endIndex = startIndex + STATE.completedTradesItemsPerPage;
+                const pageTradeIds = tradeIds.slice(startIndex, endIndex);
+
+                rowsHtml = pageTradeIds.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
+                
+                showAllButton.style.display = 'none';
+                if (totalPages > 1) {
+                    paginationControls.style.display = 'flex';
+                    document.getElementById('completed-trades-page-info').textContent = `Page ${STATE.completedTradesCurrentPage} of ${totalPages}`;
+                    document.getElementById('completed-trades-prev-page').disabled = (STATE.completedTradesCurrentPage === 1);
+                    document.getElementById('completed-trades-next-page').disabled = (STATE.completedTradesCurrentPage === totalPages);
+                } else {
+                    paginationControls.style.display = 'none';
+                }
+            } else {
+                let hasHistorical = false;
+                rowsHtml = tradeIds.map(id => {
+                    let closedPerthDateStr = '', isHistorical = true;
+                    if (trades[id].closed_date) {
+                        const closedDate = new Date(trades[id].closed_date);
+                        closedPerthDateStr = getPerthDateString(closedDate);
+                        isHistorical = (closedPerthDateStr !== perthTodayStr);
+                    }
+                    if (isHistorical) hasHistorical = true;
+                    const rowContent = createRowHtml(id);
+                    return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedPerthDateStr}">${rowContent}</tr>`;
+                }).join('');
+
+                paginationControls.style.display = 'none';
+                showAllButton.style.display = hasHistorical ? 'block' : 'none';
+            }
+
             DOM.completedTradesTbody.innerHTML = rowsHtml;
-            updateToggleButtonsVisibility();
             adjustCollapsibleSize(DOM.completedTradesTbody);
         }
+        
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
             if (!containerElement) return;
@@ -3713,8 +3765,15 @@ const CONFIG = {
                 } else if (e.target.id === 'sentiment-next-page') {
                     const totalPages = Math.ceil(Object.keys(STATE.allSentimentReceipts).length / STATE.sentimentItemsPerPage);
                     if (STATE.sentimentCurrentPage < totalPages) { STATE.sentimentCurrentPage++; renderSentimentReceipts(); }
-                } else if (e.target.id === 'toggle-old-trades') {
-                    toggleHistoricalRows('completed-trades-tbody', e.target);
+                } else if (e.target.id === 'toggle-all-completed-trades') {
+                    STATE.completedTradesShowAll = true;
+                    STATE.completedTradesCurrentPage = 1;
+                    renderCompletedTable(STATE.allCompletedTrades);
+                } else if (e.target.id === 'completed-trades-prev-page') {
+                    if (STATE.completedTradesCurrentPage > 1) { STATE.completedTradesCurrentPage--; renderCompletedTable(STATE.allCompletedTrades); }
+                } else if (e.target.id === 'completed-trades-next-page') {
+                    const totalPages = Math.ceil(Object.keys(STATE.allCompletedTrades).length / STATE.completedTradesItemsPerPage);
+                    if (STATE.completedTradesCurrentPage < totalPages) { STATE.completedTradesCurrentPage++; renderCompletedTable(STATE.allCompletedTrades); }
                 } else if (e.target.id === 'toggle-old-setups-images') {
                     toggleHistoricalImages('setups-image-container', e.target);
                 }
@@ -4130,7 +4189,44 @@ const CONFIG = {
         });
     }
 }
-        function handleChartLibrary2Click(e) {
+       
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function handleChartLibrary2Click(e) {
             const folderCard = e.target.closest('.cl2-folder-card'), backBtn = e.target.closest('.cl2-back-button'), deleteBtn = e.target.closest('.delete-library-image');
             if (folderCard) { STATE.currentCl2Folder = folderCard.dataset.folder; renderFolderContents(STATE.currentCl2Folder); return; }
             if (backBtn) { STATE.currentCl2Folder = null; renderChartLibrary2Folders(); return; }
@@ -4158,8 +4254,9 @@ const CONFIG = {
             else if (button.matches('.add-to-position-btn')) handleAddStaggeredEntry(id);
             else if (button.matches('.merge-btn-completed')) initiateMerge(id);
             else if (button.matches('.delete-btn, .delete-btn-completed')) { if (confirm('Delete this trade?')) { resetMergeState(); tradeRef.remove(); } } 
-           else if (button.matches('.note-btn, .note-btn-completed')) { tradeRef.child('note').once('value', snapshot => { const newNote = prompt("Enter Note 1:", snapshot.val() || ""); if (newNote !== null) tradeRef.update({ note: newNote }); }); }
-else if (button.matches('.note2-btn-completed')) { tradeRef.child('note2').once('value', snapshot => { const newNote2 = prompt("Enter Note 2:", snapshot.val() || ""); if (newNote2 !== null) tradeRef.update({ note2: newNote2 }); }); }
+            else if (button.matches('.note-btn, .note-btn-completed')) { tradeRef.child('note').once('value', snapshot => { const newNote = prompt("Enter Note 1:", snapshot.val() || ""); if (newNote !== null) tradeRef.update({ note: newNote }); }); }
+            else if (button.matches('.note2-btn-completed')) { tradeRef.child('note2').once('value', snapshot => { const newNote2 = prompt("Enter Note 2:", snapshot.val() || ""); if (newNote2 !== null) tradeRef.update({ note2: newNote2 }); }); }
+        }
         
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); if (attachBtn) { handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type); return true; }
@@ -4282,7 +4379,8 @@ else if (button.matches('.note2-btn-completed')) { tradeRef.child('note2').once(
         function subscribeToData() {
             dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
             dbRefs.completedTrades.on('value', s => {
-                const completedData = s.val() || {}; renderCompletedTable(completedData);
+                STATE.allCompletedTrades = s.val() || {};
+                const completedData = STATE.allCompletedTrades; renderCompletedTable(completedData);
                 let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
                 Object.values(completedData).forEach(trade => {
                     const netResult = trade.net_result || 0;
