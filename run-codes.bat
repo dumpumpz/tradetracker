@@ -1,10 +1,10 @@
 @echo OFF
-TITLE TradeTracker Local Data Updater
+TITLE TradeTracker Main Analysis Updater
 cd /D "%~dp0"
 cls
 
 echo ===========================================
-echo      TRADETRACKER LOCAL DATA UPDATER
+echo      TRADETRACKER MAIN ANALYSIS UPDATER
 echo ===========================================
 echo.
 
@@ -28,7 +28,7 @@ IF NOT EXIST "venv\Scripts\activate.bat" (
 )
 
 :: --- STEP 2: ACTIVATE VIRTUAL ENVIRONMENT ---
-echo [1/7] Activating Python virtual environment...
+echo [1/6] Activating Python virtual environment...
 call "venv\Scripts\activate.bat"
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: Could not activate the virtual environment.
@@ -37,7 +37,7 @@ IF ERRORLEVEL 1 (
 echo.
 
 :: --- STEP 3: RUN PYTHON ANALYSIS SCRIPTS ---
-echo [2/7] Running Moving Average analysis script...
+echo [2/6] Running Moving Average analysis script...
 python generate_accurate_ma.py
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: The Moving Average script failed.
@@ -45,7 +45,7 @@ IF ERRORLEVEL 1 (
 )
 echo.
 
-echo [3/7] Running Support/Resistance analysis script...
+echo [3/6] Running Support/Resistance analysis script...
 python sr_levels_analysis.py
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: The S/R script failed.
@@ -53,7 +53,7 @@ IF ERRORLEVEL 1 (
 )
 echo.
 
-echo [4/7] Running S-Signal analysis script...
+echo [4/6] Running S-Signal analysis script...
 python s_signal_analysis.py
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: The S-Signal script failed.
@@ -61,15 +61,7 @@ IF ERRORLEVEL 1 (
 )
 echo.
 
-echo [5/7] Running Options Open Interest script...
-python option-open-interest-json.py
-IF ERRORLEVEL 1 (
-    echo [!!!] FATAL ERROR: The Options OI script failed.
-    goto:error_exit
-)
-echo.
-
-echo [6/7] Running Volume Profile analysis script...
+echo [5/6] Running Volume Profile analysis script...
 python volume-profile.py
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: The Volume Profile script failed.
@@ -78,7 +70,7 @@ IF ERRORLEVEL 1 (
 echo.
 
 :: --- STEP 4: COMMIT AND PUSH CHANGES TO GITHUB ---
-echo [7/7] Committing and pushing data to GitHub...
+echo [6/6] Committing and pushing data to GitHub...
 echo.
 
 REM Add ALL new and modified files in the project to the staging area.
@@ -88,7 +80,7 @@ IF ERRORLEVEL 1 (
 )
 
 REM Commit the changes with a standard message if there are changes
-git diff-index --quiet HEAD -- || git commit -m "Automated local data update"
+git diff-index --quiet HEAD -- || git commit -m "Automated main analysis data update"
 
 echo [*] Pulling latest changes from the remote repository...
 git pull --rebase
@@ -105,18 +97,16 @@ IF ERRORLEVEL 1 (
 echo.
 
 echo ===========================================
-echo      (O_O) UPDATE PROCESS COMPLETE!
+echo      (O_O) MAIN UPDATE PROCESS COMPLETE!
 echo ===========================================
 echo.
 echo This window will close in 10 seconds...
 timeout /t 10 >nul
-PAUSE REM <<< ADD THIS LINE
 exit /b 0
 
 :error_exit
 echo.
 echo Script encountered a fatal error and cannot continue.
-echo This window will close in 20 seconds...
-timeout /t 20 >nul
-PAUSE REM <<< ADD THIS LINE
+echo Press any key to close this window...
+pause >nul
 exit /b 1
