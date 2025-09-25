@@ -2090,13 +2090,12 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
-                                    <!-- MODIFIED: Added RR and Note 2 columns -->
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>RR</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Note 2</th><th>Charts</th><th class="master-only">Actions</th></tr>
+                                    <!-- STEP 1: ADDED THE NEW HEADER COLUMN -->
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>RR</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Note 2</th><th>Note 3</th><!-- ADDED --><th>Charts</th><th class="master-only">Actions</th></tr>
                                 </thead>
                                 <tbody id="completed-trades-tbody"></tbody>
                             </table>
                         </div>
-                        <!-- MODIFIED: Replaced single button with pagination controls -->
                         <button id="toggle-all-completed-trades" class="toggle-history-btn">Show All</button>
                         <div id="completed-trades-pagination-controls" class="pagination-controls" style="display: none;">
                             <button id="completed-trades-prev-page" class="pagination-btn">&lt; Prev</button>
@@ -3061,7 +3060,8 @@ const CONFIG = {
             const paginationControls = document.getElementById('completed-trades-pagination-controls');
             const showAllButton = document.getElementById('toggle-all-completed-trades');
 
-            const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button><button class="note-btn-completed" data-id="${id}">Note 1</button><button class="note2-btn-completed" data-id="${id}">Note 2</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>` : '';
+            // STEP 2 (PART 1): MODIFIED THE BUTTONS HTML TO INCLUDE THE NEW "Note 3" BUTTON
+            const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button><button class="note-btn-completed" data-id="${id}">Note 1</button><button class="note2-btn-completed" data-id="${id}">Note 2</button><button class="note3-btn-completed" data-id="${id}">Note 3</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>` : ''; // MODIFIED
 
             const createRowHtml = (id) => {
                 const trade = trades[id];
@@ -3070,7 +3070,8 @@ const CONFIG = {
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
                 let rrString;
                 if (trade.rr && !isNaN(parseFloat(trade.rr))) { rrString = `${parseFloat(trade.rr).toFixed(2)}:1`; } else { const metrics = calculateTradeMetrics(trade); rrString = metrics.rr > 0 ? `${parseFloat(metrics.rr).toFixed(2)}:1` : '--'; }
-                return `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${rrString}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td><td class="note-cell" title="${trade.note2 || ''}">${trade.note2 || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
+                // STEP 2 (PART 2): MODIFIED THE ROW HTML TO INCLUDE THE NEW NOTE 3 CELL
+                return `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${rrString}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td><td class="note-cell" title="${trade.note2 || ''}">${trade.note2 || ''}</td><td class="note-cell" title="${trade.note3 || ''}">${trade.note3 || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`; // MODIFIED
             };
 
             if (STATE.completedTradesShowAll) {
@@ -4132,7 +4133,28 @@ htfForSummary.forEach(tf => {
             });
         }
 
-        function handleGenericImageLibraryClick(e) {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function handleGenericImageLibraryClick(e) {
             const clickedImg = e.target.closest('img');
             if (clickedImg?.dataset.fullSrc) {
                 const galleryContainer = clickedImg.closest('#image-library-container, #setups-image-container, .cl2-image-grid, #chart-library-2-preview-container, .trade-image-thumbnails');
@@ -4195,42 +4217,6 @@ htfForSummary.forEach(tf => {
     }
 }
        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function handleChartLibrary2Click(e) {
             const folderCard = e.target.closest('.cl2-folder-card'), backBtn = e.target.closest('.cl2-back-button'), deleteBtn = e.target.closest('.delete-library-image');
             if (folderCard) { STATE.currentCl2Folder = folderCard.dataset.folder; renderFolderContents(STATE.currentCl2Folder); return; }
@@ -4261,6 +4247,8 @@ function handleChartLibrary2Click(e) {
             else if (button.matches('.delete-btn, .delete-btn-completed')) { if (confirm('Delete this trade?')) { resetMergeState(); tradeRef.remove(); } } 
             else if (button.matches('.note-btn, .note-btn-completed')) { tradeRef.child('note').once('value', snapshot => { const newNote = prompt("Enter Note 1:", snapshot.val() || ""); if (newNote !== null) tradeRef.update({ note: newNote }); }); }
             else if (button.matches('.note2-btn-completed')) { tradeRef.child('note2').once('value', snapshot => { const newNote2 = prompt("Enter Note 2:", snapshot.val() || ""); if (newNote2 !== null) tradeRef.update({ note2: newNote2 }); }); }
+            // STEP 3: ADDED THE LOGIC FOR THE NEW "Note 3" BUTTON
+            else if (button.matches('.note3-btn-completed')) { tradeRef.child('note3').once('value', snapshot => { const newNote3 = prompt("Enter Note 3:", snapshot.val() || ""); if (newNote3 !== null) tradeRef.update({ note3: newNote3 }); }); }
         }
         
         function handleAttachmentActions(e) {
@@ -4525,3 +4513,7 @@ function handleChartLibrary2Click(e) {
     </script>
     </body>
 </html>
+
+
+
+                              
