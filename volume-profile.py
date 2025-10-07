@@ -100,50 +100,68 @@ def fetch_ohlcv_for_profile(symbol: str, interval: str, lookback_days: int, limi
         logging.error(f'Error fetching {symbol} {interval}: {e}')
         return None
 
-
 def calculate_volume_profile(df: pd.DataFrame) -> Optional[Dict]:
-    """Calculates Volume Profile metrics from an OHLCV DataFrame."""
+    """
+    Calculates a more accurate Volume Profile by distributing volume
+    across each candle's high-low range.
+    """
     if df is None or df.empty:
         return None
 
     min_price = df['Low'].min()
     max_price = df['High'].max()
 
-    # Create price bins
+    # Create fixed price bins for the entire range
     price_bins = np.linspace(min_price, max_price, NUM_BINS + 1)
+    bin_size = price_bins[1] - price_bins[0]
+    
+    # Initialize a Series to hold the volume for each price bin
+    profile = pd.Series(index=price_bins[:-1], data=np.zeros(NUM_BINS), dtype=float)
 
-    # Use the closing price of each bar to distribute its volume
-    df['price_bin'] = pd.cut(df['Close'], bins=price_bins, labels=price_bins[:-1], right=False)
+    # --- ACCURATE VOLUME DISTRIBUTION ---
+    # Iterate through each candle (row) in the DataFrame
+    for _, row in df.iterrows():
+        low_price = row['Low']
+        high_price = row['High']
+        volume = row['Volume']
+        
+        # Find the start and end bin indices for this candle's price range
+        start_bin_idx = int(max(0, (low_price - min_price) // bin_size))
+        end_bin_idx = int(min(NUM_BINS - 1, (high_price - min_price) // bin_size))
 
-    volume_by_price = df.groupby('price_bin')['Volume'].sum().sort_index()
+        # Calculate the number of bins this candle's range spans
+        num_bins_spanned = (end_bin_idx - start_bin_idx) + 1
+        
+        # Distribute the volume evenly across the spanned bins
+        if num_bins_spanned > 0:
+            volume_per_bin = volume / num_bins_spanned
+            for i in range(start_bin_idx, end_bin_idx + 1):
+                if i < len(profile):
+                    profile.iloc[i] += volume_per_bin
+    
+    volume_by_price = profile[profile > 0] # Filter out empty bins
 
     if volume_by_price.empty:
         return None
 
-    # --- Calculate Key Metrics ---
+    # --- Calculate Key Metrics (this part remains the same) ---
     total_volume = volume_by_price.sum()
     poc_price = volume_by_price.idxmax()
     poc_volume = volume_by_price.max()
 
     # Calculate Value Area (VA)
     target_va_volume = total_volume * VALUE_AREA_PERCENT
-
-    # Start from POC and expand outwards
     poc_index = volume_by_price.index.get_loc(poc_price)
     va_volume = poc_volume
     va_low_idx, va_high_idx = poc_index, poc_index
 
     while va_volume < target_va_volume:
-        # Check bin above and below, add the one with more volume
         next_low_idx = va_low_idx - 1
         next_high_idx = va_high_idx + 1
-
         vol_low = volume_by_price.iloc[next_low_idx] if next_low_idx >= 0 else -1
         vol_high = volume_by_price.iloc[next_high_idx] if next_high_idx < len(volume_by_price) else -1
-
         if vol_low == -1 and vol_high == -1:
-            break  # Reached ends of profile
-
+            break
         if vol_high > vol_low:
             va_volume += vol_high
             va_high_idx = next_high_idx
@@ -152,8 +170,7 @@ def calculate_volume_profile(df: pd.DataFrame) -> Optional[Dict]:
             va_low_idx = next_low_idx
 
     value_area_low = volume_by_price.index[va_low_idx]
-    value_area_high = volume_by_price.index[va_high_idx] + (
-                price_bins[1] - price_bins[0])  # Add bin width for upper bound
+    value_area_high = volume_by_price.index[va_high_idx] + bin_size
 
     # Identify HVNs and LVNs
     avg_bin_volume = volume_by_price.mean()
@@ -163,7 +180,6 @@ def calculate_volume_profile(df: pd.DataFrame) -> Optional[Dict]:
     hvns = volume_by_price[volume_by_price > hvn_threshold]
     lvns = volume_by_price[volume_by_price < lvn_threshold]
 
-    # Format the nodes for JSON output
     hvn_list = [{'price_level': float(p), 'volume': float(v)} for p, v in hvns.items()]
     lvn_list = [{'price_level': float(p), 'volume': float(v)} for p, v in lvns.items()]
 
@@ -175,7 +191,6 @@ def calculate_volume_profile(df: pd.DataFrame) -> Optional[Dict]:
         "low_volume_nodes": sorted(lvn_list, key=lambda x: x['volume']),
         "full_profile": [{'price_level': float(p), 'volume': float(v)} for p, v in volume_by_price.items()]
     }
-
 
 def main():
     logging.info("===== STARTING VOLUME PROFILE ANALYSIS =====")
