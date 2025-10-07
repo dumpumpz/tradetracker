@@ -2786,7 +2786,7 @@ const CONFIG = {
             }
         }
         
-        function drawSingleVolumeProfileChart(canvas, symbol, lookback) {
+       function drawSingleVolumeProfileChart(canvas, symbol, lookback) {
             if (!canvas) return;
             const profileData = STATE.vpData?.data?.[symbol]?.[lookback];
             
@@ -2799,7 +2799,7 @@ const CONFIG = {
                 }
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = 'var(--subtle-text)';
+                ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--subtle-text');
                 ctx.textAlign = 'center';
                 ctx.font = '16px Arial';
                 ctx.fillText(`No data for ${lookback}`, canvas.width / 2, canvas.height / 2);
@@ -2816,11 +2816,13 @@ const CONFIG = {
             const pocIndex = labels.findIndex(label => label === point_of_control);
             if (pocIndex !== -1) { backgroundColors[pocIndex] = 'rgba(255, 193, 7, 0.7)'; }
             const chartData = { labels: labels, datasets: [{ label: `${symbol} Volume Profile (${lookback})`, data: volumes, backgroundColor: backgroundColors, borderColor: backgroundColors.map(c => c.replace('0.4', '1').replace('0.7', '1')), borderWidth: 1 }] };
+            
+            // --- REVERTED CHART OPTIONS TO ORIGINAL STYLING ---
             const chartOptions = {
                 indexAxis: 'y', responsive: true, maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    title: { display: true, text: `${symbol} Volume Profile (${lookback})`, font: { size: 18 }, color: 'var(--text-color)' },
+                    title: { display: true, text: `${symbol} Volume Profile (${lookback})`, font: { size: 18 } },
                     tooltip: { 
                         callbacks: { 
                             title: (context) => `Price: ${formatCurrency(parseFloat(context[0].label))}`,
@@ -2837,20 +2839,16 @@ const CONFIG = {
                 },
                 scales: { 
                     y: { 
-                        title: { display: true, text: 'Price (USD)', color: 'var(--subtle-text)' }, 
+                        title: { display: true, text: 'Price (USD)' }, 
                         ticks: { 
                             callback: function(value, index, values) {
                                 const label = this.getLabelForValue(value);
                                 return formatCurrency(parseFloat(label));
-                            },
-                            color: 'var(--subtle-text)'
-                        },
-                        grid: { color: 'var(--border-color)' }
+                            }
+                        }
                     }, 
                     x: { 
-                        title: { display: true, text: 'Volume', color: 'var(--subtle-text)' },
-                        ticks: { color: 'var(--subtle-text)' },
-                        grid: { color: 'var(--border-color)' }
+                        title: { display: true, text: 'Volume' }
                     } 
                 }
             };
