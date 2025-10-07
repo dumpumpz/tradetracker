@@ -1,21 +1,4 @@
-Of course! Here is the updated code with the "All" option in the Volume Profile tab, which stacks all the charts for the selected symbol.
 
-I've made the following changes:
-
-1.  **HTML Modification:**
-    *   Added `<option value="all">All</option>` as the first choice in the "Lookback" dropdown within the Volume Profile tab.
-    *   Replaced the single chart `div` with two containers: one for the single chart view (`single-vp-chart-container`) and one for the new stacked view (`stacked-vp-chart-container`), which is hidden by default.
-
-2.  **JavaScript Modification:**
-    *   The `renderVolumeProfileChart` function has been rewritten to act as a controller. It now checks if "All" is selected.
-    *   If "All" is selected, it hides the single chart container, shows the stacked container, and then dynamically creates a separate chart canvas for each available lookback period.
-    *   If a specific lookback is selected, it shows the single chart container and hides the stacked one, preserving the original behavior.
-    *   A new helper function, `drawSingleVolumeProfileChart`, was created to contain the logic for drawing one volume profile chart. This makes the code cleaner and allows it to be reused for both the single and stacked views.
-    *   The chart colors for text and grid lines have been updated to use CSS variables, ensuring they adapt correctly to the light/dark theme.
-
-Here is the complete updated code:
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
