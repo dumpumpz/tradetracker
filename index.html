@@ -1,4 +1,21 @@
+Of course! Here is the updated code with the "All" option in the Volume Profile tab, which stacks all the charts for the selected symbol.
 
+I've made the following changes:
+
+1.  **HTML Modification:**
+    *   Added `<option value="all">All</option>` as the first choice in the "Lookback" dropdown within the Volume Profile tab.
+    *   Replaced the single chart `div` with two containers: one for the single chart view (`single-vp-chart-container`) and one for the new stacked view (`stacked-vp-chart-container`), which is hidden by default.
+
+2.  **JavaScript Modification:**
+    *   The `renderVolumeProfileChart` function has been rewritten to act as a controller. It now checks if "All" is selected.
+    *   If "All" is selected, it hides the single chart container, shows the stacked container, and then dynamically creates a separate chart canvas for each available lookback period.
+    *   If a specific lookback is selected, it shows the single chart container and hides the stacked one, preserving the original behavior.
+    *   A new helper function, `drawSingleVolumeProfileChart`, was created to contain the logic for drawing one volume profile chart. This makes the code cleaner and allows it to be reused for both the single and stacked views.
+    *   The chart colors for text and grid lines have been updated to use CSS variables, ensuring they adapt correctly to the light/dark theme.
+
+Here is the complete updated code:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2336,8 +2353,8 @@
                 </div>
                 <div>
                     <label for="vp-lookback">Lookback:</label>
-                                      <label for="vp-lookback">Lookback:</label>
                     <select id="vp-lookback">
+                        <option value="all">All</option>
                         <option value="270d">270 Days</option>
                         <option value="180d">180 Days</option>
                         <option value="120d">120 Days</option>
@@ -2371,8 +2388,11 @@
         </table>
     </div>
 </div>
-            <div class="chart-container" style="height: 600px; max-height: 70vh;">
+            <div class="chart-container" id="single-vp-chart-container" style="height: 600px; max-height: 70vh;">
                 <canvas id="volumeProfileChart"></canvas>
+            </div>
+            <div id="stacked-vp-chart-container" style="display: none;">
+                <!-- Stacked charts will be dynamically inserted here -->
             </div>
         </div>
 
@@ -2783,20 +2803,26 @@ const CONFIG = {
             }
         }
         
-        function renderVolumeProfileChart() {
-            const selectedSymbol = DOM.vpSymbolEl.value.replace('/', '-');
-            const selectedLookback = DOM.vpLookbackEl.value;
-            renderVolumeProfileZonalSummary(selectedSymbol);
-
-            if (DOM.vpLastUpdatedTime) { DOM.vpLastUpdatedTime.textContent = STATE.vpData.last_updated ? new Date(STATE.vpData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--'; }
-            const profileData = STATE.vpData?.data?.[selectedSymbol]?.[selectedLookback];
+        function drawSingleVolumeProfileChart(canvas, symbol, lookback) {
+            if (!canvas) return;
+            const profileData = STATE.vpData?.data?.[symbol]?.[lookback];
+            
+            // Clear previous chart if it exists and no new data is found
             if (!profileData || !profileData.full_profile) {
-                console.warn(`No volume profile data for ${selectedSymbol} ${selectedLookback}`);
-                if (STATE.chartInstances.volumeProfileChart) { STATE.chartInstances.volumeProfileChart.destroy(); delete STATE.chartInstances.volumeProfileChart; }
-                const ctx = DOM.volumeProfileChartCanvas.getContext('2d');
-                ctx.clearRect(0, 0, DOM.volumeProfileChartCanvas.width, DOM.volumeProfileChartCanvas.height);
+                console.warn(`No volume profile data for ${symbol} ${lookback}`);
+                if (STATE.chartInstances[canvas.id]) {
+                    STATE.chartInstances[canvas.id].destroy();
+                    delete STATE.chartInstances[canvas.id];
+                }
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'var(--subtle-text)';
+                ctx.textAlign = 'center';
+                ctx.font = '16px Arial';
+                ctx.fillText(`No data for ${lookback}`, canvas.width / 2, canvas.height / 2);
                 return;
             }
+        
             const { point_of_control, value_area_low, value_area_high, full_profile } = profileData;
             const labels = full_profile.map(item => item.price_level);
             const volumes = full_profile.map(item => item.volume);
@@ -2806,12 +2832,12 @@ const CONFIG = {
             });
             const pocIndex = labels.findIndex(label => label === point_of_control);
             if (pocIndex !== -1) { backgroundColors[pocIndex] = 'rgba(255, 193, 7, 0.7)'; }
-            const chartData = { labels: labels, datasets: [{ label: `${selectedSymbol} Volume Profile (${selectedLookback})`, data: volumes, backgroundColor: backgroundColors, borderColor: backgroundColors.map(c => c.replace('0.4', '1').replace('0.7', '1')), borderWidth: 1 }] };
+            const chartData = { labels: labels, datasets: [{ label: `${symbol} Volume Profile (${lookback})`, data: volumes, backgroundColor: backgroundColors, borderColor: backgroundColors.map(c => c.replace('0.4', '1').replace('0.7', '1')), borderWidth: 1 }] };
             const chartOptions = {
                 indexAxis: 'y', responsive: true, maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    title: { display: true, text: `${selectedSymbol} Volume Profile (${selectedLookback})`, font: { size: 18 } },
+                    title: { display: true, text: `${symbol} Volume Profile (${lookback})`, font: { size: 18 }, color: 'var(--text-color)' },
                     tooltip: { 
                         callbacks: { 
                             title: (context) => `Price: ${formatCurrency(parseFloat(context[0].label))}`,
@@ -2828,24 +2854,78 @@ const CONFIG = {
                 },
                 scales: { 
                     y: { 
-                        title: { display: true, text: 'Price (USD)' }, 
+                        title: { display: true, text: 'Price (USD)', color: 'var(--subtle-text)' }, 
                         ticks: { 
                             callback: function(value, index, values) {
                                 const label = this.getLabelForValue(value);
                                 return formatCurrency(parseFloat(label));
-                            } 
-                        } 
+                            },
+                            color: 'var(--subtle-text)'
+                        },
+                        grid: { color: 'var(--border-color)' }
                     }, 
-                    x: { title: { display: true, text: 'Volume' } } 
+                    x: { 
+                        title: { display: true, text: 'Volume', color: 'var(--subtle-text)' },
+                        ticks: { color: 'var(--subtle-text)' },
+                        grid: { color: 'var(--border-color)' }
+                    } 
                 }
             };
-            if (STATE.chartInstances.volumeProfileChart) {
-                const chart = STATE.chartInstances.volumeProfileChart;
+            
+            if (STATE.chartInstances[canvas.id]) {
+                const chart = STATE.chartInstances[canvas.id];
                 chart.data = chartData;
                 chart.options = chartOptions;
                 chart.update();
             } else {
-                 STATE.chartInstances.volumeProfileChart = new Chart(DOM.volumeProfileChartCanvas, { type: 'bar', data: chartData, options: chartOptions });
+                 STATE.chartInstances[canvas.id] = new Chart(canvas, { type: 'bar', data: chartData, options: chartOptions });
+            }
+        }
+        
+        function renderVolumeProfileChart() {
+            const selectedSymbol = DOM.vpSymbolEl.value.replace('/', '-');
+            const selectedLookback = DOM.vpLookbackEl.value;
+        
+            renderVolumeProfileZonalSummary(selectedSymbol);
+        
+            if (DOM.vpLastUpdatedTime) {
+                DOM.vpLastUpdatedTime.textContent = STATE.vpData.last_updated ? new Date(STATE.vpData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--';
+            }
+        
+            const singleChartContainer = document.getElementById('single-vp-chart-container');
+            const stackedChartContainer = document.getElementById('stacked-vp-chart-container');
+            if (!singleChartContainer || !stackedChartContainer) return;
+        
+            if (selectedLookback === 'all') {
+                singleChartContainer.style.display = 'none';
+                stackedChartContainer.style.display = 'block';
+                stackedChartContainer.innerHTML = ''; // Clear previous stacked charts
+        
+                const lookbackOptions = Array.from(DOM.vpLookbackEl.options);
+                
+                lookbackOptions.forEach(option => {
+                    const lookback = option.value;
+                    if (lookback === 'all') return;
+        
+                    const chartWrapper = document.createElement('div');
+                    chartWrapper.className = 'chart-container';
+                    chartWrapper.style.height = '450px';
+                    chartWrapper.style.marginBottom = '30px';
+        
+                    const canvas = document.createElement('canvas');
+                    canvas.id = `vp-chart-${lookback}`; // Unique ID
+        
+                    chartWrapper.appendChild(canvas);
+                    stackedChartContainer.appendChild(chartWrapper);
+        
+                    drawSingleVolumeProfileChart(canvas, selectedSymbol, lookback);
+                });
+        
+            } else {
+                singleChartContainer.style.display = 'block';
+                stackedChartContainer.style.display = 'none';
+                
+                drawSingleVolumeProfileChart(DOM.volumeProfileChartCanvas, selectedSymbol, selectedLookback);
             }
         }
 
@@ -3514,6 +3594,7 @@ htfForSummary.forEach(tf => {
             const proximityPercent = 0.015; // 1.5% for clustering HVNs
 
             lookbacks.forEach(lookback => {
+                if(lookback.value === 'all') return; // Skip the 'All' option in the summary table
                 const lookbackData = symbolData[lookback.value];
 
                 if (lookbackData) {
@@ -4173,27 +4254,6 @@ htfForSummary.forEach(tf => {
             });
         }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function handleGenericImageLibraryClick(e) {
             const clickedImg = e.target.closest('img');
             if (clickedImg?.dataset.fullSrc) {
@@ -4556,7 +4616,3 @@ function handleChartLibrary2Click(e) {
     </script>
     </body>
 </html>
-
-
-
-                              
