@@ -2863,7 +2863,7 @@ const CONFIG = {
             }
         }
         
-        function renderVolumeProfileChart() {
+    function renderVolumeProfileChart() {
             const selectedSymbol = DOM.vpSymbolEl.value.replace('/', '-');
             const selectedLookback = DOM.vpLookbackEl.value;
         
@@ -2877,30 +2877,52 @@ const CONFIG = {
             const stackedChartContainer = document.getElementById('stacked-vp-chart-container');
             if (!singleChartContainer || !stackedChartContainer) return;
         
+            // Destroy all previous chart instances for this tab to prevent memory leaks
+            Object.keys(STATE.chartInstances).forEach(key => {
+                if (key.startsWith('vp-chart-') || key === 'volumeProfileChart') {
+                    if (STATE.chartInstances[key]) {
+                        STATE.chartInstances[key].destroy();
+                        delete STATE.chartInstances[key];
+                    }
+                }
+            });
+        
             if (selectedLookback === 'all') {
                 singleChartContainer.style.display = 'none';
                 stackedChartContainer.style.display = 'block';
                 stackedChartContainer.innerHTML = ''; // Clear previous stacked charts
         
-                const lookbackOptions = Array.from(DOM.vpLookbackEl.options);
-                
-                lookbackOptions.forEach(option => {
-                    const lookback = option.value;
-                    if (lookback === 'all') return;
+                // --- THIS IS THE CORRECTED LOGIC ---
+                // Get the lookbacks that are actually available for the selected symbol from the data
+                const availableLookbacksForSymbol = STATE.vpData?.data?.[selectedSymbol] 
+                    ? Object.keys(STATE.vpData.data[selectedSymbol]) 
+                    : [];
         
+                if (availableLookbacksForSymbol.length === 0) {
+                     stackedChartContainer.innerHTML = `<p style="text-align:center; color: var(--subtle-text);">No volume profile data available for ${selectedSymbol}.</p>`;
+                     return;
+                }
+        
+                // Sort the lookbacks into a logical order (e.g., longest to shortest)
+                const sortOrder = ['270d', '180d', '120d', '60d', '30d', '21d', '14d', '7d', '3d', '2d'];
+                availableLookbacksForSymbol.sort((a, b) => sortOrder.indexOf(a) - sortOrder.indexOf(b));
+        
+                // Iterate through the available lookbacks and create a chart for each
+                availableLookbacksForSymbol.forEach(lookback => {
                     const chartWrapper = document.createElement('div');
                     chartWrapper.className = 'chart-container';
                     chartWrapper.style.height = '450px';
                     chartWrapper.style.marginBottom = '30px';
         
                     const canvas = document.createElement('canvas');
-                    canvas.id = `vp-chart-${lookback}`; // Unique ID
+                    canvas.id = `vp-chart-${lookback}`; // Unique ID for the chart instance
         
                     chartWrapper.appendChild(canvas);
                     stackedChartContainer.appendChild(chartWrapper);
         
                     drawSingleVolumeProfileChart(canvas, selectedSymbol, lookback);
                 });
+                // --- END OF CORRECTION ---
         
             } else {
                 singleChartContainer.style.display = 'block';
@@ -2909,7 +2931,6 @@ const CONFIG = {
                 drawSingleVolumeProfileChart(DOM.volumeProfileChartCanvas, selectedSymbol, selectedLookback);
             }
         }
-
         async function fetchAndRenderHistoricalCharts() {
             try {
                 const response = await fetch('historical_market_data.json?v=' + new Date().getTime());
