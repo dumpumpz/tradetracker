@@ -99,69 +99,63 @@ def fetch_ohlcv_for_profile(symbol: str, interval: str, lookback_days: int, limi
     except Exception as e:
         logging.error(f'Error fetching {symbol} {interval}: {e}')
         return None
+# (Keep all your other functions like fetch_ohlcv_for_profile, get_safe_symbol, etc. the same)
 
-def calculate_volume_profile(df: pd.DataFrame) -> Optional[Dict]:
+def calculate_volume_profile(df: pd.DataFrame, price_bins: np.ndarray) -> Optional[Dict]:
     """
-    Calculates a more accurate Volume Profile by distributing volume
-    across each candle's high-low range.
+    Calculates an accurate Volume Profile using a pre-defined set of price bins.
     """
     if df is None or df.empty:
         return None
 
-    min_price = df['Low'].min()
-    max_price = df['High'].max()
-
-    # Create fixed price bins for the entire range
-    price_bins = np.linspace(min_price, max_price, NUM_BINS + 1)
+    # Get the overall range and bin size from the master bins
+    min_price = price_bins[0]
+    num_bins = len(price_bins) - 1
     bin_size = price_bins[1] - price_bins[0]
     
-    # Initialize a Series to hold the volume for each price bin
-    profile = pd.Series(index=price_bins[:-1], data=np.zeros(NUM_BINS), dtype=float)
+    if bin_size <= 0:
+        logging.error("Bin size is zero or negative. Cannot process profile.")
+        return None
 
-    # --- ACCURATE VOLUME DISTRIBUTION ---
-    # Iterate through each candle (row) in the DataFrame
+    # Initialize a Series to hold the volume for each master price bin
+    profile = pd.Series(index=price_bins[:-1], data=np.zeros(num_bins), dtype=float)
+
+    # ACCURATE VOLUME DISTRIBUTION
     for _, row in df.iterrows():
-        low_price = row['Low']
-        high_price = row['High']
-        volume = row['Volume']
+        low_price, high_price, volume = row['Low'], row['High'], row['Volume']
         
-        # Find the start and end bin indices for this candle's price range
         start_bin_idx = int(max(0, (low_price - min_price) // bin_size))
-        end_bin_idx = int(min(NUM_BINS - 1, (high_price - min_price) // bin_size))
-
-        # Calculate the number of bins this candle's range spans
+        end_bin_idx = int(min(num_bins - 1, (high_price - min_price) // bin_size))
+        
         num_bins_spanned = (end_bin_idx - start_bin_idx) + 1
         
-        # Distribute the volume evenly across the spanned bins
         if num_bins_spanned > 0:
             volume_per_bin = volume / num_bins_spanned
             for i in range(start_bin_idx, end_bin_idx + 1):
                 if i < len(profile):
                     profile.iloc[i] += volume_per_bin
     
-    volume_by_price = profile[profile > 0] # Filter out empty bins
+    volume_by_price = profile[profile > 0]
 
     if volume_by_price.empty:
         return None
 
-    # --- Calculate Key Metrics (this part remains the same) ---
+    # Calculate Key Metrics (this part remains the same logic)
     total_volume = volume_by_price.sum()
     poc_price = volume_by_price.idxmax()
     poc_volume = volume_by_price.max()
 
-    # Calculate Value Area (VA)
     target_va_volume = total_volume * VALUE_AREA_PERCENT
     poc_index = volume_by_price.index.get_loc(poc_price)
     va_volume = poc_volume
     va_low_idx, va_high_idx = poc_index, poc_index
 
-    while va_volume < target_va_volume:
+    while va_volume < target_va_volume and (va_low_idx > 0 or va_high_idx < len(volume_by_price) - 1):
         next_low_idx = va_low_idx - 1
         next_high_idx = va_high_idx + 1
         vol_low = volume_by_price.iloc[next_low_idx] if next_low_idx >= 0 else -1
         vol_high = volume_by_price.iloc[next_high_idx] if next_high_idx < len(volume_by_price) else -1
-        if vol_low == -1 and vol_high == -1:
-            break
+        if vol_low == -1 and vol_high == -1: break
         if vol_high > vol_low:
             va_volume += vol_high
             va_high_idx = next_high_idx
@@ -172,14 +166,11 @@ def calculate_volume_profile(df: pd.DataFrame) -> Optional[Dict]:
     value_area_low = volume_by_price.index[va_low_idx]
     value_area_high = volume_by_price.index[va_high_idx] + bin_size
 
-    # Identify HVNs and LVNs
     avg_bin_volume = volume_by_price.mean()
     hvn_threshold = avg_bin_volume * HVN_THRESHOLD_MULTIPLIER
     lvn_threshold = avg_bin_volume * LVN_THRESHOLD_MULTIPLIER
-
     hvns = volume_by_price[volume_by_price > hvn_threshold]
     lvns = volume_by_price[volume_by_price < lvn_threshold]
-
     hvn_list = [{'price_level': float(p), 'volume': float(v)} for p, v in hvns.items()]
     lvn_list = [{'price_level': float(p), 'volume': float(v)} for p, v in lvns.items()]
 
@@ -192,22 +183,58 @@ def calculate_volume_profile(df: pd.DataFrame) -> Optional[Dict]:
         "full_profile": [{'price_level': float(p), 'volume': float(v)} for p, v in volume_by_price.items()]
     }
 
+
 def main():
     logging.info("===== STARTING VOLUME PROFILE ANALYSIS =====")
     results = {}
+    
+    # Ensure lookback periods are sorted from longest to shortest
+    sorted_lookbacks = sorted(LOOKBACK_PERIODS_DAYS, reverse=True)
+    
     for symbol in SYMBOLS:
         safe_symbol = get_safe_symbol(symbol)
         logging.info(f"--- Analyzing Volume Profile for {safe_symbol} ---")
         results[safe_symbol] = {}
-        for days in LOOKBACK_PERIODS_DAYS:
-            logging.info(f"  ... using {days}d lookback period on {TIMEFRAME_FOR_PROFILE} data.")
-            df = fetch_ohlcv_for_profile(symbol, TIMEFRAME_FOR_PROFILE, lookback_days=days)
-            profile_data = calculate_volume_profile(df)
+        
+        # 1. Fetch data for the LONGEST period to establish a master price grid
+        longest_lookback = sorted_lookbacks[0]
+        logging.info(f"  Fetching full {longest_lookback}d dataset to establish master price grid...")
+        full_df = fetch_ohlcv_for_profile(symbol, TIMEFRAME_FOR_PROFILE, lookback_days=longest_lookback)
+        
+        if full_df is None or full_df.empty:
+            logging.warning(f"  Could not fetch base data for {symbol}. Skipping symbol.")
+            continue
+            
+        # 2. Create the MASTER price bins from the full range
+        overall_min_price = full_df['Low'].min()
+        overall_max_price = full_df['High'].max()
+        master_price_bins = np.linspace(overall_min_price, overall_max_price, NUM_BINS + 1)
+        logging.info(f"  Master grid created from ${overall_min_price:,.2f} to ${overall_max_price:,.2f}")
+
+        # 3. Iterate through all lookbacks, using slices of the full dataset
+        for days in sorted_lookbacks:
+            logging.info(f"  ... processing {days}d lookback period.")
+            
+            # Slice the DataFrame to the desired lookback period
+            try:
+                # Use pandas' `last` method for time-based slicing
+                df_slice = full_df.last(f'{days}D')
+                if df_slice.empty:
+                    logging.warning(f"  Slice for {days}d resulted in empty DataFrame. Skipping.")
+                    continue
+            except Exception as e:
+                logging.error(f"  Error slicing DataFrame for {days}d: {e}")
+                continue
+
+            # Calculate profile using the slice but with the MASTER bins
+            profile_data = calculate_volume_profile(df_slice, master_price_bins)
+            
             if profile_data:
                 results[safe_symbol][f'{days}d'] = profile_data
             else:
                 logging.warning(f"  Could not generate profile for {symbol} {days}d lookback.")
-            time.sleep(1)  # Be nice to the API
+        
+        time.sleep(1) # Be nice to the API between symbols
 
     try:
         payload = {'data': results, 'last_updated': datetime.now(timezone.utc).isoformat()}
