@@ -2353,24 +2353,46 @@
             </div>
             <p class="ema-last-updated">Last Updated: <span id="vp-last-updated-time">--</span></p>
             <div id="vp-summary-container" class="setups-container" style="margin-top: 25px; display: none;">
-    <h3 style="text-align: center; margin-top: 0; margin-bottom: 15px;">Volume Profile Key Levels Summary</h3>
-    <div class="table-wrapper">
-        <table id="vp-summary-table" class="sr-table">
-            <thead>
-                <tr>
-                    <th style="text-align: left; padding-left: 15px;">Lookback</th>
-                    <th class="vp-poc-header">Point of Control (POC)</th>
-                    <th class="vp-va-header">Value Area (VA)</th>
-                    <th class="vp-hvn-header">Key High-Volume Zone (HVZ)</th>
-                    <th class="vp-lvn-header">Key Low-Volume Node (LVN)</th>
-                </tr>
-            </thead>
-            <tbody id="vp-summary-tbody">
-                <!-- Rows will be dynamically inserted here -->
-            </tbody>
-        </table>
-    </div>
-</div>
+                <h3 style="text-align: center; margin-top: 0; margin-bottom: 15px;">Volume Profile Key Levels Summary</h3>
+                <div class="table-wrapper">
+                    <table id="vp-summary-table" class="sr-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; padding-left: 15px;">Lookback</th>
+                                <th class="vp-poc-header">Point of Control (POC)</th>
+                                <th class="vp-va-header">Value Area (VA)</th>
+                                <th class="vp-hvn-header">Key High-Volume Zone (HVZ)</th>
+                                <th class="vp-lvn-header">Key Low-Volume Node (LVN)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vp-summary-tbody">
+                            <!-- Rows will be dynamically inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- START: NEW SECONDARY SUMMARY KEY -->
+            <div id="vp-top-nodes-summary-container" class="setups-container" style="margin-top: 25px; display: none;">
+                <h3 style="text-align: center; margin-top: 0; margin-bottom: 15px;">Top 5 Volume Nodes by Lookback</h3>
+                <div class="table-wrapper">
+                    <table id="vp-top-nodes-summary-table" class="sr-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; padding-left: 15px;">Lookback</th>
+                                <th>#1 Node</th>
+                                <th>#2 Node</th>
+                                <th>#3 Node</th>
+                                <th>#4 Node</th>
+                                <th>#5 Node</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vp-top-nodes-tbody">
+                            <!-- Rows will be dynamically inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- END: NEW SECONDARY SUMMARY KEY -->
             <div class="chart-container" id="single-vp-chart-container" style="height: 600px; max-height: 70vh;">
                 <canvas id="volumeProfileChart"></canvas>
             </div>
@@ -2868,6 +2890,7 @@ const CONFIG = {
             const selectedLookback = DOM.vpLookbackEl.value;
         
             renderVolumeProfileZonalSummary(selectedSymbol);
+            renderVolumeProfileTopNodesSummary(selectedSymbol); // ADDED: Call new summary function
         
             if (DOM.vpLastUpdatedTime) {
                 DOM.vpLastUpdatedTime.textContent = STATE.vpData.last_updated ? new Date(STATE.vpData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--';
@@ -3677,6 +3700,63 @@ htfForSummary.forEach(tf => {
             resizeParentCollapsible(summaryContainer);
         }
 
+        // START: NEW FUNCTION FOR TOP NODES SUMMARY
+        function renderVolumeProfileTopNodesSummary(symbol) {
+            const summaryTbody = document.getElementById('vp-top-nodes-tbody');
+            const summaryContainer = document.getElementById('vp-top-nodes-summary-container');
+            if (!summaryTbody || !summaryContainer) return;
+
+            const symbolData = STATE.vpData.data?.[symbol];
+            if (!symbolData || Object.keys(STATE.vpData.data).length === 0) {
+                summaryContainer.style.display = 'none';
+                return;
+            }
+
+            const lookbackOptions = Array.from(document.getElementById('vp-lookback').options);
+            const lookbacks = lookbackOptions.map(opt => ({ value: opt.value, text: opt.text }));
+            
+            let rowsHtml = '';
+
+            lookbacks.forEach(lookback => {
+                if (lookback.value === 'all') return; // Skip 'All' in this summary table
+
+                const lookbackData = symbolData[lookback.value];
+                let topNodesCells = '<td>--</td>'.repeat(5); // Default state if no data
+
+                if (lookbackData && lookbackData.full_profile && lookbackData.full_profile.length > 0) {
+                    // Sort the full profile by volume in descending order
+                    const sortedNodes = [...lookbackData.full_profile].sort((a, b) => b.volume - a.volume);
+                    
+                    // Get the top 5 nodes
+                    const top5Nodes = sortedNodes.slice(0, 5);
+
+                    // Create the HTML for the table cells
+                    const cellsArray = top5Nodes.map(node => 
+                        `<td class="sr-center-price">${Math.round(node.price_level).toLocaleString()}</td>`
+                    );
+
+                    // Pad the array with placeholder cells if there are fewer than 5 nodes
+                    while (cellsArray.length < 5) {
+                        cellsArray.push('<td>--</td>');
+                    }
+                    
+                    topNodesCells = cellsArray.join('');
+                }
+
+                rowsHtml += `
+                    <tr>
+                        <td style="text-align: left; padding-left: 15px; font-weight: 500;">${lookback.text}</td>
+                        ${topNodesCells}
+                    </tr>
+                `;
+            });
+
+            summaryTbody.innerHTML = rowsHtml;
+            summaryContainer.style.display = 'block';
+            resizeParentCollapsible(summaryContainer);
+        }
+        // END: NEW FUNCTION
+
         function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
             if (!STATE.isMasterUser || !files || files.length === 0) return;
             progressElement.style.display = 'block';
@@ -4054,7 +4134,7 @@ htfForSummary.forEach(tf => {
             });
         }
         
-        function addTargetRow() {
+    function addTargetRow() {
             const row = DOM.profitTargetsTbody.insertRow();
             row.innerHTML = `
                 <td><input type="number" class="target-price-input" placeholder="" step="0.01"></td>
