@@ -1932,9 +1932,8 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
-                                    <!-- MODIFIED: Added RR column -->
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>RR</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
-                                </thead>
+    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Breakeven</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>RR</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
+</thead>
                                 <tbody id="trades-tbody"></tbody>
                             </table>
                         </div>
@@ -3130,18 +3129,42 @@ const CONFIG = {
             adjustCollapsibleSize(tbody);
         }
 
-        function renderLiveTable(data) {
+   function renderLiveTable(data) {
             const trades = data || {};
             const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
             const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { const formattedValue = (typeof value === 'number') ? value.toFixed(digits) : value; return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; };
+            
             const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date)).map(id => {
                 const trade = trades[id];
+
+                // **ADD THIS LINE** to calculate the breakeven price
+                const breakevenPrice = calculateBreakevenPrice(trade);
+
                 const profitString = `$${parseFloat(trade.expected_profit || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent || 0).toFixed(2)}%)`;
                 const lossString = `$${parseFloat(trade.expected_loss || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent || 0).toFixed(2)}%)`;
                 let rrString;
                 if (trade.rr && !isNaN(parseFloat(trade.rr))) { rrString = `${parseFloat(trade.rr).toFixed(2)}:1`; } else { const metrics = calculateTradeMetrics(trade); rrString = metrics.rr > 0 ? `${parseFloat(metrics.rr).toFixed(2)}:1` : '--'; }
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
-                return `<tr><td>${trade.symbol}</td><td>${trade.type}</td>${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}<td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td><td style="color: #28a745;">${profitString}</td><td style="color: #dc3545;">${lossString}</td><td>${rrString}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>${renderAttachmentThumbnails(trade, id, 'live')}${masterButtonsHtml(id)}</tr>`;
+
+                // **MODIFY THIS RETURN STATEMENT** to include the new cell
+                return `<tr>
+                    <td>${trade.symbol}</td>
+                    <td>${trade.type}</td>
+                    ${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}
+                    ${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}
+                    ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}
+                    ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}
+                    <td>${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>  <!-- THIS IS THE NEW CELL -->
+                    ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
+                    <td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td>
+                    <td style="color: #28a745;">${profitString}</td>
+                    <td style="color: #dc3545;">${lossString}</td>
+                    <td>${rrString}</td>
+                    <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
+                    <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
+                    ${renderAttachmentThumbnails(trade, id, 'live')}
+                    ${masterButtonsHtml(id)}
+                </tr>`;
             }).join('');
             DOM.tradesTbody.innerHTML = rowsHtml;
             adjustCollapsibleSize(DOM.tradesTbody);
@@ -3212,6 +3235,31 @@ const CONFIG = {
             DOM.completedTradesTbody.innerHTML = rowsHtml;
             adjustCollapsibleSize(DOM.completedTradesTbody);
         }
+        // --- HELPER FUNCTIONS ---
+        const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
+        
+        // ADD THIS NEW FUNCTION BELOW
+        function calculateBreakevenPrice(trade) {
+            const entry = parseFloat(trade.entry);
+            const feeRate = CONFIG.TRADE_SETTINGS.FEE_RATE;
+            if (isNaN(entry) || entry <= 0) {
+                return 0; // Cannot calculate if entry is invalid
+            }
+
+            if (trade.type === "Long") {
+                // For a long, you need to sell higher to cover fees
+                // Breakeven = Entry * (1 + Fee) / (1 - Fee)
+                return entry * (1 + feeRate) / (1 - feeRate);
+            } else { // For a Short
+                // For a short, you need to buy back lower to cover fees
+                // Breakeven = Entry * (1 - Fee) / (1 + Fee)
+                return entry * (1 - feeRate) / (1 + feeRate);
+            }
+        }
+        // ADD THE FUNCTION ABOVE THIS LINE
+        
+        function autoResizeTextarea(textarea) { if (!textarea || textarea.tagName !== 'TEXTAREA') return; textarea.style.height = 'auto'; textarea.style.height = `${textarea.scrollHeight}px`; }
+        // ... rest of helper functions continue here ...
         
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
