@@ -3229,7 +3229,39 @@ function renderLiveTable(data) {
 
             DOM.completedTradesTbody.innerHTML = rowsHtml;
             adjustCollapsibleSize(DOM.completedTradesTbody);
+        } // --- HELPER FUNCTIONS ---
+        const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
+        
+        function calculateBreakevenPrice(trade) {
+            const entry = parseFloat(trade.entry);
+            const feeRate = CONFIG.TRADE_SETTINGS.FEE_RATE;
+            if (isNaN(entry) || entry <= 0) {
+                return 0; // Cannot calculate if entry is invalid
+            }
+
+            if (trade.type === "Long") {
+                // For a long, you need to sell higher to cover fees
+                // Breakeven = Entry * (1 + Fee) / (1 - Fee)
+                return entry * (1 + feeRate) / (1 - feeRate);
+            } else { // For a Short
+                // For a short, you need to buy back lower to cover fees
+                // Breakeven = Entry * (1 - Fee) / (1 + Fee)
+                return entry * (1 - feeRate) / (1 + feeRate);
+            }
         }
+        
+        function autoResizeTextarea(textarea) { if (!textarea || textarea.tagName !== 'TEXTAREA') return; textarea.style.height = 'auto'; textarea.style.height = `${textarea.scrollHeight}px`; }
+        function resizeParentCollapsible(elementInside) { const section = elementInside.closest('.collapsible-section'); if (section && section.classList.contains('is-open')) { const content = section.querySelector('.collapsible-content'); if (content) { content.style.maxHeight = content.scrollHeight + 'px'; } } }
+        const debouncedResizeParent = debounce(resizeParentCollapsible, 250);
+        const formatCurrency = (num, symbol = '$') => { if (typeof num !== 'number' || isNaN(num)) { return '--'; } const maximumFractionDigits = num > 100 ? 2 : (num > 1 ? 4 : 8); return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`; };
+        function adjustCollapsibleSize(elementInside) { if (!elementInside) return; if (elementInside.tagName === 'TEXTAREA') { autoResizeTextarea(elementInside); } resizeParentCollapsible(elementInside); }
+        const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
+        const getPerthDateString = (date = new Date()) => { try { const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Perth', year: 'numeric', month: '2-digit', day: '2-digit' }); return formatter.format(date); } catch (e) { console.error("Timezone formatting failed, using fallback.", e); const perthTime = new Date(date.getTime() + (8 * 60 * 60 * 1000)); return perthTime.toISOString().split('T')[0]; } };
+        const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
+        function getViewerId() { if (STATE.viewerId) return STATE.viewerId; let id = localStorage.getItem('viewerId'); if (!id) { id = `viewer_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`; localStorage.setItem('viewerId', id); } STATE.viewerId = id; return id; }
+
+        // --- DATA FETCHING ---
+        async function fetchLiveConversionRate() { try { const response = await fetch('https://open.er-api.com/v6/latest/USD'); if (!response.ok) return; const data = await response.json(); if (data?.result === "success" && data?.rates?.AUD) { STATE.usdToAudRate = data.rates.AUD; } } catch (error) { console.error("Could not fetch conversion rate.", error); } }
    function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
             if (!containerElement) return;
