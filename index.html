@@ -4552,56 +4552,55 @@ function handleChartLibrary2Click(e) {
         }
 
         function subscribeToData() {
-            dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
-            d// Find this existing line:
-dbRefs.completedTrades.on('value', s => {
-
-// And replace everything inside its curly braces {} with this:
-
-    STATE.allCompletedTrades = s.val() || {};
-    const completedData = STATE.allCompletedTrades; 
-    renderCompletedTable(completedData);
-
-    // --- START OF MODIFICATIONS ---
-
-    // Get the reset date from the config. If it's null, default to 0 to include all trades.
-    const resetDateStr = CONFIG.TRADE_SETTINGS.STATS_RESET_DATE;
-    const resetTimestamp = resetDateStr ? new Date(resetDateStr).getTime() : 0;
-
-    let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
+    dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
     
-    Object.values(completedData).forEach(trade => {
-        // Get the timestamp of when the trade was closed
-        const tradeTimestamp = trade.closed_date ? new Date(trade.closed_date).getTime() : 0;
+    dbRefs.completedTrades.on('value', s => {
 
-        // Only include the trade in calculations if it was closed on or after the reset date
-        if (tradeTimestamp >= resetTimestamp) {
-            const netResult = trade.net_result || 0;
-            if (netResult > 0) {
-                wins++;
-                grossProfit += netResult;
-            } else {
-                losses++;
-                grossLoss += Math.abs(netResult);
+        STATE.allCompletedTrades = s.val() || {};
+        const completedData = STATE.allCompletedTrades; 
+        renderCompletedTable(completedData);
+
+        // --- START OF MODIFICATIONS ---
+
+        // Get the reset date from the config. If it's null, default to 0 to include all trades.
+        const resetDateStr = CONFIG.TRADE_SETTINGS.STATS_RESET_DATE;
+        const resetTimestamp = resetDateStr ? new Date(resetDateStr).getTime() : 0;
+
+        let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
+        
+        Object.values(completedData).forEach(trade => {
+            // Get the timestamp of when the trade was closed
+            const tradeTimestamp = trade.closed_date ? new Date(trade.closed_date).getTime() : 0;
+
+            // Only include the trade in calculations if it was closed on or after the reset date
+            if (tradeTimestamp >= resetTimestamp) {
+                const netResult = trade.net_result || 0;
+                if (netResult > 0) {
+                    wins++;
+                    grossProfit += netResult;
+                } else {
+                    losses++;
+                    grossLoss += Math.abs(netResult);
+                }
             }
-        }
+        });
+        
+        // --- END OF MODIFICATIONS ---
+
+        const totalCompleted = wins + losses, winRate = totalCompleted > 0 ? (wins / totalCompleted) * 100 : 0;
+        const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0, avgWin = wins > 0 ? grossProfit / wins : 0;
+        const avgLoss = losses > 0 ? grossLoss / losses : 0, rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
+        const totalPL = grossProfit - grossLoss, newBalance = CONFIG.TRADE_SETTINGS.STARTING_BALANCE + totalPL;
+        DOM.statBalance.textContent = formatCurrency(newBalance); DOM.statBalanceAud.textContent = formatCurrency(newBalance * STATE.usdToAudRate, 'A$');
+        DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}${formatCurrency(totalPL)}`; DOM.statTotalPl.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+        DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}${formatCurrency(totalPL * STATE.usdToAudRate, 'A$')}`; DOM.statTotalPlAud.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+        DOM.statCompletedTrades.textContent = totalCompleted; DOM.statWins.textContent = wins; DOM.statLosses.textContent = losses;
+        DOM.statWinRate.textContent = `${winRate.toFixed(1)}%`; DOM.statProfitFactor.textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
+        DOM.statAvgWin.textContent = formatCurrency(avgWin); DOM.statAvgLoss.textContent = formatCurrency(avgLoss); DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
+        dbRefs.bank.set({ currentBalance: newBalance });
     });
     
-    // --- END OF MODIFICATIONS ---
-
-    const totalCompleted = wins + losses, winRate = totalCompleted > 0 ? (wins / totalCompleted) * 100 : 0;
-    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0, avgWin = wins > 0 ? grossProfit / wins : 0;
-    const avgLoss = losses > 0 ? grossLoss / losses : 0, rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
-    const totalPL = grossProfit - grossLoss, newBalance = CONFIG.TRADE_SETTINGS.STARTING_BALANCE + totalPL;
-    DOM.statBalance.textContent = formatCurrency(newBalance); DOM.statBalanceAud.textContent = formatCurrency(newBalance * STATE.usdToAudRate, 'A$');
-    DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}${formatCurrency(totalPL)}`; DOM.statTotalPl.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-    DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}${formatCurrency(totalPL * STATE.usdToAudRate, 'A$')}`; DOM.statTotalPlAud.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-    DOM.statCompletedTrades.textContent = totalCompleted; DOM.statWins.textContent = wins; DOM.statLosses.textContent = losses;
-    DOM.statWinRate.textContent = `${winRate.toFixed(1)}%`; DOM.statProfitFactor.textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
-    DOM.statAvgWin.textContent = formatCurrency(avgWin); DOM.statAvgLoss.textContent = formatCurrency(avgLoss); DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
-    dbRefs.bank.set({ currentBalance: newBalance });
-});
-            dbRefs.journalText.on('value', (s) => { STATE.journalText = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
+    dbRefs.journalText.on('value', (s) => { STATE.journalText = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
             dbRefs.journalImages.on('value', (s) => { STATE.journalImages = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
             dbRefs.imageLibrary.on('value', (s) => renderGenericImageLibrary(s.val(), DOM.imageLibraryContainer, 'image_library'));
             dbRefs.setupsImages.on('value', (s) => {
