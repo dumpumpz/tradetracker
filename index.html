@@ -1260,6 +1260,7 @@
             animation-name: zoomIn;
             animation-duration: 0.4s;
             margin: auto;
+            max-height: 90vh; /* <-- FIX: Added this line to constrain the modal height */
         }
         #note-modal-title {
             font-size: 24px;
@@ -4284,8 +4285,7 @@ htfForSummary.forEach(tf => {
             const tradeWithMetrics = { ...trade, ...metrics };
             dbRefs.trades.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error adding trade: ${error.message}`));
         }
-        
-        function handleLiveTradeUpdate(cell) {
+      function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
             const tradeId = cell.dataset.id;
             const fieldToUpdate = cell.dataset.field;
