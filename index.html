@@ -4592,7 +4592,7 @@ function handleChartLibrary2Click(e) {
             });
         }
 
-       function subscribeToData() {
+      function subscribeToData() {
             dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
             
             dbRefs.completedTrades.on('value', s => {
@@ -4607,6 +4607,7 @@ function handleChartLibrary2Click(e) {
                 
                 Object.values(completedData).forEach(trade => {
                     const tradeTimestamp = trade.closed_date ? new Date(trade.closed_date).getTime() : 0;
+
                     if (tradeTimestamp >= resetTimestamp) {
                         const netResult = trade.net_result || 0;
                         if (netResult > 0) {
@@ -4632,11 +4633,7 @@ function handleChartLibrary2Click(e) {
                 dbRefs.bank.set({ currentBalance: newBalance });
             });
 
-            // ******************** THIS IS THE FIX ********************
-            // REPLACE the broken line `d//...` with the full line below
             dbRefs.journalText.on('value', (s) => { STATE.journalText = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
-            // *********************************************************
-
             dbRefs.journalImages.on('value', (s) => { STATE.journalImages = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
             dbRefs.imageLibrary.on('value', (s) => renderGenericImageLibrary(s.val(), DOM.imageLibraryContainer, 'image_library'));
             dbRefs.setupsImages.on('value', (s) => {
