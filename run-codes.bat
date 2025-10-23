@@ -1,34 +1,45 @@
-@echo OFF
-TITLE TradeTracker Main Analysis Updater
-cd /D "%~dp0"
-cls
+@echo off
+TITLE TradeTracker - Full Analysis and GitHub Push
+CLS
 
+REM =================================================================
+REM      CONFIGURATION
+REM =================================================================
+SET REMOTE_NAME=origin
+SET BRANCH_NAME=main
+SET COMMIT_MESSAGE=Automated data update
+
+REM =================================================================
+REM      MAIN SCRIPT LOGIC
+REM =================================================================
 echo ===========================================
-echo      TRADETRACKER MAIN ANALYSIS UPDATER
+echo      TRADETRACKER ANALYSIS & GITHUB PUSHER
 echo ===========================================
 echo.
 
-:: --- STEP 1: CHECK FOR PYTHON VIRTUAL ENVIRONMENT ---
+:: --- STEP 1: NAVIGATE TO SCRIPT DIRECTORY ---
+:: This makes the script portable and ensures it runs in the correct folder.
+cd /D "%~dp0"
+
+:: --- STEP 2: SETUP/ACTIVATE PYTHON VIRTUAL ENVIRONMENT ---
 IF NOT EXIST "venv\Scripts\activate.bat" (
     echo [!] Python virtual environment not found.
     echo [*] Creating a new virtual environment...
     python -m venv venv
     IF ERRORLEVEL 1 (
-        echo [!!!] FATAL ERROR: Failed to create the virtual environment.
+        echo [!!!] FATAL ERROR: Failed to create the virtual environment. Make sure Python is installed and in your PATH.
         goto:error_exit
     )
     echo [*] Installing required packages from requirements.txt...
     call "venv\Scripts\activate.bat"
     pip install -r requirements.txt
     IF ERRORLEVEL 1 (
-        echo [!!!] FATAL ERROR: Failed to install required packages.
+        echo [!!!] FATAL ERROR: Failed to install required packages. Check your requirements.txt file.
         goto:error_exit
     )
     echo.
 )
-
-:: --- STEP 2: ACTIVATE VIRTUAL ENVIRONMENT ---
-echo [1/6] Activating Python virtual environment...
+echo [*] Activating Python virtual environment...
 call "venv\Scripts\activate.bat"
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: Could not activate the virtual environment.
@@ -37,7 +48,7 @@ IF ERRORLEVEL 1 (
 echo.
 
 :: --- STEP 3: RUN PYTHON ANALYSIS SCRIPTS ---
-echo [2/6] Running Moving Average analysis script...
+echo [>>] Running Moving Average analysis script...
 python generate_accurate_ma.py
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: The Moving Average script failed.
@@ -45,7 +56,7 @@ IF ERRORLEVEL 1 (
 )
 echo.
 
-echo [3/6] Running Support/Resistance analysis script...
+echo [>>] Running Support/Resistance analysis script...
 python sr_levels_analysis.py
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: The S/R script failed.
@@ -53,7 +64,7 @@ IF ERRORLEVEL 1 (
 )
 echo.
 
-echo [4/6] Running S-Signal analysis script...
+echo [>>] Running S-Signal analysis script...
 python s_signal_analysis.py
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: The S-Signal script failed.
@@ -61,7 +72,7 @@ IF ERRORLEVEL 1 (
 )
 echo.
 
-echo [5/6] Running Volume Profile analysis script...
+echo [>>] Running Volume Profile analysis script...
 python volume-profile.py
 IF ERRORLEVEL 1 (
     echo [!!!] FATAL ERROR: The Volume Profile script failed.
@@ -69,44 +80,62 @@ IF ERRORLEVEL 1 (
 )
 echo.
 
-:: --- STEP 4: COMMIT AND PUSH CHANGES TO GITHUB ---
-echo [6/6] Committing and pushing data to GitHub...
+:: --- STEP 4: PUSH DATA TO GITHUB (ROBUST METHOD) ---
+echo ===========================================
+echo      COMMITTING AND PUSHING TO GITHUB
+echo ===========================================
 echo.
 
-REM Add ALL new and modified files in the project to the staging area.
+ECHO [*] Staging all new and modified files...
 git add .
+
+ECHO [*] Checking for changes to commit...
+git diff-index --quiet HEAD --
 IF ERRORLEVEL 1 (
-    echo [!] WARNING: 'git add' command failed.
+    ECHO [*] Changes detected. Committing with a timestamp...
+    
+    REM Use PowerShell for a clean, sortable timestamp (YYYY-MM-DD HH:mm:ss)
+    FOR /f "tokens=*" %%g IN ('powershell -Command "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'"') do (SET "TIMESTAMP=%%g")
+
+    git commit -m "%COMMIT_MESSAGE%: %TIMESTAMP%"
+    IF ERRORLEVEL 1 (
+        ECHO [!!!] FATAL ERROR: 'git commit' failed. Check for commit hooks or other issues.
+        goto:error_exit
+    )
+) ELSE (
+    ECHO [*] No changes to commit. The local repository is already up-to-date.
 )
 
-REM Commit the changes with a standard message if there are changes
-git diff-index --quiet HEAD -- || git commit -m "Automated main analysis data update"
-
-echo [*] Pulling latest changes from the remote repository...
-git pull --rebase
+ECHO.
+ECHO [*] Pulling latest changes from the remote repository to avoid conflicts...
+REM Using --rebase avoids unnecessary merge commits in the history.
+git pull --rebase %REMOTE_NAME% %BRANCH_NAME%
 IF ERRORLEVEL 1 (
-    echo [!!!] FATAL ERROR: 'git pull --rebase' failed. A manual merge might be needed.
+    ECHO [!!!] FATAL ERROR: 'git pull --rebase' failed. A manual merge is required.
+    ECHO [!!!] Open a terminal in this folder and run 'git status' to see how to fix it.
     goto:error_exit
 )
 
-echo [*] Pushing local commits to the remote repository...
-git push
+ECHO.
+ECHO [*] Pushing your local commits to the online repository...
+git push %REMOTE_NAME% %BRANCH_NAME%
 IF ERRORLEVEL 1 (
-    echo [!] WARNING: 'git push' failed. This is often normal if the remote was already up-to-date.
+    ECHO [!] WARNING: 'git push' failed. This is often normal if there were no new local commits to push.
 )
-echo.
 
+ECHO.
 echo ===========================================
-echo      (O_O) MAIN UPDATE PROCESS COMPLETE!
+echo      (^_^) ALL PROCESSES COMPLETE!
 echo ===========================================
 echo.
-echo This window will close in 10 seconds...
-timeout /t 10 >nul
+echo This window will close in 15 seconds...
+timeout /t 15 /nobreak >nul
 exit /b 0
 
 :error_exit
+ECHO.
+ECHO [!!!] SCRIPT ENCOUNTERED A FATAL ERROR AND CANNOT CONTINUE.
+ECHO [!!!] Please review the error messages above.
 echo.
-echo Script encountered a fatal error and cannot continue.
-echo Press any key to close this window...
-pause >nul
+pause
 exit /b 1
