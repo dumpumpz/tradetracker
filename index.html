@@ -4796,6 +4796,94 @@ function handleChartLibrary2Click(e) {
         
         initializeApp();
     });
+
+
+        // --- ONE-TIME UTILITY TO FIX EXISTING TRADES ---
+        // You can run this function from the browser's developer console ONCE.
+        async function recalculateAllAverageEntries() {
+            console.log("--- Starting Recalculation of Average Entries ---");
+
+            const feeRate = CONFIG.TRADE_SETTINGS.FEE_RATE;
+
+            // This is the core calculation logic
+            const calculateFeeInclusiveAverage = (trade) => {
+                const entry = parseFloat(trade.entry);
+                const size = parseFloat(trade.size);
+                const type = trade.type;
+
+                if (isNaN(entry) || isNaN(size) || size <= 0 || entry <= 0) {
+                    return null; // Cannot calculate for invalid trades
+                }
+                const quantity = size / entry;
+                if (quantity <= 0) return null;
+
+                if (type === "Long") {
+                    const totalCostWithFees = size * (1 + feeRate);
+                    return totalCostWithFees / quantity;
+                } else { // Short
+                    const totalProceedsAfterFees = size * (1 - feeRate);
+                    return totalProceedsAfterFees / quantity;
+                }
+            };
+
+            const updates = {};
+            let liveTradesUpdated = 0;
+            let completedTradesUpdated = 0;
+
+            const processTrades = (trades, pathPrefix) => {
+                for (const [tradeId, trade] of Object.entries(trades)) {
+                    const oldAvgEntry = parseFloat(trade.entry);
+                    const newAvgEntry = calculateFeeInclusiveAverage(trade);
+
+                    // Check if an update is needed (using a small tolerance for float comparison)
+                    if (newAvgEntry && Math.abs(oldAvgEntry - newAvgEntry) > 0.0001) {
+                        updates[`${pathPrefix}/${tradeId}/entry`] = newAvgEntry;
+
+                        // Also recalculate the metrics that depend on the entry price
+                        const tempTradeForCalc = { ...trade, entry: newAvgEntry };
+                        const newMetrics = calculateTradeMetrics(tempTradeForCalc);
+                        
+                        updates[`${pathPrefix}/${tradeId}/rr`] = newMetrics.rr;
+                        updates[`${pathPrefix}/${tradeId}/estimated_total_fee`] = newMetrics.estimated_total_fee;
+                        updates[`${pathPrefix}/${tradeId}/expected_profit`] = newMetrics.expected_profit;
+                        updates[`${pathPrefix}/${tradeId}/expected_loss`] = newMetrics.expected_loss;
+                        updates[`${pathPrefix}/${tradeId}/expected_profit_percent`] = newMetrics.expected_profit_percent;
+                        updates[`${pathPrefix}/${tradeId}/expected_loss_percent`] = newMetrics.expected_loss_percent;
+
+                        console.log(`Updating ${pathPrefix} trade ${tradeId}: Entry ${oldAvgEntry.toFixed(4)} -> ${newAvgEntry.toFixed(4)}`);
+                        
+                        if (pathPrefix === 'trades') liveTradesUpdated++;
+                        if (pathPrefix === 'completed_trades') completedTradesUpdated++;
+                    }
+                }
+            };
+
+            try {
+                // Fetch and process live trades
+                const liveTradesSnapshot = await dbRefs.trades.once('value');
+                const liveTrades = liveTradesSnapshot.val() || {};
+                processTrades(liveTrades, 'trades');
+
+                // Fetch and process completed trades
+                const completedTradesSnapshot = await dbRefs.completedTrades.once('value');
+                const completedTrades = completedTradesSnapshot.val() || {};
+                processTrades(completedTrades, 'completed_trades');
+
+                if (Object.keys(updates).length > 0) {
+                    console.log(`Found ${liveTradesUpdated} live and ${completedTradesUpdated} completed trades to update.`);
+                    console.log("Applying updates to Firebase...");
+                    await firebase.database().ref().update(updates);
+                    console.log("✅ Successfully updated all trades! Please refresh the page.");
+                } else {
+                    console.log("✅ All existing trades already have correct average entries. No updates were needed.");
+                }
+
+            } catch (error) {
+                console.error("❌ An error occurred during the recalculation process:", error);
+                alert("An error occurred. Check the console for details.");
+            }
+             console.log("--- Recalculation Process Finished ---");
+        }
     </script>
     </body>
 </html>
