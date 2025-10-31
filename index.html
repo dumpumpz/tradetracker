@@ -4353,23 +4353,69 @@ const totalPages = Math.ceil(Object.keys(STATE.allSetupsImages).length / STATE.s
         function handleSentimentDelete(button) { const receiptId = button.dataset.id; if (!receiptId) return; if (confirm('Delete this log entry?')) dbRefs.sentimentReceipts.child(receiptId).remove(); }
         function handleSentimentNoteEdit(button) { const receiptId = button.dataset.id; if (!receiptId) return; const receiptRef = dbRefs.sentimentReceipts.child(receiptId); receiptRef.child('note').once('value', snapshot => { const newNote = prompt('Enter note:', snapshot.val() || ""); if (newNote !== null) receiptRef.update({ note: newNote }); }); }
 
-        function handleAddStaggeredEntry(tradeId) {
+ function handleAddStaggeredEntry(tradeId) {
             if (!STATE.isMasterUser) return;
             const tradeRef = dbRefs.trades.child(tradeId);
             tradeRef.once('value', snapshot => {
-                const currentTrade = snapshot.val(); if (!currentTrade) return alert('Error: Trade not found.');
-                const newEntryPriceStr = prompt("Enter NEW entry price:"); if (newEntryPriceStr === null) return;
-                const newPositionValueStr = prompt("Enter value ($) of this NEW position:"); if (newPositionValueStr === null) return;
-                const newEntryPrice = parseFloat(newEntryPriceStr), newPositionValue = parseFloat(newPositionValueStr);
-                if (isNaN(newEntryPrice) || isNaN(newPositionValue) || newEntryPrice <= 0 || newPositionValue <= 0) return alert("Invalid input.");
-                const currentSize = parseFloat(currentTrade.size), currentEntry = parseFloat(currentTrade.entry);
-                const totalValue = currentSize + newPositionValue, totalQuantity = (currentSize / currentEntry) + (newPositionValue / newEntryPrice);
-                const newAverageEntryPrice = totalValue / totalQuantity;
-                const updatedEntryPrices = currentTrade.entry_prices || [currentTrade.entry]; updatedEntryPrices.push(newEntryPrice);
-                const tempTradeForCalc = { ...currentTrade, entry: newAverageEntryPrice, size: totalValue };
+                const currentTrade = snapshot.val();
+                if (!currentTrade) return alert('Error: Trade not found.');
+
+                const newEntryPriceStr = prompt("Enter NEW entry price:");
+                if (newEntryPriceStr === null) return;
+                const newPositionValueStr = prompt("Enter value ($) of this NEW position:");
+                if (newPositionValueStr === null) return;
+
+                const newEntryPrice = parseFloat(newEntryPriceStr);
+                const newPositionValue = parseFloat(newPositionValueStr);
+                if (isNaN(newEntryPrice) || isNaN(newPositionValue) || newEntryPrice <= 0 || newPositionValue <= 0) {
+                    return alert("Invalid input.");
+                }
+
+                // --- START OF MODIFIED LOGIC ---
+                const currentSize = parseFloat(currentTrade.size);
+                const currentAvgEntry = parseFloat(currentTrade.entry); // This is the old average
+                const feeRate = CONFIG.TRADE_SETTINGS.FEE_RATE;
+
+                // Calculate total quantities
+                const currentQty = currentSize / currentAvgEntry;
+                const newQty = newPositionValue / newEntryPrice;
+                const totalQty = currentQty + newQty;
+
+                if (totalQty <= 0) return alert("Error: Cannot calculate with zero quantity.");
+                
+                // Calculate total value basis (sum of all USDT spent/received)
+                const totalValueBasis = currentSize + newPositionValue;
+
+                let newAverageEntryPrice;
+
+                // Calculate the new fee-inclusive average entry price
+                if (currentTrade.type === "Long") {
+                    // For a Long, the average entry is the total cost (including fees) divided by total quantity.
+                    const totalCostWithFees = totalValueBasis * (1 + feeRate);
+                    newAverageEntryPrice = totalCostWithFees / totalQty;
+                } else { // For a Short
+                    // For a Short, the average entry is the total proceeds (after fees) divided by total quantity.
+                    const totalProceedsAfterFees = totalValueBasis * (1 - feeRate);
+                    newAverageEntryPrice = totalProceedsAfterFees / totalQty;
+                }
+                
+                const updatedEntryPrices = currentTrade.entry_prices || [currentTrade.entry];
+                updatedEntryPrices.push(newEntryPrice);
+
+                const tempTradeForCalc = { ...currentTrade, entry: newAverageEntryPrice, size: totalValueBasis };
                 const newMetrics = calculateTradeMetrics(tempTradeForCalc);
-                const updatedTrade = { ...currentTrade, entry: newAverageEntryPrice, size: totalValue, entry_prices: updatedEntryPrices, ...newMetrics, note: (currentTrade.note || '') + `\n+ Added $${newPositionValue.toFixed(2)} @ $${newEntryPrice.toFixed(4)} on ${new Date().toLocaleString()}` };
+
+                const updatedTrade = {
+                    ...currentTrade,
+                    entry: newAverageEntryPrice,
+                    size: totalValueBasis,
+                    entry_prices: updatedEntryPrices,
+                    ...newMetrics,
+                    note: (currentTrade.note || '') + `\n+ Added $${newPositionValue.toFixed(2)} @ $${newEntryPrice.toFixed(4)} on ${new Date().toLocaleString()}`
+                };
+
                 tradeRef.update(updatedTrade);
+                // --- END OF MODIFIED LOGIC ---
             });
         }
 
