@@ -4798,9 +4798,9 @@ function handleChartLibrary2Click(e) {
     });
 
 
-   // --- ONE-TIME UTILITY TO FIX EXISTING TRADES ---
-        // You can run this function from the browser's developer console ONCE.
-        window.recalculateAllAverageEntries = async function() {
+ // --- ONE-TIME UTILITY TO FIX EXISTING TRADES ---
+        // This function stays inside the main script scope to access CONFIG and dbRefs
+        async function recalculateAllAverageEntries() {
             console.log("--- Starting Recalculation of Average Entries ---");
 
             const feeRate = CONFIG.TRADE_SETTINGS.FEE_RATE;
@@ -4816,7 +4816,9 @@ function handleChartLibrary2Click(e) {
                 }
                 const quantity = size / entry;
                 if (quantity <= 0) return null;
-
+                
+                // For trades added through the form, the `entry` is the fee-less average.
+                // We base our fee calculation on this original value.
                 if (type === "Long") {
                     const totalCostWithFees = size * (1 + feeRate);
                     return totalCostWithFees / quantity;
@@ -4832,12 +4834,36 @@ function handleChartLibrary2Click(e) {
 
             const processTrades = (trades, pathPrefix) => {
                 for (const [tradeId, trade] of Object.entries(trades)) {
-                    const oldAvgEntry = parseFloat(trade.entry);
-                    const newAvgEntry = calculateFeeInclusiveAverage(trade);
+                    // We must determine if this trade's entry is already fee-inclusive.
+                    // The old logic was a simple weighted average. The new logic adds/subtracts a fee.
+                    // We will recalculate based on its listed entry prices to be certain.
+                    const entries = trade.entry_prices || [trade.entry];
+                    const size = parseFloat(trade.size);
 
-                    // Check if an update is needed (using a small tolerance for float comparison)
+                    if (!entries.length || isNaN(size) || size <= 0) continue;
+
+                    let totalQty = 0;
+                    // For simplicity, we assume the total size is distributed among entries.
+                    // This part is an approximation but will correct the vast majority of cases.
+                    // A truly perfect migration would require knowing the size of each individual entry.
+                    const sizePerEntry = size / entries.length;
+                    entries.forEach(price => {
+                        totalQty += sizePerEntry / parseFloat(price);
+                    });
+
+                    if (totalQty <= 0) continue;
+
+                    let newAvgEntry;
+                    if (trade.type === "Long") {
+                        newAvgEntry = (size * (1 + feeRate)) / totalQty;
+                    } else { // Short
+                        newAvgEntry = (size * (1 - feeRate)) / totalQty;
+                    }
+                    
+                    const oldAvgEntry = parseFloat(trade.entry);
+
                     if (newAvgEntry && Math.abs(oldAvgEntry - newAvgEntry) > 0.0001) {
-                        updates[`${pathPrefix}/${tradeId}/entry`] = newAvgEntry;
+                         updates[`${pathPrefix}/${tradeId}/entry`] = newAvgEntry;
 
                         // Also recalculate the metrics that depend on the entry price
                         const tempTradeForCalc = { ...trade, entry: newAvgEntry };
@@ -4884,6 +4910,9 @@ function handleChartLibrary2Click(e) {
             }
              console.log("--- Recalculation Process Finished ---");
         }
+
+        // --- This is the new TRIGGER line that makes the function callable from the console ---
+        window.runTradeRecalculation = recalculateAllAverageEntries;
     </script>
     </body>
 </html>
