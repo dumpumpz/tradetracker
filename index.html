@@ -2261,8 +2261,6 @@
                 <div><label for="sr-symbol">Symbol:</label><select id="sr-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
                 <div>
                     <label for="sr-lookback">Lookback:</label>
-                                       <label for="sr-lookback">Lookback:</label>
-                        <label for="sr-lookback">Lookback:</label>
                     <select id="sr-lookback">
                         <option value="270d">270 Days</option>
                         <option value="180d">180 Days</option>
@@ -3249,7 +3247,10 @@ function renderLiveTable(data) {
             DOM.completedTradesTbody.innerHTML = rowsHtml;
             adjustCollapsibleSize(DOM.completedTradesTbody);
         }
-   function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
+
+
+
+        function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
             if (!containerElement) return;
             const perthTodayStr = getPerthDateString();
@@ -3376,12 +3377,21 @@ function renderLiveTable(data) {
             const favouriteText = (STATE.favouriteEntries[safeSymbol] || {})[timeframe];
             if (favouriteText) { DOM.favouritedEntryText.textContent = favouriteText; DOM.favouritedEntryContainer.style.display = 'block'; } else { DOM.favouritedEntryContainer.style.display = 'none'; }
             const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
-            DOM.journalEntryEl.value = dailyText;
-            DOM.persistentNotesEl.value = STATE.persistentNotes;
+            
+            // Only update the value if the element is not currently focused by the user
+            if(document.activeElement !== DOM.journalEntryEl) {
+                DOM.journalEntryEl.value = dailyText;
+            }
+            if(document.activeElement !== DOM.persistentNotesEl) {
+                DOM.persistentNotesEl.value = STATE.persistentNotes;
+            }
+            
             setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); adjustCollapsibleSize(DOM.persistentNotesEl); }, 50);
             DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
             renderJournalImages(safeSymbol, timeframe, yyyymmdd);
-            renderDateNavigation();
+            
+            // *** THE FIX IS HERE: THIS LINE IS REMOVED ***
+            // renderDateNavigation(); 
         }
 
         function renderJournalImages(symbol, timeframe, selectedYMD) {
@@ -3410,18 +3420,18 @@ function renderLiveTable(data) {
             let summaryTableHtml = '';
             if (currentPrice > 0) {
                 const htfForSummary = ['monthly', 'weekly', 'daily', '4hour', '2hour', '1hour'];
-const levelsHtf = [];
-htfForSummary.forEach(tf => {
-    const tfData = symbolEmaData[tf];
-    if (tfData) {
-        PERIODS.forEach(period => ['EMA', 'SMA'].forEach(type => {
-            const val = tfData[`${type}_${period}`];
-            if (val !== undefined && val !== null) {
-                levelsHtf.push({ label: `${SHORT_NAMES[tf]} ${type} ${period}`, value: val, isSupport: val < currentPrice });
-            }
-        }));
-    }
-});
+                const levelsHtf = [];
+                htfForSummary.forEach(tf => {
+                    const tfData = symbolEmaData[tf];
+                    if (tfData) {
+                        PERIODS.forEach(period => ['EMA', 'SMA'].forEach(type => {
+                            const val = tfData[`${type}_${period}`];
+                            if (val !== undefined && val !== null) {
+                                levelsHtf.push({ label: `${SHORT_NAMES[tf]} ${type} ${period}`, value: val, isSupport: val < currentPrice });
+                            }
+                        }));
+                    }
+                });
                 const supportsHtfAll = levelsHtf.filter(l => l.isSupport).sort((a, b) => a.value - b.value);
                 const resistancesHtfAll = levelsHtf.filter(l => !l.isSupport).sort((a, b) => a.value - b.value);
                 let tableRowsHtml = '';
@@ -3596,37 +3606,34 @@ htfForSummary.forEach(tf => {
             dbRef.set(dataToSave).then(() => { statusElement.textContent = 'Saved.'; setTimeout(() => { statusElement.textContent = '' }, 2000); }).catch(e => { statusElement.textContent = `Error: ${e.message}`; console.error("Error saving setups table:", e); });
         }
 
-    const saveJournalEntry = () => {
-    clearTimeout(STATE.journalSaveTimer);
-    STATE.journalSaveTimer = setTimeout(() => {
-        if (!STATE.isMasterUser) return;
-        const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
-        const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
-        const timeframe = DOM.journalTimeframeEl.value;
-        const text = DOM.journalEntryEl.value;
+        const saveJournalEntry = () => {
+            clearTimeout(STATE.journalSaveTimer);
+            STATE.journalSaveTimer = setTimeout(() => {
+                if (!STATE.isMasterUser) return;
+                const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
+                const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
+                const timeframe = DOM.journalTimeframeEl.value;
+                const text = DOM.journalEntryEl.value;
 
-        DOM.saveStatus.textContent = 'Saving...';
-        
-        // Ensure path exists in local state before saving
-        if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {};
-        if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {};
-        STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text;
-        
-        dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text).then(() => {
-            DOM.saveStatus.textContent = 'Saved.';
-            
-            // --- THIS IS THE FIX ---
-            // Instead of redrawing all buttons, just update the class on the current one.
-            const currentButton = DOM.dateButtonsContainer.querySelector(`.date-nav-btn[data-date="${yyyymmdd}"]`);
-            if (currentButton) {
-                currentButton.classList.toggle('has-entry', text.trim().length > 0);
-            }
-            // --- END OF FIX ---
+                DOM.saveStatus.textContent = 'Saving...';
+                
+                if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {};
+                if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {};
+                STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text;
+                
+                dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text).then(() => {
+                    DOM.saveStatus.textContent = 'Saved.';
+                    
+                    const currentButton = DOM.dateButtonsContainer.querySelector(`.date-nav-btn[data-date="${yyyymmdd}"]`);
+                    if (currentButton) {
+                        currentButton.classList.toggle('has-entry', text.trim().length > 0);
+                    }
 
-            setTimeout(() => DOM.saveStatus.textContent = '', 2000);
-        }).catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`);
-    }, 750);
-}; const savePersistentNotes = () => { clearTimeout(STATE.notesSaveTimer); STATE.notesSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.persistentNotes.set(DOM.persistentNotesEl.value).catch(e => console.error("Error saving persistent notes:", e)); }, 750); };
+                    setTimeout(() => DOM.saveStatus.textContent = '', 2000);
+                }).catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`);
+            }, 750);
+        };
+        const savePersistentNotes = () => { clearTimeout(STATE.notesSaveTimer); STATE.notesSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.persistentNotes.set(DOM.persistentNotesEl.value).catch(e => console.error("Error saving persistent notes:", e)); }, 750); };
         const saveTrackerScratchpad = () => { clearTimeout(STATE.trackerSaveTimer); STATE.trackerSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.trackerScratchpad.set(DOM.trackerScratchpadEl.value).catch(e => console.error("Error saving tracker scratchpad:", e)); }, 750); };
         
         function savePrimaryNotesOnly() {
@@ -3964,7 +3971,10 @@ htfForSummary.forEach(tf => {
                     if (!newTabContent.dataset.sectionsInitialized) { openDefaultSectionsInContainer(newTabContent); newTabContent.dataset.sectionsInitialized = 'true'; }
                 }
                 DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'journal') ? 'block' : 'none';
-                if (tabId === 'journal') updateJournalView();
+                if (tabId === 'journal') { 
+                    updateJournalView();
+                    renderDateNavigation(); // Render nav only when tab is switched to
+                }
                 if (tabId === 'sr-levels') renderSrLevels();
                 if (tabId === 'volume-profile') {
                     renderVolumeProfileChart();
@@ -4046,8 +4056,7 @@ htfForSummary.forEach(tf => {
                         renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
                     }
                 } else if (e.target.id === 'setups-images-next-page') {
-                    // Change "setupsItemsPerPage" to "setupsImagesItemsPerPage"
-const totalPages = Math.ceil(Object.keys(STATE.allSetupsImages).length / STATE.setupsImagesItemsPerPage);
+                    const totalPages = Math.ceil(Object.keys(STATE.allSetupsImages).length / STATE.setupsImagesItemsPerPage);
                     if (STATE.setupsImagesCurrentPage < totalPages) { 
                         STATE.setupsImagesCurrentPage++;
                         renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
@@ -4110,8 +4119,20 @@ const totalPages = Math.ceil(Object.keys(STATE.allSetupsImages).length / STATE.s
 
             DOM.tradesTbody.addEventListener('blur', (e) => { if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); }, true);
 
-            [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', updateJournalView));
-            DOM.dateButtonsContainer.addEventListener('click', (e) => { if (e.target.matches('.date-nav-btn')) { const parts = e.target.dataset.date.split('-'); STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); STATE.centerDate = new Date(STATE.selectedDate); updateJournalView(); } });
+            [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => {
+                updateJournalView();
+                renderDateNavigation(); // Re-render nav only when filters change
+            }));
+
+            DOM.dateButtonsContainer.addEventListener('click', (e) => { 
+                if (e.target.matches('.date-nav-btn')) { 
+                    const parts = e.target.dataset.date.split('-'); 
+                    STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); 
+                    STATE.centerDate = new Date(STATE.selectedDate); 
+                    updateJournalView();
+                    renderDateNavigation(); // Re-render nav when a new date is selected
+                } 
+            });
             DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
             DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
 
@@ -4170,7 +4191,8 @@ const totalPages = Math.ceil(Object.keys(STATE.allSetupsImages).length / STATE.s
             });
             inputElement.addEventListener('wheel', e => { e.preventDefault(); handleAdjustment(e.deltaY < 0 ? 1 : -1); });
         }
-function calculateAllProfits() {
+
+    function calculateAllProfits() {
             const entryPrice = parseFloat(DOM.calcEntryPrice.value);
             const positionSize = parseFloat(DOM.calcPositionSize.value);
             const positionType = document.querySelector('input[name="position-type"]:checked').value;
@@ -4540,7 +4562,6 @@ function handleChartLibrary2Click(e) {
             else if (button.matches('.delete-btn, .delete-btn-completed')) { if (confirm('Delete this trade?')) { resetMergeState(); tradeRef.remove(); } } 
             else if (button.matches('.note-btn, .note-btn-completed')) { tradeRef.child('note').once('value', snapshot => { const newNote = prompt("Enter Note 1:", snapshot.val() || ""); if (newNote !== null) tradeRef.update({ note: newNote }); }); }
             else if (button.matches('.note2-btn-completed')) { tradeRef.child('note2').once('value', snapshot => { const newNote2 = prompt("Enter Note 2:", snapshot.val() || ""); if (newNote2 !== null) tradeRef.update({ note2: newNote2 }); }); }
-            // STEP 3: ADDED THE LOGIC FOR THE NEW "Note 3" BUTTON
             else if (button.matches('.note3-btn-completed')) { tradeRef.child('note3').once('value', snapshot => { const newNote3 = prompt("Enter Note 3:", snapshot.val() || ""); if (newNote3 !== null) tradeRef.update({ note3: newNote3 }); }); }
         }
         
@@ -4703,8 +4724,18 @@ function handleChartLibrary2Click(e) {
                 dbRefs.bank.set({ currentBalance: newBalance });
             });
 
-            dbRefs.journalText.on('value', (s) => { STATE.journalText = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
-            dbRefs.journalImages.on('value', (s) => { STATE.journalImages = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
+            dbRefs.journalText.on('value', (s) => { 
+                STATE.journalText = s.val() || {}; 
+                if (DOM.journalTab.classList.contains('active')) {
+                    updateJournalView(); 
+                }
+            });
+            dbRefs.journalImages.on('value', (s) => { 
+                STATE.journalImages = s.val() || {}; 
+                if (DOM.journalTab.classList.contains('active')) {
+                    updateJournalView(); 
+                }
+            });
             dbRefs.imageLibrary.on('value', (s) => renderGenericImageLibrary(s.val(), DOM.imageLibraryContainer, 'image_library'));
             dbRefs.setupsImages.on('value', (s) => {
                 STATE.allSetupsImages = s.val() || {};
@@ -4920,7 +4951,7 @@ function handleChartLibrary2Click(e) {
 
                 // Fetch and process completed trades
                 const completedTradesSnapshot = await dbRefs.completedTrades.once('value');
-                const completedTrades = completedTradesSnapshot.val() || {};
+                const completedTrades = completedTrades.val() || {};
                 processTrades(completedTrades, 'completed_trades');
 
                 if (Object.keys(updates).length > 0) {
