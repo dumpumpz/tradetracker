@@ -3596,8 +3596,37 @@ htfForSummary.forEach(tf => {
             dbRef.set(dataToSave).then(() => { statusElement.textContent = 'Saved.'; setTimeout(() => { statusElement.textContent = '' }, 2000); }).catch(e => { statusElement.textContent = `Error: ${e.message}`; console.error("Error saving setups table:", e); });
         }
 
-        const saveJournalEntry = () => { clearTimeout(STATE.journalSaveTimer); STATE.journalSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value); const yyyymmdd = getYYYYMMDD(STATE.selectedDate); const timeframe = DOM.journalTimeframeEl.value; const text = DOM.journalEntryEl.value; DOM.saveStatus.textContent = 'Saving...'; if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {}; if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {}; STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text; dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text).then(() => { DOM.saveStatus.textContent = 'Saved.'; const currentButton = DOM.dateButtonsContainer.querySelector(`.date-nav-btn[data-date="${yyyymmdd}"]`); if (currentButton) { currentButton.classList.toggle('has-entry', text.trim().length > 0); } setTimeout(() => DOM.saveStatus.textContent = '', 2000); }).catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`); }, 750); };
-        const savePersistentNotes = () => { clearTimeout(STATE.notesSaveTimer); STATE.notesSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.persistentNotes.set(DOM.persistentNotesEl.value).catch(e => console.error("Error saving persistent notes:", e)); }, 750); };
+    const saveJournalEntry = () => {
+    clearTimeout(STATE.journalSaveTimer);
+    STATE.journalSaveTimer = setTimeout(() => {
+        if (!STATE.isMasterUser) return;
+        const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
+        const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
+        const timeframe = DOM.journalTimeframeEl.value;
+        const text = DOM.journalEntryEl.value;
+
+        DOM.saveStatus.textContent = 'Saving...';
+        
+        // Ensure path exists in local state before saving
+        if (!STATE.journalText[safeSymbol]) STATE.journalText[safeSymbol] = {};
+        if (!STATE.journalText[safeSymbol][yyyymmdd]) STATE.journalText[safeSymbol][yyyymmdd] = {};
+        STATE.journalText[safeSymbol][yyyymmdd][timeframe] = text;
+        
+        dbRefs.journalText.child(safeSymbol).child(yyyymmdd).child(timeframe).set(text).then(() => {
+            DOM.saveStatus.textContent = 'Saved.';
+            
+            // --- THIS IS THE FIX ---
+            // Instead of redrawing all buttons, just update the class on the current one.
+            const currentButton = DOM.dateButtonsContainer.querySelector(`.date-nav-btn[data-date="${yyyymmdd}"]`);
+            if (currentButton) {
+                currentButton.classList.toggle('has-entry', text.trim().length > 0);
+            }
+            // --- END OF FIX ---
+
+            setTimeout(() => DOM.saveStatus.textContent = '', 2000);
+        }).catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`);
+    }, 750);
+}; const savePersistentNotes = () => { clearTimeout(STATE.notesSaveTimer); STATE.notesSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.persistentNotes.set(DOM.persistentNotesEl.value).catch(e => console.error("Error saving persistent notes:", e)); }, 750); };
         const saveTrackerScratchpad = () => { clearTimeout(STATE.trackerSaveTimer); STATE.trackerSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.trackerScratchpad.set(DOM.trackerScratchpadEl.value).catch(e => console.error("Error saving tracker scratchpad:", e)); }, 750); };
         
         function savePrimaryNotesOnly() {
