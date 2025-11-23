@@ -1903,18 +1903,26 @@
                     <div class="collapsible-content-inner">
                         <form id="add-trade-form">
                            <div>
-    <label for="trade-symbol">Symbol:</label>
-    <input type="text" id="trade-symbol" list="symbol-list" placeholder="Type or select a symbol">
-    <datalist id="symbol-list">
-        <option value="BTC/USDT">
-        <option value="ETH/USDT">
-    </datalist>
-</div>
+                                <label for="trade-symbol">Symbol:</label>
+                                <input type="text" id="trade-symbol" list="symbol-list" placeholder="Type or select a symbol">
+                                <datalist id="symbol-list">
+                                    <option value="BTC/USDT">
+                                    <option value="ETH/USDT">
+                                </datalist>
+                            </div>
                             <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
                             <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
                             <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
                             <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
                             <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
+                            <!-- === MODIFIED: ADDED FEE TYPE SELECTOR === -->
+                            <div>
+                                <label for="entry-fee-type">Entry Fee:</label>
+                                <select id="entry-fee-type">
+                                    <option value="taker">Taker Fee</option>
+                                    <option value="maker">Maker Fee</option>
+                                </select>
+                            </div>
                             <div><button type="submit">Add Trade</button></div>
                         </form>
                     </div>
@@ -1932,8 +1940,8 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
-    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Breakeven</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>RR</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
-</thead>
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Breakeven</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>RR</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
+                                </thead>
                                 <tbody id="trades-tbody"></tbody>
                             </table>
                         </div>
@@ -2095,8 +2103,7 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
-                                    <!-- STEP 1: ADDED THE NEW HEADER COLUMN -->
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>RR</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Note 2</th><th>Note 3</th><!-- ADDED --><th>Charts</th><th class="master-only">Actions</th></tr>
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Est. Profit ($)</th><th>Est. Loss ($)</th><th>RR</th><th>Exit Price</th><th>Fees ($)</th><th>Net Result ($)</th><th>Date Opened</th><th>Date Closed</th><th>Note</th><th>Note 2</th><th>Note 3</th><th>Charts</th><th class="master-only">Actions</th></tr>
                                 </thead>
                                 <tbody id="completed-trades-tbody"></tbody>
                             </table>
@@ -2580,23 +2587,24 @@
   document.addEventListener('DOMContentLoaded', () => {
 
         // --- CONFIGURATION ---
-       // --- CONFIGURATION ---
-const CONFIG = {
-    FIREBASE: {
-        apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
-        authDomain: "journal-a003f.firebaseapp.com",
-        databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "journal-a003f",
-        // --- THIS IS THE CORRECTED LINE ---
-        storageBucket: "journal-a003f.firebasestorage.app", 
-        // --- END OF CORRECTION ---
-        messagingSenderId: "1038636626553",
-        appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
-    },
-    // ... rest of config
-
+        const CONFIG = {
+            FIREBASE: {
+                apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
+                authDomain: "journal-a003f.firebaseapp.com",
+                databaseURL: "https://journal-a003f-default-rtdb.asia-southeast1.firebasedatabase.app",
+                projectId: "journal-a003f",
+                storageBucket: "journal-a003f.firebasestorage.app", 
+                messagingSenderId: "1038636626553",
+                appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
+            },
             DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades', BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', PERSISTENT_NOTES: 'persistent_notes', TRACKER_SCRATCHPAD: 'tracker_scratchpad', SENTIMENT_RECEIPTS: 'sentiment_receipts', LEVEL_NOTES: 'level_notes', GENERAL_NOTES: 'general_notes' },
-            TRADE_SETTINGS: { FEE_RATE: 0.00075, STARTING_BALANCE: 5137,     STATS_RESET_DATE: '2025-10-20', },
+            // === MODIFIED: FEE_RATE is now split into MAKER and TAKER rates ===
+            TRADE_SETTINGS: {
+                MAKER_FEE_RATE: 0.0000, // 0% for Maker
+                TAKER_FEE_RATE: 0.00075, // Standard Taker fee
+                STARTING_BALANCE: 5137,
+                STATS_RESET_DATE: '2025-10-20',
+            },
             EMA_ANALYSIS: { SYMBOLS: ['BTC-USDT', 'ETH-USDT'],TIMEFRAMES: ['monthly', 'weekly', 'daily', '4hour', '2hour', '1hour'], PERIODS: [13, 49, 100, 200, 500, 1000], SHORT_NAMES: {'15min': '15m', '30min': '30m', '1hour': '1H', '2hour': '2H', '4hour': '4H', 'daily': '1D', 'weekly': '1W', 'monthly': '1M'} }
         };
         const CL2_FOLDERS = ['monthly', 'weekly', 'daily', '4hour', '2hour', '1hour', '30min', '15min', '5min'];
@@ -2726,21 +2734,24 @@ const CONFIG = {
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
         
+        // === MODIFIED: Calculates breakeven price considering different entry/exit fees ===
         function calculateBreakevenPrice(trade) {
             const entry = parseFloat(trade.entry);
-            const feeRate = CONFIG.TRADE_SETTINGS.FEE_RATE;
             if (isNaN(entry) || entry <= 0) {
                 return 0; // Cannot calculate if entry is invalid
             }
+            const { MAKER_FEE_RATE, TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            // Get entry fee rate from trade object, default to taker if not present
+            const entryFeeRate = trade.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
+            // Assume exit fee is taker for a live trade breakeven estimate (worst-case scenario)
+            const exitFeeRate = TAKER_FEE_RATE;
 
             if (trade.type === "Long") {
-                // For a long, you need to sell higher to cover fees
-                // Breakeven = Entry * (1 + Fee) / (1 - Fee)
-                return entry * (1 + feeRate) / (1 - feeRate);
+                // Breakeven = Entry * (1 + EntryFee) / (1 - ExitFee)
+                return entry * (1 + entryFeeRate) / (1 - exitFeeRate);
             } else { // For a Short
-                // For a short, you need to buy back lower to cover fees
-                // Breakeven = Entry * (1 - Fee) / (1 + Fee)
-                return entry * (1 - feeRate) / (1 + feeRate);
+                // Breakeven = Entry * (1 - EntryFee) / (1 + ExitFee)
+                return entry * (1 - entryFeeRate) / (1 + exitFeeRate);
             }
         }
         
@@ -3202,7 +3213,13 @@ function renderLiveTable(data) {
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
                 let rrString;
                 if (trade.rr && !isNaN(parseFloat(trade.rr))) { rrString = `${parseFloat(trade.rr).toFixed(2)}:1`; } else { const metrics = calculateTradeMetrics(trade); rrString = metrics.rr > 0 ? `${parseFloat(metrics.rr).toFixed(2)}:1` : '--'; }
-                return `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${rrString}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td>${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td><td class="note-cell" title="${trade.note2 || ''}">${trade.note2 || ''}</td><td class="note-cell" title="${trade.note3 || ''}">${trade.note3 || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
+                
+                // === MODIFIED: Create a tooltip to show fee details ===
+                const entryFeeTypeDisplay = (trade.entryFeeType || 'taker').charAt(0).toUpperCase() + (trade.entryFeeType || 'taker').slice(1);
+                const exitFeeTypeDisplay = (trade.exitFeeType || 'taker').charAt(0).toUpperCase() + (trade.exitFeeType || 'taker').slice(1);
+                const feeTooltip = `Entry: ${entryFeeTypeDisplay}, Exit: ${exitFeeTypeDisplay}`;
+
+                return `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${rrString}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td title="${feeTooltip}">${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td><td class="note-cell" title="${trade.note2 || ''}">${trade.note2 || ''}</td><td class="note-cell" title="${trade.note3 || ''}">${trade.note3 || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
             };
 
             if (STATE.completedTradesShowAll) {
@@ -3867,26 +3884,53 @@ function renderLiveTable(data) {
             });
         }
 
-        function calculateNetResult(trade, exitPrice) {
+        // === MODIFIED: Calculates net result based on specific entry and exit fee types ===
+        function calculateNetResult(trade, exitPrice, exitFeeType) {
             const entry = parseFloat(trade.entry), posValue = parseFloat(trade.size), exit = parseFloat(exitPrice);
             if (isNaN(entry) || isNaN(posValue) || isNaN(exit)) return { net_result: 0, entry_fee: 0, exit_fee: 0 };
-            const entryFee = posValue * CONFIG.TRADE_SETTINGS.FEE_RATE;
+
+            const { MAKER_FEE_RATE, TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            // Determine rates based on stored entry type and provided exit type
+            const entryFeeRate = trade.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
+            const exitFeeRate = exitFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
+
+            const entryFee = posValue * entryFeeRate;
             const exitPosValue = (exit / entry) * posValue;
-            const exitFee = exitPosValue * CONFIG.TRADE_SETTINGS.FEE_RATE;
+            const exitFee = exitPosValue * exitFeeRate;
             const positionQty = posValue / entry;
             const grossResult = trade.type === "Long" ? (exit - entry) * positionQty : (entry - exit) * positionQty;
             return { net_result: grossResult - entryFee - exitFee, entry_fee: entryFee, exit_fee: exitFee };
         }
 
+        // === MODIFIED: Now prompts for exit fee type ===
         function completeTrade(tradeId, outcome) {
             dbRefs.trades.child(tradeId).once('value', snapshot => {
                 const trade = snapshot.val(); if (!trade) return;
                 const exitPriceStr = prompt(`Enter exact exit price:`, outcome === 'win' ? trade.target : trade.stoploss);
                 if (exitPriceStr === null) return;
+
+                let exitFeeType = null;
+                while (exitFeeType !== 'maker' && exitFeeType !== 'taker') {
+                     const exitFeeTypeStr = prompt(`Enter exit fee type (maker/taker):`, "taker");
+                     if (exitFeeTypeStr === null) return; // User cancelled
+                     exitFeeType = exitFeeTypeStr.toLowerCase().trim();
+                     if (exitFeeType !== 'maker' && exitFeeType !== 'taker') {
+                         alert("Invalid input. Please enter 'maker' or 'taker'.");
+                     }
+                }
+
                 const exitPrice = parseFloat(exitPriceStr);
                 if (isNaN(exitPrice)) return alert("Invalid exit price.");
-                const result = calculateNetResult(trade, exitPrice);
-                const completedTrade = { ...trade, ...result, closed_date: firebase.database.ServerValue.TIMESTAMP, exit_price: exitPrice, };
+                
+                const result = calculateNetResult(trade, exitPrice, exitFeeType);
+                
+                const completedTrade = {
+                    ...trade,
+                    ...result,
+                    closed_date: firebase.database.ServerValue.TIMESTAMP,
+                    exit_price: exitPrice,
+                    exitFeeType: exitFeeType // Store the exit fee type
+                };
                 dbRefs.completedTrades.push(completedTrade).then(() => dbRefs.trades.child(tradeId).remove());
             });
         }
@@ -3949,7 +3993,50 @@ function renderLiveTable(data) {
             renderNotes(STATE.generalNotes);
         }
 
-        // --- EVENT LISTENERS ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            // --- EVENT LISTENERS ---
          function setupEventListeners() {
             document.getElementById('key-opens-container').addEventListener('input', e => {
                 if(e.target.matches('.key-open-note')) { autoResizeTextarea(e.target); saveLevelNotes(e.target); }
@@ -4197,11 +4284,11 @@ function renderLiveTable(data) {
             const positionSize = parseFloat(DOM.calcPositionSize.value);
             const positionType = document.querySelector('input[name="position-type"]:checked').value;
             if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) { DOM.calcBreakevenPrice.textContent = '--'; return; }
-            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
-            const breakevenPrice = positionType === "Long" ? entryPrice * (1 + FEE_RATE) / (1 - FEE_RATE) : entryPrice * (1 - FEE_RATE) / (1 + FEE_RATE);
+            const { TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS; // Assume Taker for calculator
+            const breakevenPrice = positionType === "Long" ? entryPrice * (1 + TAKER_FEE_RATE) / (1 - TAKER_FEE_RATE) : entryPrice * (1 - TAKER_FEE_RATE) / (1 + TAKER_FEE_RATE);
             DOM.calcBreakevenPrice.textContent = `~${breakevenPrice.toFixed(8).replace(/\.?0+$/, "")}`;
             const quantity = positionSize / entryPrice;
-            const entryFee = positionSize * FEE_RATE;
+            const entryFee = positionSize * TAKER_FEE_RATE;
             DOM.profitTargetsTbody.querySelectorAll('tr').forEach(row => {
                 const targetPriceInput = row.querySelector('.target-price-input');
                 const targetPrice = parseFloat(targetPriceInput.value);
@@ -4210,7 +4297,7 @@ function renderLiveTable(data) {
                 const percentCell = row.cells[3];
                 if (isNaN(targetPrice) || targetPrice <= 0) { profitCell.textContent = '--'; feeCell.textContent = '--'; percentCell.textContent = '--'; profitCell.style.color = 'var(--text-color)'; percentCell.style.color = 'var(--text-color)'; return; }
                 const grossProfit = positionType === 'Long' ? (targetPrice - entryPrice) * quantity : (entryPrice - targetPrice) * quantity;
-                const totalFee = entryFee + (quantity * targetPrice * FEE_RATE);
+                const totalFee = entryFee + (quantity * targetPrice * TAKER_FEE_RATE);
                 const netProfit = grossProfit - totalFee;
                 const profitPercent = (netProfit / positionSize) * 100;
                 const resultColor = netProfit >= 0 ? 'var(--green-text)' : 'var(--red-text)';
@@ -4261,17 +4348,17 @@ function renderLiveTable(data) {
             const positionSize = parseFloat(DOM.calcPositionSize.value);
             if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) return;
             const positionType = document.querySelector('input[name="position-type"]:checked').value;
-            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const { TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
             const q = positionSize / entryPrice;
             let targetPrice;
             if (positionType === "Long") {
-                const denominator = q * (1 - FEE_RATE);
+                const denominator = q * (1 - TAKER_FEE_RATE);
                 if (denominator === 0) return;
-                targetPrice = (dollarAmount + positionSize * (1 + FEE_RATE)) / denominator;
+                targetPrice = (dollarAmount + positionSize * (1 + TAKER_FEE_RATE)) / denominator;
             } else {
-                const denominator = q * (1 + FEE_RATE);
+                const denominator = q * (1 + TAKER_FEE_RATE);
                 if (denominator === 0) return;
-                targetPrice = (positionSize * (1 - FEE_RATE) - dollarAmount) / denominator;
+                targetPrice = (positionSize * (1 - TAKER_FEE_RATE) - dollarAmount) / denominator;
             }
             if (targetPrice > 0) {
                 const targetInput = findNextEmptyTargetInput();
@@ -4334,9 +4421,9 @@ function renderLiveTable(data) {
                 subValueEl.textContent = 'Amount to Risk: --';
                 return;
             }
-            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const { TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS; // Assume Taker fees for risk sizing
             const riskAmountDollars = balance * (riskPercent / 100.0);
-            const totalLossPerUnit = Math.abs(entryPrice - stopLoss) + (entryPrice * FEE_RATE) + (stopLoss * FEE_RATE);
+            const totalLossPerUnit = Math.abs(entryPrice - stopLoss) + (entryPrice * TAKER_FEE_RATE) + (stopLoss * TAKER_FEE_RATE);
             if (totalLossPerUnit <= 0) {
                  valueEl.textContent = '--';
                  subValueEl.textContent = 'Amount to Risk: --';
@@ -4349,23 +4436,53 @@ function renderLiveTable(data) {
             subValueEl.textContent = `Amount to Risk: $${riskAmountDollars.toFixed(2)} (${riskPercent}%)`;
         }
         
+        // === MODIFIED: Calculates metrics based on fee types ===
         function calculateTradeMetrics(tradeData) {
             const entry = parseFloat(tradeData.entry); const stoploss = parseFloat(tradeData.stoploss); const target = parseFloat(tradeData.target); const size = parseFloat(tradeData.size); const type = tradeData.type;
             if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return { rr: 0, estimated_total_fee: 0, expected_profit: 0, expected_loss: 0, expected_profit_percent: 0, expected_loss_percent: 0 }; }
-            const { FEE_RATE } = CONFIG.TRADE_SETTINGS;
-            const positionQty = size / entry; const entryFee = size * FEE_RATE;
+            
+            const { MAKER_FEE_RATE, TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            // Get entry fee rate from trade object, default to taker if not present
+            const entryFeeRate = tradeData.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
+            // Assume exit fees are taker for estimations (worst-case scenario)
+            const exitFeeRate = TAKER_FEE_RATE; 
+
+            const positionQty = size / entry; 
+            const entryFee = size * entryFeeRate;
+
             let potentialProfit, potentialLoss;
             if (type === 'Long') { potentialProfit = positionQty * (target - entry); potentialLoss = positionQty * (entry - stoploss); } else { potentialProfit = positionQty * (entry - target); potentialLoss = positionQty * (stoploss - entry); }
-            const exitValueAtTarget = (target / entry) * size; const exitFeeAtTarget = exitValueAtTarget * FEE_RATE; const estimated_total_fee = entryFee + exitFeeAtTarget; const expected_profit = potentialProfit - estimated_total_fee;
-            const exitValueAtStop = (stoploss / entry) * size; const exitFeeAtStop = exitValueAtStop * FEE_RATE; const expected_loss = potentialLoss + entryFee + exitFeeAtStop;
+            
+            const exitValueAtTarget = (target / entry) * size; 
+            const exitFeeAtTarget = exitValueAtTarget * exitFeeRate; 
+            const estimated_total_fee = entryFee + exitFeeAtTarget; 
+            const expected_profit = potentialProfit - estimated_total_fee;
+
+            const exitValueAtStop = (stoploss / entry) * size; 
+            const exitFeeAtStop = exitValueAtStop * exitFeeRate; 
+            const expected_loss = potentialLoss + entryFee + exitFeeAtStop;
+            
             const rr = (expected_loss > 0) ? (expected_profit / expected_loss) : 0;
-            const expected_profit_percent = (expected_profit / size) * 100; const expected_loss_percent = (expected_loss / size) * 100;
+            const expected_profit_percent = (expected_profit / size) * 100; 
+            const expected_loss_percent = (expected_loss / size) * 100;
+
             return { rr: rr.toFixed(2), estimated_total_fee: estimated_total_fee, expected_profit: expected_profit, expected_loss: expected_loss, expected_profit_percent: expected_profit_percent, expected_loss_percent: expected_loss_percent };
         }
 
+        // === MODIFIED: Reads the new entry-fee-type select element ===
         function handleAddTradeSubmit(e) {
             e.preventDefault(); if (!STATE.isMasterUser) return;
-            const trade = { symbol: document.getElementById('trade-symbol').value, type: document.getElementById('trade-type').value, entry: parseFloat(document.getElementById('entry-price').value), stoploss: parseFloat(document.getElementById('stop-loss').value), target: parseFloat(document.getElementById('target').value), size: parseFloat(document.getElementById('position-value').value), date: firebase.database.ServerValue.TIMESTAMP, entry_prices: [] };
+            const trade = { 
+                symbol: document.getElementById('trade-symbol').value, 
+                type: document.getElementById('trade-type').value, 
+                entry: parseFloat(document.getElementById('entry-price').value), 
+                stoploss: parseFloat(document.getElementById('stop-loss').value), 
+                target: parseFloat(document.getElementById('target').value), 
+                size: parseFloat(document.getElementById('position-value').value), 
+                date: firebase.database.ServerValue.TIMESTAMP, 
+                entry_prices: [],
+                entryFeeType: document.getElementById('entry-fee-type').value // Store the selected fee type
+            };
             if (Object.values(trade).some(val => val === null || (isNaN(val) && typeof val === 'number'))) return alert('Please fill all fields correctly.');
             trade.entry_prices.push(trade.entry);
             const metrics = calculateTradeMetrics(trade);
@@ -4403,7 +4520,8 @@ function renderLiveTable(data) {
         function handleSentimentDelete(button) { const receiptId = button.dataset.id; if (!receiptId) return; if (confirm('Delete this log entry?')) dbRefs.sentimentReceipts.child(receiptId).remove(); }
         function handleSentimentNoteEdit(button) { const receiptId = button.dataset.id; if (!receiptId) return; const receiptRef = dbRefs.sentimentReceipts.child(receiptId); receiptRef.child('note').once('value', snapshot => { const newNote = prompt('Enter note:', snapshot.val() || ""); if (newNote !== null) receiptRef.update({ note: newNote }); }); }
 
- function handleAddStaggeredEntry(tradeId) {
+        // === MODIFIED: Accounts for different fee rates when calculating new average ===
+        function handleAddStaggeredEntry(tradeId) {
             if (!STATE.isMasterUser) return;
             const tradeRef = dbRefs.trades.child(tradeId);
             tradeRef.once('value', snapshot => {
@@ -4414,38 +4532,38 @@ function renderLiveTable(data) {
                 if (newEntryPriceStr === null) return;
                 const newPositionValueStr = prompt("Enter value ($) of this NEW position:");
                 if (newPositionValueStr === null) return;
+                const newEntryFeeType = prompt("Enter fee type for this entry (maker/taker):", currentTrade.entryFeeType || 'taker');
+                if (newEntryFeeType === null) return;
 
                 const newEntryPrice = parseFloat(newEntryPriceStr);
                 const newPositionValue = parseFloat(newPositionValueStr);
+                const isNewEntryMaker = newEntryFeeType.toLowerCase().trim() === 'maker';
+
                 if (isNaN(newEntryPrice) || isNaN(newPositionValue) || newEntryPrice <= 0 || newPositionValue <= 0) {
                     return alert("Invalid input.");
                 }
 
-                // --- START OF MODIFIED LOGIC ---
-                const currentSize = parseFloat(currentTrade.size);
-                const currentAvgEntry = parseFloat(currentTrade.entry); // This is the old average
-                const feeRate = CONFIG.TRADE_SETTINGS.FEE_RATE;
+                const { MAKER_FEE_RATE, TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
+                const currentEntryFeeRate = currentTrade.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
+                const newEntryFeeRate = isNewEntryMaker ? MAKER_FEE_RATE : TAKER_FEE_RATE;
 
-                // Calculate total quantities
+                const currentSize = parseFloat(currentTrade.size);
+                const currentAvgEntry = parseFloat(currentTrade.entry);
+                
                 const currentQty = currentSize / currentAvgEntry;
                 const newQty = newPositionValue / newEntryPrice;
                 const totalQty = currentQty + newQty;
 
                 if (totalQty <= 0) return alert("Error: Cannot calculate with zero quantity.");
                 
-                // Calculate total value basis (sum of all USDT spent/received)
                 const totalValueBasis = currentSize + newPositionValue;
-
                 let newAverageEntryPrice;
 
-                // Calculate the new fee-inclusive average entry price
                 if (currentTrade.type === "Long") {
-                    // For a Long, the average entry is the total cost (including fees) divided by total quantity.
-                    const totalCostWithFees = totalValueBasis * (1 + feeRate);
+                    const totalCostWithFees = (currentSize * (1 + currentEntryFeeRate)) + (newPositionValue * (1 + newEntryFeeRate));
                     newAverageEntryPrice = totalCostWithFees / totalQty;
-                } else { // For a Short
-                    // For a Short, the average entry is the total proceeds (after fees) divided by total quantity.
-                    const totalProceedsAfterFees = totalValueBasis * (1 - feeRate);
+                } else { // Short
+                    const totalProceedsAfterFees = (currentSize * (1 - currentEntryFeeRate)) + (newPositionValue * (1 - newEntryFeeRate));
                     newAverageEntryPrice = totalProceedsAfterFees / totalQty;
                 }
                 
@@ -4461,15 +4579,14 @@ function renderLiveTable(data) {
                     size: totalValueBasis,
                     entry_prices: updatedEntryPrices,
                     ...newMetrics,
-                    note: (currentTrade.note || '') + `\n+ Added $${newPositionValue.toFixed(2)} @ $${newEntryPrice.toFixed(4)} on ${new Date().toLocaleString()}`
+                    note: (currentTrade.note || '') + `\n+ Added $${newPositionValue.toFixed(2)} @ $${newEntryPrice.toFixed(4)} (${isNewEntryMaker ? 'Maker' : 'Taker'}) on ${new Date().toLocaleString()}`
                 };
 
                 tradeRef.update(updatedTrade);
-                // --- END OF MODIFIED LOGIC ---
             });
         }
 
-function handleGenericImageLibraryClick(e) {
+        function handleGenericImageLibraryClick(e) {
             const clickedImg = e.target.closest('img');
             if (clickedImg?.dataset.fullSrc) {
                 const galleryContainer = clickedImg.closest('#image-library-container, #setups-image-container, .cl2-image-grid, #chart-library-2-preview-container, .trade-image-thumbnails');
@@ -4481,58 +4598,44 @@ function handleGenericImageLibraryClick(e) {
             else if (e.target.closest('#chart-library-2-container')) handleChartLibrary2Click(e);
         }
 
- function handleLibraryActions(e, libraryType, dbRef) {
-    const deleteBtn = e.target.closest('.delete-library-image');
-    const editBtn = e.target.closest('.edit-caption-btn');
+        function handleLibraryActions(e, libraryType, dbRef) {
+            const deleteBtn = e.target.closest('.delete-library-image');
+            const editBtn = e.target.closest('.edit-caption-btn');
 
-    if (deleteBtn && STATE.isMasterUser) {
-        const { id, filename } = deleteBtn.dataset;
-
-        // --- ROBUSTNESS CHECK ADDED HERE ---
-        // This stops the function if the filename is missing from the button's data attribute.
-        if (!filename || filename === 'undefined') {
-            alert("Cannot delete this image: The filename is missing from its database record. This likely happened with an older version of the app. Please fix it manually in the Firebase console.");
-            console.error("Attempted to delete image with a missing filename.", {
-                imageId: id,
-                libraryType: libraryType
-            });
-            return; // Exit the function immediately to prevent the error.
-        }
-        // --- END OF CHECK ---
-
-        if (confirm(`Delete this image?\n\n${filename}`)) {
-            const storagePath = `${libraryType}/${filename}`;
-
-            storage.ref(storagePath).delete().then(() => {
-                // After successfully deleting from Storage, delete from the Database.
-                dbRef.child(id).remove();
-            }).catch((err) => {
-                // --- IMPROVED ERROR HANDLING ---
-                if (err.code === 'storage/object-not-found') {
-                    // If the file doesn't exist in Storage (maybe it was already deleted),
-                    // still try to remove the leftover record from the database.
-                    console.warn("Storage object not found, but deleting DB record anyway for:", filename);
-                    dbRef.child(id).remove();
-                } else {
-                    // For any other error (like a true permission issue), log it for debugging.
-                    console.error("Firebase Storage deletion failed:", err);
-                    alert('Error deleting image. Check the console for more details.');
+            if (deleteBtn && STATE.isMasterUser) {
+                const { id, filename } = deleteBtn.dataset;
+                if (!filename || filename === 'undefined') {
+                    alert("Cannot delete image: Filename is missing. Please fix manually in Firebase console.");
+                    console.error("Attempted to delete image with missing filename.", { imageId: id, libraryType });
+                    return;
                 }
-            });
-        }
-    } else if (editBtn && STATE.isMasterUser) {
-        const { id } = editBtn.dataset;
-        const imageRef = dbRef.child(id);
-        imageRef.child('caption').once('value', snapshot => {
-            const newCaption = prompt('Enter image caption:', snapshot.val() || "");
-            if (newCaption !== null) {
-                imageRef.update({ caption: newCaption.trim() });
+                if (confirm(`Delete this image?\n\n${filename}`)) {
+                    const storagePath = `${libraryType}/${filename}`;
+                    storage.ref(storagePath).delete().then(() => {
+                        dbRef.child(id).remove();
+                    }).catch((err) => {
+                        if (err.code === 'storage/object-not-found') {
+                            console.warn("Storage object not found, deleting DB record anyway for:", filename);
+                            dbRef.child(id).remove();
+                        } else {
+                            console.error("Firebase Storage deletion failed:", err);
+                            alert('Error deleting image. Check console for details.');
+                        }
+                    });
+                }
+            } else if (editBtn && STATE.isMasterUser) {
+                const { id } = editBtn.dataset;
+                const imageRef = dbRef.child(id);
+                imageRef.child('caption').once('value', snapshot => {
+                    const newCaption = prompt('Enter image caption:', snapshot.val() || "");
+                    if (newCaption !== null) {
+                        imageRef.update({ caption: newCaption.trim() });
+                    }
+                });
             }
-        });
-    }
-}
+        }
        
-function handleChartLibrary2Click(e) {
+        function handleChartLibrary2Click(e) {
             const folderCard = e.target.closest('.cl2-folder-card'), backBtn = e.target.closest('.cl2-back-button'), deleteBtn = e.target.closest('.delete-library-image');
             if (folderCard) { STATE.currentCl2Folder = folderCard.dataset.folder; renderFolderContents(STATE.currentCl2Folder); return; }
             if (backBtn) { STATE.currentCl2Folder = null; renderChartLibrary2Folders(); return; }
@@ -4855,123 +4958,6 @@ function handleChartLibrary2Click(e) {
         
         initializeApp();
     });
-
-
- // --- ONE-TIME UTILITY TO FIX EXISTING TRADES ---
-        // This function stays inside the main script scope to access CONFIG and dbRefs
-        async function recalculateAllAverageEntries() {
-            console.log("--- Starting Recalculation of Average Entries ---");
-
-            const feeRate = CONFIG.TRADE_SETTINGS.FEE_RATE;
-
-            // This is the core calculation logic
-            const calculateFeeInclusiveAverage = (trade) => {
-                const entry = parseFloat(trade.entry);
-                const size = parseFloat(trade.size);
-                const type = trade.type;
-
-                if (isNaN(entry) || isNaN(size) || size <= 0 || entry <= 0) {
-                    return null; // Cannot calculate for invalid trades
-                }
-                const quantity = size / entry;
-                if (quantity <= 0) return null;
-                
-                // For trades added through the form, the `entry` is the fee-less average.
-                // We base our fee calculation on this original value.
-                if (type === "Long") {
-                    const totalCostWithFees = size * (1 + feeRate);
-                    return totalCostWithFees / quantity;
-                } else { // Short
-                    const totalProceedsAfterFees = size * (1 - feeRate);
-                    return totalProceedsAfterFees / quantity;
-                }
-            };
-
-            const updates = {};
-            let liveTradesUpdated = 0;
-            let completedTradesUpdated = 0;
-
-            const processTrades = (trades, pathPrefix) => {
-                for (const [tradeId, trade] of Object.entries(trades)) {
-                    // We must determine if this trade's entry is already fee-inclusive.
-                    // The old logic was a simple weighted average. The new logic adds/subtracts a fee.
-                    // We will recalculate based on its listed entry prices to be certain.
-                    const entries = trade.entry_prices || [trade.entry];
-                    const size = parseFloat(trade.size);
-
-                    if (!entries.length || isNaN(size) || size <= 0) continue;
-
-                    let totalQty = 0;
-                    // For simplicity, we assume the total size is distributed among entries.
-                    // This part is an approximation but will correct the vast majority of cases.
-                    // A truly perfect migration would require knowing the size of each individual entry.
-                    const sizePerEntry = size / entries.length;
-                    entries.forEach(price => {
-                        totalQty += sizePerEntry / parseFloat(price);
-                    });
-
-                    if (totalQty <= 0) continue;
-
-                    let newAvgEntry;
-                    if (trade.type === "Long") {
-                        newAvgEntry = (size * (1 + feeRate)) / totalQty;
-                    } else { // Short
-                        newAvgEntry = (size * (1 - feeRate)) / totalQty;
-                    }
-                    
-                    const oldAvgEntry = parseFloat(trade.entry);
-
-                    if (newAvgEntry && Math.abs(oldAvgEntry - newAvgEntry) > 0.0001) {
-                         updates[`${pathPrefix}/${tradeId}/entry`] = newAvgEntry;
-
-                        // Also recalculate the metrics that depend on the entry price
-                        const tempTradeForCalc = { ...trade, entry: newAvgEntry };
-                        const newMetrics = calculateTradeMetrics(tempTradeForCalc);
-                        
-                        updates[`${pathPrefix}/${tradeId}/rr`] = newMetrics.rr;
-                        updates[`${pathPrefix}/${tradeId}/estimated_total_fee`] = newMetrics.estimated_total_fee;
-                        updates[`${pathPrefix}/${tradeId}/expected_profit`] = newMetrics.expected_profit;
-                        updates[`${pathPrefix}/${tradeId}/expected_loss`] = newMetrics.expected_loss;
-                        updates[`${pathPrefix}/${tradeId}/expected_profit_percent`] = newMetrics.expected_profit_percent;
-                        updates[`${pathPrefix}/${tradeId}/expected_loss_percent`] = newMetrics.expected_loss_percent;
-
-                        console.log(`Updating ${pathPrefix} trade ${tradeId}: Entry ${oldAvgEntry.toFixed(4)} -> ${newAvgEntry.toFixed(4)}`);
-                        
-                        if (pathPrefix === 'trades') liveTradesUpdated++;
-                        if (pathPrefix === 'completed_trades') completedTradesUpdated++;
-                    }
-                }
-            };
-
-            try {
-                // Fetch and process live trades
-                const liveTradesSnapshot = await dbRefs.trades.once('value');
-                const liveTrades = liveTradesSnapshot.val() || {};
-                processTrades(liveTrades, 'trades');
-
-                // Fetch and process completed trades
-                const completedTradesSnapshot = await dbRefs.completedTrades.once('value');
-                const completedTrades = completedTrades.val() || {};
-                processTrades(completedTrades, 'completed_trades');
-
-                if (Object.keys(updates).length > 0) {
-                    console.log(`Found ${liveTradesUpdated} live and ${completedTradesUpdated} completed trades to update.`);
-                    console.log("Applying updates to Firebase...");
-                    await firebase.database().ref().update(updates);
-                    console.log("✅ Successfully updated all trades! Please refresh the page.");
-                } else {
-                    console.log("✅ All existing trades already have correct average entries. No updates were needed.");
-                }
-
-            } catch (error) {
-                console.error("❌ An error occurred during the recalculation process:", error);
-                alert("An error occurred. Check the console for details.");
-            }
-             console.log("--- Recalculation Process Finished ---");
-        }
-
-        // --- This is the new TRIGGER line that makes the function callable from the console ---
-        window.runTradeRecalculation = recalculateAllAverageEntries;
     </script>
     </body>
 </html>
