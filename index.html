@@ -1915,7 +1915,6 @@
                             <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
                             <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
                             <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
-                            <!-- === MODIFIED: ADDED FEE TYPE SELECTOR === -->
                             <div>
                                 <label for="entry-fee-type">Entry Fee:</label>
                                 <select id="entry-fee-type">
@@ -1940,7 +1939,8 @@
                         <div class="table-wrapper">
                             <table>
                                 <thead>
-                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Breakeven</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit Est. ($)</th><th>Net Loss Est. ($)</th><th>RR</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
+                                    <!-- === MODIFIED: Replaced single Net Loss column with two new ones === -->
+                                    <tr><th>Symbol</th><th>Type</th><th>Avg. Entry</th><th>Entries</th><th>Stop Loss</th><th>Target</th><th>Breakeven</th><th>Position Value ($)</th><th>Est. Total Fee ($)</th><th>Net Profit (Taker)</th><th>Net Loss (Taker)</th><th>Net Loss (Maker)</th><th>RR</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>
                                 </thead>
                                 <tbody id="trades-tbody"></tbody>
                             </table>
@@ -2584,7 +2584,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
     <script>
-  document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
 
         // --- CONFIGURATION ---
         const CONFIG = {
@@ -2598,7 +2598,6 @@
                 appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
             },
             DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades', BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', PERSISTENT_NOTES: 'persistent_notes', TRACKER_SCRATCHPAD: 'tracker_scratchpad', SENTIMENT_RECEIPTS: 'sentiment_receipts', LEVEL_NOTES: 'level_notes', GENERAL_NOTES: 'general_notes' },
-            // === MODIFIED: FEE_RATE is now split into MAKER and TAKER rates ===
             TRADE_SETTINGS: {
                 MAKER_FEE_RATE: 0.0000, // 0% for Maker
                 TAKER_FEE_RATE: 0.00075, // Standard Taker fee
@@ -2734,23 +2733,18 @@
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
         
-        // === MODIFIED: Calculates breakeven price considering different entry/exit fees ===
         function calculateBreakevenPrice(trade) {
             const entry = parseFloat(trade.entry);
             if (isNaN(entry) || entry <= 0) {
-                return 0; // Cannot calculate if entry is invalid
+                return 0;
             }
             const { MAKER_FEE_RATE, TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
-            // Get entry fee rate from trade object, default to taker if not present
             const entryFeeRate = trade.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
-            // Assume exit fee is taker for a live trade breakeven estimate (worst-case scenario)
-            const exitFeeRate = TAKER_FEE_RATE;
+            const exitFeeRate = TAKER_FEE_RATE; // Assume Taker for worst-case breakeven estimate
 
             if (trade.type === "Long") {
-                // Breakeven = Entry * (1 + EntryFee) / (1 - ExitFee)
                 return entry * (1 + entryFeeRate) / (1 - exitFeeRate);
-            } else { // For a Short
-                // Breakeven = Entry * (1 - EntryFee) / (1 + ExitFee)
+            } else {
                 return entry * (1 - entryFeeRate) / (1 + exitFeeRate);
             }
         }
@@ -2840,7 +2834,6 @@
             if (!canvas) return;
             const profileData = STATE.vpData?.data?.[symbol]?.[lookback];
             
-            // Clear previous chart if it exists and no new data is found
             if (!profileData || !profileData.full_profile) {
                 console.warn(`No volume profile data for ${symbol} ${lookback}`);
                 if (STATE.chartInstances[canvas.id]) {
@@ -2867,7 +2860,6 @@
             if (pocIndex !== -1) { backgroundColors[pocIndex] = 'rgba(255, 193, 7, 0.7)'; }
             const chartData = { labels: labels, datasets: [{ label: `${symbol} Volume Profile (${lookback})`, data: volumes, backgroundColor: backgroundColors, borderColor: backgroundColors.map(c => c.replace('0.4', '1').replace('0.7', '1')), borderWidth: 1 }] };
             
-            // --- REVERTED CHART OPTIONS TO ORIGINAL STYLING ---
             const chartOptions = {
                 indexAxis: 'y', responsive: true, maintainAspectRatio: false,
                 plugins: {
@@ -2918,7 +2910,7 @@
             const selectedLookback = DOM.vpLookbackEl.value;
         
             renderVolumeProfileZonalSummary(selectedSymbol);
-            renderVolumeProfileTopNodesSummary(selectedSymbol); // ADDED: Call new summary function
+            renderVolumeProfileTopNodesSummary(selectedSymbol);
         
             if (DOM.vpLastUpdatedTime) {
                 DOM.vpLastUpdatedTime.textContent = STATE.vpData.last_updated ? new Date(STATE.vpData.last_updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '--';
@@ -2928,7 +2920,6 @@
             const stackedChartContainer = document.getElementById('stacked-vp-chart-container');
             if (!singleChartContainer || !stackedChartContainer) return;
         
-            // Destroy all previous chart instances for this tab to prevent memory leaks
             Object.keys(STATE.chartInstances).forEach(key => {
                 if (key.startsWith('vp-chart-') || key === 'volumeProfileChart') {
                     if (STATE.chartInstances[key]) {
@@ -2941,10 +2932,8 @@
             if (selectedLookback === 'all') {
                 singleChartContainer.style.display = 'none';
                 stackedChartContainer.style.display = 'block';
-                stackedChartContainer.innerHTML = ''; // Clear previous stacked charts
+                stackedChartContainer.innerHTML = ''; 
         
-                // --- THIS IS THE CORRECTED LOGIC ---
-                // Get the lookbacks that are actually available for the selected symbol from the data
                 const availableLookbacksForSymbol = STATE.vpData?.data?.[selectedSymbol] 
                     ? Object.keys(STATE.vpData.data[selectedSymbol]) 
                     : [];
@@ -2954,11 +2943,9 @@
                      return;
                 }
         
-                // Sort the lookbacks into a logical order (e.g., longest to shortest)
                 const sortOrder = ['270d', '180d', '120d', '60d', '30d', '21d', '14d', '7d', '3d', '2d'];
                 availableLookbacksForSymbol.sort((a, b) => sortOrder.indexOf(a) - sortOrder.indexOf(b));
         
-                // Iterate through the available lookbacks and create a chart for each
                 availableLookbacksForSymbol.forEach(lookback => {
                     const chartWrapper = document.createElement('div');
                     chartWrapper.className = 'chart-container';
@@ -2966,14 +2953,13 @@
                     chartWrapper.style.marginBottom = '30px';
         
                     const canvas = document.createElement('canvas');
-                    canvas.id = `vp-chart-${lookback}`; // Unique ID for the chart instance
+                    canvas.id = `vp-chart-${lookback}`; 
         
                     chartWrapper.appendChild(canvas);
                     stackedChartContainer.appendChild(chartWrapper);
         
                     drawSingleVolumeProfileChart(canvas, selectedSymbol, lookback);
                 });
-                // --- END OF CORRECTION ---
         
             } else {
                 singleChartContainer.style.display = 'block';
@@ -3026,8 +3012,6 @@
             adjustCollapsibleSize(button);
         }
         
-
-
         function renderNotes(notesData) {
             const container = DOM.notesContainer;
             if (!container) return;
@@ -3156,7 +3140,9 @@
             tbody.innerHTML = rowsHtml;
             adjustCollapsibleSize(tbody);
         }
-function renderLiveTable(data) {
+
+        // === MODIFIED: Populates the two new loss columns ===
+        function renderLiveTable(data) {
             const trades = data || {};
             const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
             const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { const formattedValue = (typeof value === 'number') ? value.toFixed(digits) : value; return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; };
@@ -3167,8 +3153,11 @@ function renderLiveTable(data) {
                 const breakevenPrice = calculateBreakevenPrice(trade);
 
                 const profitString = `$${parseFloat(trade.expected_profit || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent || 0).toFixed(2)}%)`;
-                const lossString = `$${parseFloat(trade.expected_loss || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent || 0).toFixed(2)}%)`;
+                const takerLossString = `$${parseFloat(trade.expected_loss_taker || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent_taker || 0).toFixed(2)}%)`;
+                const makerLossString = `$${parseFloat(trade.expected_loss_maker || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent_maker || 0).toFixed(2)}%)`;
+
                 let rrString;
+                // RR is now always based on Taker loss for worst-case analysis
                 if (trade.rr && !isNaN(parseFloat(trade.rr))) { rrString = `${parseFloat(trade.rr).toFixed(2)}:1`; } else { const metrics = calculateTradeMetrics(trade); rrString = metrics.rr > 0 ? `${parseFloat(metrics.rr).toFixed(2)}:1` : '--'; }
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
 
@@ -3183,7 +3172,8 @@ function renderLiveTable(data) {
                     ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
                     <td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td>
                     <td style="color: #28a745;">${profitString}</td>
-                    <td style="color: #dc3545;">${lossString}</td>
+                    <td style="color: #dc3545;">${takerLossString}</td>
+                    <td style="color: #dc3545;">${makerLossString}</td>
                     <td>${rrString}</td>
                     <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
                     <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
@@ -3195,7 +3185,7 @@ function renderLiveTable(data) {
             adjustCollapsibleSize(DOM.tradesTbody);
         }
 
-    function renderCompletedTable(data) {
+        function renderCompletedTable(data) {
             const trades = data || {};
             const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
             const perthTodayStr = getPerthDateString();
@@ -3214,12 +3204,11 @@ function renderLiveTable(data) {
                 let rrString;
                 if (trade.rr && !isNaN(parseFloat(trade.rr))) { rrString = `${parseFloat(trade.rr).toFixed(2)}:1`; } else { const metrics = calculateTradeMetrics(trade); rrString = metrics.rr > 0 ? `${parseFloat(metrics.rr).toFixed(2)}:1` : '--'; }
                 
-                // === MODIFIED: Create a tooltip to show fee details ===
                 const entryFeeTypeDisplay = (trade.entryFeeType || 'taker').charAt(0).toUpperCase() + (trade.entryFeeType || 'taker').slice(1);
                 const exitFeeTypeDisplay = (trade.exitFeeType || 'taker').charAt(0).toUpperCase() + (trade.exitFeeType || 'taker').slice(1);
                 const feeTooltip = `Entry: ${entryFeeTypeDisplay}, Exit: ${exitFeeTypeDisplay}`;
 
-                return `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss)}</td><td>${rrString}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td title="${feeTooltip}">${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td><td class="note-cell" title="${trade.note2 || ''}">${trade.note2 || ''}</td><td class="note-cell" title="${trade.note3 || ''}">${trade.note3 || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
+                return `<td>${trade.symbol}</td><td>${trade.type}</td><td>${parseFloat(trade.entry).toFixed(4)}</td><td class="note-cell">${entriesList}</td><td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td><td>${parseFloat(trade.target || 0).toFixed(2)}</td><td>${parseFloat(trade.size || 0).toFixed(2)}</td><td style="color: var(--green-text);">${formatCurrency(trade.expected_profit)}</td><td style="color: var(--red-text);">${formatCurrency(trade.expected_loss_taker)}</td><td>${rrString}</td><td>${parseFloat(trade.exit_price).toFixed(2)}</td><td title="${feeTooltip}">${totalFees.toFixed(2)}</td><td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td><td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td><td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td><td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td><td class="note-cell" title="${trade.note2 || ''}">${trade.note2 || ''}</td><td class="note-cell" title="${trade.note3 || ''}">${trade.note3 || ''}</td>${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
             };
 
             if (STATE.completedTradesShowAll) {
@@ -3264,8 +3253,6 @@ function renderLiveTable(data) {
             DOM.completedTradesTbody.innerHTML = rowsHtml;
             adjustCollapsibleSize(DOM.completedTradesTbody);
         }
-
-
 
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
@@ -3319,7 +3306,6 @@ function renderLiveTable(data) {
                     showAllButton.style.display = hasHistorical ? 'block' : 'none';
                 }
             } else {
-                // Original logic for any other image library (e.g., misc)
                 imagesHtml = allImageIds.map(id => createImageHtml(id)).join('');
             }
             
@@ -3395,7 +3381,6 @@ function renderLiveTable(data) {
             if (favouriteText) { DOM.favouritedEntryText.textContent = favouriteText; DOM.favouritedEntryContainer.style.display = 'block'; } else { DOM.favouritedEntryContainer.style.display = 'none'; }
             const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
             
-            // Only update the value if the element is not currently focused by the user
             if(document.activeElement !== DOM.journalEntryEl) {
                 DOM.journalEntryEl.value = dailyText;
             }
@@ -3406,9 +3391,6 @@ function renderLiveTable(data) {
             setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); adjustCollapsibleSize(DOM.persistentNotesEl); }, 50);
             DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
             renderJournalImages(safeSymbol, timeframe, yyyymmdd);
-            
-            // *** THE FIX IS HERE: THIS LINE IS REMOVED ***
-            // renderDateNavigation(); 
         }
 
         function renderJournalImages(symbol, timeframe, selectedYMD) {
@@ -3690,7 +3672,6 @@ function renderLiveTable(data) {
             });
         }
 
-        // --- ZONAL SUMMARY IMPLEMENTATION ---
         function renderVolumeProfileZonalSummary(symbol) {
             const summaryTbody = document.getElementById('vp-summary-tbody');
             const summaryContainer = document.getElementById('vp-summary-container');
@@ -3706,10 +3687,10 @@ function renderLiveTable(data) {
             const lookbacks = lookbackOptions.map(opt => ({ value: opt.value, text: opt.text }));
             
             let rowsHtml = '';
-            const proximityPercent = 0.015; // 1.5% for clustering HVNs
+            const proximityPercent = 0.015;
 
             lookbacks.forEach(lookback => {
-                if(lookback.value === 'all') return; // Skip the 'All' option in the summary table
+                if(lookback.value === 'all') return;
                 const lookbackData = symbolData[lookback.value];
 
                 if (lookbackData) {
@@ -3718,28 +3699,26 @@ function renderLiveTable(data) {
                         ? `${Math.round(lookbackData.value_area_low).toLocaleString()} - ${Math.round(lookbackData.value_area_high).toLocaleString()}`
                         : '--';
                     
-                    // --- HVZ CLUSTERING LOGIC ---
                     let hvnText = '--';
                     const hvns = lookbackData.high_volume_nodes;
                     if (hvns && hvns.length > 0) {
                         const sortedHvns = [...hvns].sort((a, b) => a.price_level - b.price_level);
                         let clusters = [];
                         if (sortedHvns.length > 0) {
-                            clusters.push([sortedHvns[0]]); // Start with the first cluster
+                            clusters.push([sortedHvns[0]]);
                             for (let i = 1; i < sortedHvns.length; i++) {
                                 const currentNode = sortedHvns[i];
                                 const lastCluster = clusters[clusters.length - 1];
                                 const lastNodeInCluster = lastCluster[lastCluster.length - 1];
                                 
                                 if (currentNode.price_level <= lastNodeInCluster.price_level * (1 + proximityPercent)) {
-                                    lastCluster.push(currentNode); // Add to current cluster
+                                    lastCluster.push(currentNode);
                                 } else {
-                                    clusters.push([currentNode]); // Start a new cluster
+                                    clusters.push([currentNode]);
                                 }
                             }
                         }
                         
-                        // Find the most significant cluster (by total volume)
                         let bestCluster = null;
                         let maxVolume = 0;
                         clusters.forEach(cluster => {
@@ -3757,11 +3736,9 @@ function renderLiveTable(data) {
                         }
                     }
 
-                    // --- LVN IDENTIFICATION LOGIC ---
                     let lvnText = '--';
                     const lvns = lookbackData.low_volume_nodes;
                     if (lvns && lvns.length > 0) {
-                        // Find the LVN with the lowest volume, as it's the point of least resistance.
                         const topLVN = lvns.reduce((min, node) => node.volume < min.volume ? node : min, lvns[0]);
                         lvnText = Math.round(topLVN.price_level).toLocaleString();
                     }
@@ -3790,7 +3767,6 @@ function renderLiveTable(data) {
             resizeParentCollapsible(summaryContainer);
         }
 
-        // START: NEW FUNCTION FOR TOP NODES SUMMARY
         function renderVolumeProfileTopNodesSummary(symbol) {
             const summaryTbody = document.getElementById('vp-top-nodes-tbody');
             const summaryContainer = document.getElementById('vp-top-nodes-summary-container');
@@ -3808,28 +3784,20 @@ function renderLiveTable(data) {
             let rowsHtml = '';
 
             lookbacks.forEach(lookback => {
-                if (lookback.value === 'all') return; // Skip 'All' in this summary table
+                if (lookback.value === 'all') return;
 
                 const lookbackData = symbolData[lookback.value];
-                let topNodesCells = '<td>--</td>'.repeat(5); // Default state if no data
+                let topNodesCells = '<td>--</td>'.repeat(5);
 
                 if (lookbackData && lookbackData.full_profile && lookbackData.full_profile.length > 0) {
-                    // Sort the full profile by volume in descending order
                     const sortedNodes = [...lookbackData.full_profile].sort((a, b) => b.volume - a.volume);
-                    
-                    // Get the top 5 nodes
                     const top5Nodes = sortedNodes.slice(0, 5);
-
-                    // Create the HTML for the table cells
                     const cellsArray = top5Nodes.map(node => 
                         `<td class="sr-center-price">${Math.round(node.price_level).toLocaleString()}</td>`
                     );
-
-                    // Pad the array with placeholder cells if there are fewer than 5 nodes
                     while (cellsArray.length < 5) {
                         cellsArray.push('<td>--</td>');
                     }
-                    
                     topNodesCells = cellsArray.join('');
                 }
 
@@ -3845,7 +3813,6 @@ function renderLiveTable(data) {
             summaryContainer.style.display = 'block';
             resizeParentCollapsible(summaryContainer);
         }
-        // END: NEW FUNCTION
 
         function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
             if (!STATE.isMasterUser || !files || files.length === 0) return;
@@ -3884,13 +3851,11 @@ function renderLiveTable(data) {
             });
         }
 
-        // === MODIFIED: Calculates net result based on specific entry and exit fee types ===
         function calculateNetResult(trade, exitPrice, exitFeeType) {
             const entry = parseFloat(trade.entry), posValue = parseFloat(trade.size), exit = parseFloat(exitPrice);
             if (isNaN(entry) || isNaN(posValue) || isNaN(exit)) return { net_result: 0, entry_fee: 0, exit_fee: 0 };
 
             const { MAKER_FEE_RATE, TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
-            // Determine rates based on stored entry type and provided exit type
             const entryFeeRate = trade.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
             const exitFeeRate = exitFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
 
@@ -3902,7 +3867,6 @@ function renderLiveTable(data) {
             return { net_result: grossResult - entryFee - exitFee, entry_fee: entryFee, exit_fee: exitFee };
         }
 
-        // === MODIFIED: Now prompts for exit fee type ===
         function completeTrade(tradeId, outcome) {
             dbRefs.trades.child(tradeId).once('value', snapshot => {
                 const trade = snapshot.val(); if (!trade) return;
@@ -3912,7 +3876,7 @@ function renderLiveTable(data) {
                 let exitFeeType = null;
                 while (exitFeeType !== 'maker' && exitFeeType !== 'taker') {
                      const exitFeeTypeStr = prompt(`Enter exit fee type (maker/taker):`, "taker");
-                     if (exitFeeTypeStr === null) return; // User cancelled
+                     if (exitFeeTypeStr === null) return;
                      exitFeeType = exitFeeTypeStr.toLowerCase().trim();
                      if (exitFeeType !== 'maker' && exitFeeType !== 'taker') {
                          alert("Invalid input. Please enter 'maker' or 'taker'.");
@@ -3929,13 +3893,12 @@ function renderLiveTable(data) {
                     ...result,
                     closed_date: firebase.database.ServerValue.TIMESTAMP,
                     exit_price: exitPrice,
-                    exitFeeType: exitFeeType // Store the exit fee type
+                    exitFeeType: exitFeeType
                 };
                 dbRefs.completedTrades.push(completedTrade).then(() => dbRefs.trades.child(tradeId).remove());
             });
         }
 
-        // --- MODAL LOGIC ---
         function openImageModal(imageArray, clickedIndex) {
             STATE.modalImageGallery = imageArray;
             STATE.modalImageIndex = clickedIndex;
@@ -3993,50 +3956,6 @@ function renderLiveTable(data) {
             renderNotes(STATE.generalNotes);
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                            // --- EVENT LISTENERS ---
          function setupEventListeners() {
             document.getElementById('key-opens-container').addEventListener('input', e => {
                 if(e.target.matches('.key-open-note')) { autoResizeTextarea(e.target); saveLevelNotes(e.target); }
@@ -4060,7 +3979,7 @@ function renderLiveTable(data) {
                 DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'journal') ? 'block' : 'none';
                 if (tabId === 'journal') { 
                     updateJournalView();
-                    renderDateNavigation(); // Render nav only when tab is switched to
+                    renderDateNavigation(); 
                 }
                 if (tabId === 'sr-levels') renderSrLevels();
                 if (tabId === 'volume-profile') {
@@ -4208,7 +4127,7 @@ function renderLiveTable(data) {
 
             [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => {
                 updateJournalView();
-                renderDateNavigation(); // Re-render nav only when filters change
+                renderDateNavigation(); 
             }));
 
             DOM.dateButtonsContainer.addEventListener('click', (e) => { 
@@ -4217,7 +4136,7 @@ function renderLiveTable(data) {
                     STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); 
                     STATE.centerDate = new Date(STATE.selectedDate); 
                     updateJournalView();
-                    renderDateNavigation(); // Re-render nav when a new date is selected
+                    renderDateNavigation(); 
                 } 
             });
             DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
@@ -4244,7 +4163,6 @@ function renderLiveTable(data) {
             DOM.srLegendHeader.addEventListener('click', () => { const isCollapsed = DOM.srLegendContent.style.display === 'none'; DOM.srLegendContent.style.display = isCollapsed ? 'block' : 'none'; DOM.srLegendHeader.classList.toggle('collapsed', !isCollapsed); DOM.srLegendToggleBtn.textContent = isCollapsed ? '−' : '+'; DOM.srLegendToggleBtn.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)'; });
         }
         
-        // --- NEW CALCULATOR LOGIC ---
         function initializeCalculators() {
             [DOM.calcEntryPrice, DOM.calcPositionSize].forEach(input => {
                 input.addEventListener('input', calculateAllProfits);
@@ -4284,7 +4202,7 @@ function renderLiveTable(data) {
             const positionSize = parseFloat(DOM.calcPositionSize.value);
             const positionType = document.querySelector('input[name="position-type"]:checked').value;
             if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) { DOM.calcBreakevenPrice.textContent = '--'; return; }
-            const { TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS; // Assume Taker for calculator
+            const { TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
             const breakevenPrice = positionType === "Long" ? entryPrice * (1 + TAKER_FEE_RATE) / (1 - TAKER_FEE_RATE) : entryPrice * (1 - TAKER_FEE_RATE) / (1 + TAKER_FEE_RATE);
             DOM.calcBreakevenPrice.textContent = `~${breakevenPrice.toFixed(8).replace(/\.?0+$/, "")}`;
             const quantity = positionSize / entryPrice;
@@ -4333,7 +4251,7 @@ function renderLiveTable(data) {
             return emptyInput;
         }
 
-        function autofillTargetByPercent(percent) {
+function autofillTargetByPercent(percent) {
             const entryPrice = parseFloat(DOM.calcEntryPrice.value);
             if (isNaN(entryPrice) || entryPrice <= 0) return;
             const positionType = document.querySelector('input[name="position-type"]:checked').value;
@@ -4436,16 +4354,14 @@ function renderLiveTable(data) {
             subValueEl.textContent = `Amount to Risk: $${riskAmountDollars.toFixed(2)} (${riskPercent}%)`;
         }
         
-        // === MODIFIED: Calculates metrics based on fee types ===
+        // === MODIFIED: Calculates both Taker and Maker loss scenarios ===
         function calculateTradeMetrics(tradeData) {
             const entry = parseFloat(tradeData.entry); const stoploss = parseFloat(tradeData.stoploss); const target = parseFloat(tradeData.target); const size = parseFloat(tradeData.size); const type = tradeData.type;
-            if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return { rr: 0, estimated_total_fee: 0, expected_profit: 0, expected_loss: 0, expected_profit_percent: 0, expected_loss_percent: 0 }; }
+            const baseReturn = { rr: 0, estimated_total_fee: 0, expected_profit: 0, expected_loss_taker: 0, expected_loss_maker: 0, expected_profit_percent: 0, expected_loss_percent_taker: 0, expected_loss_percent_maker: 0 };
+            if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return baseReturn; }
             
             const { MAKER_FEE_RATE, TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
-            // Get entry fee rate from trade object, default to taker if not present
             const entryFeeRate = tradeData.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
-            // Assume exit fees are taker for estimations (worst-case scenario)
-            const exitFeeRate = TAKER_FEE_RATE; 
 
             const positionQty = size / entry; 
             const entryFee = size * entryFeeRate;
@@ -4453,23 +4369,40 @@ function renderLiveTable(data) {
             let potentialProfit, potentialLoss;
             if (type === 'Long') { potentialProfit = positionQty * (target - entry); potentialLoss = positionQty * (entry - stoploss); } else { potentialProfit = positionQty * (entry - target); potentialLoss = positionQty * (stoploss - entry); }
             
+            // --- Profit Calculation (assumes Taker fee for TP) ---
             const exitValueAtTarget = (target / entry) * size; 
-            const exitFeeAtTarget = exitValueAtTarget * exitFeeRate; 
+            const exitFeeAtTarget = exitValueAtTarget * TAKER_FEE_RATE; 
             const estimated_total_fee = entryFee + exitFeeAtTarget; 
             const expected_profit = potentialProfit - estimated_total_fee;
 
+            // --- Loss Calculation (for Taker fee) ---
             const exitValueAtStop = (stoploss / entry) * size; 
-            const exitFeeAtStop = exitValueAtStop * exitFeeRate; 
-            const expected_loss = potentialLoss + entryFee + exitFeeAtStop;
-            
-            const rr = (expected_loss > 0) ? (expected_profit / expected_loss) : 0;
-            const expected_profit_percent = (expected_profit / size) * 100; 
-            const expected_loss_percent = (expected_loss / size) * 100;
+            const exitFeeAtStop_Taker = exitValueAtStop * TAKER_FEE_RATE; 
+            const expected_loss_taker = potentialLoss + entryFee + exitFeeAtStop_Taker;
 
-            return { rr: rr.toFixed(2), estimated_total_fee: estimated_total_fee, expected_profit: expected_profit, expected_loss: expected_loss, expected_profit_percent: expected_profit_percent, expected_loss_percent: expected_loss_percent };
+            // --- Loss Calculation (for Maker fee) ---
+            const exitFeeAtStop_Maker = exitValueAtStop * MAKER_FEE_RATE;
+            const expected_loss_maker = potentialLoss + entryFee + exitFeeAtStop_Maker;
+            
+            // RR is always based on the worst-case (Taker) loss
+            const rr = (expected_loss_taker > 0) ? (expected_profit / expected_loss_taker) : 0;
+            
+            const expected_profit_percent = (expected_profit / size) * 100; 
+            const expected_loss_percent_taker = (expected_loss_taker / size) * 100;
+            const expected_loss_percent_maker = (expected_loss_maker / size) * 100;
+
+            return { 
+                rr: rr.toFixed(2), 
+                estimated_total_fee: estimated_total_fee, 
+                expected_profit: expected_profit, 
+                expected_loss_taker: expected_loss_taker,
+                expected_loss_maker: expected_loss_maker,
+                expected_profit_percent: expected_profit_percent,
+                expected_loss_percent_taker: expected_loss_percent_taker,
+                expected_loss_percent_maker: expected_loss_percent_maker
+            };
         }
 
-        // === MODIFIED: Reads the new entry-fee-type select element ===
         function handleAddTradeSubmit(e) {
             e.preventDefault(); if (!STATE.isMasterUser) return;
             const trade = { 
@@ -4481,7 +4414,7 @@ function renderLiveTable(data) {
                 size: parseFloat(document.getElementById('position-value').value), 
                 date: firebase.database.ServerValue.TIMESTAMP, 
                 entry_prices: [],
-                entryFeeType: document.getElementById('entry-fee-type').value // Store the selected fee type
+                entryFeeType: document.getElementById('entry-fee-type').value
             };
             if (Object.values(trade).some(val => val === null || (isNaN(val) && typeof val === 'number'))) return alert('Please fill all fields correctly.');
             trade.entry_prices.push(trade.entry);
@@ -4520,7 +4453,6 @@ function renderLiveTable(data) {
         function handleSentimentDelete(button) { const receiptId = button.dataset.id; if (!receiptId) return; if (confirm('Delete this log entry?')) dbRefs.sentimentReceipts.child(receiptId).remove(); }
         function handleSentimentNoteEdit(button) { const receiptId = button.dataset.id; if (!receiptId) return; const receiptRef = dbRefs.sentimentReceipts.child(receiptId); receiptRef.child('note').once('value', snapshot => { const newNote = prompt('Enter note:', snapshot.val() || ""); if (newNote !== null) receiptRef.update({ note: newNote }); }); }
 
-        // === MODIFIED: Accounts for different fee rates when calculating new average ===
         function handleAddStaggeredEntry(tradeId) {
             if (!STATE.isMasterUser) return;
             const tradeRef = dbRefs.trades.child(tradeId);
@@ -4854,7 +4786,7 @@ function renderLiveTable(data) {
             dbRefs.levelNotes.on('value', (s) => renderLevelNotes(s.val()));
             dbRefs.generalNotes.on('value', (s) => { STATE.generalNotes = s.val() || {}; if (DOM.noteEditModal.style.display === 'none') { renderNotes(STATE.generalNotes); } });
         }
-        // --- INITIALIZATION ---
+        
         function openCollapsibleSection(sectionElement) {
             if (!sectionElement || sectionElement.classList.contains('is-open')) return;
             const content = sectionElement.querySelector('.collapsible-content');
