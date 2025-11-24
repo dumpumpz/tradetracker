@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2047,41 +2046,8 @@
                                     </tr>
                                 </table>
                             </div>
+                            <div id="key-opens-last-updated">Last Updated: <span>--</span></div>
                         </div>
-
-                        <!-- START: NEW BTCFDUSD LEVELS SECTION -->
-                        <div id="btcfdusd-levels-container" style="grid-column: 1 / -1; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
-                            <h4 style="text-align: center;">BTC/FDUSD Levels (Copyable)</h4>
-                            <table class="key-open-table" style="margin: 0 auto; max-width: 500px;">
-                                <tbody>
-                                    <tr><td class="key-open-label" colspan="2" style="font-weight: bold; text-align: center; color: var(--subtle-text);">Previous Week</td></tr>
-                                    <tr><td class="key-open-label">Prev Week Open:</td><td id="fdusd-prev-week-open" class="key-open-price">--</td></tr>
-                                    <tr><td class="key-open-label">Prev Week High:</td><td id="fdusd-prev-week-high" class="key-open-price">--</td></tr>
-                                    <tr><td class="key-open-label">Prev Week Low:</td><td id="fdusd-prev-week-low" class="key-open-price">--</td></tr>
-                                    <tr><td class="key-open-label">Prev Week Close:</td><td id="fdusd-prev-week-close" class="key-open-price">--</td></tr>
-                        
-                                    <tr><td class="key-open-label" colspan="2" style="font-weight: bold; text-align: center; padding-top: 10px; color: var(--subtle-text);">Current Week</td></tr>
-                                    <tr><td class="key-open-label">Curr Week Open:</td><td id="fdusd-curr-week-open" class="key-open-price">--</td></tr>
-                                    <tr><td class="key-open-label">Curr Week High:</td><td id="fdusd-curr-week-high" class="key-open-price">--</td></tr>
-                                    <tr><td class="key-open-label">Curr Week Low:</td><td id="fdusd-curr-week-low" class="key-open-price">--</td></tr>
-                        
-                                    <tr><td class="key-open-label" colspan="2" style="font-weight: bold; text-align: center; padding-top: 10px; color: var(--subtle-text);">Previous Day</td></tr>
-                                    <tr><td class="key-open-label">Prev Day Open:</td><td id="fdusd-prev-day-open" class="key-open-price">--</td></tr>
-                                    <tr><td class="key-open-label">Prev Day High:</td><td id="fdusd-prev-day-high" class="key-open-price">--</td></tr>
-                                    <tr><td class="key-open-label">Prev Day Low:</td><td id="fdusd-prev-day-low" class="key-open-price">--</td></tr>
-                                    <tr><td class="key-open-label">Prev Day Close:</td><td id="fdusd-prev-day-close" class="key-open-price">--</td></tr>
-                        
-                                    <tr><td class="key-open-label" colspan="2" style="font-weight: bold; text-align: center; padding-top: 10px; color: var(--subtle-text);">Current Day</td></tr>
-                                    <tr><td class="key-open-label">Curr Day Open:</td><td id="fdusd-curr-day-open" class="key-open-price">--</td></tr>
-                                    <tr><td class="key-open-label">Curr Day High:</td><td id="fdusd-curr-day-high" class="key-open-price">--</td></tr>
-                                    <tr><td class="key-open-label">Curr Day Low:</td><td id="fdusd-curr-day-low" class="key-open-price">--</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- END: NEW BTCFDUSD LEVELS SECTION -->
-
-                        <div id="key-opens-last-updated">Last Updated: <span>--</span></div>
-
                     </div>
                 </div>
             </div>
@@ -2796,7 +2762,7 @@
         async function fetchLiveConversionRate() { try { const response = await fetch('https://open.er-api.com/v6/latest/USD'); if (!response.ok) return; const data = await response.json(); if (data?.result === "success" && data?.rates?.AUD) { STATE.usdToAudRate = data.rates.AUD; } } catch (error) { console.error("Could not fetch conversion rate.", error); } }
         async function fetchEmaData() { try { const response = await fetch(`ma_analysis.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.emaData = await response.json(); renderEmaSnapshot('BTC-USDT'); } catch (error) { console.error("Could not fetch ma_analysis.json:", error); if (DOM.emaSnapshotContainer) DOM.emaSnapshotContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading EMA data.</p>'; } }
         async function fetchSrData() { try { const response = await fetch(`sr_levels_analysis.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.srData = await response.json(); if (DOM.srLevelsTab.classList.contains('active')) { renderSrLevels(); } } catch (error) { console.error("Could not fetch sr_levels_analysis.json:", error); DOM.supportLevelsTbody.parentElement.innerHTML = '<p style="color: red; text-align: center;">Error loading S/R data.</p>'; } }
-        async function fetchMarketOpens() { try { const response = await fetch(`market_opens.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.marketOpens = await response.json(); renderMarketOpens(); renderBtcFdusdLevels(); } catch (error) { console.error("Could not fetch market_opens.json:", error); } }
+        async function fetchMarketOpens() { try { const response = await fetch(`market_opens.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.marketOpens = await response.json(); renderMarketOpens(); } catch (error) { console.error("Could not fetch market_opens.json:", error); } }
         async function fetchCrossoverSignalData() { const signalJsonUrl = 'crypto_signals.json'; try { const response = await fetch(`${signalJsonUrl}?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); renderCrossoverSignals(data); } catch (error) { console.error("Could not fetch or parse crossover signal data:", error); const ethContainer = document.getElementById('eth-crossover-signal-container'); const btcContainer = document.getElementById('btc-crossover-signal-container'); const errorMsg = '<p style="color: red; text-align: center;">Error loading signal data.</p>'; if (ethContainer) ethContainer.innerHTML = errorMsg; if (btcContainer) btcContainer.innerHTML = errorMsg; const lastUpdatedEl = document.getElementById('crossover-signals-last-updated'); if(lastUpdatedEl) lastUpdatedEl.textContent = 'Failed to load data.'; } }
         
         async function fetchAndRenderOptionsData() {
@@ -3060,72 +3026,19 @@
 
         function renderMarketOpens() {
             const data = STATE.marketOpens;
-            const opensData = data?.data;
-            if (!opensData) return;
-
-            const btcData = opensData['BTC-USDT'];
-            if (btcData) {
-                DOM.btcDailyOpen.textContent = btcData.current_day?.open ? formatCurrency(btcData.current_day.open) : '--';
-                DOM.btcWeeklyOpen.textContent = btcData.current_week?.open ? formatCurrency(btcData.current_week.open) : '--';
-                DOM.btcMonthlyOpen.textContent = '--'; // No longer provided by the python script
-            }
-            const ethData = opensData['ETH-USDT'];
-            if (ethData) {
-                DOM.ethDailyOpen.textContent = ethData.current_day?.open ? formatCurrency(ethData.current_day.open) : '--';
-                DOM.ethWeeklyOpen.textContent = ethData.current_week?.open ? formatCurrency(ethData.current_week.open) : '--';
-                DOM.ethMonthlyOpen.textContent = '--'; // No longer provided by the python script
-            }
-
+            if (!data?.opens) return;
+            const btcData = data.opens['BTC-USDT'];
+            if (btcData) { DOM.btcDailyOpen.textContent = formatCurrency(btcData.daily); DOM.btcWeeklyOpen.textContent = formatCurrency(btcData.weekly); DOM.btcMonthlyOpen.textContent = formatCurrency(btcData.monthly); }
+            const ethData = data.opens['ETH-USDT'];
+            if (ethData) { DOM.ethDailyOpen.textContent = formatCurrency(ethData.daily); DOM.ethWeeklyOpen.textContent = formatCurrency(ethData.weekly); DOM.ethMonthlyOpen.textContent = formatCurrency(ethData.monthly); }
             if (data.last_updated) {
                 const lastUpdatedDate = new Date(data.last_updated);
                 DOM.keyOpensLastUpdated.textContent = lastUpdatedDate.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
                 const now = new Date();
                 const todayUTCStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
                 const lastUpdatedContainer = DOM.keyOpensLastUpdated.parentElement;
-                if (lastUpdatedDate.getTime() >= todayUTCStart.getTime()) {
-                    lastUpdatedContainer.classList.add('updated-today');
-                    DOM.btcDailyOpen.classList.add('updated-today-value');
-                    DOM.ethDailyOpen.classList.add('updated-today-value');
-                } else {
-                    lastUpdatedContainer.classList.remove('updated-today');
-                    DOM.btcDailyOpen.classList.remove('updated-today-value');
-                    DOM.ethDailyOpen.classList.remove('updated-today-value');
-                }
+                if (lastUpdatedDate.getTime() >= todayUTCStart.getTime()) { lastUpdatedContainer.classList.add('updated-today'); DOM.btcDailyOpen.classList.add('updated-today-value'); DOM.ethDailyOpen.classList.add('updated-today-value'); } else { lastUpdatedContainer.classList.remove('updated-today'); DOM.btcDailyOpen.classList.remove('updated-today-value'); DOM.ethDailyOpen.classList.remove('updated-today-value'); }
             }
-        }
-
-        // --- NEW FUNCTION for BTCFDUSD ---
-        function renderBtcFdusdLevels() {
-            const data = STATE.marketOpens?.data?.['BTC-FDUSD'];
-            if (!data) {
-                console.warn("BTC-FDUSD data not found in market_opens.json");
-                return;
-            }
-
-            const updateElement = (id, value) => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.textContent = value !== null && value !== undefined ? formatCurrency(value) : '--';
-                }
-            };
-
-            updateElement('fdusd-prev-week-open', data.previous_week?.open);
-            updateElement('fdusd-prev-week-high', data.previous_week?.high);
-            updateElement('fdusd-prev-week-low', data.previous_week?.low);
-            updateElement('fdusd-prev-week-close', data.previous_week?.close);
-
-            updateElement('fdusd-curr-week-open', data.current_week?.open);
-            updateElement('fdusd-curr-week-high', data.current_week?.high);
-            updateElement('fdusd-curr-week-low', data.current_week?.low);
-
-            updateElement('fdusd-prev-day-open', data.previous_day?.open);
-            updateElement('fdusd-prev-day-high', data.previous_day?.high);
-            updateElement('fdusd-prev-day-low', data.previous_day?.low);
-            updateElement('fdusd-prev-day-close', data.previous_day?.close);
-
-            updateElement('fdusd-curr-day-open', data.current_day?.open);
-            updateElement('fdusd-curr-day-high', data.current_day?.high);
-            updateElement('fdusd-curr-day-low', data.current_day?.low);
         }
 
         function renderCrossoverSignals(signalData) {
@@ -4173,8 +4086,7 @@
                 });
             }
 
-
-             DOM.noteModalClose.addEventListener('click', closeNoteModal);
+            DOM.noteModalClose.addEventListener('click', closeNoteModal);
             DOM.noteEditModal.addEventListener('click', e => { if (e.target.id === 'note-edit-modal') closeNoteModal(); });
             DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
             DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
