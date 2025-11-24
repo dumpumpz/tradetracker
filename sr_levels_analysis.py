@@ -12,9 +12,9 @@ from scipy.signal import argrelextrema
 from sklearn.cluster import DBSCAN
 
 # --- Unified Configuration ---
-# MODIFIED: Added FDUSD pairs as requested
-SYMBOLS = ['BTCUSDT', 'BTCFDUSD', 'ETHUSDT', 'ETHFDUSD']
+SYMBOLS = ['BTCUSDT', 'ETHUSDT']
 TIMEFRAMES_TO_ANALYZE = ['15m', '30m', '1h', '2h', '4h']
+# MODIFIED LINE: Added 270, 180, and 120 day lookbacks
 LOOKBACK_PERIODS_DAYS = [270, 180, 120, 60, 30, 21, 14, 7, 3, 2]
 BASE_PIVOT_WINDOWS = [5, 8, 13, 21, 34]
 TOP_N_CLUSTERS_TO_SEND = 10
@@ -48,7 +48,7 @@ DEFAULT_TIMEOUT = 20
 
 def get_safe_symbol(symbol):
     # For display/keys only
-    return symbol.replace('USDT', '-USDT').replace('FDUSD', '-FDUSD')
+    return symbol.replace('USDT', '-USDT') if 'USDT' in symbol else symbol
 
 
 def get_minutes_from_timeframe(tf_string):
@@ -115,56 +115,37 @@ def fetch_ohlcv_paginated(symbol, interval, lookback_days=None, limit=1000):
         logging.error(f'Error fetching {symbol} {interval}: {e}')
         return None
 
-# --- MODIFIED FUNCTION: Replaced get_market_opens with this more detailed function ---
-def get_key_ohlc_levels(symbols_list: List[str]) -> Dict[str, Dict[str, Any]]:
+
+def get_market_opens(symbols_list: List[str]) -> Dict[str, Dict[str, float]]:
     """
-    Fetches previous/current day/week OHLC data for a list of symbols.
+    Fetches the current daily, weekly, and monthly open prices for a list of symbols.
     """
-    all_symbols_data = {}
-    timeframes_map = {'day': '1d', 'week': '1w'}
+    opens_data = {}
+    timeframes_map = {'daily': '1d', 'weekly': '1w', 'monthly': '1M'}
 
     for symbol in symbols_list:
-        logging.info(f"Fetching key OHLC levels for {symbol}...")
+        logging.info(f"Fetching D/W/M opens for {symbol}...")
+        symbol_opens = {}
         safe_symbol = get_safe_symbol(symbol)
-        symbol_data = {}
-
-        for period_name, tf in timeframes_map.items():
-            # Fetch the last two candles: previous (completed) and current (forming)
-            df = fetch_ohlcv_paginated(symbol, tf, limit=2)
-
-            if df is not None and len(df) >= 2:
-                # --- Previous Period Data (completed candle) ---
-                prev_candle = df.iloc[-2]
-                symbol_data[f'previous_{period_name}'] = {
-                    'open': float(prev_candle['Open']),
-                    'high': float(prev_candle['High']),
-                    'low': float(prev_candle['Low']),
-                    'close': float(prev_candle['Close']),
-                }
-                logging.info(f"  {symbol} Previous {period_name} (O/H/L/C): {prev_candle['Open']}/{prev_candle['High']}/{prev_candle['Low']}/{prev_candle['Close']}")
-
-                # --- Current Period Data (forming candle) ---
-                curr_candle = df.iloc[-1]
-                symbol_data[f'current_{period_name}'] = {
-                    'open': float(curr_candle['Open']),
-                    'high': float(curr_candle['High']), # High so far
-                    'low': float(curr_candle['Low']),   # Low so far
-                }
-                logging.info(f"  {symbol} Current {period_name} (O/H/L): {curr_candle['Open']}/{curr_candle['High']}/{curr_candle['Low']}")
-
+        
+        for name, tf in timeframes_map.items():
+            # We only need the most recent candle to get the open price
+            df = fetch_ohlcv_paginated(symbol, tf, limit=2) 
+            if df is not None and not df.empty:
+                # The last row is the current, forming candle. Its 'Open' is what we need.
+                current_open = df['Open'].iloc[-1]
+                symbol_opens[name] = float(current_open)
+                logging.info(f"  {symbol} {name} ({tf}) open: {current_open}")
             else:
-                logging.warning(f"  Could not fetch sufficient data for {period_name} ({tf}) for {symbol}")
-                # Populate with None to indicate failure for this period
-                symbol_data[f'previous_{period_name}'] = None
-                symbol_data[f'current_{period_name}'] = None
-            
+                logging.warning(f"  Could not fetch {name} open for {symbol}")
+                symbol_opens[name] = None # Or handle as an error
             time.sleep(0.5) # Be nice to the API
 
-        if symbol_data:
-            all_symbols_data[safe_symbol] = symbol_data
+        if symbol_opens:
+            opens_data[safe_symbol] = symbol_opens
             
-    return all_symbols_data
-# --- END MODIFIED FUNCTION ---
+    return opens_data
+
 
 def calc_atr(df, period=ATR_LOOKBACK):
     if df is None or df.empty:
@@ -354,28 +335,29 @@ def main():
     except IOError as e:
         logging.error(f"Could not write to file {SR_OUTPUT_FILENAME}: {e}")
 
-    # --- Part 2: Key OHLC Levels Analysis (MODIFIED BLOCK) ---
-    logging.info("===== STARTING KEY OHLC LEVELS ANALYSIS =====")
-    key_ohlc_data = get_key_ohlc_levels(SYMBOLS)
+    # --- Part 2: Market Opens Analysis ---
+    logging.info("===== STARTING MARKET OPENS ANALYSIS =====")
+    market_opens_data = get_market_opens(SYMBOLS)
     
-    if key_ohlc_data:
+    if market_opens_data:
         try:
-            # Create the payload with the fetched OHLC data
-            payload = {
+            opens_payload = {
                 'last_updated': datetime.now(timezone.utc).isoformat(),
-                'data': key_ohlc_data
+                'opens': market_opens_data
             }
             with open(OPENS_OUTPUT_FILENAME, 'w') as f:
-                json.dump(payload, f, indent=4)
-            logging.info(f"Key OHLC data saved to {OPENS_OUTPUT_FILENAME}")
+                json.dump(opens_payload, f, indent=4)
+            logging.info(f"Market opens data saved to {OPENS_OUTPUT_FILENAME}")
         except IOError as e:
             logging.error(f"Could not write to file {OPENS_OUTPUT_FILENAME}: {e}")
     else:
-        logging.error(f"Failed to fetch any key OHLC data. File {OPENS_OUTPUT_FILENAME} not written.")
-    # --- END MODIFIED BLOCK ---
+        logging.error("Failed to fetch any market open data. File not written.")
 
     logging.info("===== ALL ANALYSIS COMPLETE =====")
 
+    ### THIS IS THE FIX ###
+    # This line explicitly closes all connections in the session pool,
+    # allowing the Python process to terminate cleanly and immediately.
     logging.info("Closing network session...")
     SESSION.close()
 
