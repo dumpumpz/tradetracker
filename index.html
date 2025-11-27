@@ -3220,6 +3220,7 @@
   // REPLACE THE ENTIRE renderLiveTable FUNCTION
 // REPLACE THE ENTIRE renderLiveTable FUNCTION WITH THIS:
 // REPLACE THE ENTIRE renderLiveTable FUNCTION
+// REPLACE THE ENTIRE renderLiveTable FUNCTION
 
 function renderLiveTable(data) {
     const trades = data || {};
@@ -3253,9 +3254,6 @@ function renderLiveTable(data) {
         }
         sumProfitTaker += parseFloat(metrics.expected_profit_taker || 0);
         sumProfitMaker += parseFloat(metrics.expected_profit_maker || 0);
-        // Note: expected_loss is usually a negative number in the calculation logic, 
-        // but if your calculateTradeMetrics returns absolute numbers for losses, remove Math.abs
-        // Assuming expected_loss_taker returns the dollar value lost (e.g., -50.00 or 50.00):
         sumLossTaker += parseFloat(metrics.expected_loss_taker || 0);
         sumLossMaker += parseFloat(metrics.expected_loss_maker || 0);
         // -------------------------------
@@ -3293,8 +3291,44 @@ function renderLiveTable(data) {
         </tr>`;
     }).join('');
     
+    // 1. Render Table Rows
     DOM.tradesTbody.innerHTML = rowsHtml;
-    adjustCollapsibleSize(DOM.tradesTbody);
+
+    // 2. Update Summary Section BEFORE resizing
+    const summaryContainer = document.getElementById('live-trades-summary-container');
+    if (summaryContainer) {
+        if (Object.keys(trades).length > 0) {
+            // Show the container first so it takes up space
+            summaryContainer.style.display = 'block';
+            
+            // Populate values
+            document.getElementById('summary-total-size').textContent = `$${sumSize.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            
+            let avgEntryText = "Mixed";
+            if (activeSymbols.size === 1 && sumQty > 0) {
+                const weightedAvg = sumSize / sumQty;
+                avgEntryText = weightedAvg.toLocaleString(undefined, {minimumFractionDigits: 4});
+            } else if (activeSymbols.size === 0) {
+                avgEntryText = "--";
+            }
+            document.getElementById('summary-avg-entry').textContent = avgEntryText;
+
+            document.getElementById('summary-profit-taker').textContent = `$${sumProfitTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('summary-profit-maker').textContent = `$${sumProfitMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            
+            document.getElementById('summary-loss-taker').textContent = `$${sumLossTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('summary-loss-maker').textContent = `$${sumLossMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+        } else {
+            summaryContainer.style.display = 'none';
+        }
+    }
+
+    // 3. Recalculate Height AFTER everything is visible
+    setTimeout(() => {
+        adjustCollapsibleSize(DOM.tradesTbody);
+    }, 10);
+}
 
     // --- UPDATE SUMMARY SECTION ---
     const summaryContainer = document.getElementById('live-trades-summary-container');
