@@ -3186,63 +3186,55 @@
         }
 
         // === MODIFIED: Populates the two new loss columns ===
-        function renderLiveTable(data) {
-            const trades = data || {};
-            const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
-            const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { const formattedValue = (typeof value === 'number') ? value.toFixed(digits) : value; return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; };
-            
-       // REPLACE THE .map() BLOCK INSIDE renderLiveTable FUNCTION
-const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date)).map(id => {
-    const trade = trades[id];
-
-    const breakevenPrice = calculateBreakevenPrice(trade);
-
-    // Calculate display strings
-    const profitTakerStr = `$${parseFloat(trade.expected_profit_taker || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent_taker || 0).toFixed(2)}%)`;
-    const profitMakerStr = `$${parseFloat(trade.expected_profit_maker || 0).toFixed(2)} (${parseFloat(trade.expected_profit_percent_maker || 0).toFixed(2)}%)`;
-    const lossTakerStr = `$${parseFloat(trade.expected_loss_taker || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent_taker || 0).toFixed(2)}%)`;
-    const lossMakerStr = `$${parseFloat(trade.expected_loss_maker || 0).toFixed(2)} (${parseFloat(trade.expected_loss_percent_maker || 0).toFixed(2)}%)`;
-
-    // Recalculate if missing (backward compatibility)
-    let rrTakerString = trade.rr_taker ? `${parseFloat(trade.rr_taker).toFixed(2)}` : '--';
-    let rrMakerString = trade.rr_maker ? `${parseFloat(trade.rr_maker).toFixed(2)}` : '--';
+  // REPLACE THE ENTIRE renderLiveTable FUNCTION
+function renderLiveTable(data) {
+    const trades = data || {};
+    const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
+    const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { const formattedValue = (typeof value === 'number') ? value.toFixed(digits) : value; return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; };
     
-    if (rrTakerString === '--' || rrMakerString === '--') {
+    const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date)).map(id => {
+        const trade = trades[id];
+
+        // --- FIX: Force calculation here so display is always correct ---
         const metrics = calculateTradeMetrics(trade);
-        rrTakerString = metrics.rr_taker > 0 ? metrics.rr_taker : '--';
-        rrMakerString = metrics.rr_maker > 0 ? metrics.rr_maker : '--';
-    }
+        const breakevenPrice = calculateBreakevenPrice(trade);
 
-    const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
+        const profitTakerStr = `$${parseFloat(metrics.expected_profit_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_taker || 0).toFixed(2)}%)`;
+        const profitMakerStr = `$${parseFloat(metrics.expected_profit_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_maker || 0).toFixed(2)}%)`;
+        const lossTakerStr = `$${parseFloat(metrics.expected_loss_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_taker || 0).toFixed(2)}%)`;
+        const lossMakerStr = `$${parseFloat(metrics.expected_loss_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_maker || 0).toFixed(2)}%)`;
 
-    return `<tr>
-        <td>${trade.symbol}</td>
-        <td>${trade.type}</td>
-        ${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}
-        ${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}
-        ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}
-        ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}
-        <td>${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>
-        ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
-        <td>${parseFloat(trade.estimated_total_fee || 0).toFixed(2)}</td>
-        <td style="color: #28a745;">${profitTakerStr}</td>
-        <td style="color: #28a745;">${profitMakerStr}</td>
-        <td style="color: #dc3545;">${lossTakerStr}</td>
-        <td style="color: #dc3545;">${lossMakerStr}</td>
-        <td>${rrTakerString}</td>
-        <td>${rrMakerString}</td>
-        <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
-        <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
-  ${renderAttachmentThumbnails(trade, id, 'live')}
-        ${masterButtonsHtml(id)}
-    </tr>`;
-}).join('');
+        const rrTakerString = metrics.rr_taker > 0 ? metrics.rr_taker : '--';
+        const rrMakerString = metrics.rr_maker > 0 ? metrics.rr_maker : '--';
 
-    // --- FIX START: Add these lines to update the table and close the function ---
+        const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
+
+        return `<tr>
+            <td>${trade.symbol}</td>
+            <td>${trade.type}</td>
+            ${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}
+            ${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}
+            ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}
+            ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}
+            <td>${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>
+            ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
+            <td>${parseFloat(metrics.estimated_total_fee || 0).toFixed(2)}</td>
+            <td style="color: #28a745;">${profitTakerStr}</td>
+            <td style="color: #28a745;">${profitMakerStr}</td>
+            <td style="color: #dc3545;">${lossTakerStr}</td>
+            <td style="color: #dc3545;">${lossMakerStr}</td>
+            <td>${rrTakerString}</td>
+            <td>${rrMakerString}</td>
+            <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
+            <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
+            ${renderAttachmentThumbnails(trade, id, 'live')}
+            ${masterButtonsHtml(id)}
+        </tr>`;
+    }).join('');
+    
     DOM.tradesTbody.innerHTML = rowsHtml;
     adjustCollapsibleSize(DOM.tradesTbody);
-} 
-    // --- FIX END ---
+}
 
 function renderCompletedTable(data) {
             const trades = data || {};
@@ -3255,23 +3247,18 @@ function renderCompletedTable(data) {
 
             const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button><button class="note-btn-completed" data-id="${id}">Note 1</button><button class="note2-btn-completed" data-id="${id}">Note 2</button><button class="note3-btn-completed" data-id="${id}">Note 3</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>` : '';
 
-        // REPLACE THE createRowHtml CONSTANT INSIDE renderCompletedTable
+// REPLACE THE createRowHtml CONSTANT INSIDE renderCompletedTable
 const createRowHtml = (id) => {
     const trade = trades[id];
     const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
     const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
     const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
     
-    // Handle RR display
-    let rrTakerString = trade.rr_taker ? `${parseFloat(trade.rr_taker).toFixed(2)}` : '--';
-    let rrMakerString = trade.rr_maker ? `${parseFloat(trade.rr_maker).toFixed(2)}` : '--';
+    // --- FIX: Force calculation here for Projected columns ---
+    const metrics = calculateTradeMetrics(trade);
     
-    // Fallback calculation if data missing
-    if(rrTakerString === '--' || rrMakerString === '--') {
-         const metrics = calculateTradeMetrics(trade);
-         rrTakerString = metrics.rr_taker > 0 ? metrics.rr_taker : '--';
-         rrMakerString = metrics.rr_maker > 0 ? metrics.rr_maker : '--';
-    }
+    const rrTakerString = metrics.rr_taker > 0 ? metrics.rr_taker : '--';
+    const rrMakerString = metrics.rr_maker > 0 ? metrics.rr_maker : '--';
     
     const entryFeeTypeDisplay = (trade.entryFeeType || 'taker').charAt(0).toUpperCase() + (trade.entryFeeType || 'taker').slice(1);
     const exitFeeTypeDisplay = (trade.exitFeeType || 'taker').charAt(0).toUpperCase() + (trade.exitFeeType || 'taker').slice(1);
@@ -3284,10 +3271,10 @@ const createRowHtml = (id) => {
     <td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td>
     <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
     <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
-    <td style="color: var(--green-text);">${formatCurrency(trade.expected_profit_taker)}</td>
-    <td style="color: var(--green-text);">${formatCurrency(trade.expected_profit_maker)}</td>
-    <td style="color: var(--red-text);">${formatCurrency(trade.expected_loss_taker)}</td>
-    <td style="color: var(--red-text);">${formatCurrency(trade.expected_loss_maker)}</td>
+    <td style="color: var(--green-text);">${formatCurrency(metrics.expected_profit_taker)}</td>
+    <td style="color: var(--green-text);">${formatCurrency(metrics.expected_profit_maker)}</td>
+    <td style="color: var(--red-text);">${formatCurrency(metrics.expected_loss_taker)}</td>
+    <td style="color: var(--red-text);">${formatCurrency(metrics.expected_loss_maker)}</td>
     <td>${rrTakerString}</td>
     <td>${rrMakerString}</td>
     <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
@@ -3300,7 +3287,6 @@ const createRowHtml = (id) => {
     <td class="note-cell" title="${trade.note3 || ''}">${trade.note3 || ''}</td>
     ${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
 };
-
             if (STATE.completedTradesShowAll) {
                 const totalItems = tradeIds.length;
                 const totalPages = Math.ceil(totalItems / STATE.completedTradesItemsPerPage);
