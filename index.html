@@ -1927,7 +1927,7 @@
                 </div>
             </div>
 
-            <!-- Live Trades Section -->
+       <!-- Live Trades Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
                     <h2>Live Trades</h2>
@@ -1935,32 +1935,56 @@
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
+                        
+                        <!-- NEW SUMMARY SECTION START -->
+                        <div id="live-trades-summary-container" class="ema-summary-container" style="display:none; margin-bottom: 20px; padding: 15px; border: 1px solid var(--link-color);">
+                            <h4 style="margin-top: 0; margin-bottom: 15px; font-weight: 600;">Open Positions Summary</h4>
+                            <div class="ema-level-summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; text-align: center;">
+                                <div>
+                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Total Position Size</span><br>
+                                    <span id="summary-total-size" style="font-size: 16px; font-weight: bold; font-family: 'Courier New', monospace;">$0.00</span>
+                                </div>
+                                <div>
+                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Avg Entry (Weighted)</span><br>
+                                    <span id="summary-avg-entry" style="font-size: 16px; font-weight: bold; font-family: 'Courier New', monospace;">--</span>
+                                </div>
+                                <div>
+                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Total Exp. Profit (Taker)</span><br>
+                                    <span id="summary-profit-taker" style="font-size: 16px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
+                                </div>
+                                <div>
+                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Total Exp. Profit (Maker)</span><br>
+                                    <span id="summary-profit-maker" style="font-size: 16px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- NEW SUMMARY SECTION END -->
+
                         <div class="table-wrapper">
                             <table>
-                              <!-- REPLACE THE <thead> INSIDE LIVE TRADES TABLE -->
-<thead>
-    <tr>
-        <th>Symbol</th>
-        <th>Type</th>
-        <th>Avg. Entry</th>
-        <th>Entries</th>
-        <th>Stop Loss</th>
-        <th>Target</th>
-        <th>Breakeven</th>
-        <th>Position Value ($)</th>
-        <th>Est. Total Fee ($)</th>
-        <th>Profit (Taker)</th>
-        <th>Profit (Maker)</th>
-        <th>Loss (Taker)</th>
-        <th>Loss (Maker)</th>
-        <th>RR (Taker)</th>
-        <th>RR (Maker)</th>
-        <th>Date Opened</th>
-        <th>Note</th>
-        <th>Charts</th>
-        <th class="master-only">Actions</th>
-    </tr>
-</thead>
+                                <thead>
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Type</th>
+                                        <th>Avg. Entry</th>
+                                        <th>Entries</th>
+                                        <th>Stop Loss</th>
+                                        <th>Target</th>
+                                        <th>Breakeven</th>
+                                        <th>Position Value ($)</th>
+                                        <th>Est. Total Fee ($)</th>
+                                        <th>Profit (Taker)</th>
+                                        <th>Profit (Maker)</th>
+                                        <th>Loss (Taker)</th>
+                                        <th>Loss (Maker)</th>
+                                        <th>RR (Taker)</th>
+                                        <th>RR (Maker)</th>
+                                        <th>Date Opened</th>
+                                        <th>Note</th>
+                                        <th>Charts</th>
+                                        <th class="master-only">Actions</th>
+                                    </tr>
+                                </thead>
                                 <tbody id="trades-tbody"></tbody>
                             </table>
                         </div>
@@ -3187,17 +3211,39 @@
 
         // === MODIFIED: Populates the two new loss columns ===
   // REPLACE THE ENTIRE renderLiveTable FUNCTION
+// REPLACE THE ENTIRE renderLiveTable FUNCTION WITH THIS:
+
 function renderLiveTable(data) {
     const trades = data || {};
+    
+    // --- SUMMARY CALCULATION VARIABLES ---
+    let sumSize = 0;
+    let sumQty = 0;
+    let sumProfitTaker = 0;
+    let sumProfitMaker = 0;
+    const activeSymbols = new Set();
+    // -------------------------------------
+
     const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
     const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { const formattedValue = (typeof value === 'number') ? value.toFixed(digits) : value; return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; };
     
     const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date)).map(id => {
         const trade = trades[id];
 
-        // --- FIX: Force calculation here so display is always correct ---
         const metrics = calculateTradeMetrics(trade);
         const breakevenPrice = calculateBreakevenPrice(trade);
+
+        // --- ACCUMULATE SUMMARY DATA ---
+        const tSize = parseFloat(trade.size) || 0;
+        const tEntry = parseFloat(trade.entry) || 0;
+        if (tSize > 0 && tEntry > 0) {
+            sumSize += tSize;
+            sumQty += (tSize / tEntry); // Qty = Value / Price
+            activeSymbols.add(trade.symbol);
+        }
+        sumProfitTaker += parseFloat(metrics.expected_profit_taker || 0);
+        sumProfitMaker += parseFloat(metrics.expected_profit_maker || 0);
+        // -------------------------------
 
         const profitTakerStr = `$${parseFloat(metrics.expected_profit_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_taker || 0).toFixed(2)}%)`;
         const profitMakerStr = `$${parseFloat(metrics.expected_profit_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_maker || 0).toFixed(2)}%)`;
@@ -3234,8 +3280,41 @@ function renderLiveTable(data) {
     
     DOM.tradesTbody.innerHTML = rowsHtml;
     adjustCollapsibleSize(DOM.tradesTbody);
-}
 
+    // --- UPDATE SUMMARY SECTION ---
+    const summaryContainer = document.getElementById('live-trades-summary-container');
+    if (summaryContainer) {
+        if (Object.keys(trades).length > 0) {
+            summaryContainer.style.display = 'block';
+            
+            // Total Position Size
+            document.getElementById('summary-total-size').textContent = `$${sumSize.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            
+            // Avg Entry (Only if 1 symbol type, otherwise it's meaningless)
+            let avgEntryText = "Mixed";
+            if (activeSymbols.size === 1 && sumQty > 0) {
+                const weightedAvg = sumSize / sumQty;
+                avgEntryText = weightedAvg.toLocaleString(undefined, {minimumFractionDigits: 4});
+            } else if (activeSymbols.size === 0) {
+                avgEntryText = "--";
+            }
+            document.getElementById('summary-avg-entry').textContent = avgEntryText;
+
+            // Total Expected Profits
+            const elProfitTaker = document.getElementById('summary-profit-taker');
+            const elProfitMaker = document.getElementById('summary-profit-maker');
+            
+            elProfitTaker.textContent = `$${sumProfitTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            elProfitMaker.textContent = `$${sumProfitMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+            // Colorize Profit Summaries
+            elProfitTaker.style.color = sumProfitTaker >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+            elProfitMaker.style.color = sumProfitMaker >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+        } else {
+            summaryContainer.style.display = 'none';
+        }
+    }
+}
 function renderCompletedTable(data) {
             const trades = data || {};
             const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
