@@ -1927,7 +1927,7 @@
                 </div>
             </div>
 
-       <!-- Live Trades Section -->
+ <!-- Live Trades Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
                     <h2>Live Trades</h2>
@@ -1939,22 +1939,30 @@
                         <!-- NEW SUMMARY SECTION START -->
                         <div id="live-trades-summary-container" class="ema-summary-container" style="display:none; margin-bottom: 20px; padding: 15px; border: 1px solid var(--link-color);">
                             <h4 style="margin-top: 0; margin-bottom: 15px; font-weight: 600;">Open Positions Summary</h4>
-                            <div class="ema-level-summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; text-align: center;">
+                            <div class="ema-level-summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; text-align: center;">
                                 <div>
                                     <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Total Position Size</span><br>
-                                    <span id="summary-total-size" style="font-size: 16px; font-weight: bold; font-family: 'Courier New', monospace;">$0.00</span>
+                                    <span id="summary-total-size" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace;">$0.00</span>
                                 </div>
                                 <div>
-                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Avg Entry (Weighted)</span><br>
-                                    <span id="summary-avg-entry" style="font-size: 16px; font-weight: bold; font-family: 'Courier New', monospace;">--</span>
+                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Avg Entry (W)</span><br>
+                                    <span id="summary-avg-entry" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace;">--</span>
                                 </div>
                                 <div>
-                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Total Exp. Profit (Taker)</span><br>
-                                    <span id="summary-profit-taker" style="font-size: 16px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
+                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Profit (Taker)</span><br>
+                                    <span id="summary-profit-taker" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
                                 </div>
                                 <div>
-                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Total Exp. Profit (Maker)</span><br>
-                                    <span id="summary-profit-maker" style="font-size: 16px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
+                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Loss (Taker)</span><br>
+                                    <span id="summary-loss-taker" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--red-text);">$0.00</span>
+                                </div>
+                                <div>
+                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Profit (Maker)</span><br>
+                                    <span id="summary-profit-maker" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
+                                </div>
+                                <div>
+                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Loss (Maker)</span><br>
+                                    <span id="summary-loss-maker" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--red-text);">$0.00</span>
                                 </div>
                             </div>
                         </div>
@@ -1991,7 +1999,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Sentiment Log Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -3212,6 +3219,7 @@
         // === MODIFIED: Populates the two new loss columns ===
   // REPLACE THE ENTIRE renderLiveTable FUNCTION
 // REPLACE THE ENTIRE renderLiveTable FUNCTION WITH THIS:
+// REPLACE THE ENTIRE renderLiveTable FUNCTION
 
 function renderLiveTable(data) {
     const trades = data || {};
@@ -3221,6 +3229,8 @@ function renderLiveTable(data) {
     let sumQty = 0;
     let sumProfitTaker = 0;
     let sumProfitMaker = 0;
+    let sumLossTaker = 0;
+    let sumLossMaker = 0;
     const activeSymbols = new Set();
     // -------------------------------------
 
@@ -3238,11 +3248,16 @@ function renderLiveTable(data) {
         const tEntry = parseFloat(trade.entry) || 0;
         if (tSize > 0 && tEntry > 0) {
             sumSize += tSize;
-            sumQty += (tSize / tEntry); // Qty = Value / Price
+            sumQty += (tSize / tEntry);
             activeSymbols.add(trade.symbol);
         }
         sumProfitTaker += parseFloat(metrics.expected_profit_taker || 0);
         sumProfitMaker += parseFloat(metrics.expected_profit_maker || 0);
+        // Note: expected_loss is usually a negative number in the calculation logic, 
+        // but if your calculateTradeMetrics returns absolute numbers for losses, remove Math.abs
+        // Assuming expected_loss_taker returns the dollar value lost (e.g., -50.00 or 50.00):
+        sumLossTaker += parseFloat(metrics.expected_loss_taker || 0);
+        sumLossMaker += parseFloat(metrics.expected_loss_maker || 0);
         // -------------------------------
 
         const profitTakerStr = `$${parseFloat(metrics.expected_profit_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_taker || 0).toFixed(2)}%)`;
@@ -3281,6 +3296,38 @@ function renderLiveTable(data) {
     DOM.tradesTbody.innerHTML = rowsHtml;
     adjustCollapsibleSize(DOM.tradesTbody);
 
+    // --- UPDATE SUMMARY SECTION ---
+    const summaryContainer = document.getElementById('live-trades-summary-container');
+    if (summaryContainer) {
+        if (Object.keys(trades).length > 0) {
+            summaryContainer.style.display = 'block';
+            
+            // Total Position Size
+            document.getElementById('summary-total-size').textContent = `$${sumSize.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            
+            // Avg Entry
+            let avgEntryText = "Mixed";
+            if (activeSymbols.size === 1 && sumQty > 0) {
+                const weightedAvg = sumSize / sumQty;
+                avgEntryText = weightedAvg.toLocaleString(undefined, {minimumFractionDigits: 4});
+            } else if (activeSymbols.size === 0) {
+                avgEntryText = "--";
+            }
+            document.getElementById('summary-avg-entry').textContent = avgEntryText;
+
+            // Profits
+            document.getElementById('summary-profit-taker').textContent = `$${sumProfitTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('summary-profit-maker').textContent = `$${sumProfitMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            
+            // Losses
+            document.getElementById('summary-loss-taker').textContent = `$${sumLossTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('summary-loss-maker').textContent = `$${sumLossMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+        } else {
+            summaryContainer.style.display = 'none';
+        }
+    }
+}
     // --- UPDATE SUMMARY SECTION ---
     const summaryContainer = document.getElementById('live-trades-summary-container');
     if (summaryContainer) {
