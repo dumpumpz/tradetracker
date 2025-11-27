@@ -3233,11 +3233,18 @@ const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - n
         <td>${rrMakerString}</td>
         <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
         <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
-        ${renderAttachmentThumbnails(trade, id, 'live')}
+  ${renderAttachmentThumbnails(trade, id, 'live')}
         ${masterButtonsHtml(id)}
     </tr>`;
 }).join('');
-        function renderCompletedTable(data) {
+
+    // --- FIX START: Add these lines to update the table and close the function ---
+    DOM.tradesTbody.innerHTML = rowsHtml;
+    adjustCollapsibleSize(DOM.tradesTbody);
+} 
+    // --- FIX END ---
+
+function renderCompletedTable(data) {
             const trades = data || {};
             const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
             const perthTodayStr = getPerthDateString();
