@@ -1,12 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Trade & Journal Tracker</title>
+    <!-- ADD THESE LINES -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <!-- ADD THIS NEW SCRIPT TAG FOR ANNOTATIONS -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
     <style>
         :root {
@@ -28,6 +29,7 @@
             --red-text: #721c24;
             --green-bar: rgba(40, 167, 69, 0.2);
             --red-bar: rgba(220, 53, 69, 0.2);
+        
         }
 
         [data-theme="dark"] {
@@ -93,7 +95,7 @@
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
         .controls-container > div { display: flex; align-items: center; gap: 8px; }
 
-        #journal-entry, .setups-notes-area {
+        #journal-entry, #persistent-notes-entry, #tracker-scratchpad, .setups-notes-area {
             width: 100%; 
             resize: vertical;
             line-height: 1.6;
@@ -101,13 +103,13 @@
             overflow-y: hidden; 
             min-height: 120px; 
         }
-        
+        #tracker-scratchpad, #persistent-notes-entry { margin: 0; }
         .setups-notes-area {
             margin-top: 15px;
             min-height: 80px;
         }
 
-        #journal-entry:read-only, .setups-notes-area:read-only { 
+        #journal-entry:read-only, #persistent-notes-entry:read-only, #tracker-scratchpad:read-only, .setups-notes-area:read-only { 
             background-color: var(--card-bg); 
             cursor: not-allowed; 
         }
@@ -123,6 +125,13 @@
         .delete-journal-image { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; background-color: rgba(220, 53, 69, 0.85); border: 1px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; transition: all 0.2s ease-in-out; opacity: 0.7; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
         .journal-image-wrapper:hover .delete-journal-image { opacity: 1; }
         .delete-journal-image svg { width: 16px; height: 16px; fill: white; }
+
+        #ema-key-container { margin: 25px auto; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--card-bg); max-width: 80%; }
+        #ema-key-container h4 { text-align: center; margin-top: 0; margin-bottom: 15px; color: var(--subtle-text); }
+        .ema-key-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px 25px; }
+        .key-item { display: flex; align-items: center; }
+        .key-color-swatch { width: 16px; height: 16px; border-radius: 50%; margin-right: 8px; border: 1px solid var(--border-color); }
+        .key-label { font-size: 14px; }
 
         #journal-tab.drag-over { border: 3px dashed var(--link-color); background-color: rgba(0, 123, 255, 0.05); }
         #journal-tab.drag-over::before { content: "Drop Image Here"; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: var(--link-color); z-index: 999; pointer-events: none; }
@@ -511,10 +520,93 @@
             height:1em;
         }
 
+        #asset-sentiment-container h4 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 5px;
+            border: none;
+            padding: 0;
+        }
+        .sentiment-trackers-wrapper {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .sentiment-tracker {
+            flex: 1;
+            min-width: 250px;
+            max-width: 400px;
+            text-align: center;
+        }
+        .sentiment-tracker h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: var(--subtle-text);
+        }
+        .sentiment-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .sentiment-buttons button {
+            flex: 1;
+            border: 1px solid var(--border-color);
+            background-color: transparent;
+            color: var(--text-color);
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .sentiment-buttons button:hover {
+            opacity: 1;
+            border-color: var(--link-color);
+        }
+        .sentiment-buttons button:active {
+            transform: scale(0.95);
+            background-color: var(--header-bg);
+        }
+        .sentiment-note-cell {
+            white-space: normal;
+            min-width: 300px;
+            font-size: 13px;
+        }
+        #sentiment-receipts-table td:nth-child(2) {
+            text-transform: capitalize;
+            font-weight: bold;
+        }
+        .delete-sentiment-btn {
+            background: none;
+            border: none;
+            color: var(--red-text);
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 5px;
+            margin: 0;
+            line-height: 1;
+            opacity: 0.6;
+        }
+        .delete-sentiment-btn:hover {
+            opacity: 1;
+        }
+
         .editable-cell[contenteditable="true"]:focus {
             background-color: var(--header-bg);
             outline: 2px solid var(--link-color);
             box-shadow: 0 0 5px var(--shadow-color);
+        }
+
+        .edit-sentiment-note-btn {
+            background-color: var(--subtle-text);
+            color: var(--container-bg);
+            border: none;
+        }
+        .edit-sentiment-note-btn:hover {
+            background-color: var(--link-color);
         }
 
         .toggle-history-btn {
@@ -764,6 +856,88 @@
             font-weight: bold;
         }
 
+        #chart-library-2-container {
+            min-height: 150px;
+        }
+        .cl2-folder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+        }
+        .cl2-folder-card {
+            position: relative;
+            border: 1px solid var(--border-color);
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s ease-in-out;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .cl2-folder-card:hover {
+            border-color: var(--link-color);
+        }
+        .cl2-folder-card h4 {
+            margin: 8px 0 4px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-color);
+            text-transform: capitalize;
+        }
+        .cl2-folder-icon {
+            font-size: 32px;
+            color: var(--link-color);
+        }
+        .cl2-folder-count {
+            font-size: 12px;
+            color: var(--subtle-text);
+        }
+        .cl2-folder-card.drag-over {
+            border-color: var(--link-color);
+            border-style: dashed;
+            background-color: var(--header-bg);
+        }
+        .cl2-image-view-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .cl2-back-button {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        .cl2-view-title {
+            margin: 0;
+            font-size: 20px;
+            text-transform: capitalize;
+            color: var(--text-color);
+        }
+        .cl2-image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        #chart-library-2-preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .cl2-preview-item h4 {
+            text-align: center;
+            margin-bottom: 10px;
+            margin-top: 0;
+            font-size: 18px;
+            color: var(--subtle-text);
+            text-transform: capitalize;
+        }
+
         .collapsible-section {
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -821,6 +995,56 @@
         .collapsible-content-inner {
             padding: 20px;
             border-top: 1px solid var(--border-color);
+        }
+
+        #key-opens-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .key-open-asset h4 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--subtle-text);
+        }
+        .key-open-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+        .key-open-table td {
+            font-size: 14px;
+            padding: 4px 2px;
+            border: none;
+        }
+        .key-open-label {
+            color: var(--subtle-text);
+            text-align: left;
+            width: 1%;
+            padding-right: 10px;
+        }
+        .key-open-price {
+            font-weight: 600;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: right;
+        }
+        #key-opens-last-updated {
+            grid-column: 1 / -1;
+            text-align: center;
+            font-size: 12px;
+            color: var(--subtle-text);
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+        }
+        #key-opens-last-updated.updated-today span {
+            color: #ffc107;
+            font-weight: 500;
+        }
+        .key-open-price.updated-today-value {
+            color: #ffc107;
         }
 
         .pill-button-group {
@@ -1070,6 +1294,77 @@
              padding: 10px 20px;
         }
 
+        .key-open-table td.key-open-price {
+            width: 35%;
+        }
+        .key-open-note-cell {
+            padding-left: 15px;
+        }
+        .key-open-note {
+            width: 100%;
+            padding: 4px 6px;
+            font-size: 12px;
+            line-height: 1.4;
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            color: var(--text-color);
+            font-family: inherit;
+            resize: vertical;
+            overflow-y: hidden;
+            box-sizing: border-box;
+            vertical-align: middle;
+        }
+        .key-open-note:focus {
+            outline: 1px solid var(--link-color);
+            background-color: var(--card-bg);
+        }
+
+        /* --- STYLES FOR CROSSOVER SIGNALS --- */
+        #crossover-signals-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .crossover-signals-table-wrapper h3 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+        .crossover-signals-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+        }
+        .crossover-signals-table th, .crossover-signals-table td {
+            padding: 10px;
+            font-size: 14px;
+        }
+        .crossover-signals-table th:first-child {
+            text-align: left;
+            padding-left: 15px;
+            color: var(--link-color);
+        }
+        .crossover-signals-table td {
+            text-align: center;
+        }
+        .crossover-signals-table td:first-child {
+            font-weight: bold;
+        }
+        .crossover-signals-table .signal-cell {
+            color: white;
+            font-weight: bold;
+            text-align: center;
+        }
+        .signal-cell-green { background-color: #27ae60; }
+        .signal-cell-red { background-color: #c0392b; }
+        .signal-cell-grey { background-color: #7f8c8d; }
+        .support-value {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 500;
+        }
         
         /* --- NEW STYLES FOR OPTIONS OI DASHBOARD --- */
         #options-oi-tab .oi-global-metrics {
@@ -1328,6 +1623,129 @@
             color: var(--link-color);
         }
 
+        /* --- NEW STYLES FOR CALCULATOR TAB --- */
+        #calculator-tab .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+        #calculator-tab .radio-group {
+            display: flex;
+            gap: 10px;
+        }
+        #calculator-tab .radio-group label {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #calculator-tab .radio-group input[type="radio"] {
+            display: none;
+        }
+        #calculator-tab .radio-group input[type="radio"]:checked + label {
+            background-color: var(--link-color);
+            color: white;
+            border-color: var(--link-color);
+        }
+        #calculator-tab .result-display {
+            text-align: center;
+            font-size: 14px;
+            color: var(--subtle-text);
+            margin: 15px 0;
+        }
+        #calculator-tab .result-display span {
+            font-weight: bold;
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #calculator-tab .quick-fill-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        #calculator-tab .quick-fill-group button {
+            flex: 1;
+            min-width: 60px;
+            margin-top: 0;
+            padding: 6px 10px;
+            font-size: 12px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--subtle-text);
+        }
+        #calculator-tab .quick-fill-group button:hover {
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
+        #calculator-tab .targets-table th, 
+        #calculator-tab .targets-table td {
+            padding: 8px;
+            font-size: 13px;
+            text-align: right;
+            vertical-align: middle;
+        }
+        #calculator-tab .targets-table th:first-child,
+        #calculator-tab .targets-table td:first-child {
+            text-align: left;
+        }
+        #calculator-tab .targets-table input[type="number"] {
+            padding: 6px;
+            text-align: right;
+        }
+        #calculator-tab .remove-row-btn {
+            background-color: transparent;
+            border: none;
+            color: var(--red-text);
+            font-weight: bold;
+            font-size: 18px;
+            padding: 0 5px;
+            cursor: pointer;
+            margin: 0;
+            opacity: 0.7;
+        }
+        #calculator-tab .remove-row-btn:hover {
+            opacity: 1;
+        }
+        #calculator-tab .risk-sizer-instance {
+            position: relative;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: var(--bg-color);
+        }
+        #calculator-tab .risk-sizer-output {
+            text-align: center;
+            margin-top: 15px;
+        }
+        #calculator-tab .risk-sizer-output .label {
+            font-size: 13px;
+            color: var(--subtle-text);
+        }
+        #calculator-tab .risk-sizer-output .value {
+            display: block;
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 4px;
+            color: var(--green-text);
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #calculator-tab .risk-sizer-output .sub-value {
+            font-size: 13px;
+            font-weight: normal;
+            color: var(--red-text);
+        }
+        #calculator-tab .remove-sizer-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+
         @media (max-width: 768px) { 
             .container { padding: 10px; } 
             #add-trade-form { grid-template-columns: 1fr; } 
@@ -1340,6 +1758,9 @@
             #sr-levels-container { grid-template-columns: 1fr; }
             #sr-metadata-container { flex-direction: column; }
             .theme-switch-wrapper { top: 8px; right: 10px; }
+            #chart-library-2-preview-container {
+                grid-template-columns: 1fr;
+            }
             .modal-nav {
                 width: 40px;
                 height: 40px;
@@ -1389,6 +1810,10 @@
                 z-index: 1;
             }
             
+            #key-opens-container {
+                grid-template-columns: 1fr;
+                gap: 25px;
+            }
             #options-oi-tab .chart-container {
                 aspect-ratio: 1 / 1.1;
                 min-height: 350px;
@@ -1443,15 +1868,29 @@
 
         <div class="tabs">
             <button class="tab-link active" data-tab="tracker">Trade Tracker</button>
-            <button class="tab-link" data-tab="ema-snapshot">EMA Snapshot</button>
             <button class="tab-link" data-tab="journal">Journal & Setups</button>
             <button class="tab-link" data-tab="sr-levels">S/R Levels</button>
             <button class="tab-link" data-tab="volume-profile">Volume Profile</button>
+            <button class="tab-link" data-tab="charts">Charts</button>
             <button class="tab-link" data-tab="notes">Notes</button>
             <button class="tab-link" data-tab="options-oi">Options OI</button>
+            <button class="tab-link" data-tab="calculator">Calculator</button>
         </div>
 
         <div id="tracker-tab" class="tab-content active">
+
+            <!-- Tracker Scratchpad Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Notes</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <textarea id="tracker-scratchpad" placeholder=""></textarea>
+                    </div>
+                </div>
+            </div>
 
             <!-- Add New Trade Section -->
             <div class="collapsible-section master-only">
@@ -1560,6 +1999,148 @@
                     </div>
                 </div>
             </div>
+            <!-- Sentiment Log Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Sentiment Log</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="asset-sentiment-container">
+                            <div class="sentiment-trackers-wrapper" style="margin-top: 0;">
+                                <div class="sentiment-tracker master-only" id="sentiment-tracker-btc">
+                                    <h4>BTC/USDT</h4>
+                                    <div class="sentiment-buttons">
+                                        <button data-asset="BTC/USDT" data-sentiment="long">Long</button>
+                                        <button data-asset="BTC/USDT" data-sentiment="neutral">Neutral</button>
+                                        <button data-asset="BTC/USDT" data-sentiment="short">Short</button>
+                                    </div>
+                                </div>
+                                <div class="sentiment-tracker master-only" id="sentiment-tracker-eth">
+                                    <h4>ETH/USDT</h4>
+                                    <div class="sentiment-buttons">
+                                        <button data-asset="ETH/USDT" data-sentiment="long">Long</button>
+                                        <button data-asset="ETH/USDT" data-sentiment="neutral">Neutral</button>
+                                        <button data-asset="ETH/USDT" data-sentiment="short">Short</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <h4 style="text-align:center; margin-top:30px;">Sentiment History</h4>
+                        <div class="table-wrapper">
+                            <table id="sentiment-receipts-table">
+                                <thead>
+                                    <tr>
+                                        <th>Asset</th><th>Sentiment</th><th class="note-header">Note</th><th>Charts</th><th>Timestamp</th><th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sentiment-receipts-tbody"></tbody>
+                            </table>
+                        </div>
+                        <button id="toggle-all-sentiments" class="toggle-history-btn">Show All</button>
+                        <div id="sentiment-pagination-controls" class="pagination-controls" style="display: none;">
+                            <button id="sentiment-prev-page" class="pagination-btn">&lt; Prev</button>
+                            <span id="sentiment-page-info"></span>
+                            <button id="sentiment-next-page" class="pagination-btn">Next &gt;</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Market Opens Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Levels</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="key-opens-container">
+                            <div class="key-open-asset">
+                                <h4>BTC/USDT</h4>
+                                <table class="key-open-table">
+                                    <tr>
+                                        <td class="key-open-label">Daily:</td>
+                                        <td id="btc-daily-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="btc-daily-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Weekly:</td>
+                                        <td id="btc-weekly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="btc-weekly-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Monthly:</td>
+                                        <td id="btc-monthly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="btc-monthly-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                </table>
+                            </div>
+                             <div class="key-open-asset">
+                                <h4>ETH/USDT</h4>
+                                <table class="key-open-table">
+                                    <tr>
+                                        <td class="key-open-label">Daily:</td>
+                                        <td id="eth-daily-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="eth-daily-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Weekly:</td>
+                                        <td id="eth-weekly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="eth-weekly-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="key-open-label">Monthly:</td>
+                                        <td id="eth-monthly-open" class="key-open-price">--</td>
+                                        <td class="key-open-note-cell"><textarea id="eth-monthly-note" class="key-open-note" placeholder="" rows="1"></textarea></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div id="key-opens-last-updated">Last Updated: <span>--</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <!-- Trading Setups Section (Combined) -->
+        <div class="collapsible-section">
+            <div class="collapsible-header">
+                <h2>Trading Setups</h2>
+                <button class="collapsible-toggle-btn">+</button>
+            </div>
+            <div class="collapsible-content">
+                <div class="collapsible-content-inner">
+                    <textarea id="primary-setups-notes" class="setups-notes-area" placeholder=""></textarea>
+                    <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder=""></textarea>
+                </div>
+            </div>
+        </div>
+            <!-- Setups Image Library Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Setups</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="setups-image-library-section">
+                            <div id="setups-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
+                                <label for="setups-image-upload" class="image-upload-label">Add Setup Image</label>
+                                <input type="file" id="setups-image-upload" accept="image/*" multiple style="display:none;">
+                                <div id="setups-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
+                            </div>
+                            <div id="setups-image-container"></div>
+                            <button id="toggle-all-setups-images" class="toggle-history-btn">Show All</button>
+                            <div id="setups-images-pagination-controls" class="pagination-controls" style="display: none;">
+                                <button id="setups-images-prev-page" class="pagination-btn">&lt; Prev</button>
+                                <span id="setups-images-page-info"></span>
+                                <button id="setups-images-next-page" class="pagination-btn">Next &gt;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Completed Trades Section -->
             <div class="collapsible-section">
@@ -1612,10 +2193,7 @@
                 </div>
             </div>
 
-        </div>
-
-        <div id="ema-snapshot-tab" class="tab-content">
-            <!-- EMA Snapshot Section Moved Here -->
+            <!-- EMA Snapshot Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
                     <h2>
@@ -1633,10 +2211,24 @@
                     </div>
                 </div>
             </div>
+
         </div>
 
         <div id="journal-tab" class="tab-content">
             
+            <!-- Persistent Notes Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Persistent Notes</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                         <textarea id="persistent-notes-entry" placeholder=""></textarea>
+                    </div>
+                </div>
+            </div>
+
             <div class="controls-container" id="journal-controls">
                 <div><label for="journal-symbol">Symbol:</label><select id="journal-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
                 <div><label for="journal-timeframe">Timeframe:</label><select id="journal-timeframe"><option value="15min">15min</option><option value="30min">30min</option><option value="1hour">1hour</option><option value="2hour">2hour</option><option value="4hour">4hour</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div>
@@ -1677,42 +2269,15 @@
 
             <div id="journal-images-container"></div>
 
-            <!-- Trading Setups Section (Combined) -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Trading Setups</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <textarea id="primary-setups-notes" class="setups-notes-area" placeholder=""></textarea>
-                        <textarea id="secondary-setups-notes" class="setups-notes-area" placeholder=""></textarea>
-                    </div>
-                </div>
-            </div>
-            <!-- Setups Image Library Section -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Setups</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <div id="setups-image-library-section">
-                            <div id="setups-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
-                                <label for="setups-image-upload" class="image-upload-label">Add Setup Image</label>
-                                <input type="file" id="setups-image-upload" accept="image/*" multiple style="display:none;">
-                                <div id="setups-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
-                            </div>
-                            <div id="setups-image-container"></div>
-                            <button id="toggle-all-setups-images" class="toggle-history-btn">Show All</button>
-                            <div id="setups-images-pagination-controls" class="pagination-controls" style="display: none;">
-                                <button id="setups-images-prev-page" class="pagination-btn">&lt; Prev</button>
-                                <span id="setups-images-page-info"></span>
-                                <button id="setups-images-next-page" class="pagination-btn">Next &gt;</button>
-                            </div>
-                        </div>
-                    </div>
+            <div id="ema-key-container">
+                <h4>Chart Key</h4>
+                <div class="ema-key-list">
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #FFFFFF;"></span><span class="key-label">13 EMA/SMA</span></div>
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #000000;"></span><span class="key-label">49 EMA/SMA</span></div>
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #FF0000;"></span><span class="key-label">100 EMA/SMA</span></div>
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #008000;"></span><span class="key-label">200 EMA</span></div>
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #800080;"></span><span class="key-label">500 EMA</span></div>
+                    <div class="key-item"><span class="key-color-swatch" style="background-color: #0000FF;"></span><span class="key-label">1000 EMA</span></div>
                 </div>
             </div>
 
@@ -1916,6 +2481,47 @@
             </div>
         </div>
 
+        <div id="charts-tab" class="tab-content">
+            <!-- CHART LIBRARY 2 SECTION -->
+            <div class="collapsible-section">
+                 <div class="collapsible-header">
+                    <h2>Charts</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="chart-library-2-section">
+                            <div id="chart-library-2-container"></div>
+                            <div id="chart-library-2-preview-section">
+                                <h3 style="text-align: center; margin-top: 0; padding-top: 20px; border-top: 1px dashed var(--border-color);">Latest Uploads</h3>
+                                <div id="chart-library-2-preview-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IMAGE LIBRARY SECTION -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Misc</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="image-library-section">
+                            <div id="library-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
+                                <label for="library-image-upload" class="image-upload-label">Add to Library</label>
+                                <input type="file" id="library-image-upload" accept="image/*" multiple>
+                                <div id="library-upload-progress" style="margin-top: 10px; font-style: italic; color: var(--link-color);"></div>
+                            </div>
+                            <div id="image-library-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="notes-tab" class="tab-content">
             <div class="collapsible-section">
                  <div class="collapsible-header">
@@ -1939,6 +2545,92 @@
                 <p style="text-align: center; padding: 40px; color: var(--subtle-text);">Loading Options Open Interest data...</p>
             </div>
         </div>
+
+        <!-- NEW CALCULATOR TAB CONTENT -->
+        <div id="calculator-tab" class="tab-content">
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Position Profit & Target Calculator</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div class="calculator-grid">
+                            <div>
+                                <label for="calc-entry-price">Entry Price</label>
+                                <input type="number" id="calc-entry-price" placeholder="" step="0.01">
+                            </div>
+                            <div>
+                                <label for="calc-position-size">Position Size ($)</label>
+                                <input type="number" id="calc-position-size" placeholder="" step="1">
+                            </div>
+                            <div style="grid-column: 1 / -1;">
+                                <label>Position Type</label>
+                                <div class="radio-group" id="calc-position-type">
+                                    <input type="radio" id="calc-type-long" name="position-type" value="Long" checked>
+                                    <label for="calc-type-long">Long</label>
+                                    <input type="radio" id="calc-type-short" name="position-type" value="Short">
+                                    <label for="calc-type-short">Short</label>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="result-display">Breakeven Price: <span id="calc-breakeven-price">--</span></p>
+
+                        <label>Quick Targets</label>
+                        <div class="quick-fill-group">
+                            <div class="quick-fill-group" id="calc-percent-targets">
+                                <button data-value="0.005">0.5%</button>
+                                <button data-value="0.01">1%</button>
+                                <button data-value="0.015">1.5%</button>
+                                <button data-value="0.02">2%</button>
+                                <button data-value="0.05">5%</button>
+                            </div>
+                            <div class="quick-fill-group" id="calc-dollar-targets">
+                                <button data-value="50">$50</button>
+                                <button data-value="100">$100</button>
+                                <button data-value="250">$250</button>
+                                <button data-value="500">$500</button>
+                                <button data-value="1000">$1000</button>
+                            </div>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table class="targets-table">
+                                <thead>
+                                    <tr>
+                                        <th>Target Price</th>
+                                        <th>Net Profit ($)</th>
+                                        <th>Fee ($)</th>
+                                        <th>Profit (%)</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="profit-targets-tbody">
+                                    <!-- Rows will be added dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <button id="add-target-row-btn" style="float: right; margin-top: 15px;">Add Target</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Risk-Based Position Sizer</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="risk-sizers-container">
+                           <!-- Sizers will be added dynamically -->
+                        </div>
+                        <button id="add-risk-sizer-btn" style="display: block; margin: 15px auto 0 auto;">Add Sizer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
     </div>
 
@@ -2014,11 +2706,25 @@
             statAvgLoss: document.getElementById('stat-avg-loss'),
             statRewardRisk: document.getElementById('stat-reward-risk'),
             statOpenTrades: document.getElementById('stat-open-trades'),
-            
+            keyOpensLastUpdated: document.querySelector('#key-opens-last-updated span'),
+            btcDailyOpen: document.getElementById('btc-daily-open'),
+            btcWeeklyOpen: document.getElementById('btc-weekly-open'),
+            btcMonthlyOpen: document.getElementById('btc-monthly-open'),
+            ethDailyOpen: document.getElementById('eth-daily-open'),
+            ethWeeklyOpen: document.getElementById('eth-weekly-open'),
+            ethMonthlyOpen: document.getElementById('eth-monthly-open'),
+            trackerScratchpadEl: document.getElementById('tracker-scratchpad'),
             addTradeForm: document.getElementById('add-trade-form'),
             tradesTbody: document.getElementById('trades-tbody'),
             completedTradesTbody: document.getElementById('completed-trades-tbody'),
+            assetSentimentContainer: document.getElementById('asset-sentiment-container'),
+            sentimentReceiptsTbody: document.getElementById('sentiment-receipts-tbody'),
             emaSnapshotContainer: document.getElementById('ema-snapshot-container'),
+            chartLibrary2Container: document.getElementById('chart-library-2-container'),
+            chartLibrary2PreviewContainer: document.getElementById('chart-library-2-preview-container'),
+            imageLibraryContainer: document.getElementById('image-library-container'),
+            libraryImageUpload: document.getElementById('library-image-upload'),
+            libraryUploadProgress: document.getElementById('library-upload-progress'),
             setupsImageContainer: document.getElementById('setups-image-container'),
             setupsImageUpload: document.getElementById('setups-image-upload'),
             setupsUploadProgress: document.getElementById('setups-upload-progress'),
@@ -2029,9 +2735,11 @@
             modalPrevBtn: document.getElementById('modal-prev'),
             modalNextBtn: document.getElementById('modal-next'),
             journalTab: document.getElementById('journal-tab'),
+            chartsTab: document.getElementById('charts-tab'),
             notesTab: document.getElementById('notes-tab'),
             createNewNoteBtn: document.getElementById('create-new-note-btn'),
             notesContainer: document.getElementById('notes-container'),
+            persistentNotesEl: document.getElementById('persistent-notes-entry'),
             primarySetupsNotes: document.getElementById('primary-setups-notes'),
             secondarySetupsNotes: document.getElementById('secondary-setups-notes'),
             journalSymbolEl: document.getElementById('journal-symbol'),
@@ -2070,6 +2778,17 @@
             vpLookbackEl: document.getElementById('vp-lookback'),
             vpLastUpdatedTime: document.getElementById('vp-last-updated-time'),
             volumeProfileChartCanvas: document.getElementById('volumeProfileChart'),
+            calculatorTab: document.getElementById('calculator-tab'),
+            calcEntryPrice: document.getElementById('calc-entry-price'),
+            calcPositionSize: document.getElementById('calc-position-size'),
+            calcPositionType: document.getElementById('calc-position-type'),
+            calcBreakevenPrice: document.getElementById('calc-breakeven-price'),
+            calcPercentTargets: document.getElementById('calc-percent-targets'),
+            calcDollarTargets: document.getElementById('calc-dollar-targets'),
+            profitTargetsTbody: document.getElementById('profit-targets-tbody'),
+            addTargetRowBtn: document.getElementById('add-target-row-btn'),
+            riskSizersContainer: document.getElementById('risk-sizers-container'),
+            addRiskSizerBtn: document.getElementById('add-risk-sizer-btn'),
         };
 
         // --- APPLICATION STATE ---
@@ -2119,6 +2838,8 @@
         async function fetchLiveConversionRate() { try { const response = await fetch('https://open.er-api.com/v6/latest/USD'); if (!response.ok) return; const data = await response.json(); if (data?.result === "success" && data?.rates?.AUD) { STATE.usdToAudRate = data.rates.AUD; } } catch (error) { console.error("Could not fetch conversion rate.", error); } }
         async function fetchEmaData() { try { const response = await fetch(`ma_analysis.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.emaData = await response.json(); renderEmaSnapshot('BTC-USDT'); } catch (error) { console.error("Could not fetch ma_analysis.json:", error); if (DOM.emaSnapshotContainer) DOM.emaSnapshotContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading EMA data.</p>'; } }
         async function fetchSrData() { try { const response = await fetch(`sr_levels_analysis.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.srData = await response.json(); if (DOM.srLevelsTab.classList.contains('active')) { renderSrLevels(); } } catch (error) { console.error("Could not fetch sr_levels_analysis.json:", error); DOM.supportLevelsTbody.parentElement.innerHTML = '<p style="color: red; text-align: center;">Error loading S/R data.</p>'; } }
+        async function fetchMarketOpens() { try { const response = await fetch(`market_opens.json?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); STATE.marketOpens = await response.json(); renderMarketOpens(); } catch (error) { console.error("Could not fetch market_opens.json:", error); } }
+        async function fetchCrossoverSignalData() { const signalJsonUrl = 'crypto_signals.json'; try { const response = await fetch(`${signalJsonUrl}?cache_bust=${new Date().getTime()}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); renderCrossoverSignals(data); } catch (error) { console.error("Could not fetch or parse crossover signal data:", error); const ethContainer = document.getElementById('eth-crossover-signal-container'); const btcContainer = document.getElementById('btc-crossover-signal-container'); const errorMsg = '<p style="color: red; text-align: center;">Error loading signal data.</p>'; if (ethContainer) ethContainer.innerHTML = errorMsg; if (btcContainer) btcContainer.innerHTML = errorMsg; const lastUpdatedEl = document.getElementById('crossover-signals-last-updated'); if(lastUpdatedEl) lastUpdatedEl.textContent = 'Failed to load data.'; } }
         
         async function fetchAndRenderOptionsData() {
             if (!DOM.optionsOiTab) return;
@@ -2170,6 +2891,19 @@
         }
 
         // --- RENDERING FUNCTIONS ---
+        function renderOrUpdateChart(canvasId, type, chartData, titleText, scalesConfig = {}, pluginsConfig = {}) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: titleText, font: { size: 18 } }, ...pluginsConfig }, scales: { x: { type: 'time', time: { unit: 'hour', tooltipFormat: 'MMM dd, yyyy HH:mm', displayFormats: { hour: 'HH:mm' } }, title: { display: true, text: 'Time (UTC)' } }, ...scalesConfig } };
+            if (STATE.chartInstances[canvasId]) {
+                const chart = STATE.chartInstances[canvasId];
+                chart.data = chartData;
+                chart.options = chartOptions;
+                chart.update();
+            } else {
+                STATE.chartInstances[canvasId] = new Chart(ctx, { type, data: chartData, options: chartOptions });
+            }
+        }
         
        function drawSingleVolumeProfileChart(canvas, symbol, lookback) {
             if (!canvas) return;
@@ -2309,6 +3043,49 @@
                 drawSingleVolumeProfileChart(DOM.volumeProfileChartCanvas, selectedSymbol, selectedLookback);
             }
         }
+        async function fetchAndRenderHistoricalCharts() {
+            try {
+                const response = await fetch('historical_market_data.json?v=' + new Date().getTime());
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                const lastUpdatedEl = document.getElementById('last-updated-charts');
+                if (data.length === 0) { lastUpdatedEl.innerText = 'No historical data. Run the Python script.'; return; }
+                lastUpdatedEl.innerText = `Last updated: ${new Date(data[data.length - 1].timestamp).toLocaleString()}`;
+                const labels = data.map(d => new Date(d.timestamp));
+                const btcPrice = data.map(d => d.btc_price);
+                const totalOI = data.map(d => d.total_open_interest_btc);
+                const totalVolume = data.map(d => d.total_volume_24h_btc);
+                const pcr = data.map(d => d.pcr_by_volume);
+                const shortGamma = data.map(d => d.total_short_gamma);
+                renderOrUpdateChart('priceChart', 'line', { labels, datasets: [{ label: 'BTC Price (USD)', data: btcPrice, borderColor: 'rgb(249, 115, 22)', yAxisID: 'yPrice' }, { label: 'Total Short Gamma', data: shortGamma, borderColor: 'rgb(59, 130, 246)', yAxisID: 'yGamma' }] }, 'Price and Gamma Exposure', { yPrice: { type: 'linear', position: 'left', title: { display: true, text: 'BTC Price' } }, yGamma: { type: 'linear', position: 'right', title: { display: true, text: 'Total Short Gamma' }, grid: { drawOnChartArea: false } } });
+                renderOrUpdateChart('oiVolumeChart', 'bar', { labels, datasets: [{ label: 'Total OI (BTC)', data: totalOI, type: 'line', borderColor: 'rgb(22, 163, 74)', yAxisID: 'yOI' }, { label: 'Total 24h Volume (BTC)', data: totalVolume, backgroundColor: 'rgba(168, 85, 247, 0.5)', yAxisID: 'yVolume' }] }, 'Open Interest and 24h Volume', { yOI: { type: 'linear', position: 'left', title: { display: true, text: 'Open Interest' } }, yVolume: { type: 'linear', position: 'right', title: { display: true, text: '24h Volume' }, grid: { drawOnChartArea: false } } });
+                renderOrUpdateChart('sentimentChart', 'line', { labels, datasets: [{ label: 'P/C Ratio (Volume)', data: pcr, borderColor: 'rgb(220, 38, 38)' }] }, 'Market Sentiment (Put/Call Ratio)');
+                const allStrikeKeys = new Set();
+                data.forEach(entry => { if (entry.per_strike_gamma) { Object.keys(entry.per_strike_gamma).forEach(strike => allStrikeKeys.add(strike)); } });
+                const sortedStrikes = Array.from(allStrikeKeys).sort((a, b) => parseInt(a) - parseInt(b));
+                const perStrikeGammaData = {};
+                sortedStrikes.forEach(strike => { perStrikeGammaData[strike] = data.map(entry => (entry.per_strike_gamma && entry.per_strike_gamma[strike] !== undefined) ? entry.per_strike_gamma[strike] : null); });
+                const colors = ['#3498db', '#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#e67e22', '#34495e', '#7f8c8d'];
+                const perStrikeDatasets = sortedStrikes.map((strike, index) => ({ label: `$${(parseInt(strike)/1000)}K`, data: perStrikeGammaData[strike], borderColor: colors[index % colors.length], backgroundColor: colors[index % colors.length] + '1A', borderWidth: 2, spanGaps: true, pointRadius: 1, tension: 0.1 }));
+                renderOrUpdateChart('perStrikeGammaChart', 'line', { labels, datasets: perStrikeDatasets }, 'Historical Gamma Exposure for Key Strikes', { y: { title: { display: true, text: 'Dealer Gamma' } } }, { legend: { position: 'bottom' } });
+            } catch (error) {
+                console.error("Failed to render chart data:", error);
+                document.getElementById('last-updated-charts').innerText = 'Error loading chart data.';
+            }
+        }
+
+
+        function toggleHistoricalRows(tbodyId, button) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+            const historicalRows = tbody.querySelectorAll('.historical-entry');
+            if (historicalRows.length === 0) return;
+            const isCurrentlyHidden = historicalRows[0].style.display === 'none';
+            const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
+            historicalRows.forEach(row => { row.style.display = displayStyle; });
+            button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
+            adjustCollapsibleSize(button);
+        }
         
         function renderNotes(notesData) {
             const container = DOM.notesContainer;
@@ -2323,6 +3100,56 @@
             adjustCollapsibleSize(container);
         }
 
+        function renderMarketOpens() {
+            const data = STATE.marketOpens;
+            if (!data?.opens) return;
+            const btcData = data.opens['BTC-USDT'];
+            if (btcData) { DOM.btcDailyOpen.textContent = formatCurrency(btcData.daily); DOM.btcWeeklyOpen.textContent = formatCurrency(btcData.weekly); DOM.btcMonthlyOpen.textContent = formatCurrency(btcData.monthly); }
+            const ethData = data.opens['ETH-USDT'];
+            if (ethData) { DOM.ethDailyOpen.textContent = formatCurrency(ethData.daily); DOM.ethWeeklyOpen.textContent = formatCurrency(ethData.weekly); DOM.ethMonthlyOpen.textContent = formatCurrency(ethData.monthly); }
+            if (data.last_updated) {
+                const lastUpdatedDate = new Date(data.last_updated);
+                DOM.keyOpensLastUpdated.textContent = lastUpdatedDate.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+                const now = new Date();
+                const todayUTCStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                const lastUpdatedContainer = DOM.keyOpensLastUpdated.parentElement;
+                if (lastUpdatedDate.getTime() >= todayUTCStart.getTime()) { lastUpdatedContainer.classList.add('updated-today'); DOM.btcDailyOpen.classList.add('updated-today-value'); DOM.ethDailyOpen.classList.add('updated-today-value'); } else { lastUpdatedContainer.classList.remove('updated-today'); DOM.btcDailyOpen.classList.remove('updated-today-value'); DOM.ethDailyOpen.classList.remove('updated-today-value'); }
+            }
+        }
+
+        function renderCrossoverSignals(signalData) {
+            const ethContainer = document.getElementById('eth-crossover-signal-container');
+            const btcContainer = document.getElementById('btc-crossover-signal-container');
+            if (!ethContainer || !btcContainer) return;
+            let ethHtml = '';
+            let btcHtml = '';
+            const symbols = Object.keys(signalData).sort();
+            for (const symbol of symbols) {
+                if (Object.hasOwnProperty.call(signalData, symbol)) {
+                    const tableHtml = createCrossoverSignalTableHTML(symbol, signalData[symbol]);
+                    if (symbol.startsWith('ETH')) { ethHtml += tableHtml; } else if (symbol.startsWith('BTC')) { btcHtml += tableHtml; }
+                }
+            }
+            ethContainer.innerHTML = ethHtml;
+            btcContainer.innerHTML = btcHtml;
+            const lastUpdatedEl = document.getElementById('crossover-signals-last-updated');
+            if(lastUpdatedEl) lastUpdatedEl.textContent = `Last Updated: ${new Date().toLocaleString()}`;
+            adjustCollapsibleSize(ethContainer);
+            adjustCollapsibleSize(btcContainer);
+        }
+
+        function createCrossoverSignalTableHTML(symbol, symbolData) {
+            const timeframes = ['1h', '2h', '4h', '1d', '1w', '1M'];
+            const tableRows = timeframes.map(tf => {
+                const data = symbolData[tf] || { stage: 'N/A', colour: 'Grey', Level: 'N/A' };
+                let colorClass = 'signal-cell-grey'; 
+                if (data.colour === 'Green') colorClass = 'signal-cell-green'; 
+                else if (data.colour === 'Red') colorClass = 'signal-cell-red';
+                const levelValue = data['0-Candle Support'] || data['0-Candle Resistance'] || data['Level'] || 'N/A';
+                return `<tr><td>${tf.toUpperCase()}</td><td class="signal-cell ${colorClass}">${data.stage}</td><td class="support-value">${levelValue}</td></tr>`;
+            }).join('');
+            return `<div class="crossover-signals-table-wrapper"><h3>${symbol.replace('USDT', '/USDT')} Crossover Signal</h3><div class="table-wrapper"><table class="crossover-signals-table"><thead><tr><th>Timeframe</th><th>Signal Stage</th><th>0candle Resistance</th></tr></thead><tbody>${tableRows}</tbody></table></div></div>`;
+        }
         function renderAttachmentThumbnails(entry, entryId, entryType) {
             const images = entry.attachedImages || {};
             const masterDeleteBtn = (imageId, fileName) => (STATE.isMasterUser) ? `<button class="delete-trade-image" title="Delete Attachment" data-entry-id="${entryId}" data-entry-type="${entryType}" data-image-id="${imageId}" data-filename="${fileName}">×</button>` : '';
@@ -2334,6 +3161,60 @@
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
         
+        function renderSentimentReceipts() {
+            const tbody = DOM.sentimentReceiptsTbody;
+            if (!tbody) return;
+            const receipts = STATE.allSentimentReceipts || {};
+            const receiptIds = Object.keys(receipts).sort().reverse();
+            const currentViewerId = getViewerId();
+            const perthTodayStr = getPerthDateString();
+            let rowsHtml = '';
+            const paginationControls = document.getElementById('sentiment-pagination-controls');
+            const showAllButton = document.getElementById('toggle-all-sentiments');
+            if (STATE.sentimentShowAll) {
+                const totalItems = receiptIds.length;
+                const totalPages = Math.ceil(totalItems / STATE.sentimentItemsPerPage);
+                if (STATE.sentimentCurrentPage > totalPages && totalPages > 0) STATE.sentimentCurrentPage = totalPages;
+                if (STATE.sentimentCurrentPage < 1) STATE.sentimentCurrentPage = 1;
+                const startIndex = (STATE.sentimentCurrentPage - 1) * STATE.sentimentItemsPerPage;
+                const endIndex = startIndex + STATE.sentimentItemsPerPage;
+                const pageReceiptIds = receiptIds.slice(startIndex, endIndex);
+                rowsHtml = pageReceiptIds.map(id => {
+                    const receipt = receipts[id];
+                    let sentimentColor = 'var(--text-color)';
+                    if (receipt.sentiment === 'long') sentimentColor = 'var(--green-text)';
+                    if (receipt.sentiment === 'short') sentimentColor = 'var(--red-text)';
+                    const ownerActionsHtml = (receipt.viewerId === currentViewerId && STATE.isMasterUser) ? `<button class="attach-image-btn" data-id="${id}" data-type="sentiment" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="edit-sentiment-note-btn" data-id="${id}">Note</button><button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">×</button>` : '';
+                    const displayTimestamp = typeof receipt.timestamp === 'number' ? new Date(receipt.timestamp).toLocaleString() : (receipt.timestamp || '--');
+                    return `<tr><td>${receipt.asset || '--'}</td><td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td><td class="sentiment-note-cell">${receipt.note || ''}</td>${renderAttachmentThumbnails(receipt, id, 'sentiment')}<td>${displayTimestamp}</td><td class="action-buttons">${ownerActionsHtml}</td></tr>`;
+                }).join('');
+                showAllButton.style.display = 'none';
+                if (totalPages > 1) {
+                    paginationControls.style.display = 'flex';
+                    document.getElementById('sentiment-page-info').textContent = `Page ${STATE.sentimentCurrentPage} of ${totalPages}`;
+                    document.getElementById('sentiment-prev-page').disabled = (STATE.sentimentCurrentPage === 1);
+                    document.getElementById('sentiment-next-page').disabled = (STATE.sentimentCurrentPage === totalPages);
+                } else { paginationControls.style.display = 'none'; }
+            } else {
+                let hasHistorical = false;
+                rowsHtml = receiptIds.map(id => {
+                    const receipt = receipts[id];
+                    const receiptPerthDateStr = (typeof receipt.timestamp === 'number') ? getPerthDateString(new Date(receipt.timestamp)) : '';
+                    const isHistorical = (receiptPerthDateStr !== perthTodayStr);
+                    if(isHistorical) hasHistorical = true;
+                    let sentimentColor = 'var(--text-color)';
+                    if (receipt.sentiment === 'long') sentimentColor = 'var(--green-text)';
+                    if (receipt.sentiment === 'short') sentimentColor = 'var(--red-text)';
+                    const ownerActionsHtml = (receipt.viewerId === currentViewerId && STATE.isMasterUser) ? `<button class="attach-image-btn" data-id="${id}" data-type="sentiment" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="edit-sentiment-note-btn" data-id="${id}">Note</button><button class="delete-sentiment-btn" data-id="${id}" title="Delete Entry">×</button>` : '';
+                    const displayTimestamp = typeof receipt.timestamp === 'number' ? new Date(receipt.timestamp).toLocaleString() : (receipt.timestamp || '--');
+                    return `<tr class="${isHistorical ? 'historical-entry' : ''}"><td>${receipt.asset || '--'}</td><td style="color: ${sentimentColor};">${receipt.sentiment || '--'}</td><td class="sentiment-note-cell">${receipt.note || ''}</td>${renderAttachmentThumbnails(receipt, id, 'sentiment')}<td>${displayTimestamp}</td><td class="action-buttons">${ownerActionsHtml}</td></tr>`;
+                }).join('');
+                paginationControls.style.display = 'none';
+                showAllButton.style.display = hasHistorical ? 'block' : 'none';
+            }
+            tbody.innerHTML = rowsHtml;
+            adjustCollapsibleSize(tbody);
+        }
 // === MODIFIED: Populates the two new loss columns ===
         function renderLiveTable(data) {
             const trades = data || {};
@@ -2594,6 +3475,50 @@ const createRowHtml = (id) => {
             containerElement.innerHTML = imagesHtml;
             adjustCollapsibleSize(containerElement);
         }
+        function renderChartLibrary2Folders() {
+            if (!DOM.chartLibrary2Container) return;
+            const foldersHtml = CL2_FOLDERS.map(folder => { const imageCount = STATE.chartLibrary2Data[folder] ? Object.keys(STATE.chartLibrary2Data[folder]).length : 0; return `<div class="cl2-folder-card" data-folder="${folder}"><div class="cl2-folder-icon">📁</div><h4>${folder}</h4><div class="cl2-folder-count">${imageCount} image${imageCount !== 1 ? 's' : ''}</div></div>`; }).join('');
+            DOM.chartLibrary2Container.innerHTML = `<div class="cl2-folder-grid">${foldersHtml}</div>`;
+            if (STATE.isMasterUser) {
+                document.querySelectorAll('.cl2-folder-card').forEach(folderEl => {
+                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => folderEl.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }));
+                    ['dragenter', 'dragover'].forEach(eventName => folderEl.addEventListener(eventName, () => folderEl.classList.add('drag-over')));
+                    folderEl.addEventListener('dragleave', () => folderEl.classList.remove('drag-over'));
+                    folderEl.addEventListener('drop', e => { folderEl.classList.remove('drag-over'); if (e.dataTransfer?.files.length > 0) handleChartLibrary2Upload(e.dataTransfer.files, folderEl.dataset.folder); });
+                });
+            }
+        }
+
+        function renderFolderContents(folderName) {
+            if (!DOM.chartLibrary2Container) return;
+            const imagesForFolder = STATE.chartLibrary2Data[folderName] || {};
+            const headerHtml = `<div class="cl2-image-view-header"><button class="cl2-back-button">← Back to Folders</button><h3 class="cl2-view-title">${folderName}</h3><span></span></div>`;
+            const masterDeleteButtonHtml = (id, fileName) => (STATE.isMasterUser) ? `<button class="delete-library-image" title="Delete Image" data-folder="${folderName}" data-id="${id}" data-filename="${fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` : '';
+            const imagesHtml = Object.keys(imagesForFolder).sort((a, b) => imagesForFolder[b].timestamp - imagesForFolder[a].timestamp).map(id => {
+                const imgData = imagesForFolder[id]; if (!imgData?.url) return '';
+                const timestamp = imgData.timestamp ? new Date(imgData.timestamp).toLocaleString() : '';
+                return `<div class="library-image-wrapper">${masterDeleteButtonHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="Image from ${folderName}" data-full-src="${imgData.url}" data-caption="${timestamp}"><div class="library-image-caption" title="${timestamp}">${timestamp}</div></div>`;
+            }).join('');
+            const gridHtml = `<div class="cl2-image-grid">${imagesHtml || '<p>No images in this folder. Drag and drop to add some!</p>'}</div>`;
+            DOM.chartLibrary2Container.innerHTML = headerHtml + gridHtml;
+        }
+
+        function renderChartLibrary2Preview() {
+            const container = DOM.chartLibrary2PreviewContainer; if (!container) return;
+            let html = '';
+            CL2_FOLDERS.forEach(folderName => {
+                const imagesInFolder = STATE.chartLibrary2Data[folderName];
+                if (!imagesInFolder || Object.keys(imagesInFolder).length === 0) return;
+                const latestImage = Object.values(imagesInFolder).sort((a, b) => b.timestamp - a.timestamp)[0];
+                if (latestImage) {
+                    const timestamp = latestImage.timestamp ? new Date(latestImage.timestamp).toLocaleString() : '';
+                    const isToday = latestImage.timestamp && (getYYYYMMDD(new Date(latestImage.timestamp)) === getYYYYMMDD(new Date()));
+                    const captionClass = isToday ? 'library-image-caption is-today' : 'library-image-caption';
+                    html += `<div class="cl2-preview-item"><h4>${folderName}</h4><div class="library-image-wrapper"><img src="${latestImage.url}" alt="Latest from ${folderName}" data-full-src="${latestImage.url}" data-caption="${timestamp}"><div class="${captionClass}" title="${timestamp}">${timestamp}</div></div></div>`;
+                }
+            });
+            container.innerHTML = html;
+        }
 
         function renderDateNavigation() {
             const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
@@ -2622,8 +3547,11 @@ const createRowHtml = (id) => {
             if(document.activeElement !== DOM.journalEntryEl) {
                 DOM.journalEntryEl.value = dailyText;
             }
+            if(document.activeElement !== DOM.persistentNotesEl) {
+                DOM.persistentNotesEl.value = STATE.persistentNotes;
+            }
             
-            setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); }, 50);
+            setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); adjustCollapsibleSize(DOM.persistentNotesEl); }, 50);
             DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
             renderJournalImages(safeSymbol, timeframe, yyyymmdd);
         }
@@ -2792,6 +3720,34 @@ const createRowHtml = (id) => {
             DOM.resistanceLevelsTbody.innerHTML = resistanceLevels.map(level => buildLevelRow(level, 'resistance')).join('');
         }
 
+        function renderLevelNotes(notesData) {
+            STATE.levelNotes = notesData || {};
+            for (const safeSymbol in STATE.levelNotes) {
+                if (Object.hasOwnProperty.call(STATE.levelNotes, safeSymbol)) {
+                    const symbolNotes = STATE.levelNotes[safeSymbol];
+                    const symbolPrefix = safeSymbol.split('-')[0].toLowerCase();
+                    for (const timeframe in symbolNotes) {
+                        if (Object.hasOwnProperty.call(symbolNotes, timeframe)) {
+                            const note = symbolNotes[timeframe];
+                            const textareaEl = document.getElementById(`${symbolPrefix}-${timeframe}-note`);
+                            if (textareaEl) { textareaEl.value = note; adjustCollapsibleSize(textareaEl); }
+                        }
+                    }
+                }
+            }
+        }
+        const saveLevelNotes = (inputElement) => {
+            if (!STATE.isMasterUser) return;
+            clearTimeout(STATE.levelNotesSaveTimer);
+            STATE.levelNotesSaveTimer = setTimeout(() => {
+                const idParts = inputElement.id.split('-');
+                const symbol = `${idParts[0].toUpperCase()}-USDT`;
+                const timeframe = idParts[1];
+                const value = inputElement.value;
+                dbRefs.levelNotes.child(getSafeSymbol(symbol)).child(timeframe).set(value).catch(e => console.error("Error saving level note:", e));
+            }, 750);
+        };
+        
         // --- DATA HANDLING AND SAVING ---
         function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
             if (!STATE.isMasterUser) return;
@@ -2839,6 +3795,8 @@ const createRowHtml = (id) => {
                 }).catch(e => DOM.saveStatus.textContent = `Error: ${e.message}`);
             }, 750);
         };
+        const savePersistentNotes = () => { clearTimeout(STATE.notesSaveTimer); STATE.notesSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.persistentNotes.set(DOM.persistentNotesEl.value).catch(e => console.error("Error saving persistent notes:", e)); }, 750); };
+        const saveTrackerScratchpad = () => { clearTimeout(STATE.trackerSaveTimer); STATE.trackerSaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.trackerScratchpad.set(DOM.trackerScratchpadEl.value).catch(e => console.error("Error saving tracker scratchpad:", e)); }, 750); };
         
         function savePrimaryNotesOnly() {
             if (!STATE.isMasterUser) return;
@@ -3037,6 +3995,25 @@ const createRowHtml = (id) => {
             });
         }
 
+        function handleChartLibrary2Upload(files, folderName) {
+            if (!STATE.isMasterUser || !files || files.length === 0) return;
+            const folderCard = document.querySelector(`.cl2-folder-card[data-folder="${folderName}"]`);
+            if(folderCard) folderCard.style.outline = '2px solid var(--link-color)';
+            Array.from(files).forEach((file, index) => {
+                if (!file.type.startsWith('image/')) return;
+                const fileName = `${Date.now()}_${file.name}`;
+                const storagePath = `chart_library_2/${folderName}/${fileName}`;
+                const uploadTask = storage.ref(storagePath).put(file);
+                uploadTask.on('state_changed', null, (e) => { console.error(`Upload to ${folderName} Failed:`, e); alert(`Upload failed for ${file.name}.`); if(folderCard) folderCard.style.outline = 'none'; }, () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+                        const imageData = { url, fileName, timestamp: firebase.database.ServerValue.TIMESTAMP };
+                        dbRefs.chartLibrary2.child(folderName).push(imageData);
+                        if (index === files.length - 1 && folderCard) folderCard.style.outline = 'none';
+                    });
+                });
+            });
+        }
+
         function calculateNetResult(trade, exitPrice, exitFeeType) {
             const entry = parseFloat(trade.entry), posValue = parseFloat(trade.size), exit = parseFloat(exitPrice);
             if (isNaN(entry) || isNaN(posValue) || isNaN(exit)) return { net_result: 0, entry_fee: 0, exit_fee: 0 };
@@ -3143,6 +4120,9 @@ const createRowHtml = (id) => {
         }
 
          function setupEventListeners() {
+            document.getElementById('key-opens-container').addEventListener('input', e => {
+                if(e.target.matches('.key-open-note')) { autoResizeTextarea(e.target); saveLevelNotes(e.target); }
+            });
             DOM.themeToggle.addEventListener('change', (e) => {
                 const theme = e.target.checked ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
@@ -3168,6 +4148,10 @@ const createRowHtml = (id) => {
                 if (tabId === 'volume-profile') {
                     renderVolumeProfileChart();
                     openDefaultSectionsInContainer(newTabContent);
+                }
+                if (tabId === 'calculator' && !DOM.calculatorTab.dataset.initialized) {
+                    initializeCalculators();
+                    DOM.calculatorTab.dataset.initialized = 'true';
                 }
             });
 
@@ -3205,10 +4189,23 @@ const createRowHtml = (id) => {
                     group.querySelectorAll('.ema-pill-btn').forEach(btn => btn.classList.remove('active'));
                     pillBtn.classList.add('active');
                     renderEmaSnapshot(pillBtn.dataset.symbol);
-                } else if (e.target.closest('#setups-image-container')) {
+                } else if (e.target.closest('.sentiment-buttons button')) {
+                    handleSentimentLog(e);
+                } else if (e.target.closest('#setups-image-container, #image-library-container, #chart-library-2-container, #chart-library-2-preview-container')) {
                     handleGenericImageLibraryClick(e);
                 } else if (e.target.closest('#trades-tbody, #completed-trades-tbody')) {
                     handleTradeAction(e);
+                } else if (e.target.closest('#sentiment-receipts-tbody')) {
+                    handleSentimentAction(e);
+                } else if (e.target.id === 'toggle-all-sentiments') {
+                    STATE.sentimentShowAll = true;
+                    STATE.sentimentCurrentPage = 1;
+                    renderSentimentReceipts();
+                } else if (e.target.id === 'sentiment-prev-page') {
+                    if (STATE.sentimentCurrentPage > 1) { STATE.sentimentCurrentPage--; renderSentimentReceipts(); }
+                } else if (e.target.id === 'sentiment-next-page') {
+                    const totalPages = Math.ceil(Object.keys(STATE.allSentimentReceipts).length / STATE.sentimentItemsPerPage);
+                    if (STATE.sentimentCurrentPage < totalPages) { STATE.sentimentCurrentPage++; renderSentimentReceipts(); }
                 } else if (e.target.id === 'toggle-all-completed-trades') {
                     STATE.completedTradesShowAll = true;
                     STATE.completedTradesCurrentPage = 1;
@@ -3268,6 +4265,7 @@ const createRowHtml = (id) => {
                 }
             }, true);
 
+            DOM.trackerScratchpadEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveTrackerScratchpad(); });
             DOM.primarySetupsNotes.addEventListener('input', (e) => {
                 autoResizeTextarea(e.target);
                 debouncedResizeParent(e.target);
@@ -3279,6 +4277,7 @@ const createRowHtml = (id) => {
             DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
             DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
 
+            DOM.libraryImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'image_library', DOM.libraryUploadProgress, dbRefs.imageLibrary));
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
             DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
 
@@ -3307,6 +4306,7 @@ const createRowHtml = (id) => {
             DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
 
             DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveJournalEntry(); });
+            DOM.persistentNotesEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); savePersistentNotes(); });
             DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
             DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
 
@@ -3324,6 +4324,197 @@ const createRowHtml = (id) => {
             [DOM.srSymbolEl, DOM.srLookbackEl].forEach(el => el.addEventListener('change', renderSrLevels));
             [DOM.vpSymbolEl, DOM.vpLookbackEl].forEach(el => el.addEventListener('change', renderVolumeProfileChart));
             DOM.srLegendHeader.addEventListener('click', () => { const isCollapsed = DOM.srLegendContent.style.display === 'none'; DOM.srLegendContent.style.display = isCollapsed ? 'block' : 'none'; DOM.srLegendHeader.classList.toggle('collapsed', !isCollapsed); DOM.srLegendToggleBtn.textContent = isCollapsed ? '−' : '+'; DOM.srLegendToggleBtn.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)'; });
+        }
+        
+        function initializeCalculators() {
+            [DOM.calcEntryPrice, DOM.calcPositionSize].forEach(input => {
+                input.addEventListener('input', calculateAllProfits);
+                setupSpinbox(input);
+            });
+            DOM.calcPositionType.addEventListener('change', calculateAllProfits);
+            DOM.addTargetRowBtn.addEventListener('click', addTargetRow);
+            DOM.calcPercentTargets.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { autofillTargetByPercent(parseFloat(e.target.dataset.value)); } });
+            DOM.calcDollarTargets.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { autofillTargetByDollar(parseFloat(e.target.dataset.value)); } });
+            DOM.profitTargetsTbody.addEventListener('click', e => { if (e.target.classList.contains('remove-row-btn')) { const row = e.target.closest('tr'); if (row) { row.remove(); calculateAllProfits(); } } });
+            DOM.addRiskSizerBtn.addEventListener('click', addRiskSizer);
+            DOM.riskSizersContainer.addEventListener('input', e => { const sizer = e.target.closest('.risk-sizer-instance'); if (sizer) calculateRiskSizer(sizer); });
+            DOM.riskSizersContainer.addEventListener('click', e => { if (e.target.classList.contains('remove-sizer-btn')) { const sizer = e.target.closest('.risk-sizer-instance'); if (sizer) sizer.remove(); } });
+            addTargetRow(); addRiskSizer(); openDefaultSectionsInContainer(DOM.calculatorTab);
+        }
+
+        function setupSpinbox(inputElement) {
+            const handleAdjustment = (multiplier) => {
+                let currentValue = parseFloat(inputElement.value) || 0;
+                const valueStr = inputElement.value;
+                let step = 1;
+                if (valueStr.includes('.')) { const decimalPart = valueStr.split('.')[1]; step = Math.pow(10, -decimalPart.length); }
+                const precision = Math.pow(10, (valueStr.split('.')[1] || '').length);
+                let newValue = (Math.round(currentValue * precision) + Math.round(step * multiplier * precision)) / precision;
+                const decimalPlaces = (valueStr.split('.')[1] || '').length;
+                inputElement.value = newValue.toFixed(decimalPlaces);
+                inputElement.dispatchEvent(new Event('input'));
+            };
+            inputElement.addEventListener('keydown', e => {
+                if (e.key === 'ArrowUp') { e.preventDefault(); handleAdjustment(1); } else if (e.key === 'ArrowDown') { e.preventDefault(); handleAdjustment(-1); }
+            });
+            inputElement.addEventListener('wheel', e => { e.preventDefault(); handleAdjustment(e.deltaY < 0 ? 1 : -1); });
+        }
+
+    function calculateAllProfits() {
+            const entryPrice = parseFloat(DOM.calcEntryPrice.value);
+            const positionSize = parseFloat(DOM.calcPositionSize.value);
+            const positionType = document.querySelector('input[name="position-type"]:checked').value;
+            if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) { DOM.calcBreakevenPrice.textContent = '--'; return; }
+            const { TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const breakevenPrice = positionType === "Long" ? entryPrice * (1 + TAKER_FEE_RATE) / (1 - TAKER_FEE_RATE) : entryPrice * (1 - TAKER_FEE_RATE) / (1 + TAKER_FEE_RATE);
+            DOM.calcBreakevenPrice.textContent = `~${breakevenPrice.toFixed(8).replace(/\.?0+$/, "")}`;
+            const quantity = positionSize / entryPrice;
+            const entryFee = positionSize * TAKER_FEE_RATE;
+            DOM.profitTargetsTbody.querySelectorAll('tr').forEach(row => {
+                const targetPriceInput = row.querySelector('.target-price-input');
+                const targetPrice = parseFloat(targetPriceInput.value);
+                const profitCell = row.cells[1];
+                const feeCell = row.cells[2];
+                const percentCell = row.cells[3];
+                if (isNaN(targetPrice) || targetPrice <= 0) { profitCell.textContent = '--'; feeCell.textContent = '--'; percentCell.textContent = '--'; profitCell.style.color = 'var(--text-color)'; percentCell.style.color = 'var(--text-color)'; return; }
+                const grossProfit = positionType === 'Long' ? (targetPrice - entryPrice) * quantity : (entryPrice - targetPrice) * quantity;
+                const totalFee = entryFee + (quantity * targetPrice * TAKER_FEE_RATE);
+                const netProfit = grossProfit - totalFee;
+                const profitPercent = (netProfit / positionSize) * 100;
+                const resultColor = netProfit >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                profitCell.textContent = netProfit.toFixed(2);
+                feeCell.textContent = totalFee.toFixed(2);
+                percentCell.textContent = profitPercent.toFixed(2) + '%';
+                profitCell.style.color = resultColor;
+                percentCell.style.color = resultColor;
+            });
+        }
+        
+    function addTargetRow() {
+            const row = DOM.profitTargetsTbody.insertRow();
+            row.innerHTML = `
+                <td><input type="number" class="target-price-input" placeholder="" step="0.01"></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td><button class="remove-row-btn">×</button></td>
+            `;
+            const input = row.querySelector('input');
+            input.addEventListener('input', calculateAllProfits);
+            setupSpinbox(input);
+            resizeParentCollapsible(DOM.addTargetRowBtn);
+        }
+
+        function findNextEmptyTargetInput() {
+            let emptyInput = Array.from(DOM.profitTargetsTbody.querySelectorAll('.target-price-input')).find(input => !input.value);
+            if (!emptyInput) {
+                addTargetRow();
+                emptyInput = DOM.profitTargetsTbody.lastElementChild.querySelector('.target-price-input');
+            }
+            return emptyInput;
+        }
+
+function autofillTargetByPercent(percent) {
+            const entryPrice = parseFloat(DOM.calcEntryPrice.value);
+            if (isNaN(entryPrice) || entryPrice <= 0) return;
+            const positionType = document.querySelector('input[name="position-type"]:checked').value;
+            const targetPrice = positionType === "Long" ? entryPrice * (1 + percent) : entryPrice * (1 - percent);
+            const targetInput = findNextEmptyTargetInput();
+            targetInput.value = targetPrice.toFixed(8).replace(/\.?0+$/, "");
+            targetInput.dispatchEvent(new Event('input'));
+        }
+
+        function autofillTargetByDollar(dollarAmount) {
+            const entryPrice = parseFloat(DOM.calcEntryPrice.value);
+            const positionSize = parseFloat(DOM.calcPositionSize.value);
+            if (isNaN(entryPrice) || isNaN(positionSize) || entryPrice <= 0 || positionSize <= 0) return;
+            const positionType = document.querySelector('input[name="position-type"]:checked').value;
+            const { TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
+            const q = positionSize / entryPrice;
+            let targetPrice;
+            if (positionType === "Long") {
+                const denominator = q * (1 - TAKER_FEE_RATE);
+                if (denominator === 0) return;
+                targetPrice = (dollarAmount + positionSize * (1 + TAKER_FEE_RATE)) / denominator;
+            } else {
+                const denominator = q * (1 + TAKER_FEE_RATE);
+                if (denominator === 0) return;
+                targetPrice = (positionSize * (1 - TAKER_FEE_RATE) - dollarAmount) / denominator;
+            }
+            if (targetPrice > 0) {
+                const targetInput = findNextEmptyTargetInput();
+                targetInput.value = targetPrice.toFixed(8).replace(/\.?0+$/, "");
+                targetInput.dispatchEvent(new Event('input'));
+            }
+        }
+
+        function addRiskSizer() {
+            const sizerInstance = document.createElement('div');
+            sizerInstance.className = 'risk-sizer-instance';
+            sizerInstance.innerHTML = `
+                <button class="remove-row-btn remove-sizer-btn">×</button>
+                <div class="calculator-grid">
+                    <div>
+                        <label>Account Balance ($)</label>
+                        <input type="number" class="risk-balance" placeholder="" step="100">
+                    </div>
+                    <div>
+                        <label>Risk Per Trade (%)</label>
+                        <input type="number" class="risk-percent" value="1" step="0.1">
+                    </div>
+                    <div>
+                        <label>Entry Price</label>
+                        <input type="number" class="risk-entry" placeholder="" step="0.1">
+                    </div>
+                    <div>
+                        <label>Stop-Loss Price</label>
+                        <input type="number" class="risk-stop" placeholder="" step="0.1">
+                    </div>
+                </div>
+                <div class="risk-sizer-output">
+                    <span class="sub-value">Amount to Risk: --</span>
+                    <span class="value">--</span>
+                    <span class="label">Recommended Position Size</span>
+                </div>
+            `;
+            DOM.riskSizersContainer.appendChild(sizerInstance);
+            sizerInstance.querySelectorAll('input[type="number"]').forEach(setupSpinbox);
+            calculateRiskSizer(sizerInstance);
+            resizeParentCollapsible(DOM.addRiskSizerBtn);
+        }
+        
+        function calculateRiskSizer(sizerElement) {
+            const balance = parseFloat(sizerElement.querySelector('.risk-balance').value);
+            const riskPercent = parseFloat(sizerElement.querySelector('.risk-percent').value);
+            const entryPrice = parseFloat(sizerElement.querySelector('.risk-entry').value);
+            const stopLoss = parseFloat(sizerElement.querySelector('.risk-stop').value);
+            const valueEl = sizerElement.querySelector('.value');
+            const subValueEl = sizerElement.querySelector('.sub-value');
+            if (isNaN(balance) || isNaN(riskPercent) || isNaN(entryPrice) || isNaN(stopLoss) ||
+                balance <= 0 || riskPercent <= 0 || entryPrice <= 0 || stopLoss <= 0) {
+                valueEl.textContent = '--';
+                subValueEl.textContent = 'Amount to Risk: --';
+                return;
+            }
+            if (entryPrice === stopLoss) {
+                valueEl.textContent = 'Invalid Stop';
+                valueEl.style.color = 'var(--red-text)';
+                subValueEl.textContent = 'Amount to Risk: --';
+                return;
+            }
+            const { TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS; // Assume Taker fees for risk sizing
+            const riskAmountDollars = balance * (riskPercent / 100.0);
+            const totalLossPerUnit = Math.abs(entryPrice - stopLoss) + (entryPrice * TAKER_FEE_RATE) + (stopLoss * TAKER_FEE_RATE);
+            if (totalLossPerUnit <= 0) {
+                 valueEl.textContent = '--';
+                 subValueEl.textContent = 'Amount to Risk: --';
+                 return;
+            }
+            const quantity = riskAmountDollars / totalLossPerUnit;
+            const positionSize = quantity * entryPrice;
+            valueEl.textContent = `$${positionSize.toFixed(2)}`;
+            valueEl.style.color = 'var(--green-text)';
+            subValueEl.textContent = `Amount to Risk: $${riskAmountDollars.toFixed(2)} (${riskPercent}%)`;
         }
         
         // === MODIFIED: Calculates both Taker and Maker loss scenarios ===
@@ -3392,7 +4583,7 @@ function calculateTradeMetrics(tradeData) {
     const expected_profit_percent_taker = (expected_profit_taker / size) * 100; 
     const expected_profit_percent_maker = (expected_profit_maker / size) * 100; 
     const expected_loss_percent_taker = (expected_loss_taker / size) * 100;
-    const expected_loss_percent_maker = (expected_loss_percent_maker / size) * 100;
+    const expected_loss_percent_maker = (expected_loss_maker / size) * 100;
 
     return { 
         rr_taker: rr_taker.toFixed(2),
@@ -3453,6 +4644,11 @@ function calculateTradeMetrics(tradeData) {
                 tradeRef.update(updates).catch(error => { alert('Failed to update trade: ' + error.message); cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); });
             });
         }
+
+        function handleSentimentLog(e) { const button = e.target.closest('.sentiment-buttons button'); if (!button) return; const { asset, sentiment } = button.dataset; if (!asset || !sentiment) return; dbRefs.sentimentReceipts.push({ asset, sentiment, timestamp: firebase.database.ServerValue.TIMESTAMP, viewerId: getViewerId() }); }
+        function handleSentimentAction(e) { if (!STATE.isMasterUser) return; const editBtn = e.target.closest('.edit-sentiment-note-btn'); if (editBtn) handleSentimentNoteEdit(editBtn); const deleteBtn = e.target.closest('.delete-sentiment-btn'); if (deleteBtn) handleSentimentDelete(deleteBtn); }
+        function handleSentimentDelete(button) { const receiptId = button.dataset.id; if (!receiptId) return; if (confirm('Delete this log entry?')) dbRefs.sentimentReceipts.child(receiptId).remove(); }
+        function handleSentimentNoteEdit(button) { const receiptId = button.dataset.id; if (!receiptId) return; const receiptRef = dbRefs.sentimentReceipts.child(receiptId); receiptRef.child('note').once('value', snapshot => { const newNote = prompt('Enter note:', snapshot.val() || ""); if (newNote !== null) receiptRef.update({ note: newNote }); }); }
 
         function handleAddStaggeredEntry(tradeId) {
             if (!STATE.isMasterUser) return;
@@ -3522,11 +4718,13 @@ function calculateTradeMetrics(tradeData) {
         function handleGenericImageLibraryClick(e) {
             const clickedImg = e.target.closest('img');
             if (clickedImg?.dataset.fullSrc) {
-                const galleryContainer = clickedImg.closest('#setups-image-container, .trade-image-thumbnails');
+                const galleryContainer = clickedImg.closest('#image-library-container, #setups-image-container, .cl2-image-grid, #chart-library-2-preview-container, .trade-image-thumbnails');
                 if (galleryContainer) { const allImageElements = galleryContainer.querySelectorAll('img'); const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })); const clickedIndex = Array.from(allImageElements).indexOf(clickedImg); if (clickedIndex > -1) openImageModal(imageArray, clickedIndex); }
                 return;
             }
-            if (e.target.closest('#setups-image-container')) handleLibraryActions(e, 'setups_images', dbRefs.setupsImages);
+            if (e.target.closest('#image-library-container')) handleLibraryActions(e, 'image_library', dbRefs.imageLibrary);
+            else if (e.target.closest('#setups-image-container')) handleLibraryActions(e, 'setups_images', dbRefs.setupsImages);
+            else if (e.target.closest('#chart-library-2-container')) handleChartLibrary2Click(e);
         }
 
         function handleLibraryActions(e, libraryType, dbRef) {
@@ -3566,6 +4764,15 @@ function calculateTradeMetrics(tradeData) {
             }
         }
        
+        function handleChartLibrary2Click(e) {
+            const folderCard = e.target.closest('.cl2-folder-card'), backBtn = e.target.closest('.cl2-back-button'), deleteBtn = e.target.closest('.delete-library-image');
+            if (folderCard) { STATE.currentCl2Folder = folderCard.dataset.folder; renderFolderContents(STATE.currentCl2Folder); return; }
+            if (backBtn) { STATE.currentCl2Folder = null; renderChartLibrary2Folders(); return; }
+            if (deleteBtn && STATE.isMasterUser) {
+                const { folder, id, filename } = deleteBtn.dataset;
+                if (confirm(`Delete this image from ${folder}?\n\n${filename}`)) { const storagePath = `chart_library_2/${folder}/${filename}`; storage.ref(storagePath).delete().then(() => dbRefs.chartLibrary2.child(folder).child(id).remove()).catch((err) => { if (err.code === 'storage/object-not-found') dbRefs.chartLibrary2.child(folder).child(id).remove(); else alert('Error deleting image.'); }); }
+            }
+        }
         function handleTradeAction(e) {
             if (!STATE.isMasterUser) return;
             if (STATE.isMerging) {
@@ -3610,6 +4817,7 @@ function calculateTradeMetrics(tradeData) {
             switch (type) {
                 case 'live': dbRefPath = CONFIG.DB_PATHS.TRADES; storagePathPrefix = `trade_attachments/${id}/`; break;
                 case 'completed': dbRefPath = CONFIG.DB_PATHS.COMPLETED_TRADES; storagePathPrefix = `trade_attachments/${id}/`; break;
+                case 'sentiment': dbRefPath = CONFIG.DB_PATHS.SENTIMENT_RECEIPTS; storagePathPrefix = `sentiment_attachments/${id}/`; break;
                 default: return;
             }
             const entryDbRef = database.ref(dbRefPath).child(id);
@@ -3633,6 +4841,7 @@ function calculateTradeMetrics(tradeData) {
                 switch (entryType) {
                     case 'live': dbRefPath = CONFIG.DB_PATHS.TRADES; storagePathPrefix = `trade_attachments/${entryId}/`; break;
                     case 'completed': dbRefPath = CONFIG.DB_PATHS.COMPLETED_TRADES; storagePathPrefix = `trade_attachments/${entryId}/`; break;
+                    case 'sentiment': dbRefPath = CONFIG.DB_PATHS.SENTIMENT_RECEIPTS; storagePathPrefix = `sentiment_attachments/${entryId}/`; break;
                     default: return;
                 }
                 const storagePath = `${storagePathPrefix}${fileName}`;
@@ -3764,10 +4973,14 @@ function calculateTradeMetrics(tradeData) {
                 STATE.allSetupsImages = s.val() || {};
                 renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
             });
+            dbRefs.chartLibrary2.on('value', s => { STATE.chartLibrary2Data = s.val() || {}; if (STATE.currentCl2Folder) renderFolderContents(STATE.currentCl2Folder); else renderChartLibrary2Folders(); renderChartLibrary2Preview(); });
             dbRefs.favourites.on('value', (s) => { STATE.favouriteEntries = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
             dbRefs.setups1.on('value', (s) => { STATE.setupsData1 = s.val() || {}; renderSetupsTable(null, STATE.setupsData1, 'primary-setups-notes'); });
             dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(null, STATE.setupsData2, 'secondary-setups-notes'); });
-            dbRefs.sentimentReceipts.on('value', (s) => { STATE.allSentimentReceipts = s.val() || {}; });
+            dbRefs.persistentNotes.on('value', (s) => { STATE.persistentNotes = s.val() || ''; if (document.activeElement !== DOM.persistentNotesEl) { DOM.persistentNotesEl.value = STATE.persistentNotes; } adjustCollapsibleSize(DOM.persistentNotesEl); });
+            dbRefs.trackerScratchpad.on('value', (s) => { STATE.trackerScratchpadText = s.val() || ''; if (document.activeElement !== DOM.trackerScratchpadEl) { DOM.trackerScratchpadEl.value = STATE.trackerScratchpadText; } adjustCollapsibleSize(DOM.trackerScratchpadEl); });
+            dbRefs.sentimentReceipts.on('value', (s) => { STATE.allSentimentReceipts = s.val() || {}; renderSentimentReceipts(); });
+            dbRefs.levelNotes.on('value', (s) => renderLevelNotes(s.val()));
             dbRefs.generalNotes.on('value', (s) => { STATE.generalNotes = s.val() || {}; if (DOM.noteEditModal.style.display === 'none') { renderNotes(STATE.generalNotes); } });
         }
         
@@ -3787,7 +5000,7 @@ function calculateTradeMetrics(tradeData) {
 
         function openDefaultSectionsInContainer(containerElement) {
             if (!containerElement) return;
-            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'Persistent Notes', 'EMA Snapshot'];
+            const sectionsToOpen = ['Levels', 'Live Trades', 'Sentiment Log', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'Persistent Notes', 'Position Profit & Target Calculator', 'Risk-Based Position Sizer'];
             containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 const title = h2.textContent.trim();
                 if (sectionsToOpen.includes(title)) {
@@ -3816,15 +5029,22 @@ function calculateTradeMetrics(tradeData) {
                            el.style.display = 'block';
                        }
                     });
-                    DOM.journalEntryEl.readOnly = false;
+                    DOM.journalEntryEl.readOnly = false; DOM.persistentNotesEl.readOnly = false; DOM.trackerScratchpadEl.readOnly = false;
                     document.querySelectorAll('.setups-table .editable-setup-cell').forEach(cell => cell.setAttribute('contenteditable', 'true'));
                     DOM.primarySetupsNotes.readOnly = false; DOM.secondarySetupsNotes.readOnly = false;
                 }
             }
             if (!STATE.isMasterUser) {
-                DOM.journalEntryEl.readOnly = true;
+                DOM.journalEntryEl.readOnly = true; DOM.persistentNotesEl.readOnly = true; DOM.trackerScratchpadEl.readOnly = true;
                 DOM.primarySetupsNotes.readOnly = true; DOM.secondarySetupsNotes.readOnly = true;
             }
+            document.querySelectorAll('.key-open-note').forEach(input => {
+                input.readOnly = !STATE.isMasterUser;
+                if (!STATE.isMasterUser) {
+                    input.style.cursor = 'not-allowed';
+                    input.style.backgroundColor = 'transparent';
+                }
+            });
         }
 
         async function initializeApp() {
@@ -3833,9 +5053,12 @@ function calculateTradeMetrics(tradeData) {
             await fetchLiveConversionRate();
             fetchEmaData();
             fetchSrData();
+            fetchMarketOpens();
             fetchVolumeProfileData();
+            fetchCrossoverSignalData();
             fetchAndRenderOptionsData();
             
+            setInterval(fetchCrossoverSignalData, 5 * 60 * 1000);
             setInterval(() => {
                 fetchAndRenderOptionsData();
             }, 60000);
@@ -3852,6 +5075,8 @@ function calculateTradeMetrics(tradeData) {
             setupEventListeners(); 
             subscribeToData();
             renderDateNavigation(); 
+            renderChartLibrary2Folders(); 
+            renderChartLibrary2Preview();
 
             const activeTabContent = document.querySelector('.tab-content.active');
             if (activeTabContent) {
