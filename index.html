@@ -1829,72 +1829,61 @@
 
 
 
+<style>
+    /* ... existing styles ... */
 
-            
-    /* ADD THESE NEW STYLES */
-    .calendar-container {
-        padding: 10px;
-    }
-    .calendar-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-    .calendar-header h3 {
-        margin: 0;
-        font-size: 16px;
-    }
-    .calendar-nav-btn {
-        background: none;
-        border: 1px solid var(--border-color);
-        color: var(--text-color);
-        cursor: pointer;
-        padding: 5px 10px;
-        border-radius: 4px;
-    }
-    .calendar-nav-btn:hover {
-        background-color: var(--hover-bg);
-    }
-    .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 5px;
-    }
-    .calendar-day-header {
-        text-align: center;
-        font-size: 11px;
-        font-weight: bold;
-        color: var(--subtle-text);
-        padding-bottom: 5px;
-    }
+    /* PnL Calendar Styles */
+    .calendar-container { padding: 5px; }
+    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .calendar-header h3 { margin: 0; font-size: 16px; }
+    .calendar-nav-btn { background: none; border: 1px solid var(--border-color); color: var(--text-color); cursor: pointer; padding: 2px 8px; border-radius: 4px; }
+    
+    /* Grid Layout */
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    
+    .calendar-day-header { text-align: center; font-size: 11px; font-weight: bold; color: var(--subtle-text); padding-bottom: 5px; }
+    
     .calendar-cell {
-        background-color: var(--card-bg); /* Or darker background */
+        background-color: var(--card-bg);
         border: 1px solid var(--border-color);
-        min-height: 60px;
-        padding: 5px;
+        min-height: 50px; /* Default height */
+        padding: 4px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         border-radius: 4px;
+        overflow: hidden; /* Keeps content inside */
     }
-    .calendar-date-label {
-        font-size: 10px;
-        color: var(--subtle-text);
-        text-align: right;
-    }
+    
+    .calendar-date-label { font-size: 10px; color: var(--subtle-text); text-align: right; }
+    
     .calendar-pnl-value {
-        font-size: 12px;
+        font-size: 11px;
         font-weight: bold;
         text-align: center;
         margin-top: auto;
         margin-bottom: auto;
+        white-space: nowrap; /* Prevents wrapping */
     }
+    
     .pnl-positive { color: var(--green-text); }
     .pnl-negative { color: var(--red-text); }
-    .calendar-cell.today {
-        border-color: var(--link-color);
+    .calendar-cell.today { border: 1px solid var(--link-color); }
+
+    /* MOBILE SCALING FIXES */
+    @media (max-width: 768px) {
+        .calendar-cell {
+            min-height: 35px; /* Shorter boxes on mobile */
+            padding: 2px;
+        }
+        .calendar-date-label { font-size: 8px; }
+        .calendar-pnl-value { 
+            font-size: 9px; 
+            letter-spacing: -0.5px; /* Squeeze numbers slightly */
+        }
+        .calendar-header h3 { font-size: 14px; }
     }
+</style>
     </style>
 <body>
     <div class="container">
@@ -3100,7 +3089,7 @@ const createRowHtml = (id) => {
         }
 
         // --- NEW FUNCTION: RENDER PNL CALENDAR ---
-        function renderPnlCalendar() {
+    function renderPnlCalendar() {
             if (!DOM.pnlCalendarGrid) return;
 
             const viewDate = STATE.calendarViewDate;
@@ -3116,7 +3105,6 @@ const createRowHtml = (id) => {
             
             Object.values(trades).forEach(trade => {
                 if (!trade.closed_date) return;
-                // Use getPerthDateString to match your table logic
                 const dateStr = getPerthDateString(new Date(trade.closed_date)); 
                 if (!dailyPnl[dateStr]) dailyPnl[dateStr] = 0;
                 dailyPnl[dateStr] += parseFloat(trade.net_result || 0);
@@ -3125,7 +3113,7 @@ const createRowHtml = (id) => {
             // Generate Grid HTML
             let html = '';
             
-            // Day Headers
+            // Day Headers (Shortened for mobile fit)
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             days.forEach(d => html += `<div class="calendar-day-header">${d}</div>`);
 
@@ -3141,7 +3129,6 @@ const createRowHtml = (id) => {
 
             // Actual Days
             for (let day = 1; day <= daysInMonth; day++) {
-                // Construct date string YYYY-MM-DD manually to match keys
                 const monthStr = String(month + 1).padStart(2, '0');
                 const dayStr = String(day).padStart(2, '0');
                 const dateKey = `${year}-${monthStr}-${dayStr}`;
@@ -3150,8 +3137,10 @@ const createRowHtml = (id) => {
                 let pnlHtml = '';
                 
                 if (pnl !== undefined) {
-                    const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
-                    pnlHtml = `<span class="calendar-pnl-value ${pnlClass}">${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, '')}</span>`;
+                    const roundedPnl = Math.round(pnl); // Remove decimals
+                    const pnlClass = roundedPnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    // Display without decimals
+                    pnlHtml = `<span class="calendar-pnl-value ${pnlClass}">${roundedPnl >= 0 ? '+' : ''}${roundedPnl.toLocaleString()}</span>`;
                 }
 
                 const isToday = dateKey === todayStr ? 'today' : '';
@@ -3165,8 +3154,13 @@ const createRowHtml = (id) => {
             }
 
             DOM.pnlCalendarGrid.innerHTML = html;
-        }
 
+            // FIX FOR COLLAPSE GLITCH:
+            // Force the parent collapsible to resize immediately after rendering
+            setTimeout(() => {
+                resizeParentCollapsible(DOM.pnlCalendarGrid);
+            }, 10);
+        }
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
             if (!containerElement) return;
