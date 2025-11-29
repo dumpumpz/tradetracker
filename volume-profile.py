@@ -13,7 +13,7 @@ from typing import List, Dict, Optional
 # --- Configuration ---
 SYMBOLS = ['BTCUSDT', 'ETHUSDT']
 
-# MODIFIED LINE: Added 1095 (3y), 730 (2y), and 365 (1y)
+# Added 1095 (3y), 730 (2y), and 365 (1y)
 LOOKBACK_PERIODS_DAYS = [1095, 730, 365, 270, 180, 120, 60, 30, 21, 14, 7, 3, 2]
 
 TIMEFRAME_FOR_PROFILE = '1h'  # 1h data provides good granularity for long-term profiles
@@ -111,9 +111,16 @@ def fetch_ohlcv_for_profile(symbol: str, interval: str, lookback_days: int, limi
         df['Date'] = pd.to_datetime(df['Open time'], unit='ms', utc=True)
         df.set_index('Date', inplace=True)
 
-        for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
+        # Convert columns to numeric, including Quote asset volume
+        for col in ['Open', 'High', 'Low', 'Close', 'Volume', 'Quote asset volume']:
             df[col] = pd.to_numeric(df[col], errors='coerce')
+        
         df.dropna(inplace=True)
+
+        # --- KEY CHANGE: Use Quote Asset Volume (USDT) instead of Base Asset Volume ---
+        # This provides a more accurate profile based on money flow rather than coin count.
+        df['Volume'] = df['Quote asset volume']
+
         return df[['Open', 'High', 'Low', 'Close', 'Volume']]
 
     except Exception as e:
