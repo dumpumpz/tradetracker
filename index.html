@@ -4368,9 +4368,9 @@ function calculateTradeMetrics(tradeData) {
                 const avgLoss = losses > 0 ? grossLoss / losses : 0, rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
                 const totalPL = grossProfit - grossLoss, newBalance = CONFIG.TRADE_SETTINGS.STARTING_BALANCE + totalPL;
                 DOM.statBalance.textContent = formatCurrency(newBalance); DOM.statBalanceAud.textContent = formatCurrency(newBalance * STATE.usdToAudRate, 'A$');
-                DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}${formatCurrency(totalPL)}`; DOM.statTotalPl.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-                DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}${formatCurrency(totalPL * STATE.usdToAudRate, 'A$')}`; DOM.statTotalPlAud.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-                DOM.statCompletedTrades.textContent = totalCompleted; DOM.statWins.textContent = wins; DOM.statLosses.textContent = losses;
+        // Rounded to 0 decimal places
+DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}$${totalPL.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}A$${(totalPL * STATE.usdToAudRate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; DOM.statCompletedTrades.textContent = totalCompleted; DOM.statWins.textContent = wins; DOM.statLosses.textContent = losses;
                 DOM.statWinRate.textContent = `${winRate.toFixed(1)}%`; DOM.statProfitFactor.textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
                 DOM.statAvgWin.textContent = formatCurrency(avgWin); DOM.statAvgLoss.textContent = formatCurrency(avgLoss); DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
                 dbRefs.bank.set({ currentBalance: newBalance });
