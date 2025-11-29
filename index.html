@@ -3811,12 +3811,12 @@ const createRowHtml = (id) => {
                     STATE.completedTradesShowAll = true;
                     STATE.completedTradesCurrentPage = 1;
                     renderCompletedTable(STATE.allCompletedTrades);
-                    renderPnlCalendar();
+             
                 } else if (e.target.id === 'completed-trades-prev-page') {
-                    if (STATE.completedTradesCurrentPage > 1) { STATE.completedTradesCurrentPage--; renderCompletedTable(STATE.allCompletedTrades); renderPnlCalendar(); }
+                    if (STATE.completedTradesCurrentPage > 1) { STATE.completedTradesCurrentPage--; renderCompletedTable(STATE.allCompletedTrades);  }
                 } else if (e.target.id === 'completed-trades-next-page') {
                     const totalPages = Math.ceil(Object.keys(STATE.allCompletedTrades).length / STATE.completedTradesItemsPerPage);
-                    if (STATE.completedTradesCurrentPage < totalPages) { STATE.completedTradesCurrentPage++; renderCompletedTable(STATE.allCompletedTrades); renderPnlCalendar(); }
+                    if (STATE.completedTradesCurrentPage < totalPages) { STATE.completedTradesCurrentPage++; renderCompletedTable(STATE.allCompletedTrades);  }
                 } else if (e.target.id === 'toggle-all-setups-images') {
                     STATE.setupsImagesShowAll = true;
                     STATE.setupsImagesCurrentPage = 1;
@@ -4337,14 +4337,12 @@ function calculateTradeMetrics(tradeData) {
       function subscribeToData() {
             dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
             
-            dbRefs.completedTrades.on('value', s => {
+  dbRefs.completedTrades.on('value', s => {
                 STATE.allCompletedTrades = s.val() || {};
                 const completedData = STATE.allCompletedTrades; 
                 renderCompletedTable(completedData);
                 
-                // RENDER CALENDAR ON DATA UPDATE
-                renderPnlCalendar();
-
+                // Stats calculation starts immediately here:
                 const resetDateStr = CONFIG.TRADE_SETTINGS.STATS_RESET_DATE;
                 const resetTimestamp = resetDateStr ? new Date(resetDateStr).getTime() : 0;
 
