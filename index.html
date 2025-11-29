@@ -4337,17 +4337,17 @@ function calculateTradeMetrics(tradeData) {
       function subscribeToData() {
             dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
             
-  dbRefs.completedTrades.on('value', s => {
+dbRefs.completedTrades.on('value', s => {
                 STATE.allCompletedTrades = s.val() || {};
-                const completedData = STATE.allCompletedTrades; 
+                const completedData = STATE.allCompletedTrades;
                 renderCompletedTable(completedData);
-                
-                // Stats calculation starts immediately here:
+
+                // Stats calculation
                 const resetDateStr = CONFIG.TRADE_SETTINGS.STATS_RESET_DATE;
                 const resetTimestamp = resetDateStr ? new Date(resetDateStr).getTime() : 0;
 
                 let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
-                
+
                 Object.values(completedData).forEach(trade => {
                     const tradeTimestamp = trade.closed_date ? new Date(trade.closed_date).getTime() : 0;
 
@@ -4362,17 +4362,36 @@ function calculateTradeMetrics(tradeData) {
                         }
                     }
                 });
+
+                const totalCompleted = wins + losses;
+                const winRate = totalCompleted > 0 ? (wins / totalCompleted) * 100 : 0;
+                const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
+                const avgWin = wins > 0 ? grossProfit / wins : 0;
+                const avgLoss = losses > 0 ? grossLoss / losses : 0;
+                const rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
+                const totalPL = grossProfit - grossLoss;
+                const newBalance = CONFIG.TRADE_SETTINGS.STARTING_BALANCE + totalPL;
+
+                // 1. Update Balance
+                DOM.statBalance.textContent = formatCurrency(newBalance);
+                DOM.statBalanceAud.textContent = formatCurrency(newBalance * STATE.usdToAudRate, 'A$');
+
+                // 2. Update Total P/L (2 Decimals)
+                DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}$${totalPL.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}A$${(totalPL * STATE.usdToAudRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+                // 3. Update Counts (THESE WERE MISSING)
+                DOM.statCompletedTrades.textContent = totalCompleted;
+                DOM.statWins.textContent = wins;
+                DOM.statLosses.textContent = losses;
+
+                // 4. Update Ratios and Averages
+                DOM.statWinRate.textContent = `${winRate.toFixed(1)}%`;
+                DOM.statProfitFactor.textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
+                DOM.statAvgWin.textContent = formatCurrency(avgWin);
+                DOM.statAvgLoss.textContent = formatCurrency(avgLoss);
+                DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
                 
-                const totalCompleted = wins + losses, winRate = totalCompleted > 0 ? (wins / totalCompleted) * 100 : 0;
-                const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0, avgWin = wins > 0 ? grossProfit / wins : 0;
-                const avgLoss = losses > 0 ? grossLoss / losses : 0, rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
-                const totalPL = grossProfit - grossLoss, newBalance = CONFIG.TRADE_SETTINGS.STARTING_BALANCE + totalPL;
-                DOM.statBalance.textContent = formatCurrency(newBalance); DOM.statBalanceAud.textContent = formatCurrency(newBalance * STATE.usdToAudRate, 'A$');
-        // Rounded to 0 decimal places
-// Force strictly 2 decimal places
-DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}$${totalPL.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}A$${(totalPL * STATE.usdToAudRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;     DOM.statWinRate.textContent = `${winRate.toFixed(1)}%`; DOM.statProfitFactor.textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
-                DOM.statAvgWin.textContent = formatCurrency(avgWin); DOM.statAvgLoss.textContent = formatCurrency(avgLoss); DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
                 dbRefs.bank.set({ currentBalance: newBalance });
             });
 
