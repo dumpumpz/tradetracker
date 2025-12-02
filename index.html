@@ -2051,32 +2051,48 @@
                         
                         <div id="live-trades-summary-container" class="ema-summary-container" style="display:none; margin-bottom: 20px; padding: 15px; border: 1px solid var(--link-color);">
                             <h4 style="margin-top: 0; margin-bottom: 15px; font-weight: 600;">Open Positions Summary</h4>
-                            <div class="ema-level-summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; text-align: center;">
-                                <div>
-                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Total Position Size</span><br>
-                                    <span id="summary-total-size" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace;">$0.00</span>
-                                </div>
-                                <div>
-                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Avg Entry (W)</span><br>
-                                    <span id="summary-avg-entry" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace;">--</span>
-                                </div>
-                                <div>
-                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Profit (Taker)</span><br>
-                                    <span id="summary-profit-taker" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
-                                </div>
-                                <div>
-                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Loss (Taker)</span><br>
-                                    <span id="summary-loss-taker" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--red-text);">$0.00</span>
-                                </div>
-                                <div>
-                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Profit (Maker)</span><br>
-                                    <span id="summary-profit-maker" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
-                                </div>
-                                <div>
-                                    <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Loss (Maker)</span><br>
-                                    <span id="summary-loss-maker" style="font-size: 15px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--red-text);">$0.00</span>
-                                </div>
-                            </div>
+                         <!-- REPLACE THE EXISTING .ema-level-summary-grid INSIDE #live-trades-summary-container WITH THIS: -->
+
+<div class="ema-level-summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; text-align: center;">
+    <!-- Existing Items -->
+    <div>
+        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Total Size</span><br>
+        <span id="summary-total-size" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace;">$0.00</span>
+    </div>
+    <div>
+        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Avg Entry</span><br>
+        <span id="summary-avg-entry" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace;">--</span>
+    </div>
+
+    <!-- NEW ITEMS START -->
+    <div>
+        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Avg Stoploss</span><br>
+        <span id="summary-avg-stop" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--red-text);">--</span>
+    </div>
+    <div>
+        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Breakeven</span><br>
+        <span id="summary-breakeven" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: #ffc107;">--</span>
+    </div>
+    <div>
+        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">1:1 Target</span><br>
+        <span id="summary-target-1" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--link-color);">--</span>
+    </div>
+    <div>
+        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">1:4 Target</span><br>
+        <span id="summary-target-4" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">--</span>
+    </div>
+    <!-- NEW ITEMS END -->
+
+    <!-- Existing PnL Items -->
+    <div>
+        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Exp. P (T)</span><br>
+        <span id="summary-profit-taker" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
+    </div>
+    <div>
+        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Exp. L (T)</span><br>
+        <span id="summary-loss-taker" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--red-text);">$0.00</span>
+    </div>
+</div>
                         </div>
 
                         <div class="table-wrapper">
@@ -2937,113 +2953,158 @@
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
         
-        function renderLiveTable(data) {
-            const trades = data || {};
+   function renderLiveTable(data) {
+    const trades = data || {};
+    
+    // --- SUMMARY CALCULATION VARIABLES ---
+    let sumSize = 0;
+    let sumQty = 0;
+    
+    // New Calculation Variables
+    let sumQtyStop = 0; // For Weighted Avg Stoploss
+    let sumQtyBreakeven = 0; // For Weighted Avg Breakeven
+    let commonDirection = null; // To check if all trades are Long or Short
+    let isMixedDirection = false;
+
+    let sumProfitTaker = 0;
+    let sumProfitMaker = 0;
+    let sumLossTaker = 0;
+    let sumLossMaker = 0;
+    const activeSymbols = new Set();
+    // -------------------------------------
+
+    const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
+    const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { const formattedValue = (typeof value === 'number') ? value.toFixed(digits) : value; return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; };
+    
+    const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date)).map(id => {
+        const trade = trades[id];
+
+        const metrics = calculateTradeMetrics(trade);
+        const breakevenPrice = calculateBreakevenPrice(trade);
+
+        // --- ACCUMULATE SUMMARY DATA ---
+        const tSize = parseFloat(trade.size) || 0;
+        const tEntry = parseFloat(trade.entry) || 0;
+        const tStop = parseFloat(trade.stoploss) || 0;
+
+        if (tSize > 0 && tEntry > 0) {
+            const tQty = tSize / tEntry;
+            sumSize += tSize;
+            sumQty += tQty;
+            activeSymbols.add(trade.symbol);
+
+            // Accumulate for Weighted Averages
+            sumQtyStop += (tStop * tQty);
+            sumQtyBreakeven += (breakevenPrice * tQty);
+
+            // Check Direction Consistency
+            if (commonDirection === null) commonDirection = trade.type;
+            else if (commonDirection !== trade.type) isMixedDirection = true;
+        }
+
+        sumProfitTaker += parseFloat(metrics.expected_profit_taker || 0);
+        sumProfitMaker += parseFloat(metrics.expected_profit_maker || 0);
+        sumLossTaker += parseFloat(metrics.expected_loss_taker || 0);
+        sumLossMaker += parseFloat(metrics.expected_loss_maker || 0);
+        // -------------------------------
+
+        const profitTakerStr = `$${parseFloat(metrics.expected_profit_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_taker || 0).toFixed(2)}%)`;
+        const profitMakerStr = `$${parseFloat(metrics.expected_profit_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_maker || 0).toFixed(2)}%)`;
+        const lossTakerStr = `$${parseFloat(metrics.expected_loss_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_taker || 0).toFixed(2)}%)`;
+        const lossMakerStr = `$${parseFloat(metrics.expected_loss_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_maker || 0).toFixed(2)}%)`;
+
+        const rrTakerString = metrics.rr_taker > 0 ? metrics.rr_taker : '--';
+        const rrMakerString = metrics.rr_maker > 0 ? metrics.rr_maker : '--';
+
+        const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
+
+        return `<tr>
+            <td>${trade.symbol}</td>
+            <td>${trade.type}</td>
+            ${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}
+            ${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}
+            ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}
+            ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}
+            <td>${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>
+            ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
+            <td>${parseFloat(metrics.estimated_total_fee || 0).toFixed(2)}</td>
+            <td style="color: #28a745;">${profitTakerStr}</td>
+            <td style="color: #28a745;">${profitMakerStr}</td>
+            <td style="color: #dc3545;">${lossTakerStr}</td>
+            <td style="color: #dc3545;">${lossMakerStr}</td>
+            <td>${rrTakerString}</td>
+            <td>${rrMakerString}</td>
+            <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
+            <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
+            ${renderAttachmentThumbnails(trade, id, 'live')}
+            ${masterButtonsHtml(id)}
+        </tr>`;
+    }).join('');
+    
+    // 1. Render Table Rows
+    DOM.tradesTbody.innerHTML = rowsHtml;
+
+    // 2. Update Summary Section
+    const summaryContainer = document.getElementById('live-trades-summary-container');
+    if (summaryContainer) {
+        if (Object.keys(trades).length > 0) {
+            summaryContainer.style.display = 'block';
             
-            // --- SUMMARY CALCULATION VARIABLES ---
-            let sumSize = 0;
-            let sumQty = 0;
-            let sumProfitTaker = 0;
-            let sumProfitMaker = 0;
-            let sumLossTaker = 0;
-            let sumLossMaker = 0;
-            const activeSymbols = new Set();
-            // -------------------------------------
-
-            const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
-            const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { const formattedValue = (typeof value === 'number') ? value.toFixed(digits) : value; return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; };
+            // Basic Totals
+            document.getElementById('summary-total-size').textContent = `$${sumSize.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             
-            const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date)).map(id => {
-                const trade = trades[id];
+            // Initialize Display Variables
+            let avgEntryText = "--";
+            let avgStopText = "--";
+            let avgBreakevenText = "--";
+            let target1Text = "--";
+            let target4Text = "--";
 
-                const metrics = calculateTradeMetrics(trade);
-                const breakevenPrice = calculateBreakevenPrice(trade);
+            // Calculate Weighted Averages if Valid
+            if (activeSymbols.size >= 1 && sumQty > 0 && !isMixedDirection) {
+                const weightedAvgEntry = sumSize / sumQty;
+                const weightedAvgStop = sumQtyStop / sumQty;
+                const weightedAvgBE = sumQtyBreakeven / sumQty;
 
-                // --- ACCUMULATE SUMMARY DATA ---
-                const tSize = parseFloat(trade.size) || 0;
-                const tEntry = parseFloat(trade.entry) || 0;
-                if (tSize > 0 && tEntry > 0) {
-                    sumSize += tSize;
-                    sumQty += (tSize / tEntry);
-                    activeSymbols.add(trade.symbol);
+                avgEntryText = weightedAvgEntry.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
+                avgStopText = weightedAvgStop.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
+                avgBreakevenText = weightedAvgBE.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
+
+                // Calculate Targets based on Weighted Avg Risk
+                const riskDistance = Math.abs(weightedAvgEntry - weightedAvgStop);
+                const directionMult = (commonDirection === 'Long') ? 1 : -1;
+
+                if (riskDistance > 0) {
+                    const t1Val = weightedAvgEntry + (riskDistance * directionMult);
+                    const t4Val = weightedAvgEntry + (riskDistance * 4 * directionMult);
+                    target1Text = t1Val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
+                    target4Text = t4Val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
                 }
-                sumProfitTaker += parseFloat(metrics.expected_profit_taker || 0);
-                sumProfitMaker += parseFloat(metrics.expected_profit_maker || 0);
-                sumLossTaker += parseFloat(metrics.expected_loss_taker || 0);
-                sumLossMaker += parseFloat(metrics.expected_loss_maker || 0);
-                // -------------------------------
-
-                const profitTakerStr = `$${parseFloat(metrics.expected_profit_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_taker || 0).toFixed(2)}%)`;
-                const profitMakerStr = `$${parseFloat(metrics.expected_profit_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_maker || 0).toFixed(2)}%)`;
-                const lossTakerStr = `$${parseFloat(metrics.expected_loss_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_taker || 0).toFixed(2)}%)`;
-                const lossMakerStr = `$${parseFloat(metrics.expected_loss_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_maker || 0).toFixed(2)}%)`;
-
-                const rrTakerString = metrics.rr_taker > 0 ? metrics.rr_taker : '--';
-                const rrMakerString = metrics.rr_maker > 0 ? metrics.rr_maker : '--';
-
-                const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
-
-                return `<tr>
-                    <td>${trade.symbol}</td>
-                    <td>${trade.type}</td>
-                    ${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}
-                    ${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}
-                    ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}
-                    ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}
-                    <td>${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>
-                    ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
-                    <td>${parseFloat(metrics.estimated_total_fee || 0).toFixed(2)}</td>
-                    <td style="color: #28a745;">${profitTakerStr}</td>
-                    <td style="color: #28a745;">${profitMakerStr}</td>
-                    <td style="color: #dc3545;">${lossTakerStr}</td>
-                    <td style="color: #dc3545;">${lossMakerStr}</td>
-                    <td>${rrTakerString}</td>
-                    <td>${rrMakerString}</td>
-                    <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
-                    <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
-                    ${renderAttachmentThumbnails(trade, id, 'live')}
-                    ${masterButtonsHtml(id)}
-                </tr>`;
-            }).join('');
-            
-            // 1. Render Table Rows
-            DOM.tradesTbody.innerHTML = rowsHtml;
-
-            // 2. Update Summary Section BEFORE resizing
-            const summaryContainer = document.getElementById('live-trades-summary-container');
-            if (summaryContainer) {
-                if (Object.keys(trades).length > 0) {
-                    // Show the container first so it takes up space
-                    summaryContainer.style.display = 'block';
-                    
-                    // Populate values
-                    document.getElementById('summary-total-size').textContent = `$${sumSize.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                    
-                    let avgEntryText = "Mixed";
-                    if (activeSymbols.size === 1 && sumQty > 0) {
-                        const weightedAvg = sumSize / sumQty;
-                        avgEntryText = weightedAvg.toLocaleString(undefined, {minimumFractionDigits: 4});
-                    } else if (activeSymbols.size === 0) {
-                        avgEntryText = "--";
-                    }
-                    document.getElementById('summary-avg-entry').textContent = avgEntryText;
-
-                    document.getElementById('summary-profit-taker').textContent = `$${sumProfitTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                    document.getElementById('summary-profit-maker').textContent = `$${sumProfitMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                    
-                    document.getElementById('summary-loss-taker').textContent = `$${sumLossTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                    document.getElementById('summary-loss-maker').textContent = `$${sumLossMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-
-                } else {
-                    summaryContainer.style.display = 'none';
-                }
+            } else if (isMixedDirection) {
+                avgEntryText = "Mixed";
+                avgStopText = "Mixed";
+                avgBreakevenText = "Mixed";
             }
 
-            // 3. Recalculate Height AFTER everything is visible
-            setTimeout(() => {
-                adjustCollapsibleSize(DOM.tradesTbody);
-            }, 10);
+            // Update DOM Elements
+            document.getElementById('summary-avg-entry').textContent = avgEntryText;
+            document.getElementById('summary-avg-stop').textContent = avgStopText;
+            document.getElementById('summary-breakeven').textContent = avgBreakevenText;
+            document.getElementById('summary-target-1').textContent = target1Text;
+            document.getElementById('summary-target-4').textContent = target4Text;
+
+            document.getElementById('summary-profit-taker').textContent = `$${sumProfitTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('summary-loss-taker').textContent = `$${sumLossTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+        } else {
+            summaryContainer.style.display = 'none';
         }
+    }
+
+    setTimeout(() => {
+        adjustCollapsibleSize(DOM.tradesTbody);
+    }, 10);
+}
 function renderCompletedTable(data) {
             const trades = data || {};
             const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
