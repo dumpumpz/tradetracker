@@ -2698,22 +2698,28 @@
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
         
-        function calculateBreakevenPrice(trade) {
-            const entry = parseFloat(trade.entry);
-            if (isNaN(entry) || entry <= 0) {
-                return 0;
-            }
-            const { MAKER_FEE_RATE, TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
-            const entryFeeRate = trade.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
-            const exitFeeRate = TAKER_FEE_RATE; // Assume Taker for worst-case breakeven estimate
+  function calculateBreakevenPrice(trade) {
+    const entry = parseFloat(trade.entry);
+    if (isNaN(entry) || entry <= 0) {
+        return 0;
+    }
 
-            if (trade.type === "Long") {
-                return entry * (1 + entryFeeRate) / (1 - exitFeeRate);
-            } else {
-                return entry * (1 - entryFeeRate) / (1 + exitFeeRate);
-            }
-        }
-        
+    // If entry is Maker, return just the entry price as requested
+    if (trade.entryFeeType === 'maker') {
+        return entry;
+    }
+
+    // Otherwise calculate Breakeven for Taker (Entry Fee + Estimated Taker Exit Fee)
+    const { TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
+    const entryFeeRate = TAKER_FEE_RATE; 
+    const exitFeeRate = TAKER_FEE_RATE; // Assume worst-case Taker exit
+
+    if (trade.type === "Long") {
+        return entry * (1 + entryFeeRate) / (1 - exitFeeRate);
+    } else {
+        return entry * (1 - entryFeeRate) / (1 + exitFeeRate);
+    }
+}
         function autoResizeTextarea(textarea) { if (!textarea || textarea.tagName !== 'TEXTAREA') return; textarea.style.height = 'auto'; textarea.style.height = `${textarea.scrollHeight}px`; }
         function resizeParentCollapsible(elementInside) { const section = elementInside.closest('.collapsible-section'); if (section && section.classList.contains('is-open')) { const content = section.querySelector('.collapsible-content'); if (content) { content.style.maxHeight = content.scrollHeight + 'px'; } } }
         const debouncedResizeParent = debounce(resizeParentCollapsible, 250);
