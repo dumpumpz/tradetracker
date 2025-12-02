@@ -2055,43 +2055,58 @@
 
 <div class="ema-level-summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; text-align: center;">
     <!-- Existing Items -->
-    <div>
-        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Total Size</span><br>
-        <span id="summary-total-size" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace;">$0.00</span>
-    </div>
-    <div>
-        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Avg Entry</span><br>
-        <span id="summary-avg-entry" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace;">--</span>
+  <!-- REPLACE CONTENT INSIDE #live-trades-summary-container WITH THIS: -->
+
+<div style="display: flex; flex-direction: column; gap: 12px;">
+    
+    <!-- ROW 1: Position Data (Size & Entry) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; text-align: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 12px;">
+        <div>
+            <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Total Position Size</span><br>
+            <span id="summary-total-size" style="font-size: 18px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--text-color);">$0.00</span>
+        </div>
+        <div>
+            <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Avg Entry Price</span><br>
+            <span id="summary-avg-entry" style="font-size: 18px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--text-color);">--</span>
+        </div>
     </div>
 
-    <!-- NEW ITEMS START -->
-    <div>
-        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Avg Stoploss</span><br>
-        <span id="summary-avg-stop" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--red-text);">--</span>
+    <!-- ROW 2: Targets & Stoploss -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; text-align: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 12px;">
+        <div>
+            <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Avg Stoploss</span><br>
+            <span id="summary-avg-stop" style="font-size: 16px; font-weight: 700; font-family: 'Courier New', monospace; color: var(--red-text);">--</span>
+        </div>
+        <div>
+            <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">1:1 Target</span><br>
+            <span id="summary-target-1" style="font-size: 16px; font-weight: 700; font-family: 'Courier New', monospace; color: var(--link-color);">--</span>
+        </div>
+        <div>
+            <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">1:4 Target</span><br>
+            <span id="summary-target-4" style="font-size: 16px; font-weight: 700; font-family: 'Courier New', monospace; color: var(--green-text);">--</span>
+        </div>
     </div>
-    <div>
-        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Breakeven</span><br>
-        <span id="summary-breakeven" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: #ffc107;">--</span>
-    </div>
-    <div>
-        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">1:1 Target</span><br>
-        <span id="summary-target-1" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--link-color);">--</span>
-    </div>
-    <div>
-        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">1:4 Target</span><br>
-        <span id="summary-target-4" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">--</span>
-    </div>
-    <!-- NEW ITEMS END -->
 
-    <!-- Existing PnL Items -->
-    <div>
-        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Exp. P (T)</span><br>
-        <span id="summary-profit-taker" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
+    <!-- ROW 3: Financial Projections -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; text-align: center;">
+        <div>
+            <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Profit (Taker)</span><br>
+            <span id="summary-profit-taker" style="font-size: 16px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
+        </div>
+        <div>
+            <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Profit (Maker)</span><br>
+            <span id="summary-profit-maker" style="font-size: 16px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
+        </div>
+        <div>
+            <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Loss (Taker)</span><br>
+            <span id="summary-loss-taker" style="font-size: 16px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--red-text);">$0.00</span>
+        </div>
+        <div>
+            <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Loss (Maker)</span><br>
+            <span id="summary-loss-maker" style="font-size: 16px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--red-text);">$0.00</span>
+        </div>
     </div>
-    <div>
-        <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase;">Exp. L (T)</span><br>
-        <span id="summary-loss-taker" style="font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; color: var(--red-text);">$0.00</span>
-    </div>
+
 </div>
                         </div>
 
@@ -2952,7 +2967,6 @@
             }).join('');
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
-        
    function renderLiveTable(data) {
     const trades = data || {};
     
@@ -2960,16 +2974,17 @@
     let sumSize = 0;
     let sumQty = 0;
     
-    // New Calculation Variables
-    let sumQtyStop = 0; // For Weighted Avg Stoploss
-    let sumQtyBreakeven = 0; // For Weighted Avg Breakeven
-    let commonDirection = null; // To check if all trades are Long or Short
+    // Mechanics Variables
+    let sumQtyStop = 0;      // For Weighted Avg Stoploss
+    let commonDirection = null; // To check if all trades are same direction (Long vs Short)
     let isMixedDirection = false;
 
+    // PnL Variables
     let sumProfitTaker = 0;
     let sumProfitMaker = 0;
     let sumLossTaker = 0;
     let sumLossMaker = 0;
+    
     const activeSymbols = new Set();
     // -------------------------------------
 
@@ -2980,6 +2995,7 @@
         const trade = trades[id];
 
         const metrics = calculateTradeMetrics(trade);
+        // We still calculate BE here for the individual table row below
         const breakevenPrice = calculateBreakevenPrice(trade);
 
         // --- ACCUMULATE SUMMARY DATA ---
@@ -2993,11 +3009,10 @@
             sumQty += tQty;
             activeSymbols.add(trade.symbol);
 
-            // Accumulate for Weighted Averages
+            // Weighted Averages
             sumQtyStop += (tStop * tQty);
-            sumQtyBreakeven += (breakevenPrice * tQty);
 
-            // Check Direction Consistency
+            // Direction Check
             if (commonDirection === null) commonDirection = trade.type;
             else if (commonDirection !== trade.type) isMixedDirection = true;
         }
@@ -3050,13 +3065,11 @@
         if (Object.keys(trades).length > 0) {
             summaryContainer.style.display = 'block';
             
-            // Basic Totals
+            // --- ROW 1: Position Data ---
             document.getElementById('summary-total-size').textContent = `$${sumSize.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             
-            // Initialize Display Variables
             let avgEntryText = "--";
             let avgStopText = "--";
-            let avgBreakevenText = "--";
             let target1Text = "--";
             let target4Text = "--";
 
@@ -3064,13 +3077,11 @@
             if (activeSymbols.size >= 1 && sumQty > 0 && !isMixedDirection) {
                 const weightedAvgEntry = sumSize / sumQty;
                 const weightedAvgStop = sumQtyStop / sumQty;
-                const weightedAvgBE = sumQtyBreakeven / sumQty;
 
                 avgEntryText = weightedAvgEntry.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
                 avgStopText = weightedAvgStop.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
-                avgBreakevenText = weightedAvgBE.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
 
-                // Calculate Targets based on Weighted Avg Risk
+                // Calculate Targets based on Weighted Avg Risk Distance
                 const riskDistance = Math.abs(weightedAvgEntry - weightedAvgStop);
                 const directionMult = (commonDirection === 'Long') ? 1 : -1;
 
@@ -3083,18 +3094,20 @@
             } else if (isMixedDirection) {
                 avgEntryText = "Mixed";
                 avgStopText = "Mixed";
-                avgBreakevenText = "Mixed";
             }
 
-            // Update DOM Elements
             document.getElementById('summary-avg-entry').textContent = avgEntryText;
+
+            // --- ROW 2: Targets/Stops ---
             document.getElementById('summary-avg-stop').textContent = avgStopText;
-            document.getElementById('summary-breakeven').textContent = avgBreakevenText;
             document.getElementById('summary-target-1').textContent = target1Text;
             document.getElementById('summary-target-4').textContent = target4Text;
 
+            // --- ROW 3: Financial Projections ---
             document.getElementById('summary-profit-taker').textContent = `$${sumProfitTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('summary-profit-maker').textContent = `$${sumProfitMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('summary-loss-taker').textContent = `$${sumLossTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('summary-loss-maker').textContent = `$${sumLossMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
 
         } else {
             summaryContainer.style.display = 'none';
