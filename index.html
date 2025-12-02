@@ -2063,6 +2063,14 @@
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; text-align: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 12px;">
         <div>
             <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Total Position Size</span><br>
+            <span id="summary-total-size"<!-- REPLACE CONTENT INSIDE #live-trades-summary-container WITH THIS: -->
+
+<div style="display: flex; flex-direction: column; gap: 12px;">
+    
+    <!-- ROW 1: Position Data -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; text-align: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 12px;">
+        <div>
+            <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Total Position Size</span><br>
             <span id="summary-total-size" style="font-size: 18px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--text-color);">$0.00</span>
         </div>
         <div>
@@ -2088,7 +2096,7 @@
     </div>
 
     <!-- ROW 3: Financial Projections -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; text-align: center;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
         <div>
             <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Profit (Taker)</span><br>
             <span id="summary-profit-taker" style="font-size: 16px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
@@ -2106,7 +2114,19 @@
             <span id="summary-loss-maker" style="font-size: 16px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--red-text);">$0.00</span>
         </div>
     </div>
-   </div>   </div>
+
+    <!-- ROW 4: Custom Scenario Calculator -->
+    <div style="background-color: var(--card-bg); padding: 10px; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 15px;">
+        <div style="flex: 1; max-width: 200px;">
+             <input type="number" id="summary-custom-input" placeholder="Enter Target Price..." step="any" style="text-align: center; font-weight: bold; border: 1px solid var(--link-color);">
+        </div>
+        <div style="flex: 1; text-align: left;">
+            <span style="color: var(--subtle-text); font-size: 10px; text-transform: uppercase; display: block;">Projected P/L (Net Taker)</span>
+            <span id="summary-custom-result" style="font-size: 18px; font-weight: 800; font-family: 'Courier New', monospace;">--</span>
+        </div>
+    </div>
+
+</div>   </div>
       </div>
 
                         <div class="table-wrapper">
@@ -2681,7 +2701,8 @@
 
         // --- APPLICATION STATE ---
         const STATE = {
-            isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {}, emaData: {}, srData: {}, vpData: {}, favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null },
+            isMasterUser: false, masterPassword: null,customTargetInput: null, 
+ viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {}, emaData: {}, srData: {}, vpData: {}, favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null },
             allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,
             allSetupsImages: {}, setupsImagesShowAll: false, setupsImagesCurrentPage: 1, setupsImagesItemsPerPage: 50,
             chartInstances: {},
@@ -2972,24 +2993,19 @@
             }).join('');
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
-   function renderLiveTable(data) {
+ function renderLiveTable(data) {
     const trades = data || {};
     
     // --- SUMMARY CALCULATION VARIABLES ---
     let sumSize = 0;
     let sumQty = 0;
-    
-    // Mechanics Variables
-    let sumQtyStop = 0;      // For Weighted Avg Stoploss
-    let commonDirection = null; // To check if all trades are same direction (Long vs Short)
+    let sumQtyStop = 0;      
+    let commonDirection = null; 
     let isMixedDirection = false;
-
-    // PnL Variables
     let sumProfitTaker = 0;
     let sumProfitMaker = 0;
     let sumLossTaker = 0;
     let sumLossMaker = 0;
-    
     const activeSymbols = new Set();
     // -------------------------------------
 
@@ -2998,12 +3014,9 @@
     
     const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date)).map(id => {
         const trade = trades[id];
-
         const metrics = calculateTradeMetrics(trade);
-        // We still calculate BE here for the individual table row below
         const breakevenPrice = calculateBreakevenPrice(trade);
 
-        // --- ACCUMULATE SUMMARY DATA ---
         const tSize = parseFloat(trade.size) || 0;
         const tEntry = parseFloat(trade.entry) || 0;
         const tStop = parseFloat(trade.stoploss) || 0;
@@ -3013,11 +3026,8 @@
             sumSize += tSize;
             sumQty += tQty;
             activeSymbols.add(trade.symbol);
-
-            // Weighted Averages
             sumQtyStop += (tStop * tQty);
 
-            // Direction Check
             if (commonDirection === null) commonDirection = trade.type;
             else if (commonDirection !== trade.type) isMixedDirection = true;
         }
@@ -3026,16 +3036,13 @@
         sumProfitMaker += parseFloat(metrics.expected_profit_maker || 0);
         sumLossTaker += parseFloat(metrics.expected_loss_taker || 0);
         sumLossMaker += parseFloat(metrics.expected_loss_maker || 0);
-        // -------------------------------
 
         const profitTakerStr = `$${parseFloat(metrics.expected_profit_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_taker || 0).toFixed(2)}%)`;
         const profitMakerStr = `$${parseFloat(metrics.expected_profit_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_maker || 0).toFixed(2)}%)`;
         const lossTakerStr = `$${parseFloat(metrics.expected_loss_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_taker || 0).toFixed(2)}%)`;
         const lossMakerStr = `$${parseFloat(metrics.expected_loss_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_maker || 0).toFixed(2)}%)`;
-
         const rrTakerString = metrics.rr_taker > 0 ? metrics.rr_taker : '--';
         const rrMakerString = metrics.rr_maker > 0 ? metrics.rr_maker : '--';
-
         const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
 
         return `<tr>
@@ -3061,16 +3068,14 @@
         </tr>`;
     }).join('');
     
-    // 1. Render Table Rows
     DOM.tradesTbody.innerHTML = rowsHtml;
 
-    // 2. Update Summary Section
+    // --- SUMMARY UPDATE ---
     const summaryContainer = document.getElementById('live-trades-summary-container');
     if (summaryContainer) {
         if (Object.keys(trades).length > 0) {
             summaryContainer.style.display = 'block';
             
-            // --- ROW 1: Position Data ---
             document.getElementById('summary-total-size').textContent = `$${sumSize.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             
             let avgEntryText = "--";
@@ -3078,15 +3083,12 @@
             let target1Text = "--";
             let target4Text = "--";
 
-            // Calculate Weighted Averages if Valid
             if (activeSymbols.size >= 1 && sumQty > 0 && !isMixedDirection) {
                 const weightedAvgEntry = sumSize / sumQty;
                 const weightedAvgStop = sumQtyStop / sumQty;
-
                 avgEntryText = weightedAvgEntry.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
                 avgStopText = weightedAvgStop.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
 
-                // Calculate Targets based on Weighted Avg Risk Distance
                 const riskDistance = Math.abs(weightedAvgEntry - weightedAvgStop);
                 const directionMult = (commonDirection === 'Long') ? 1 : -1;
 
@@ -3102,17 +3104,65 @@
             }
 
             document.getElementById('summary-avg-entry').textContent = avgEntryText;
-
-            // --- ROW 2: Targets/Stops ---
             document.getElementById('summary-avg-stop').textContent = avgStopText;
             document.getElementById('summary-target-1').textContent = target1Text;
             document.getElementById('summary-target-4').textContent = target4Text;
 
-            // --- ROW 3: Financial Projections ---
             document.getElementById('summary-profit-taker').textContent = `$${sumProfitTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('summary-profit-maker').textContent = `$${sumProfitMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('summary-loss-taker').textContent = `$${sumLossTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('summary-loss-maker').textContent = `$${sumLossMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+            // --- CUSTOM TARGET CALCULATOR LOGIC ---
+            const customInput = document.getElementById('summary-custom-input');
+            const customResult = document.getElementById('summary-custom-result');
+
+            // Restore previous value
+            if (STATE.customTargetInput) customInput.value = STATE.customTargetInput;
+
+            const runCustomCalc = () => {
+                const targetPrice = parseFloat(customInput.value);
+                if (isNaN(targetPrice) || targetPrice <= 0) {
+                    customResult.textContent = '--';
+                    customResult.style.color = 'var(--text-color)';
+                    return;
+                }
+                
+                let projectedPL = 0;
+                const { MAKER_FEE_RATE, TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
+                
+                Object.values(trades).forEach(t => {
+                    const entry = parseFloat(t.entry);
+                    const size = parseFloat(t.size);
+                    if(!entry || !size) return;
+                    
+                    const qty = size / entry;
+                    
+                    // Entry Fee (Sunk cost)
+                    const entryFeeRate = t.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
+                    const entryFee = size * entryFeeRate;
+
+                    // Estimated Exit Fee (Taker)
+                    const exitValue = qty * targetPrice;
+                    const exitFee = exitValue * TAKER_FEE_RATE;
+
+                    let grossPnL = 0;
+                    if(t.type === 'Long') grossPnL = (targetPrice - entry) * qty;
+                    else grossPnL = (entry - targetPrice) * qty;
+
+                    projectedPL += (grossPnL - entryFee - exitFee);
+                });
+
+                customResult.textContent = formatCurrency(projectedPL);
+                customResult.style.color = projectedPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                STATE.customTargetInput = customInput.value;
+            };
+
+            // Run once on render to populate if value exists
+            if (STATE.customTargetInput) runCustomCalc();
+
+            // Attach listener
+            customInput.addEventListener('input', runCustomCalc);
 
         } else {
             summaryContainer.style.display = 'none';
