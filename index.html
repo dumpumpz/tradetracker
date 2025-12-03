@@ -2012,29 +2012,40 @@
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
-                        <form id="add-trade-form">
-                           <div>
-                                <label for="trade-symbol">Symbol:</label>
-                                <input type="text" id="trade-symbol" list="symbol-list" placeholder="Type or select a symbol">
-                                <datalist id="symbol-list">
-                                    <option value="BTC/USDT">
-                                    <option value="ETH/USDT">
-                                </datalist>
-                            </div>
-                            <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
-                            <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
-                            <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
-                            <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
-                            <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
-                            <div>
-                                <label for="entry-fee-type">Entry Fee:</label>
-                                <select id="entry-fee-type">
-                                    <option value="taker">Taker Fee</option>
-                                    <option value="maker">Maker Fee</option>
-                                </select>
-                            </div>
-                            <div><button type="submit">Add Trade</button></div>
-                        </form>
+               <form id="add-trade-form">
+    <div>
+        <label for="trade-symbol">Symbol:</label>
+        <input type="text" id="trade-symbol" list="symbol-list" placeholder="Type or select a symbol">
+        <datalist id="symbol-list">
+            <option value="BTC/USDT">
+            <option value="ETH/USDT">
+   
+        </datalist>
+    </div>
+    
+    <!-- NEW: Exchange Selection -->
+    <div>
+        <label for="trade-exchange">Exchange / Fees:</label>
+        <select id="trade-exchange">
+            <option value="binance">Binance (0% M / 0.075% T)</option>
+            <option value="hyperliquid">Hyperliquid (0.015% M / 0.045% T)</option>
+        </select>
+    </div>
+
+    <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
+    <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
+    <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
+    <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
+    <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
+    <div>
+        <label for="entry-fee-type">Entry Fee:</label>
+        <select id="entry-fee-type">
+            <option value="taker">Taker Fee</option>
+            <option value="maker">Maker Fee</option>
+        </select>
+    </div>
+    <div><button type="submit">Add Trade</button></div>
+</form>
                     </div>
                 </div>
             </div>
@@ -2697,21 +2708,23 @@
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
 
-  function calculateBreakevenPrice(trade) {
+function calculateBreakevenPrice(trade) {
     const entry = parseFloat(trade.entry);
     if (isNaN(entry) || entry <= 0) {
         return 0;
     }
+
+    // Determine fees based on trade exchange
+    const rates = getFeeRates(trade.exchange);
 
     // If entry is Maker, return just the entry price as requested
     if (trade.entryFeeType === 'maker') {
         return entry;
     }
 
-    // Otherwise calculate Breakeven for Taker (Entry Fee + Estimated Taker Exit Fee)
-    const { TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
-    const entryFeeRate = TAKER_FEE_RATE; 
-    const exitFeeRate = TAKER_FEE_RATE; // Assume worst-case Taker exit
+    // Otherwise calculate Breakeven for Taker
+    const entryFeeRate = rates.TAKER; 
+    const exitFeeRate = rates.TAKER; // Assume worst-case Taker exit
 
     if (trade.type === "Long") {
         return entry * (1 + entryFeeRate) / (1 - exitFeeRate);
@@ -3445,6 +3458,25 @@ const createRowHtml = (id) => {
             summaryContainer.style.display = 'block';
         }
 
+        // --- HELPER: Get Fees based on Exchange ---
+function getFeeRates(exchangeName) {
+    // Default to Binance if undefined (for old trades)
+    const exchange = (exchangeName || 'binance').toLowerCase();
+    
+    if (exchange === 'hyperliquid') {
+        return {
+            MAKER: 0.00015, // 0.015%
+            TAKER: 0.00045  // 0.045%
+        };
+    } else {
+        // Default Binance (or any other fallback)
+        return {
+            MAKER: 0.0000,  // 0.00%
+            TAKER: 0.00075  // 0.075%
+        };
+    }
+}
+
         function renderSrLevels() {
             const selectedSymbol = getSafeSymbol(DOM.srSymbolEl.value);
             const selectedLookback = DOM.srLookbackEl.value;
@@ -3717,22 +3749,25 @@ const createRowHtml = (id) => {
             });
         }
 
-        function calculateNetResult(trade, exitPrice, exitFeeType) {
-            const entry = parseFloat(trade.entry), posValue = parseFloat(trade.size), exit = parseFloat(exitPrice);
-            if (isNaN(entry) || isNaN(posValue) || isNaN(exit)) return { net_result: 0, entry_fee: 0, exit_fee: 0 };
+function calculateNetResult(trade, exitPrice, exitFeeType) {
+    const entry = parseFloat(trade.entry), posValue = parseFloat(trade.size), exit = parseFloat(exitPrice);
+    if (isNaN(entry) || isNaN(posValue) || isNaN(exit)) return { net_result: 0, entry_fee: 0, exit_fee: 0 };
 
-            const { MAKER_FEE_RATE, TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
-            const entryFeeRate = trade.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
-            const exitFeeRate = exitFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
+    // --- NEW: Get Rates based on Exchange ---
+    const rates = getFeeRates(trade.exchange);
+    const MAKER_FEE_RATE = rates.MAKER;
+    const TAKER_FEE_RATE = rates.TAKER;
 
-            const entryFee = posValue * entryFeeRate;
-            const exitPosValue = (exit / entry) * posValue;
-            const exitFee = exitPosValue * exitFeeRate;
-            const positionQty = posValue / entry;
-            const grossResult = trade.type === "Long" ? (exit - entry) * positionQty : (entry - exit) * positionQty;
-            return { net_result: grossResult - entryFee - exitFee, entry_fee: entryFee, exit_fee: exitFee };
-        }
+    const entryFeeRate = trade.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
+    const exitFeeRate = exitFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
 
+    const entryFee = posValue * entryFeeRate;
+    const exitPosValue = (exit / entry) * posValue;
+    const exitFee = exitPosValue * exitFeeRate;
+    const positionQty = posValue / entry;
+    const grossResult = trade.type === "Long" ? (exit - entry) * positionQty : (entry - exit) * positionQty;
+    return { net_result: grossResult - entryFee - exitFee, entry_fee: entryFee, exit_fee: exitFee };
+}
         function completeTrade(tradeId, outcome) {
             dbRefs.trades.child(tradeId).once('value', snapshot => {
                 const trade = snapshot.val(); if (!trade) return;
@@ -4055,7 +4090,11 @@ function calculateTradeMetrics(tradeData) {
 
     if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return baseReturn; }
 
-    const { MAKER_FEE_RATE, TAKER_FEE_RATE } = CONFIG.TRADE_SETTINGS;
+    // --- NEW: Get Rates based on Exchange ---
+    const rates = getFeeRates(tradeData.exchange);
+    const MAKER_FEE_RATE = rates.MAKER;
+    const TAKER_FEE_RATE = rates.TAKER;
+
     const entryFeeRate = tradeData.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
 
     const positionQty = size / entry; 
@@ -4081,7 +4120,7 @@ function calculateTradeMetrics(tradeData) {
     const exitFeeAtTarget_Maker = exitValueAtTarget * MAKER_FEE_RATE;
     const expected_profit_maker = potentialProfit - entryFee - exitFeeAtTarget_Maker;
 
-    const estimated_total_fee = entryFee + exitFeeAtTarget_Taker; // Default to showing worst case fee in column
+    const estimated_total_fee = entryFee + exitFeeAtTarget_Taker; 
 
     // --- Loss Calculations ---
     const exitValueAtStop = (stoploss / entry) * size; 
@@ -4119,25 +4158,27 @@ function calculateTradeMetrics(tradeData) {
     };
 }
 
-        function handleAddTradeSubmit(e) {
-            e.preventDefault(); if (!STATE.isMasterUser) return;
-            const trade = { 
-                symbol: document.getElementById('trade-symbol').value, 
-                type: document.getElementById('trade-type').value, 
-                entry: parseFloat(document.getElementById('entry-price').value), 
-                stoploss: parseFloat(document.getElementById('stop-loss').value), 
-                target: parseFloat(document.getElementById('target').value), 
-                size: parseFloat(document.getElementById('position-value').value), 
-                date: firebase.database.ServerValue.TIMESTAMP, 
-                entry_prices: [],
-                entryFeeType: document.getElementById('entry-fee-type').value
-            };
-            if (Object.values(trade).some(val => val === null || (isNaN(val) && typeof val === 'number'))) return alert('Please fill all fields correctly.');
-            trade.entry_prices.push(trade.entry);
-            const metrics = calculateTradeMetrics(trade);
-            const tradeWithMetrics = { ...trade, ...metrics };
-            dbRefs.trades.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error adding trade: ${error.message}`));
-        }
+function handleAddTradeSubmit(e) {
+    e.preventDefault(); if (!STATE.isMasterUser) return;
+    const trade = { 
+        symbol: document.getElementById('trade-symbol').value, 
+        // NEW: Capture Exchange
+        exchange: document.getElementById('trade-exchange').value,
+        type: document.getElementById('trade-type').value, 
+        entry: parseFloat(document.getElementById('entry-price').value), 
+        stoploss: parseFloat(document.getElementById('stop-loss').value), 
+        target: parseFloat(document.getElementById('target').value), 
+        size: parseFloat(document.getElementById('position-value').value), 
+        date: firebase.database.ServerValue.TIMESTAMP, 
+        entry_prices: [],
+        entryFeeType: document.getElementById('entry-fee-type').value
+    };
+    if (Object.values(trade).some(val => val === null || (isNaN(val) && typeof val === 'number'))) return alert('Please fill all fields correctly.');
+    trade.entry_prices.push(trade.entry);
+    const metrics = calculateTradeMetrics(trade);
+    const tradeWithMetrics = { ...trade, ...metrics };
+    dbRefs.trades.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error adding trade: ${error.message}`));
+}
       function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
             const tradeId = cell.dataset.id;
