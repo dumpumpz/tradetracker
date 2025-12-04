@@ -3157,8 +3157,17 @@ function renderCompletedTable(data) {
             const paginationControls = document.getElementById('completed-trades-pagination-controls');
             const showAllButton = document.getElementById('toggle-all-completed-trades');
 
-            const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="merge-btn-completed" data-id="${id}" title="Merge another trade into this one" style="background-color: #ffc107; color: #333;">Merge</button><button class="note-btn-completed" data-id="${id}">Note 1</button><button class="note2-btn-completed" data-id="${id}">Note 2</button><button class="note3-btn-completed" data-id="${id}">Note 3</button><button class="delete-btn-completed" data-id="${id}">Delete</button></td>` : '';
-
+            // FIND THIS inside renderCompletedTable and REPLACE it:
+const masterButtonsHtml = (id) => STATE.isMasterUser ? 
+    `<td class="action-buttons">
+        <button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button>
+        <!-- NEW MERGE BUTTON ADDED HERE -->
+        <button class="merge-btn-completed" data-id="${id}" title="Combine with another trade" style="background-color: #6f42c1; color: white;">Merge</button>
+        <button class="note-btn-completed" data-id="${id}">Note 1</button>
+        <button class="note2-btn-completed" data-id="${id}">Note 2</button>
+        <button class="note3-btn-completed" data-id="${id}">Note 3</button>
+        <button class="delete-btn-completed" data-id="${id}">Delete</button>
+    </td>` : '';
 // REPLACE THE createRowHtml CONSTANT INSIDE renderCompletedTable
 const createRowHtml = (id) => {
     const trade = trades[id];
@@ -4481,33 +4490,83 @@ function handleAddTradeSubmit(e) {
             alert('MERGE MODE: Click another trade to merge into this one. Click "Merge" again to cancel.');
         }
 
-        function executeMerge(baseTradeId, absorbedTradeId) {
-            if (!baseTradeId || !absorbedTradeId || baseTradeId === absorbedTradeId) { resetMergeState(); return; }
-            const completedTradesRef = dbRefs.completedTrades;
-            completedTradesRef.once('value', snapshot => {
-                const allTrades = snapshot.val(), baseTrade = allTrades[baseTradeId], absorbedTrade = allTrades[absorbedTradeId];
-                if (!baseTrade || !absorbedTrade) { alert('Error: Could not find one of the trades.'); resetMergeState(); return; }
-                if (baseTrade.symbol !== absorbedTrade.symbol || baseTrade.type !== absorbedTrade.type) { alert('Error: Cannot merge trades with different symbols or types.'); resetMergeState(); return; }
-                const baseSize = parseFloat(baseTrade.size), baseEntry = parseFloat(baseTrade.entry), baseQty = baseSize / baseEntry;
-                const absorbedSize = parseFloat(absorbedTrade.size), absorbedEntry = parseFloat(absorbedTrade.entry), absorbedQty = absorbedSize / absorbedEntry;
-                const totalQty = baseQty + absorbedQty, totalValue = baseSize + absorbedSize;
-                const mergedEntry = totalValue / totalQty;
-                const baseExitValue = parseFloat(baseTrade.exit_price) * baseQty, absorbedExitValue = parseFloat(absorbedTrade.exit_price) * absorbedQty;
-                const mergedExitPrice = (baseExitValue + absorbedExitValue) / totalQty;
-                const mergedEntryPrices = [...(baseTrade.entry_prices || [baseTrade.entry]), ...(absorbedTrade.entry_prices || [absorbedTrade.entry])];
-                const mergedTrade = {
-                    ...baseTrade, entry: mergedEntry, size: totalValue, exit_price: mergedExitPrice, entry_prices: mergedEntryPrices,
-                    net_result: (baseTrade.net_result || 0) + (absorbedTrade.net_result || 0),
-                    entry_fee: (baseTrade.entry_fee || 0) + (absorbedTrade.entry_fee || 0),
-                    exit_fee: (baseTrade.exit_fee || 0) + (absorbedTrade.exit_fee || 0),
-                    date: Math.min(new Date(baseTrade.date).getTime(), new Date(absorbedTrade.date).getTime()),
-                    closed_date: Math.max(new Date(baseTrade.closed_date).getTime(), new Date(absorbedTrade.closed_date).getTime()),
-                    note: `${baseTrade.note || ''}\n--- MERGED ---\n${absorbedTrade.note || ''}`.trim(),
-                };
-                const updates = { [baseTradeId]: mergedTrade, [absorbedTradeId]: null };
-                completedTradesRef.update(updates).then(() => { alert('Trades merged successfully!'); resetMergeState(); }).catch(e => { alert(`Error merging trades: ${e.message}`); resetMergeState(); });
-            });
-        }
+// FIND the existing executeMerge function and REPLACE it with this:
+function executeMerge(baseTradeId, absorbedTradeId) {
+    if (!baseTradeId || !absorbedTradeId || baseTradeId === absorbedTradeId) { resetMergeState(); return; }
+    
+    const completedTradesRef = dbRefs.completedTrades;
+    completedTradesRef.once('value', snapshot => {
+        const allTrades = snapshot.val();
+        const baseTrade = allTrades[baseTradeId];
+        const absorbedTrade = allTrades[absorbedTradeId];
+
+        if (!baseTrade || !absorbedTrade) { alert('Error: Could not find one of the trades.'); resetMergeState(); return; }
+        if (baseTrade.symbol !== absorbedTrade.symbol || baseTrade.type !== absorbedTrade.type) { alert('Error: Cannot merge trades with different symbols or types.'); resetMergeState(); return; }
+
+        // 1. Calculate Quantities (Coins) based on USD Size and Entry Price
+        const baseSize = parseFloat(baseTrade.size); // USD Value
+        const baseEntry = parseFloat(baseTrade.entry);
+        const baseQty = baseSize / baseEntry;
+
+        const absorbedSize = parseFloat(absorbedTrade.size); // USD Value
+        const absorbedEntry = parseFloat(absorbedTrade.entry);
+        const absorbedQty = absorbedSize / absorbedEntry;
+
+        // 2. Calculate Totals
+        const totalQty = baseQty + absorbedQty;
+        const totalSize = baseSize + absorbedSize; // New Total Position Value ($)
+
+        // 3. Calculate Weighted Average Entry
+        const mergedEntry = totalSize / totalQty;
+
+        // 4. Calculate Weighted Average Exit Price
+        // We derive this from the exit values of the individual trades
+        const baseExitPrice = parseFloat(baseTrade.exit_price);
+        const absorbedExitPrice = parseFloat(absorbedTrade.exit_price);
+        
+        // Value returned to wallet upon exit (approximate before fees)
+        const baseExitValue = baseQty * baseExitPrice;
+        const absorbedExitValue = absorbedQty * absorbedExitPrice;
+        
+        const mergedExitPrice = (baseExitValue + absorbedExitValue) / totalQty;
+
+        // 5. Merge Arrays and Notes
+        const mergedEntryPrices = [...(baseTrade.entry_prices || [baseTrade.entry]), ...(absorbedTrade.entry_prices || [absorbedTrade.entry])];
+        const mergedNote = `${baseTrade.note || ''}\n--- MERGED ---\n${absorbedTrade.note || ''}`.trim();
+
+        // 6. Create the Merged Object
+        const mergedTrade = {
+            ...baseTrade, 
+            entry: mergedEntry, 
+            size: totalSize, 
+            exit_price: mergedExitPrice, 
+            entry_prices: mergedEntryPrices,
+            // Sum up the financial results
+            net_result: (parseFloat(baseTrade.net_result) || 0) + (parseFloat(absorbedTrade.net_result) || 0),
+            entry_fee: (parseFloat(baseTrade.entry_fee) || 0) + (parseFloat(absorbedTrade.entry_fee) || 0),
+            exit_fee: (parseFloat(baseTrade.exit_fee) || 0) + (parseFloat(absorbedTrade.exit_fee) || 0),
+            // Dates: Opened = Earliest, Closed = Latest
+            date: Math.min(new Date(baseTrade.date).getTime(), new Date(absorbedTrade.date).getTime()),
+            closed_date: Math.max(new Date(baseTrade.closed_date).getTime(), new Date(absorbedTrade.closed_date).getTime()),
+            note: mergedNote,
+        };
+
+        // Recalculate metrics (RR, projected profit/loss) based on new averages
+        const newMetrics = calculateTradeMetrics(mergedTrade);
+        Object.assign(mergedTrade, newMetrics);
+
+        // 7. Atomic Update: Set Base to New, Delete Absorbed
+        const updates = { [baseTradeId]: mergedTrade, [absorbedTradeId]: null };
+        
+        completedTradesRef.update(updates).then(() => { 
+            alert('Trades merged successfully!'); 
+            resetMergeState(); 
+        }).catch(e => { 
+            alert(`Error merging trades: ${e.message}`); 
+            resetMergeState(); 
+        });
+    });
+}
 
       function subscribeToData() {
             dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
