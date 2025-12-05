@@ -2985,7 +2985,7 @@ function calculateBreakevenPrice(trade) {
             }).join('');
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
- function renderLiveTable(data) {
+function renderLiveTable(data) {
     const trades = data || {};
 
     // --- SUMMARY VARIABLES ---
@@ -3011,10 +3011,26 @@ function calculateBreakevenPrice(trade) {
         // Calculate Breakeven (Avg Entry + Fees)
         const breakevenPrice = calculateBreakevenPrice(trade);
 
-        // --- ACCUMULATE SUMMARY DATA ---
-        const tSize = parseFloat(trade.size) || 0;
+        // --- NEW: Calculate Individual 1:1 and 1:4 Levels ---
         const tEntry = parseFloat(trade.entry) || 0;
         const tStop = parseFloat(trade.stoploss) || 0;
+        let rr1Price = "--";
+        let rr4Price = "--";
+
+        if (tEntry > 0 && tStop > 0 && tEntry !== tStop) {
+            const risk = Math.abs(tEntry - tStop);
+            const direction = trade.type === 'Long' ? 1 : -1;
+            
+            const p1 = tEntry + (risk * direction);
+            const p4 = tEntry + (risk * 4 * direction);
+            
+            rr1Price = p1.toFixed(4);
+            rr4Price = p4.toFixed(4);
+        }
+        // ----------------------------------------------------
+
+        // --- ACCUMULATE SUMMARY DATA ---
+        const tSize = parseFloat(trade.size) || 0;
 
         if (tSize > 0 && tEntry > 0) {
             const tQty = tSize / tEntry;
@@ -3055,6 +3071,11 @@ function calculateBreakevenPrice(trade) {
             ${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}
             ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}
             ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}
+            
+            <!-- NEW 1:1 and 1:4 COLUMNS -->
+            <td style="color: var(--link-color); font-weight: 500;">${rr1Price}</td>
+            <td style="color: var(--green-text); font-weight: 500;">${rr4Price}</td>
+
             ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
             <td>${parseFloat(metrics.estimated_total_fee || 0).toFixed(2)}</td>
             <td style="color: #28a745;">${profitTakerStr}</td>
@@ -3070,7 +3091,7 @@ function calculateBreakevenPrice(trade) {
         </tr>`;
     }).join('');
 
-    // 1. UPDATE THE TABLE HEADER (Look closely here, I updated the TH order)
+    // 1. UPDATE THE TABLE HEADER
     DOM.tradesTbody.closest('table').querySelector('thead').innerHTML = `
         <tr>
             <th>Symbol</th>
@@ -3080,6 +3101,10 @@ function calculateBreakevenPrice(trade) {
             <th>Entries List</th>
             <th>Stop Loss</th>
             <th>Target</th>
+            <!-- NEW HEADERS -->
+            <th style="color: var(--link-color);">1:1 Target</th>
+            <th style="color: var(--green-text);">1:4 Target</th>
+            
             <th>Position Value ($)</th>
             <th>Est. Total Fee ($)</th>
             <th>Profit (Taker)</th>
@@ -3098,7 +3123,7 @@ function calculateBreakevenPrice(trade) {
     // 2. Render Table Rows
     DOM.tradesTbody.innerHTML = rowsHtml;
 
-    // 3. Update Summary Section Logic (Same as before)
+    // 3. Update Summary Section Logic
     const summaryContainer = document.getElementById('live-trades-summary-container');
     if (summaryContainer) {
         if (Object.keys(trades).length > 0) {
