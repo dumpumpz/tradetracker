@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1857,8 +1858,6 @@
         }
     }
 
-<style>
-    /* ... existing styles ... */
 
     /* PnL Calendar Styles */
     .calendar-container { padding: 5px; }
@@ -1947,7 +1946,6 @@
         }
         .cal-value { font-size: 11px; } /* Slightly smaller text on phone */
     }
-</style>
     </style>
 <body>
     <div class="container">
@@ -2033,6 +2031,16 @@
     </div>
 
     <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
+    
+    <!-- NEW: Trade Status Selection -->
+    <div>
+        <label for="trade-status">Status:</label>
+        <select id="trade-status">
+            <option value="live">Live Trade</option>
+            <option value="resting">Resting (Limit)</option>
+        </select>
+    </div>
+
     <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
     <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
     <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
@@ -2046,6 +2054,80 @@
     </div>
     <div><button type="submit">Add Trade</button></div>
 </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEW: Resting Limit Orders Section -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Resting Limit Orders</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+
+                        <div id="resting-trades-summary-container" class="ema-summary-container" style="display:none; margin-bottom: 20px; padding: 15px; border: 1px solid var(--link-color);">
+                            <h4 style="margin-top: 0; margin-bottom: 15px; font-weight: 600;">Resting Orders Summary</h4>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <!-- ROW 1: Position Data (Size & Entry) -->
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; text-align: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 12px;">
+                                    <div>
+                                        <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Total Position Size</span><br>
+                                        <span id="resting-summary-total-size" style="font-size: 18px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--text-color);">$0.00</span>
+                                    </div>
+                                    <div>
+                                        <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Avg Entry Price</span><br>
+                                        <span id="resting-summary-avg-entry" style="font-size: 18px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--text-color);">--</span>
+                                    </div>
+                                </div>
+                                <!-- ROW 2: Financial Projections -->
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; text-align: center;">
+                                    <div>
+                                        <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Profit (Taker)</span><br>
+                                        <span id="resting-summary-profit-taker" style="font-size: 16px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
+                                    </div>
+                                    <div>
+                                        <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Profit (Maker)</span><br>
+                                        <span id="resting-summary-profit-maker" style="font-size: 16px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--green-text);">$0.00</span>
+                                    </div>
+                                    <div>
+                                        <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Loss (Taker)</span><br>
+                                        <span id="resting-summary-loss-taker" style="font-size: 16px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--red-text);">$0.00</span>
+                                    </div>
+                                    <div>
+                                        <span style="color: var(--subtle-text); font-size: 11px; text-transform: uppercase;">Exp. Loss (Maker)</span><br>
+                                        <span id="resting-summary-loss-maker" style="font-size: 16px; font-weight: 800; font-family: 'Courier New', monospace; color: var(--red-text);">$0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Type</th>
+                                        <th>Entry Price</th>
+                                        <th>Stop Loss</th>
+                                        <th>Target</th>
+                                        <th>Position Value ($)</th>
+                                        <th>Est. Total Fee ($)</th>
+                                        <th>Proj. Profit (Taker)</th>
+                                        <th>Proj. Profit (Maker)</th>
+                                        <th>Proj. Loss (Taker)</th>
+                                        <th>Proj. Loss (Maker)</th>
+                                        <th>RR (Taker)</th>
+                                        <th>RR (Maker)</th>
+                                        <th>Date Added</th>
+                                        <th>Note</th>
+                                        <th class="master-only">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resting-trades-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2593,7 +2675,7 @@
                 messagingSenderId: "1038636626553",
                 appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
             },
-            DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades', BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', GENERAL_NOTES: 'general_notes' },
+            DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades', BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', GENERAL_NOTES: 'general_notes', RESTING_ORDERS: 'resting_orders' },
             TRADE_SETTINGS: {
                 MAKER_FEE_RATE: 0.0000, // 0% for Maker
                 TAKER_FEE_RATE: 0.00075, // Standard Taker fee
@@ -2630,6 +2712,7 @@
             addTradeForm: document.getElementById('add-trade-form'),
             tradesTbody: document.getElementById('trades-tbody'),
             completedTradesTbody: document.getElementById('completed-trades-tbody'),
+            restingTradesTbody: document.getElementById('resting-trades-tbody'),
             emaSnapshotContainer: document.getElementById('ema-snapshot-container'),
             setupsImageContainer: document.getElementById('setups-image-container'),
             setupsImageUpload: document.getElementById('setups-image-upload'),
@@ -2703,7 +2786,7 @@
         firebase.initializeApp(CONFIG.FIREBASE);
         const database = firebase.database();
         const storage = firebase.storage();
-        const dbRefs = { trades: database.ref(CONFIG.DB_PATHS.TRADES), completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), bank: database.ref(CONFIG.DB_PATHS.BANK), journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES) };
+        const dbRefs = { trades: database.ref(CONFIG.DB_PATHS.TRADES), completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), bank: database.ref(CONFIG.DB_PATHS.BANK), journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES), restingOrders: database.ref(CONFIG.DB_PATHS.RESTING_ORDERS) };
 
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
@@ -2985,6 +3068,104 @@ function calculateBreakevenPrice(trade) {
             }).join('');
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
+
+        function renderRestingTable(data) {
+            const trades = data || {};
+            
+            // --- SUMMARY VARIABLES ---
+            let sumSize = 0;
+            let sumQty = 0;
+            let sumProfitTaker = 0;
+            let sumProfitMaker = 0;
+            let sumLossTaker = 0;
+            let sumLossMaker = 0;
+            // -------------------------
+
+            const masterButtonsHtml = (id) => STATE.isMasterUser ? 
+                `<td class="action-buttons">
+                    <button class="activate-btn" data-id="${id}" title="Move to Live Trades" style="background-color: #28a745; display: flex; align-items: center; justify-content: center; width: 100%; font-weight: bold;">▶ Active</button>
+                    <button class="delete-resting-btn" data-id="${id}" style="margin-top: 4px; background-color: #dc3545;">Delete</button>
+                 </td>` : '';
+
+            const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date)).map(id => {
+                const trade = trades[id];
+                const metrics = calculateTradeMetrics(trade);
+
+                // --- ACCUMULATE SUMMARY DATA ---
+                const tSize = parseFloat(trade.size) || 0;
+                const tEntry = parseFloat(trade.entry) || 0;
+
+                if (tSize > 0 && tEntry > 0) {
+                    const tQty = tSize / tEntry;
+                    sumSize += tSize;
+                    sumQty += tQty;
+                }
+
+                sumProfitTaker += parseFloat(metrics.expected_profit_taker || 0);
+                sumProfitMaker += parseFloat(metrics.expected_profit_maker || 0);
+                sumLossTaker += parseFloat(metrics.expected_loss_taker || 0);
+                sumLossMaker += parseFloat(metrics.expected_loss_maker || 0);
+                // -------------------------------
+
+                const profitTakerStr = `$${parseFloat(metrics.expected_profit_taker || 0).toFixed(2)}`;
+                const profitMakerStr = `$${parseFloat(metrics.expected_profit_maker || 0).toFixed(2)}`;
+                const lossTakerStr = `$${parseFloat(metrics.expected_loss_taker || 0).toFixed(2)}`;
+                const lossMakerStr = `$${parseFloat(metrics.expected_loss_maker || 0).toFixed(2)}`;
+
+                const rrTakerString = metrics.rr_taker > 0 ? metrics.rr_taker : '--';
+                const rrMakerString = metrics.rr_maker > 0 ? metrics.rr_maker : '--';
+
+                return `<tr>
+                    <td>${trade.symbol}</td>
+                    <td>${trade.type}</td>
+                    <td>${parseFloat(trade.entry).toFixed(4)}</td>
+                    <td>${parseFloat(trade.stoploss).toFixed(4)}</td>
+                    <td>${parseFloat(trade.target).toFixed(4)}</td>
+                    <td>${parseFloat(trade.size).toFixed(2)}</td>
+                    <td>${parseFloat(metrics.estimated_total_fee || 0).toFixed(2)}</td>
+                    <td style="color: #28a745;">${profitTakerStr}</td>
+                    <td style="color: #28a745;">${profitMakerStr}</td>
+                    <td style="color: #dc3545;">${lossTakerStr}</td>
+                    <td style="color: #dc3545;">${lossMakerStr}</td>
+                    <td>${rrTakerString}</td>
+                    <td>${rrMakerString}</td>
+                    <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
+                    <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
+                    ${masterButtonsHtml(id)}
+                </tr>`;
+            }).join('');
+
+            DOM.restingTradesTbody.innerHTML = rowsHtml;
+
+            // Update Summary Section Logic
+            const summaryContainer = document.getElementById('resting-trades-summary-container');
+            if (summaryContainer) {
+                if (Object.keys(trades).length > 0) {
+                    summaryContainer.style.display = 'block';
+                    document.getElementById('resting-summary-total-size').textContent = `$${sumSize.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+                    let avgEntryText = "--";
+                    if (sumQty > 0) {
+                        const weightedAvgEntry = sumSize / sumQty;
+                        avgEntryText = weightedAvgEntry.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
+                    }
+
+                    document.getElementById('resting-summary-avg-entry').textContent = avgEntryText;
+                    document.getElementById('resting-summary-profit-taker').textContent = `$${sumProfitTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                    document.getElementById('resting-summary-profit-maker').textContent = `$${sumProfitMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                    document.getElementById('resting-summary-loss-taker').textContent = `$${sumLossTaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                    document.getElementById('resting-summary-loss-maker').textContent = `$${sumLossMaker.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+                } else {
+                    summaryContainer.style.display = 'none';
+                }
+            }
+
+            setTimeout(() => {
+                adjustCollapsibleSize(DOM.restingTradesTbody);
+            }, 10);
+        }
+
 function renderLiveTable(data) {
     const trades = data || {};
 
@@ -4018,7 +4199,7 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
                     renderEmaSnapshot(pillBtn.dataset.symbol);
                 } else if (e.target.closest('#setups-image-container, #image-library-container')) {
                     handleGenericImageLibraryClick(e);
-                } else if (e.target.closest('#trades-tbody, #completed-trades-tbody')) {
+                } else if (e.target.closest('#trades-tbody, #completed-trades-tbody, #resting-trades-tbody')) {
                     handleTradeAction(e);
                 } else if (e.target.id === 'toggle-all-completed-trades') {
                     STATE.completedTradesShowAll = true;
@@ -4256,6 +4437,10 @@ function calculateTradeMetrics(tradeData) {
 
 function handleAddTradeSubmit(e) {
     e.preventDefault(); if (!STATE.isMasterUser) return;
+    
+    // NEW: Get status (Live or Resting)
+    const status = document.getElementById('trade-status').value;
+
     const trade = { 
         symbol: document.getElementById('trade-symbol').value, 
         // NEW: Capture Exchange
@@ -4271,9 +4456,15 @@ function handleAddTradeSubmit(e) {
     };
     if (Object.values(trade).some(val => val === null || (isNaN(val) && typeof val === 'number'))) return alert('Please fill all fields correctly.');
     trade.entry_prices.push(trade.entry);
+    
+    // Calculate metrics immediately
     const metrics = calculateTradeMetrics(trade);
     const tradeWithMetrics = { ...trade, ...metrics };
-    dbRefs.trades.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error adding trade: ${error.message}`));
+    
+    // Decide where to save based on status
+    const targetRef = (status === 'resting') ? dbRefs.restingOrders : dbRefs.trades;
+
+    targetRef.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error adding trade: ${error.message}`));
 }
       function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
@@ -4403,8 +4594,10 @@ function handleAddTradeSubmit(e) {
             }
         }
 
-        function handleTradeAction(e) {
+ function handleTradeAction(e) {
             if (!STATE.isMasterUser) return;
+            
+            // Handle Merge Mode clicks on rows
             if (STATE.isMerging) {
                 const targetRow = e.target.closest('tr');
                 if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody' && !e.target.closest('button')) {
@@ -4413,18 +4606,66 @@ function handleAddTradeSubmit(e) {
                 }
                 return;
             }
-            const button = e.target.closest('button'); if (!button) return;
+
+            const button = e.target.closest('button'); 
+            if (!button) return;
             const { id } = button.dataset;
+
+            // --- 1. Handle RESTING ORDERS Actions ---
+            if (button.closest('#resting-trades-tbody')) {
+                if (button.matches('.delete-resting-btn')) {
+                    if (confirm('Delete this resting order?')) { 
+                        dbRefs.restingOrders.child(id).remove(); 
+                    }
+                } else if (button.matches('.activate-btn')) {
+                    if (confirm('Move this order to Live Trades?')) {
+                        dbRefs.restingOrders.child(id).once('value', snapshot => {
+                            const tradeData = snapshot.val();
+                            if (tradeData) {
+                                // Update date to now as it becomes live
+                                const liveTrade = { ...tradeData, date: firebase.database.ServerValue.TIMESTAMP };
+                                dbRefs.trades.push(liveTrade)
+                                    .then(() => dbRefs.restingOrders.child(id).remove())
+                                    .catch(err => alert("Error moving trade: " + err.message));
+                            }
+                        });
+                    }
+                }
+                return; 
+            }
+
+            // --- 2. Handle LIVE & COMPLETED Actions ---
             const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
             const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
+
             if (button.matches('.win-btn')) completeTrade(id, 'win');
             else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
             else if (button.matches('.add-to-position-btn')) handleAddStaggeredEntry(id);
             else if (button.matches('.merge-btn-completed')) initiateMerge(id);
-            else if (button.matches('.delete-btn, .delete-btn-completed')) { if (confirm('Delete this trade?')) { resetMergeState(); tradeRef.remove(); } } 
-            else if (button.matches('.note-btn, .note-btn-completed')) { tradeRef.child('note').once('value', snapshot => { const newNote = prompt("Enter Note 1:", snapshot.val() || ""); if (newNote !== null) tradeRef.update({ note: newNote }); }); }
-            else if (button.matches('.note2-btn-completed')) { tradeRef.child('note2').once('value', snapshot => { const newNote2 = prompt("Enter Note 2:", snapshot.val() || ""); if (newNote2 !== null) tradeRef.update({ note2: newNote2 }); }); }
-            else if (button.matches('.note3-btn-completed')) { tradeRef.child('note3').once('value', snapshot => { const newNote3 = prompt("Enter Note 3:", snapshot.val() || ""); if (newNote3 !== null) tradeRef.update({ note3: newNote3 }); }); }
+            else if (button.matches('.delete-btn, .delete-btn-completed')) { 
+                if (confirm('Delete this trade?')) { 
+                    resetMergeState(); 
+                    tradeRef.remove(); 
+                } 
+            } 
+            else if (button.matches('.note-btn, .note-btn-completed')) { 
+                tradeRef.child('note').once('value', snapshot => { 
+                    const newNote = prompt("Enter Note 1:", snapshot.val() || ""); 
+                    if (newNote !== null) tradeRef.update({ note: newNote }); 
+                }); 
+            }
+            else if (button.matches('.note2-btn-completed')) { 
+                tradeRef.child('note2').once('value', snapshot => { 
+                    const newNote2 = prompt("Enter Note 2:", snapshot.val() || ""); 
+                    if (newNote2 !== null) tradeRef.update({ note2: newNote2 }); 
+                }); 
+            }
+            else if (button.matches('.note3-btn-completed')) { 
+                tradeRef.child('note3').once('value', snapshot => { 
+                    const newNote3 = prompt("Enter Note 3:", snapshot.val() || ""); 
+                    if (newNote3 !== null) tradeRef.update({ note3: newNote3 }); 
+                }); 
+            }
         }
 
         function handleAttachmentActions(e) {
@@ -4515,88 +4756,98 @@ function handleAddTradeSubmit(e) {
             alert('MERGE MODE: Click another trade to merge into this one. Click "Merge" again to cancel.');
         }
 
-// FIND the existing executeMerge function and REPLACE it with this:
-function executeMerge(baseTradeId, absorbedTradeId) {
-    if (!baseTradeId || !absorbedTradeId || baseTradeId === absorbedTradeId) { resetMergeState(); return; }
-    
-    const completedTradesRef = dbRefs.completedTrades;
-    completedTradesRef.once('value', snapshot => {
-        const allTrades = snapshot.val();
-        const baseTrade = allTrades[baseTradeId];
-        const absorbedTrade = allTrades[absorbedTradeId];
+        function executeMerge(baseTradeId, absorbedTradeId) {
+            if (!baseTradeId || !absorbedTradeId || baseTradeId === absorbedTradeId) { resetMergeState(); return; }
+            
+            const completedTradesRef = dbRefs.completedTrades;
+            completedTradesRef.once('value', snapshot => {
+                const allTrades = snapshot.val();
+                const baseTrade = allTrades[baseTradeId];
+                const absorbedTrade = allTrades[absorbedTradeId];
 
-        if (!baseTrade || !absorbedTrade) { alert('Error: Could not find one of the trades.'); resetMergeState(); return; }
-        if (baseTrade.symbol !== absorbedTrade.symbol || baseTrade.type !== absorbedTrade.type) { alert('Error: Cannot merge trades with different symbols or types.'); resetMergeState(); return; }
+                if (!baseTrade || !absorbedTrade) { alert('Error: Could not find one of the trades.'); resetMergeState(); return; }
+                if (baseTrade.symbol !== absorbedTrade.symbol || baseTrade.type !== absorbedTrade.type) { alert('Error: Cannot merge trades with different symbols or types.'); resetMergeState(); return; }
 
-        // 1. Calculate Quantities (Coins) based on USD Size and Entry Price
-        const baseSize = parseFloat(baseTrade.size); // USD Value
-        const baseEntry = parseFloat(baseTrade.entry);
-        const baseQty = baseSize / baseEntry;
+                // 1. Calculate Quantities (Coins) based on USD Size and Entry Price
+                const baseSize = parseFloat(baseTrade.size); // USD Value
+                const baseEntry = parseFloat(baseTrade.entry);
+                const baseQty = baseSize / baseEntry;
 
-        const absorbedSize = parseFloat(absorbedTrade.size); // USD Value
-        const absorbedEntry = parseFloat(absorbedTrade.entry);
-        const absorbedQty = absorbedSize / absorbedEntry;
+                const absorbedSize = parseFloat(absorbedTrade.size); // USD Value
+                const absorbedEntry = parseFloat(absorbedTrade.entry);
+                const absorbedQty = absorbedSize / absorbedEntry;
 
-        // 2. Calculate Totals
-        const totalQty = baseQty + absorbedQty;
-        const totalSize = baseSize + absorbedSize; // New Total Position Value ($)
+                // 2. Calculate Totals
+                const totalQty = baseQty + absorbedQty;
+                const totalSize = baseSize + absorbedSize; // New Total Position Value ($)
 
-        // 3. Calculate Weighted Average Entry
-        const mergedEntry = totalSize / totalQty;
+                // 3. Calculate Weighted Average Entry
+                const mergedEntry = totalSize / totalQty;
 
-        // 4. Calculate Weighted Average Exit Price
-        // We derive this from the exit values of the individual trades
-        const baseExitPrice = parseFloat(baseTrade.exit_price);
-        const absorbedExitPrice = parseFloat(absorbedTrade.exit_price);
-        
-        // Value returned to wallet upon exit (approximate before fees)
-        const baseExitValue = baseQty * baseExitPrice;
-        const absorbedExitValue = absorbedQty * absorbedExitPrice;
-        
-        const mergedExitPrice = (baseExitValue + absorbedExitValue) / totalQty;
+                // 4. Calculate Weighted Average Exit Price
+                const baseExitPrice = parseFloat(baseTrade.exit_price);
+                const absorbedExitPrice = parseFloat(absorbedTrade.exit_price);
+                
+                // Value returned to wallet upon exit (approximate before fees)
+                const baseExitValue = baseQty * baseExitPrice;
+                const absorbedExitValue = absorbedQty * absorbedExitPrice;
+                
+                const mergedExitPrice = (baseExitValue + absorbedExitValue) / totalQty;
 
-        // 5. Merge Arrays and Notes
-        const mergedEntryPrices = [...(baseTrade.entry_prices || [baseTrade.entry]), ...(absorbedTrade.entry_prices || [absorbedTrade.entry])];
-        const mergedNote = `${baseTrade.note || ''}\n--- MERGED ---\n${absorbedTrade.note || ''}`.trim();
+                // 5. Merge Arrays and Notes
+                const mergedEntryPrices = [...(baseTrade.entry_prices || [baseTrade.entry]), ...(absorbedTrade.entry_prices || [absorbedTrade.entry])];
+                const mergedNote = `${baseTrade.note || ''}\n--- MERGED ---\n${absorbedTrade.note || ''}`.trim();
 
-        // 6. Create the Merged Object
-        const mergedTrade = {
-            ...baseTrade, 
-            entry: mergedEntry, 
-            size: totalSize, 
-            exit_price: mergedExitPrice, 
-            entry_prices: mergedEntryPrices,
-            // Sum up the financial results
-            net_result: (parseFloat(baseTrade.net_result) || 0) + (parseFloat(absorbedTrade.net_result) || 0),
-            entry_fee: (parseFloat(baseTrade.entry_fee) || 0) + (parseFloat(absorbedTrade.entry_fee) || 0),
-            exit_fee: (parseFloat(baseTrade.exit_fee) || 0) + (parseFloat(absorbedTrade.exit_fee) || 0),
-            // Dates: Opened = Earliest, Closed = Latest
-            date: Math.min(new Date(baseTrade.date).getTime(), new Date(absorbedTrade.date).getTime()),
-            closed_date: Math.max(new Date(baseTrade.closed_date).getTime(), new Date(absorbedTrade.closed_date).getTime()),
-            note: mergedNote,
-        };
+                // 6. Create the Merged Object
+                const mergedTrade = {
+                    ...baseTrade, 
+                    entry: mergedEntry, 
+                    size: totalSize, 
+                    exit_price: mergedExitPrice, 
+                    entry_prices: mergedEntryPrices,
+                    // Sum up the financial results
+                    net_result: (parseFloat(baseTrade.net_result) || 0) + (parseFloat(absorbedTrade.net_result) || 0),
+                    entry_fee: (parseFloat(baseTrade.entry_fee) || 0) + (parseFloat(absorbedTrade.entry_fee) || 0),
+                    exit_fee: (parseFloat(baseTrade.exit_fee) || 0) + (parseFloat(absorbedTrade.exit_fee) || 0),
+                    // Dates: Opened = Earliest, Closed = Latest
+                    date: Math.min(new Date(baseTrade.date).getTime(), new Date(absorbedTrade.date).getTime()),
+                    closed_date: Math.max(new Date(baseTrade.closed_date).getTime(), new Date(absorbedTrade.closed_date).getTime()),
+                    note: mergedNote,
+                };
 
-        // Recalculate metrics (RR, projected profit/loss) based on new averages
-        const newMetrics = calculateTradeMetrics(mergedTrade);
-        Object.assign(mergedTrade, newMetrics);
+                // Recalculate metrics (RR, projected profit/loss) based on new averages
+                const newMetrics = calculateTradeMetrics(mergedTrade);
+                Object.assign(mergedTrade, newMetrics);
 
-        // 7. Atomic Update: Set Base to New, Delete Absorbed
-        const updates = { [baseTradeId]: mergedTrade, [absorbedTradeId]: null };
-        
-        completedTradesRef.update(updates).then(() => { 
-            alert('Trades merged successfully!'); 
-            resetMergeState(); 
-        }).catch(e => { 
-            alert(`Error merging trades: ${e.message}`); 
-            resetMergeState(); 
-        });
-    });
-}
+                // 7. Atomic Update: Set Base to New, Delete Absorbed
+                const updates = { [baseTradeId]: mergedTrade, [absorbedTradeId]: null };
+                
+                completedTradesRef.update(updates).then(() => { 
+                    alert('Trades merged successfully!'); 
+                    resetMergeState(); 
+                }).catch(e => { 
+                    alert(`Error merging trades: ${e.message}`); 
+                    resetMergeState(); 
+                });
+            });
+        }
 
       function subscribeToData() {
-            dbRefs.trades.on('value', s => { const trades = s.val() || {}; renderLiveTable(trades); DOM.statOpenTrades.textContent = Object.keys(trades).length; });
+            // Live Trades Listener
+            dbRefs.trades.on('value', s => { 
+                const trades = s.val() || {}; 
+                renderLiveTable(trades); 
+                DOM.statOpenTrades.textContent = Object.keys(trades).length; 
+            });
 
-dbRefs.completedTrades.on('value', s => {
+            // Resting Orders Listener (NEW)
+            dbRefs.restingOrders.on('value', s => {
+                const orders = s.val() || {};
+                renderRestingTable(orders);
+            });
+
+            // Completed Trades Listener
+            dbRefs.completedTrades.on('value', s => {
                 STATE.allCompletedTrades = s.val() || {};
                 const completedData = STATE.allCompletedTrades;
                 renderCompletedTable(completedData);
@@ -4639,7 +4890,7 @@ dbRefs.completedTrades.on('value', s => {
                 DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}$${totalPL.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}A$${(totalPL * STATE.usdToAudRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-                // 3. Update Counts (THESE WERE MISSING)
+                // 3. Update Counts
                 DOM.statCompletedTrades.textContent = totalCompleted;
                 DOM.statWins.textContent = wins;
                 DOM.statLosses.textContent = losses;
@@ -4692,7 +4943,7 @@ dbRefs.completedTrades.on('value', s => {
 
         function openDefaultSectionsInContainer(containerElement) {
             if (!containerElement) return;
-            const sectionsToOpen = ['Live Trades', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'EMA Snapshot', 'PnL Calendar'];
+            const sectionsToOpen = ['Resting Limit Orders', 'Live Trades', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'EMA Snapshot', 'PnL Calendar'];
             containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 const title = h2.textContent.trim();
                 if (sectionsToOpen.includes(title)) {
