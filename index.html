@@ -1997,6 +1997,52 @@
         .sum-val { font-size: 15px; font-weight: 700; font-family: 'Courier New', monospace; }
         .val-green { color: var(--green-text); }
         .val-red { color: var(--red-text); }
+
+
+
+
+
+
+            /* --- SCROLLBAR FIX --- */
+        
+        /* 1. Target the table wrapper specifically */
+        .table-wrapper::-webkit-scrollbar {
+            height: 12px; /* Height for horizontal scrolling */
+            width: 12px;  /* Width for vertical scrolling */
+        }
+
+        /* 2. Style the "Track" (the background of the scrollbar) */
+        .table-wrapper::-webkit-scrollbar-track {
+            background: var(--header-bg); 
+            border-radius: 6px;
+        }
+
+        /* 3. Style the "Thumb" (the moving part) */
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background-color: #999; /* Visible Grey */
+            border-radius: 6px;
+            border: 3px solid var(--header-bg); /* Creates padding around the thumb */
+        }
+
+        /* 4. Hover Effect */
+        .table-wrapper::-webkit-scrollbar-thumb:hover {
+            background-color: var(--link-color); /* Turns Blue on hover */
+        }
+
+        /* 5. Firefox Support */
+        .table-wrapper {
+            scrollbar-width: thin;
+            scrollbar-color: #999 var(--header-bg);
+        }
+
+        /* 6. Dark Mode specific adjustments (Optional, but good for contrast) */
+        [data-theme="dark"] .table-wrapper::-webkit-scrollbar-thumb {
+            background-color: #555;
+            border-color: var(--card-bg);
+        }
+        [data-theme="dark"] .table-wrapper::-webkit-scrollbar-track {
+            background: var(--card-bg);
+        }
     </style>
 <body>
     <div class="container">
