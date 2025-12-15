@@ -2119,98 +2119,97 @@
 
 
             <!-- FIBONACCI SETUP CALCULATOR -->
-            <div class="collapsible-section master-only">
-                <div class="collapsible-header">
-                    <h2>Add Fib Setup (OTE)</h2>
-                    <button class="collapsible-toggle-btn">+</button>
+       <!-- FIBONACCI SETUP CALCULATOR -->
+<div class="collapsible-section master-only">
+    <div class="collapsible-header">
+        <h2>Add Fib Setup (OTE)</h2>
+        <button class="collapsible-toggle-btn">+</button>
+    </div>
+    <div class="collapsible-content">
+        <div class="collapsible-content-inner">
+            <div class="calculator-grid" id="fib-calc-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end;">
+                
+                <!-- Column 1: Asset Details -->
+                <div>
+                    <label for="fib-symbol">Symbol:</label>
+                    <input type="text" id="fib-symbol" list="symbol-list" placeholder="BTC/USDT">
                 </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <div class="calculator-grid" id="fib-calc-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end;">
-                            
-                            <!-- Column 1: Asset Details -->
-                            <div>
-                                <label for="fib-symbol">Symbol:</label>
-                                <input type="text" id="fib-symbol" list="symbol-list" placeholder="BTC/USDT">
-                            </div>
-                            <div>
-                                <label for="fib-type">Direction:</label>
-                                <select id="fib-type">
-                                    <option value="Long">Long (Buy Dip)</option>
-                                    <option value="Short">Short (Sell Rally)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="fib-setup-type">Setup Class:</label>
-                                <select id="fib-setup-type">
-                                    <option value="Major">Major Swing</option>
-                                    <option value="Scalp">Fast/Scalp</option>
-                                    <option value="Intraday">Intraday</option>
-                                </select>
-                            </div>
+                <div>
+                    <label for="fib-type">Direction:</label>
+                    <select id="fib-type">
+                        <option value="Long">Long (Buy Dip)</option>
+                        <option value="Short">Short (Sell Rally)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="fib-setup-type">Setup Class:</label>
+                    <select id="fib-setup-type">
+                        <option value="Major">Major Swing</option>
+                        <option value="Scalp">Fast/Scalp</option>
+                        <option value="Intraday">Intraday</option>
+                    </select>
+                </div>
 
-                            <!-- Column 2: Fib Range -->
-                            <div><label for="fib-high">Swing High ($):</label><input type="number" id="fib-high" step="any"></div>
-                            <div><label for="fib-low">Swing Low ($):</label><input type="number" id="fib-low" step="any"></div>
+                <!-- Column 2: Fib Range -->
+                <div><label for="fib-high">Swing High ($):</label><input type="number" id="fib-high" step="any"></div>
+                <div><label for="fib-low">Swing Low ($):</label><input type="number" id="fib-low" step="any"></div>
 
-                            <!-- Column 3: Risk & Targets -->
-                            <div><label for="fib-stop">Stop Loss ($):</label><input type="number" id="fib-stop" step="any"></div>
-                            <div><label for="fib-target">Target ($):</label><input type="number" id="fib-target" step="any"></div>
-                            <div><label for="fib-risk">Risk Amount ($):</label><input type="number" id="fib-risk" placeholder="e.g. 100"></div>
+                <!-- Column 3: Risk & Targets -->
+                <div><label for="fib-stop">Stop Loss ($):</label><input type="number" id="fib-stop" step="any"></div>
+                <div><label for="fib-target">Target ($):</label><input type="number" id="fib-target" step="any"></div>
+                <div><label for="fib-risk">Risk Amount ($):</label><input type="number" id="fib-risk" placeholder="e.g. 100"></div>
 
-                            <!-- Column 4: Settings -->
-                            <div>
-                              <label for="fib-exchange">Exchange:</label>
-                                <select id="fib-exchange">
-                                    <option value="binance">Binance</option>
-                                    <option value="hyperliquid">Hyperliquid</option>
-                                </select>
-                            </div>
-                            
-                            <!-- ADD THIS NEW DROPDOWN -->
-                            <div>
-                                <label for="fib-fee-type">Entry Fee:</label>
-                                <select id="fib-fee-type">
-                                    <option value="maker">Maker (Limit)</option>
-                                    <option value="taker">Taker (Market)</option>
-                                </select>
-                            </div>
-                            <!-- --------------------- -->
+                <!-- Column 4: Settings -->
+                <div>
+                  <label for="fib-exchange">Exchange:</label>
+                    <select id="fib-exchange">
+                        <option value="binance">Binance</option>
+                        <option value="hyperliquid">Hyperliquid</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="fib-fee-type">Entry Fee:</label>
+                    <select id="fib-fee-type">
+                        <option value="maker">Maker (Limit)</option>
+                        <option value="taker">Taker (Market)</option>
+                    </select>
+                </div>
 
-                            <div>
-                                <label for="fib-status">Add To:</label>
-                                <select id="fib-status">
-                                    <option value="resting">Resting Orders</option>
-                                    <option value="live">Live Trades</option>
-                                </select>
-                            </div>
-                            <div>
-                                <button type="button" id="calc-fib-btn" style="background-color: var(--purple-bg); color: var(--text-color); border: 1px solid var(--border-color); font-weight: bold;">Calculate Levels</button>
-                            </div>
-                        </div>
-
-                        <div id="fib-results-container" style="margin-top: 20px; display: none;">
-                            <h4 style="text-align: center; margin-bottom: 10px;">Calculated OTE Entries</h4>
-                            <div class="table-wrapper">
-                                <table class="sr-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Fib Level</th>
-                                            <th>Entry Price</th>
-                                            <th>Stop Loss</th>
-                                            <th>Pos Size ($)</th>
-                                            <th>Risk %</th>
-                                            <th>Est. PnL (Target)</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="fib-results-tbody"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+                <div>
+                    <label for="fib-status">Add To:</label>
+                    <select id="fib-status">
+                        <option value="resting">Resting Orders</option>
+                        <option value="live">Live Trades</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="button" id="calc-fib-btn" style="background-color: var(--purple-bg); color: var(--text-color); border: 1px solid var(--border-color); font-weight: bold; width: 100%; padding: 10px;">Calculate Levels</button>
                 </div>
             </div>
+
+            <div id="fib-results-container" style="margin-top: 20px; display: none;">
+                <h4 style="text-align: center; margin-bottom: 10px;">Calculated OTE Entries</h4>
+                <div class="table-wrapper">
+                    <table class="sr-table">
+                        <thead>
+                            <tr>
+                                <th>Fib Level</th>
+                                <th>Entry Price</th>
+                                <th>Stop Loss</th>
+                                <th>Pos Size ($)</th>
+                                <th>Risk %</th>
+                                <th>Est. PnL (Target)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fib-results-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
             <!-- NEW: Resting Limit Orders Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -3723,131 +3722,153 @@ const createRowHtml = (id) => {
             DOM.journalImagesContainer.innerHTML = imagesHtml;
         }
 // --- FIBONACCI CALCULATOR LOGIC ---
+// --- 2. Main Calculation Function ---
 function calculateFibLevels() {
-            const high = parseFloat(document.getElementById('fib-high').value);
-            const low = parseFloat(document.getElementById('fib-low').value);
-            const stop = parseFloat(document.getElementById('fib-stop').value);
-            const target = parseFloat(document.getElementById('fib-target').value);
-            const risk = parseFloat(document.getElementById('fib-risk').value);
-            const type = document.getElementById('fib-type').value;
+    console.log("Calculation started..."); // Debugging log
 
-            // --- READ NEW FEE SETTINGS ---
-            const feeType = document.getElementById('fib-fee-type').value;
-            const exchange = document.getElementById('fib-exchange').value;
-            // -----------------------------
+    // Get Inputs
+    const high = parseFloat(document.getElementById('fib-high').value);
+    const low = parseFloat(document.getElementById('fib-low').value);
+    const stop = parseFloat(document.getElementById('fib-stop').value);
+    const target = parseFloat(document.getElementById('fib-target').value);
+    const risk = parseFloat(document.getElementById('fib-risk').value);
+    const type = document.getElementById('fib-type').value;
+    const feeType = document.getElementById('fib-fee-type').value;
+    const exchange = document.getElementById('fib-exchange').value;
 
-            if (isNaN(high) || isNaN(low) || isNaN(stop) || isNaN(risk)) {
-                alert("Please enter High, Low, Stop Loss, and Risk Amount.");
-                return;
-            }
+    // Validation
+    if (isNaN(high) || isNaN(low) || isNaN(stop) || isNaN(risk)) {
+        alert("Please enter Swing High, Swing Low, Stop Loss, and Risk Amount.");
+        return;
+    }
 
-            // Get fee rates for calculation
-            const rates = getFeeRates(exchange);
-            const entryFeeRate = feeType === 'maker' ? rates.MAKER : rates.TAKER;
-            const exitFeeRate = rates.MAKER; // Assuming standard Limit Target exit
+    // Logic Check
+    if (type === 'Long' && stop >= low) {
+         alert("For a Long, Stop Loss must be below the Swing Low/Entry.");
+         // We continue anyway, but user should know
+    }
+    if (type === 'Short' && stop <= high) {
+         alert("For a Short, Stop Loss must be above the Swing High/Entry.");
+    }
 
-            const range = high - low;
-            const levels = [0.5, 0.618, 0.705, 0.786];
-            const tbody = document.getElementById('fib-results-tbody');
-            tbody.innerHTML = '';
+    // Prepare Fees
+    const rates = getFeeRates(exchange);
+    const entryFeeRate = feeType === 'maker' ? rates.MAKER : rates.TAKER;
+    const exitFeeRate = rates.MAKER; // Assume Limit exit
 
-            levels.forEach(level => {
-                let entryPrice;
-                
-                if (type === 'Long') {
-                    entryPrice = high - (range * level);
-                } else {
-                    entryPrice = low + (range * level);
-                }
+    const range = Math.abs(high - low);
+    const levels = [0.5, 0.618, 0.705, 0.786];
+    const tbody = document.getElementById('fib-results-tbody');
+    tbody.innerHTML = '';
+    
+    let validLevelsCount = 0;
 
-                const riskDist = Math.abs(entryPrice - stop);
-                
-                if ((type === 'Long' && stop >= entryPrice) || (type === 'Short' && stop <= entryPrice)) {
-                    return; 
-                }
-
-                const positionCoins = risk / riskDist;
-                const positionSizeUSD = positionCoins * entryPrice;
-                const stopLossPercent = (riskDist / entryPrice) * 100;
-
-                // --- CALCULATE NET PROFIT (WITH FEES) ---
-                let projectedProfit = 0;
-                if (!isNaN(target)) {
-                    const profitDist = Math.abs(target - entryPrice);
-                    const grossProfit = positionCoins * profitDist;
-                    
-                    const entryFeeCost = positionSizeUSD * entryFeeRate;
-                    const exitSizeUSD = positionCoins * target;
-                    const exitFeeCost = exitSizeUSD * exitFeeRate;
-
-                    projectedProfit = grossProfit - entryFeeCost - exitFeeCost;
-                }
-                // ----------------------------------------
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="font-weight:bold; color: var(--link-color);">${level}</td>
-                    <td>${entryPrice.toFixed(4)}</td>
-                    <td>${stop}</td>
-                    <td style="font-family: monospace; font-weight: bold;">$${positionSizeUSD.toFixed(2)}</td>
-                    <td>${stopLossPercent.toFixed(2)}%</td>
-                    <td style="color: var(--green-text);">$${projectedProfit.toFixed(2)}</td>
-                    <td>
-                        <button class="add-fib-trade-btn" 
-                            data-entry="${entryPrice}" 
-                            data-size="${positionSizeUSD}" 
-                            style="background-color: var(--link-color); padding: 4px 8px; font-size: 11px;">
-                            Add Order
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            document.getElementById('fib-results-container').style.display = 'block';
-}function handleAddFibTrade(entry, size) {
-            if (!STATE.isMasterUser) return;
-
-            const symbol = document.getElementById('fib-symbol').value;
-            const type = document.getElementById('fib-type').value;
-            const stop = parseFloat(document.getElementById('fib-stop').value);
-            const target = parseFloat(document.getElementById('fib-target').value);
-            const exchange = document.getElementById('fib-exchange').value;
-            const setupType = document.getElementById('fib-setup-type').value;
-            const status = document.getElementById('fib-status').value;
-            
-            // --- NEW: Read Fee Type ---
-            const feeType = document.getElementById('fib-fee-type').value; 
-            // --------------------------
-
-            if (!symbol) return alert("Please enter a symbol.");
-
-            const trade = {
-                symbol: symbol,
-                exchange: exchange,
-                type: type,
-                setupType: setupType,
-                entry: parseFloat(entry),
-                stoploss: stop,
-                target: isNaN(target) ? 0 : target,
-                size: parseFloat(size),
-                date: firebase.database.ServerValue.TIMESTAMP,
-                entry_prices: [parseFloat(entry)],
-                
-                // --- NEW: Use Fee Type ---
-                entryFeeType: feeType 
-                // -------------------------
-            };
-
-            const metrics = calculateTradeMetrics(trade);
-            const tradeWithMetrics = { ...trade, ...metrics };
-
-            const targetRef = (status === 'resting') ? dbRefs.restingOrders : dbRefs.trades;
-
-            targetRef.push(tradeWithMetrics).then(() => {
-                alert(`Added ${type} order at ${parseFloat(entry).toFixed(2)} (${feeType})`);
-            }).catch(e => alert(e.message));
+    levels.forEach(level => {
+        let entryPrice;
+        
+        // Calculate Entry based on Retracement
+        if (type === 'Long') {
+            // Buying dip: High - (Range * Level)
+            entryPrice = high - (range * level);
+        } else {
+            // Selling rally: Low + (Range * Level)
+            entryPrice = low + (range * level);
         }
+
+        // Validate Risk Distance (Prevent division by zero or invalid stops)
+        const riskDist = Math.abs(entryPrice - stop);
+        
+        // Skip if stop is on the wrong side of entry
+        if ((type === 'Long' && stop >= entryPrice) || (type === 'Short' && stop <= entryPrice)) {
+            return; 
+        }
+
+        const positionCoins = risk / riskDist;
+        const positionSizeUSD = positionCoins * entryPrice;
+        const stopLossPercent = (riskDist / entryPrice) * 100;
+
+        // Calculate Net Profit
+        let projectedProfit = 0;
+        if (!isNaN(target) && target > 0) {
+            const profitDist = Math.abs(target - entryPrice);
+            const grossProfit = positionCoins * profitDist;
+            const entryFeeCost = positionSizeUSD * entryFeeRate;
+            const exitSizeUSD = positionCoins * target;
+            const exitFeeCost = exitSizeUSD * exitFeeRate;
+            projectedProfit = grossProfit - entryFeeCost - exitFeeCost;
+        }
+
+        validLevelsCount++;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="font-weight:bold; color: var(--link-color);">${level}</td>
+            <td>${entryPrice.toFixed(4)}</td>
+            <td>${stop}</td>
+            <td style="font-family: monospace; font-weight: bold;">$${positionSizeUSD.toFixed(2)}</td>
+            <td>${stopLossPercent.toFixed(2)}%</td>
+            <td style="color: ${projectedProfit >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${projectedProfit.toFixed(2)}</td>
+            <td>
+                <button class="add-fib-trade-btn" 
+                    data-entry="${entryPrice}" 
+                    data-size="${positionSizeUSD}" 
+                    style="background-color: var(--link-color); padding: 4px 8px; font-size: 11px; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Add Order
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if (validLevelsCount === 0) {
+        alert("No valid levels found. Check your Stop Loss price relative to the calculated entries.");
+    } else {
+        document.getElementById('fib-results-container').style.display = 'block';
+    }
+}
+        
+        
+       
+// --- 3. Handle Add Button Click ---
+function handleAddFibTrade(entry, size) {
+    if (!STATE.isMasterUser) {
+        alert("You must be in Master Mode to add trades.");
+        return;
+    }
+
+    const symbol = document.getElementById('fib-symbol').value;
+    const type = document.getElementById('fib-type').value;
+    const stop = parseFloat(document.getElementById('fib-stop').value);
+    const target = parseFloat(document.getElementById('fib-target').value);
+    const exchange = document.getElementById('fib-exchange').value;
+    const setupType = document.getElementById('fib-setup-type').value;
+    const status = document.getElementById('fib-status').value;
+    const feeType = document.getElementById('fib-fee-type').value;
+
+    if (!symbol) return alert("Please enter a symbol.");
+
+    const trade = {
+        symbol: symbol,
+        exchange: exchange,
+        type: type,
+        setupType: setupType,
+        entry: parseFloat(entry),
+        stoploss: stop,
+        target: isNaN(target) ? 0 : target,
+        size: parseFloat(size),
+        date: firebase.database.ServerValue.TIMESTAMP,
+        entry_prices: [parseFloat(entry)],
+        entryFeeType: feeType 
+    };
+
+    const metrics = calculateTradeMetrics(trade);
+    const tradeWithMetrics = { ...trade, ...metrics };
+    const targetRef = (status === 'resting') ? dbRefs.restingOrders : dbRefs.trades;
+
+    targetRef.push(tradeWithMetrics).then(() => {
+        alert(`Added ${type} order at ${parseFloat(entry).toFixed(4)}`);
+    }).catch(e => alert(e.message));
+}
         function renderEmaSnapshot(safeSymbol) {
             const container = DOM.emaSnapshotContainer;
             if (!container || !STATE.emaData.data) return;
@@ -4524,21 +4545,24 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
 // --- ADD THESE INSIDE setupEventListeners() ---
 
             // 1. Calculate Button
-            const calcFibBtn = document.getElementById('calc-fib-btn');
-            if (calcFibBtn) {
-                calcFibBtn.addEventListener('click', calculateFibLevels);
-            }
+        const calcFibBtn = document.getElementById('calc-fib-btn');
+    if (calcFibBtn) {
+        calcFibBtn.addEventListener('click', calculateFibLevels);
+    }
 
-            // 2. Dynamic Table Clicks (Add Order)
-            const fibResultsBody = document.getElementById('fib-results-tbody');
-            if (fibResultsBody) {
-                fibResultsBody.addEventListener('click', (e) => {
-                    const btn = e.target.closest('.add-fib-trade-btn');
-                    if (btn) {
-                        handleAddFibTrade(btn.dataset.entry, btn.dataset.size);
-                    }
-                });
+    // 2. Add Order Button Click (Event Delegation)
+    const fibResultsBody = document.getElementById('fib-results-tbody');
+    if (fibResultsBody) {
+        fibResultsBody.addEventListener('click', (e) => {
+            const btn = e.target.closest('.add-fib-trade-btn');
+            if (btn) {
+                // Read data attributes from the button
+                const entry = btn.getAttribute('data-entry');
+                const size = btn.getAttribute('data-size');
+                handleAddFibTrade(entry, size);
             }
+        });
+    }
             // --- Calendar Navigation Listeners ---
             if (DOM.calPrevBtn && DOM.calNextBtn) {
                 DOM.calPrevBtn.addEventListener('click', () => {
