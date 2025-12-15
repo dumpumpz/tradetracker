@@ -2188,22 +2188,24 @@
                 </div>
             </div>
 
-            <div id="fib-results-container" style="margin-top: 20px; display: none;">
-                <h4 style="text-align: center; margin-bottom: 10px;">Calculated OTE Entries</h4>
-                <div class="table-wrapper">
-                    <table class="sr-table">
-                        <thead>
-                            <tr>
-                                <th>Fib Level</th>
-                                <th>Entry Price</th>
-                                <th>Stop Loss</th>
-                                <th>Pos Size ($)</th>
-                                <th>Risk %</th>
-                                <th>Est. PnL (Target)</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="fib-results-tbody"></tbody>
+           <div id="fib-results-container" style="margin-top: 20px; display: none;">
+    <h4 style="text-align: center; margin-bottom: 10px;">Calculated OTE Entries</h4>
+    <div class="table-wrapper">
+        <table class="sr-table">
+            <thead>
+                <tr>
+                    <th>Fib Level</th>
+                    <th>Entry Price</th>
+                    <th>Stop Loss</th>
+                    <th>Risk ($)</th>       <!-- NEW COLUMN -->
+                    <th>Size (Coins)</th>   <!-- NEW COLUMN -->
+                    <th>Size ($)</th>
+                    <th>Risk %</th>
+                    <th>Est. PnL</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="fib-results-tbody"></tbody>
                     </table>
                 </div>
             </div>
@@ -3739,10 +3741,7 @@ function calculateFibLevels() {
         const tbody = document.getElementById('fib-results-tbody');
         const container = document.getElementById('fib-results-container');
 
-        if (!highEl || !lowEl || !stopEl || !riskEl || !tbody || !container) {
-            console.error("Missing DOM elements");
-            return;
-        }
+        if (!highEl || !lowEl || !stopEl || !riskEl || !tbody || !container) return;
 
         // --- 2. PARSE INPUTS ---
         const high = parseFloat(highEl.value);
@@ -3760,8 +3759,7 @@ function calculateFibLevels() {
             return;
         }
 
-        // --- 4. PREPARE FEES ---
-        // Fallback if helper missing
+        // --- 4. PREPARE DATA ---
         let rates = { MAKER: 0.0002, TAKER: 0.0005 }; 
         if (typeof getFeeRates === 'function') rates = getFeeRates(exchange);
 
@@ -3782,16 +3780,15 @@ function calculateFibLevels() {
                 entryPrice = low + (range * level);
             }
 
-            // Validation: Stop side
-            if ((type === 'Long' && stop >= entryPrice) || (type === 'Short' && stop <= entryPrice)) {
-                return; 
-            }
+            // Stop Validation
+            if ((type === 'Long' && stop >= entryPrice) || (type === 'Short' && stop <= entryPrice)) return; 
 
             const riskDist = Math.abs(entryPrice - stop);
             if (riskDist < 0.0000001) return;
 
-            const positionCoins = risk / riskDist;
-            const positionSizeUSD = positionCoins * entryPrice;
+            // --- CALCULATIONS ---
+            const positionCoins = risk / riskDist; // Position Size in Coins (BTC/ETH amount)
+            const positionSizeUSD = positionCoins * entryPrice; // Position Size in Dollars
             const stopLossPercent = (riskDist / entryPrice) * 100;
 
             if (!isFinite(positionSizeUSD)) return;
@@ -3813,11 +3810,19 @@ function calculateFibLevels() {
 
             validLevelsCount++;
 
+            // Create Row
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="font-weight:bold; color: var(--link-color); text-align: center;">${level}</td>
                 <td style="text-align: center;">${entryPrice.toFixed(4)}</td>
                 <td style="text-align: center;">${stop}</td>
+                
+                <!-- NEW: Risk ($) -->
+                <td style="text-align: center; color: var(--red-text); font-weight: bold;">$${risk.toFixed(2)}</td>
+                
+                <!-- NEW: Size (Coins) -->
+                <td style="text-align: center; font-family: monospace;">${positionCoins.toFixed(4)}</td>
+                
                 <td style="font-family: monospace; font-weight: bold; text-align: center;">$${positionSizeUSD.toFixed(2)}</td>
                 <td style="text-align: center;">${stopLossPercent.toFixed(2)}%</td>
                 <td style="color: ${profitClass}; text-align: center; font-weight: bold;">${projectedProfitStr}</td>
@@ -3834,22 +3839,18 @@ function calculateFibLevels() {
             tbody.appendChild(tr);
         });
 
-        // --- 6. DISPLAY ---
+        // --- 6. DISPLAY & RESIZE ---
         if (validLevelsCount === 0) {
             container.style.display = 'none';
             alert("No valid levels found based on Stop Loss placement.");
         } else {
             container.style.display = 'block';
-
-            // --- 7. FIX VISIBILITY (AUTO-RESIZE) ---
-            // This is the missing piece! We must tell the parent accordion to grow.
+            
+            // Auto-Resize Logic (Kept from previous fix)
             const parentContent = container.closest('.collapsible-content');
             if (parentContent) {
-                // Temporarily remove max-height to calculate new size
                 parentContent.style.maxHeight = 'none';
-                // Force a browser reflow (read property)
                 const newHeight = parentContent.scrollHeight;
-                // Apply new height
                 parentContent.style.maxHeight = newHeight + 'px';
             }
         }
