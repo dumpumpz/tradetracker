@@ -3724,109 +3724,163 @@ const createRowHtml = (id) => {
 // --- FIBONACCI CALCULATOR LOGIC ---
 // --- 2. Main Calculation Function ---
 function calculateFibLevels() {
-    console.log("Calculation started..."); // Debugging log
-
-    // Get Inputs
-    const high = parseFloat(document.getElementById('fib-high').value);
-    const low = parseFloat(document.getElementById('fib-low').value);
-    const stop = parseFloat(document.getElementById('fib-stop').value);
-    const target = parseFloat(document.getElementById('fib-target').value);
-    const risk = parseFloat(document.getElementById('fib-risk').value);
-    const type = document.getElementById('fib-type').value;
-    const feeType = document.getElementById('fib-fee-type').value;
-    const exchange = document.getElementById('fib-exchange').value;
-
-    // Validation
-    if (isNaN(high) || isNaN(low) || isNaN(stop) || isNaN(risk)) {
-        alert("Please enter Swing High, Swing Low, Stop Loss, and Risk Amount.");
-        return;
-    }
-
-    // Logic Check
-    if (type === 'Long' && stop >= low) {
-         alert("For a Long, Stop Loss must be below the Swing Low/Entry.");
-         // We continue anyway, but user should know
-    }
-    if (type === 'Short' && stop <= high) {
-         alert("For a Short, Stop Loss must be above the Swing High/Entry.");
-    }
-
-    // Prepare Fees
-    const rates = getFeeRates(exchange);
-    const entryFeeRate = feeType === 'maker' ? rates.MAKER : rates.TAKER;
-    const exitFeeRate = rates.MAKER; // Assume Limit exit
-
-    const range = Math.abs(high - low);
-    const levels = [0.5, 0.618, 0.705, 0.786];
-    const tbody = document.getElementById('fib-results-tbody');
-    tbody.innerHTML = '';
+    console.log("1. Calculation started...");
     
-    let validLevelsCount = 0;
+    try {
+        // --- 1. GET DOM ELEMENTS ---
+        const highEl = document.getElementById('fib-high');
+        const lowEl = document.getElementById('fib-low');
+        const stopEl = document.getElementById('fib-stop');
+        const targetEl = document.getElementById('fib-target');
+        const riskEl = document.getElementById('fib-risk');
+        const typeEl = document.getElementById('fib-type');
+        const exchangeEl = document.getElementById('fib-exchange');
+        const feeTypeEl = document.getElementById('fib-fee-type');
+        const tbody = document.getElementById('fib-results-tbody');
+        const container = document.getElementById('fib-results-container');
 
-    levels.forEach(level => {
-        let entryPrice;
-        
-        // Calculate Entry based on Retracement
-        if (type === 'Long') {
-            // Buying dip: High - (Range * Level)
-            entryPrice = high - (range * level);
+        if (!highEl || !lowEl || !stopEl || !riskEl || !tbody || !container) {
+            console.error("Missing DOM elements");
+            alert("Error: Missing HTML elements. Check console.");
+            return;
+        }
+
+        // --- 2. PARSE INPUTS ---
+        const high = parseFloat(highEl.value);
+        const low = parseFloat(lowEl.value);
+        const stop = parseFloat(stopEl.value);
+        const target = parseFloat(targetEl.value); // Can be NaN (optional)
+        const risk = parseFloat(riskEl.value);
+        const type = typeEl.value;
+        const exchange = exchangeEl.value;
+        const feeType = feeTypeEl.value;
+
+        console.log(`Inputs -> High: ${high}, Low: ${low}, Stop: ${stop}, Risk: ${risk}, Type: ${type}`);
+
+        // --- 3. VALIDATION ---
+        if (isNaN(high) || isNaN(low) || isNaN(stop) || isNaN(risk)) {
+            alert("Please enter valid numbers for Swing High, Swing Low, Stop Loss, and Risk Amount.");
+            return;
+        }
+
+        if (high === low) {
+            alert("High and Low cannot be the same price.");
+            return;
+        }
+
+        // --- 4. PREPARE DATA ---
+        // Ensure getFeeRates exists, otherwise fallback
+        let rates;
+        if (typeof getFeeRates === 'function') {
+            rates = getFeeRates(exchange);
         } else {
-            // Selling rally: Low + (Range * Level)
-            entryPrice = low + (range * level);
+            console.warn("getFeeRates function missing, using defaults");
+            rates = { MAKER: 0.0002, TAKER: 0.0005 }; // Fallback fees
         }
 
-        // Validate Risk Distance (Prevent division by zero or invalid stops)
-        const riskDist = Math.abs(entryPrice - stop);
+        const entryFeeRate = feeType === 'maker' ? rates.MAKER : rates.TAKER;
+        const exitFeeRate = rates.MAKER; // Assume Limit exit
+        const range = Math.abs(high - low);
+        const levels = [0.5, 0.618, 0.705, 0.786];
         
-        // Skip if stop is on the wrong side of entry
-        if ((type === 'Long' && stop >= entryPrice) || (type === 'Short' && stop <= entryPrice)) {
-            return; 
+        // Clear previous results
+        tbody.innerHTML = '';
+        let validLevelsCount = 0;
+
+        // --- 5. CALCULATE LEVELS ---
+        levels.forEach(level => {
+            let entryPrice;
+            
+            if (type === 'Long') {
+                entryPrice = high - (range * level);
+            } else {
+                entryPrice = low + (range * level);
+            }
+
+            // Check if Stop Loss is on the wrong side
+            if ((type === 'Long' && stop >= entryPrice) || (type === 'Short' && stop <= entryPrice)) {
+                console.log(`Skipping level ${level}: Stop ${stop} is on wrong side of Entry ${entryPrice}`);
+                return; // Skip this level
+            }
+
+            // Math Calculations
+            const riskDist = Math.abs(entryPrice - stop);
+            
+            // Prevent Division by Zero or Tiny numbers
+            if (riskDist < 0.0000001) {
+                console.log(`Skipping level ${level}: Risk distance too small (Stop equals Entry)`);
+                return;
+            }
+
+            const positionCoins = risk / riskDist;
+            const positionSizeUSD = positionCoins * entryPrice;
+            const stopLossPercent = (riskDist / entryPrice) * 100;
+
+            // Check for Infinity before formatting
+            if (!isFinite(positionSizeUSD) || !isFinite(stopLossPercent)) {
+                console.warn(`Skipping level ${level}: Infinite values detected.`);
+                return;
+            }
+
+            // Calculate Projected Profit (Optional Target)
+            let projectedProfitStr = '--';
+            let profitClass = 'var(--text-color)';
+            
+            if (!isNaN(target) && target > 0) {
+                const profitDist = Math.abs(target - entryPrice);
+                const grossProfit = positionCoins * profitDist;
+                const entryFeeCost = positionSizeUSD * entryFeeRate;
+                const exitSizeUSD = positionCoins * target;
+                const exitFeeCost = exitSizeUSD * exitFeeRate;
+                const projectedProfit = grossProfit - entryFeeCost - exitFeeCost;
+                
+                projectedProfitStr = '$' + projectedProfit.toFixed(2);
+                profitClass = projectedProfit >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+            }
+
+            validLevelsCount++;
+
+            // Create Row
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight:bold; color: var(--link-color); text-align: center;">${level}</td>
+                <td style="text-align: center;">${entryPrice.toFixed(4)}</td>
+                <td style="text-align: center;">${stop}</td>
+                <td style="font-family: monospace; font-weight: bold; text-align: center;">$${positionSizeUSD.toFixed(2)}</td>
+                <td style="text-align: center;">${stopLossPercent.toFixed(2)}%</td>
+                <td style="color: ${profitClass}; text-align: center; font-weight: bold;">${projectedProfitStr}</td>
+                <td style="text-align: center;">
+                    <button class="add-fib-trade-btn" 
+                        type="button"
+                        data-entry="${entryPrice}" 
+                        data-size="${positionSizeUSD}" 
+                        style="background-color: var(--link-color); padding: 6px 12px; font-size: 12px; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Add
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        console.log(`Valid levels found: ${validLevelsCount}`);
+
+        // --- 6. DISPLAY RESULTS ---
+        if (validLevelsCount === 0) {
+            container.style.display = 'none';
+            alert(`No valid levels found.\n\nEnsure your Stop Loss (${stop}) is correct:\n- For Longs: Stop must be BELOW the entry.\n- For Shorts: Stop must be ABOVE the entry.`);
+        } else {
+            container.style.display = 'block';
+            console.log("Table displayed successfully.");
+            
+            // Force scroll to section if needed
+            // container.scrollIntoView({ behavior: 'smooth' });
         }
 
-        const positionCoins = risk / riskDist;
-        const positionSizeUSD = positionCoins * entryPrice;
-        const stopLossPercent = (riskDist / entryPrice) * 100;
-
-        // Calculate Net Profit
-        let projectedProfit = 0;
-        if (!isNaN(target) && target > 0) {
-            const profitDist = Math.abs(target - entryPrice);
-            const grossProfit = positionCoins * profitDist;
-            const entryFeeCost = positionSizeUSD * entryFeeRate;
-            const exitSizeUSD = positionCoins * target;
-            const exitFeeCost = exitSizeUSD * exitFeeRate;
-            projectedProfit = grossProfit - entryFeeCost - exitFeeCost;
-        }
-
-        validLevelsCount++;
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td style="font-weight:bold; color: var(--link-color);">${level}</td>
-            <td>${entryPrice.toFixed(4)}</td>
-            <td>${stop}</td>
-            <td style="font-family: monospace; font-weight: bold;">$${positionSizeUSD.toFixed(2)}</td>
-            <td>${stopLossPercent.toFixed(2)}%</td>
-            <td style="color: ${projectedProfit >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${projectedProfit.toFixed(2)}</td>
-            <td>
-                <button class="add-fib-trade-btn" 
-                    data-entry="${entryPrice}" 
-                    data-size="${positionSizeUSD}" 
-                    style="background-color: var(--link-color); padding: 4px 8px; font-size: 11px; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    Add Order
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    if (validLevelsCount === 0) {
-        alert("No valid levels found. Check your Stop Loss price relative to the calculated entries.");
-    } else {
-        document.getElementById('fib-results-container').style.display = 'block';
+    } catch (error) {
+        console.error("CRASH in calculateFibLevels:", error);
+        alert("An error occurred during calculation. Check the console (F12) for details.\n\nError: " + error.message);
     }
 }
-        
         
        
 // --- 3. Handle Add Button Click ---
