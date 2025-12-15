@@ -3520,18 +3520,22 @@ function renderRestingTable(data) {
             summaryContainer.style.display = 'block';
             let summaryHtml = '<div class="summary-split-container">';
 
-            activeKeys.forEach(key => {
+         activeKeys.forEach(key => {
                 const s = groups[key];
                 const avgEntry = s.qty > 0 ? (s.size / s.qty) : 0;
                 const avgStop = s.qty > 0 ? (s.qtyStop / s.qty) : 0;
                 const cardClass = s.direction === 'Long' ? 'long-card' : 'short-card';
                 
-                let t1 = "--";
+                // --- MODIFIED CALCULATION START ---
+                let t1 = "--", t2 = "--", t4 = "--";
                 if (avgEntry > 0 && avgStop > 0) {
                     const risk = Math.abs(avgEntry - avgStop);
                     const dir = s.direction === 'Long' ? 1 : -1;
                     t1 = (avgEntry + (risk * dir)).toFixed(4);
+                    t2 = (avgEntry + (risk * 2 * dir)).toFixed(4);
+                    t4 = (avgEntry + (risk * 4 * dir)).toFixed(4);
                 }
+                // --- MODIFIED CALCULATION END ---
 
                 summaryHtml += `
                 <div class="summary-card ${cardClass}">
@@ -3540,10 +3544,18 @@ function renderRestingTable(data) {
                         <div><span class="sum-label">Total Size</span><span class="sum-val">$${s.size.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
                         <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
                     </div>
+                    
+                    <!-- MODIFIED TARGETS ROW -->
                     <div class="summary-grid-row">
                         <div><span class="sum-label">Avg Stop</span><span class="sum-val val-red">${avgStop.toFixed(4)}</span></div>
                         <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
                     </div>
+                    <div class="summary-grid-row">
+                        <div><span class="sum-label">1:2 Target</span><span class="sum-val" style="color:var(--green-text)">${t2}</span></div>
+                        <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
+                    </div>
+                    <!-- END MODIFIED TARGETS ROW -->
+
                     <div class="summary-grid-row financials">
                         <div><span class="sum-label">Exp Profit (T)</span><span class="sum-val val-green">$${s.profitTaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
                         <div><span class="sum-label">Exp Profit (M)</span><span class="sum-val val-green">$${s.profitMaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
