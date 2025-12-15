@@ -3741,7 +3741,6 @@ function calculateFibLevels() {
 
         if (!highEl || !lowEl || !stopEl || !riskEl || !tbody || !container) {
             console.error("Missing DOM elements");
-            alert("Error: Missing HTML elements. Check console.");
             return;
         }
 
@@ -3749,13 +3748,11 @@ function calculateFibLevels() {
         const high = parseFloat(highEl.value);
         const low = parseFloat(lowEl.value);
         const stop = parseFloat(stopEl.value);
-        const target = parseFloat(targetEl.value); // Can be NaN (optional)
+        const target = parseFloat(targetEl.value);
         const risk = parseFloat(riskEl.value);
         const type = typeEl.value;
         const exchange = exchangeEl.value;
         const feeType = feeTypeEl.value;
-
-        console.log(`Inputs -> High: ${high}, Low: ${low}, Stop: ${stop}, Risk: ${risk}, Type: ${type}`);
 
         // --- 3. VALIDATION ---
         if (isNaN(high) || isNaN(low) || isNaN(stop) || isNaN(risk)) {
@@ -3763,69 +3760,45 @@ function calculateFibLevels() {
             return;
         }
 
-        if (high === low) {
-            alert("High and Low cannot be the same price.");
-            return;
-        }
-
-        // --- 4. PREPARE DATA ---
-        // Ensure getFeeRates exists, otherwise fallback
-        let rates;
-        if (typeof getFeeRates === 'function') {
-            rates = getFeeRates(exchange);
-        } else {
-            console.warn("getFeeRates function missing, using defaults");
-            rates = { MAKER: 0.0002, TAKER: 0.0005 }; // Fallback fees
-        }
+        // --- 4. PREPARE FEES ---
+        // Fallback if helper missing
+        let rates = { MAKER: 0.0002, TAKER: 0.0005 }; 
+        if (typeof getFeeRates === 'function') rates = getFeeRates(exchange);
 
         const entryFeeRate = feeType === 'maker' ? rates.MAKER : rates.TAKER;
-        const exitFeeRate = rates.MAKER; // Assume Limit exit
+        const exitFeeRate = rates.MAKER; 
         const range = Math.abs(high - low);
         const levels = [0.5, 0.618, 0.705, 0.786];
         
-        // Clear previous results
         tbody.innerHTML = '';
         let validLevelsCount = 0;
 
-        // --- 5. CALCULATE LEVELS ---
+        // --- 5. CALCULATE ---
         levels.forEach(level => {
             let entryPrice;
-            
             if (type === 'Long') {
                 entryPrice = high - (range * level);
             } else {
                 entryPrice = low + (range * level);
             }
 
-            // Check if Stop Loss is on the wrong side
+            // Validation: Stop side
             if ((type === 'Long' && stop >= entryPrice) || (type === 'Short' && stop <= entryPrice)) {
-                console.log(`Skipping level ${level}: Stop ${stop} is on wrong side of Entry ${entryPrice}`);
-                return; // Skip this level
+                return; 
             }
 
-            // Math Calculations
             const riskDist = Math.abs(entryPrice - stop);
-            
-            // Prevent Division by Zero or Tiny numbers
-            if (riskDist < 0.0000001) {
-                console.log(`Skipping level ${level}: Risk distance too small (Stop equals Entry)`);
-                return;
-            }
+            if (riskDist < 0.0000001) return;
 
             const positionCoins = risk / riskDist;
             const positionSizeUSD = positionCoins * entryPrice;
             const stopLossPercent = (riskDist / entryPrice) * 100;
 
-            // Check for Infinity before formatting
-            if (!isFinite(positionSizeUSD) || !isFinite(stopLossPercent)) {
-                console.warn(`Skipping level ${level}: Infinite values detected.`);
-                return;
-            }
+            if (!isFinite(positionSizeUSD)) return;
 
-            // Calculate Projected Profit (Optional Target)
+            // Profit Calc
             let projectedProfitStr = '--';
             let profitClass = 'var(--text-color)';
-            
             if (!isNaN(target) && target > 0) {
                 const profitDist = Math.abs(target - entryPrice);
                 const grossProfit = positionCoins * profitDist;
@@ -3840,7 +3813,6 @@ function calculateFibLevels() {
 
             validLevelsCount++;
 
-            // Create Row
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="font-weight:bold; color: var(--link-color); text-align: center;">${level}</td>
@@ -3862,45 +3834,52 @@ function calculateFibLevels() {
             tbody.appendChild(tr);
         });
 
-        console.log(`Valid levels found: ${validLevelsCount}`);
-
-        // --- 6. DISPLAY RESULTS ---
+        // --- 6. DISPLAY ---
         if (validLevelsCount === 0) {
             container.style.display = 'none';
-            alert(`No valid levels found.\n\nEnsure your Stop Loss (${stop}) is correct:\n- For Longs: Stop must be BELOW the entry.\n- For Shorts: Stop must be ABOVE the entry.`);
+            alert("No valid levels found based on Stop Loss placement.");
         } else {
             container.style.display = 'block';
-            console.log("Table displayed successfully.");
-            
-            // Force scroll to section if needed
-            // container.scrollIntoView({ behavior: 'smooth' });
+
+            // --- 7. FIX VISIBILITY (AUTO-RESIZE) ---
+            // This is the missing piece! We must tell the parent accordion to grow.
+            const parentContent = container.closest('.collapsible-content');
+            if (parentContent) {
+                // Temporarily remove max-height to calculate new size
+                parentContent.style.maxHeight = 'none';
+                // Force a browser reflow (read property)
+                const newHeight = parentContent.scrollHeight;
+                // Apply new height
+                parentContent.style.maxHeight = newHeight + 'px';
+            }
         }
 
     } catch (error) {
-        console.error("CRASH in calculateFibLevels:", error);
-        alert("An error occurred during calculation. Check the console (F12) for details.\n\nError: " + error.message);
+        console.error(error);
+        alert("Error in calculation: " + error.message);
     }
 }
-        
-       
-// --- 3. Handle Add Button Click ---
-function handleAddFibTrade(entry, size) {
+        function handleAddFibTrade(entry, size) {
     if (!STATE.isMasterUser) {
-        alert("You must be in Master Mode to add trades.");
+        alert("Master Mode required.");
         return;
     }
 
+    // 1. Get Settings from the form
     const symbol = document.getElementById('fib-symbol').value;
     const type = document.getElementById('fib-type').value;
     const stop = parseFloat(document.getElementById('fib-stop').value);
     const target = parseFloat(document.getElementById('fib-target').value);
     const exchange = document.getElementById('fib-exchange').value;
     const setupType = document.getElementById('fib-setup-type').value;
-    const status = document.getElementById('fib-status').value;
     const feeType = document.getElementById('fib-fee-type').value;
+    
+    // 2. CRITICAL: Get the status (Resting or Live)
+    const status = document.getElementById('fib-status').value; 
 
-    if (!symbol) return alert("Please enter a symbol.");
+    if (!symbol) return alert("Symbol required.");
 
+    // 3. Create Trade Object
     const trade = {
         symbol: symbol,
         exchange: exchange,
@@ -3912,15 +3891,20 @@ function handleAddFibTrade(entry, size) {
         size: parseFloat(size),
         date: firebase.database.ServerValue.TIMESTAMP,
         entry_prices: [parseFloat(entry)],
-        entryFeeType: feeType 
+        entryFeeType: feeType,
+        note: `Fib Setup (${type})`
     };
 
+    // 4. Calculate Metrics
     const metrics = calculateTradeMetrics(trade);
     const tradeWithMetrics = { ...trade, ...metrics };
+
+    // 5. Select Database Path based on dropdown
     const targetRef = (status === 'resting') ? dbRefs.restingOrders : dbRefs.trades;
 
+    // 6. Send
     targetRef.push(tradeWithMetrics).then(() => {
-        alert(`Added ${type} order at ${parseFloat(entry).toFixed(4)}`);
+        alert(`Successfully added ${status.toUpperCase()} order for ${symbol} @ ${trade.entry.toFixed(4)}`);
     }).catch(e => alert(e.message));
 }
         function renderEmaSnapshot(safeSymbol) {
