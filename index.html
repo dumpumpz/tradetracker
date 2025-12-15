@@ -3069,7 +3069,7 @@ function calculateBreakevenPrice(trade) {
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 
-        function renderRestingTable(data) {
+     function renderRestingTable(data) {
             const trades = data || {};
             
             // --- SUMMARY VARIABLES ---
@@ -3080,6 +3080,12 @@ function calculateBreakevenPrice(trade) {
             let sumLossTaker = 0;
             let sumLossMaker = 0;
             // -------------------------
+
+            // Helper for editable cells
+            const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { 
+                const formattedValue = (typeof value === 'number') ? parseFloat(value).toFixed(digits) : value; 
+                return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; 
+            };
 
             const masterButtonsHtml = (id) => STATE.isMasterUser ? 
                 `<td class="action-buttons">
@@ -3118,10 +3124,13 @@ function calculateBreakevenPrice(trade) {
                 return `<tr>
                     <td>${trade.symbol}</td>
                     <td>${trade.type}</td>
-                    <td>${parseFloat(trade.entry).toFixed(4)}</td>
-                    <td>${parseFloat(trade.stoploss).toFixed(4)}</td>
-                    <td>${parseFloat(trade.target).toFixed(4)}</td>
-                    <td>${parseFloat(trade.size).toFixed(2)}</td>
+                    
+                    <!-- EDITABLE FIELDS -->
+                    ${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}
+                    ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}
+                    ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}
+                    ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
+                    
                     <td>${parseFloat(metrics.estimated_total_fee || 0).toFixed(2)}</td>
                     <td style="color: #28a745;">${profitTakerStr}</td>
                     <td style="color: #28a745;">${profitMakerStr}</td>
@@ -3166,6 +3175,52 @@ function calculateBreakevenPrice(trade) {
             }, 10);
         }
 
+    function handleRestingTradeUpdate(cell) {
+            if (!STATE.isMasterUser) return;
+            const tradeId = cell.dataset.id;
+            const fieldToUpdate = cell.dataset.field;
+            
+            // Point to the Resting Orders path
+            const tradeRef = dbRefs.restingOrders.child(tradeId);
+
+            tradeRef.once('value', snapshot => {
+                const trade = snapshot.val(); 
+                if (!trade) { alert('Error: Trade not found.'); return; }
+                
+                const updates = {};
+                
+                let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, ''));
+                const precision = ['entry', 'stoploss', 'target'].includes(fieldToUpdate) ? 4 : 2;
+
+                if (isNaN(newValue)) { 
+                    alert('Invalid number.'); 
+                    cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); 
+                    return; 
+                }
+
+                // If value hasn't changed, do nothing
+                if (parseFloat(trade[fieldToUpdate]).toFixed(precision) === newValue.toFixed(precision)) { 
+                    cell.textContent = newValue.toFixed(precision); 
+                    return; 
+                }
+
+                updates[fieldToUpdate] = newValue;
+
+                // Recalculate PnL/RR/Fees based on new value
+                const tempTradeForCalc = { ...trade, ...updates };
+                const newMetrics = calculateTradeMetrics(tempTradeForCalc);
+                Object.assign(updates, newMetrics);
+
+                // Update Note
+                updates.note = (trade.note || '') + `\n${fieldToUpdate} updated to ${newValue.toFixed(precision)} on ${new Date().toLocaleString()}`;
+
+                tradeRef.update(updates).catch(error => { 
+                    alert('Failed to update trade: ' + error.message); 
+                    cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); 
+                });
+            });
+        }
+        
 function renderLiveTable(data) {
     const trades = data || {};
 
@@ -4170,7 +4225,15 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
                     DOM.statsPanel.classList.remove('active');
                 }
             });
+// Existing listener for Live Trades
+            DOM.tradesTbody.addEventListener('blur', (e) => { 
+                if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
+            }, true);
 
+            // --- ADD THIS NEW LISTENER ---
+            DOM.restingTradesTbody.addEventListener('blur', (e) => { 
+                if (e.target.matches('.editable-cell')) handleRestingTradeUpdate(e.target); 
+            }, true);
             DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
 
             document.body.addEventListener('click', (e) => {
