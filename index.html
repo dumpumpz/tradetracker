@@ -2160,12 +2160,23 @@
 
                             <!-- Column 4: Settings -->
                             <div>
-                                <label for="fib-exchange">Exchange:</label>
+                              <label for="fib-exchange">Exchange:</label>
                                 <select id="fib-exchange">
                                     <option value="binance">Binance</option>
                                     <option value="hyperliquid">Hyperliquid</option>
                                 </select>
                             </div>
+                            
+                            <!-- ADD THIS NEW DROPDOWN -->
+                            <div>
+                                <label for="fib-fee-type">Entry Fee:</label>
+                                <select id="fib-fee-type">
+                                    <option value="maker">Maker (Limit)</option>
+                                    <option value="taker">Taker (Market)</option>
+                                </select>
+                            </div>
+                            <!-- --------------------- -->
+
                             <div>
                                 <label for="fib-status">Add To:</label>
                                 <select id="fib-status">
@@ -3712,8 +3723,7 @@ const createRowHtml = (id) => {
             DOM.journalImagesContainer.innerHTML = imagesHtml;
         }
 // --- FIBONACCI CALCULATOR LOGIC ---
-
-        function calculateFibLevels() {
+function calculateFibLevels() {
             const high = parseFloat(document.getElementById('fib-high').value);
             const low = parseFloat(document.getElementById('fib-low').value);
             const stop = parseFloat(document.getElementById('fib-stop').value);
@@ -3721,10 +3731,20 @@ const createRowHtml = (id) => {
             const risk = parseFloat(document.getElementById('fib-risk').value);
             const type = document.getElementById('fib-type').value;
 
+            // --- READ NEW FEE SETTINGS ---
+            const feeType = document.getElementById('fib-fee-type').value;
+            const exchange = document.getElementById('fib-exchange').value;
+            // -----------------------------
+
             if (isNaN(high) || isNaN(low) || isNaN(stop) || isNaN(risk)) {
                 alert("Please enter High, Low, Stop Loss, and Risk Amount.");
                 return;
             }
+
+            // Get fee rates for calculation
+            const rates = getFeeRates(exchange);
+            const entryFeeRate = feeType === 'maker' ? rates.MAKER : rates.TAKER;
+            const exitFeeRate = rates.MAKER; // Assuming standard Limit Target exit
 
             const range = high - low;
             const levels = [0.5, 0.618, 0.705, 0.786];
@@ -3734,23 +3754,15 @@ const createRowHtml = (id) => {
             levels.forEach(level => {
                 let entryPrice;
                 
-                // Calculate Entry based on Retracement Direction
                 if (type === 'Long') {
-                    // Long: Retracing down from High
                     entryPrice = high - (range * level);
                 } else {
-                    // Short: Retracing up from Low
                     entryPrice = low + (range * level);
                 }
 
-                // Calculate Position Size based on Risk
-                // Risk Distance = |Entry - Stop|
-                // Position Size = (Risk Amount / Risk Distance) * Entry
                 const riskDist = Math.abs(entryPrice - stop);
                 
-                // Safety check for Stop Loss placement
                 if ((type === 'Long' && stop >= entryPrice) || (type === 'Short' && stop <= entryPrice)) {
-                    // Invalid stop logic for this level
                     return; 
                 }
 
@@ -3758,12 +3770,19 @@ const createRowHtml = (id) => {
                 const positionSizeUSD = positionCoins * entryPrice;
                 const stopLossPercent = (riskDist / entryPrice) * 100;
 
-                // Est Profit
+                // --- CALCULATE NET PROFIT (WITH FEES) ---
                 let projectedProfit = 0;
                 if (!isNaN(target)) {
                     const profitDist = Math.abs(target - entryPrice);
-                    projectedProfit = positionCoins * profitDist;
+                    const grossProfit = positionCoins * profitDist;
+                    
+                    const entryFeeCost = positionSizeUSD * entryFeeRate;
+                    const exitSizeUSD = positionCoins * target;
+                    const exitFeeCost = exitSizeUSD * exitFeeRate;
+
+                    projectedProfit = grossProfit - entryFeeCost - exitFeeCost;
                 }
+                // ----------------------------------------
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -3786,9 +3805,7 @@ const createRowHtml = (id) => {
             });
 
             document.getElementById('fib-results-container').style.display = 'block';
-        }
-
-        function handleAddFibTrade(entry, size) {
+}function handleAddFibTrade(entry, size) {
             if (!STATE.isMasterUser) return;
 
             const symbol = document.getElementById('fib-symbol').value;
@@ -3797,7 +3814,11 @@ const createRowHtml = (id) => {
             const target = parseFloat(document.getElementById('fib-target').value);
             const exchange = document.getElementById('fib-exchange').value;
             const setupType = document.getElementById('fib-setup-type').value;
-            const status = document.getElementById('fib-status').value; // 'resting' or 'live'
+            const status = document.getElementById('fib-status').value;
+            
+            // --- NEW: Read Fee Type ---
+            const feeType = document.getElementById('fib-fee-type').value; 
+            // --------------------------
 
             if (!symbol) return alert("Please enter a symbol.");
 
@@ -3812,7 +3833,10 @@ const createRowHtml = (id) => {
                 size: parseFloat(size),
                 date: firebase.database.ServerValue.TIMESTAMP,
                 entry_prices: [parseFloat(entry)],
-                entryFeeType: 'maker' // Assume maker for limits
+                
+                // --- NEW: Use Fee Type ---
+                entryFeeType: feeType 
+                // -------------------------
             };
 
             const metrics = calculateTradeMetrics(trade);
@@ -3821,7 +3845,7 @@ const createRowHtml = (id) => {
             const targetRef = (status === 'resting') ? dbRefs.restingOrders : dbRefs.trades;
 
             targetRef.push(tradeWithMetrics).then(() => {
-                alert(`Added ${type} order at ${parseFloat(entry).toFixed(2)}`);
+                alert(`Added ${type} order at ${parseFloat(entry).toFixed(2)} (${feeType})`);
             }).catch(e => alert(e.message));
         }
         function renderEmaSnapshot(safeSymbol) {
