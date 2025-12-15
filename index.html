@@ -3177,10 +3177,7 @@ function calculateBreakevenPrice(trade) {
                 return `<tr>
                     <td>${trade.symbol}</td>
                     <td style="color: ${trade.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${trade.type}</td>
-                    
-                    <!-- NEW SETUP COLUMN -->
                     ${masterEditableCell('editable-cell', 'setupType', id, setupCat, STATE.isMasterUser)}
-
                     ${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}
                     ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}
                     ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}
@@ -3226,7 +3223,9 @@ function calculateBreakevenPrice(trade) {
                             </div>
                             <div class="summary-grid-row financials">
                                 <div><span class="sum-label">Exp Profit (T)</span><span class="sum-val val-green">$${s.profitTaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
+                                <div><span class="sum-label">Exp Profit (M)</span><span class="sum-val val-green">$${s.profitMaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
                                 <div><span class="sum-label">Exp Loss (T)</span><span class="sum-val val-red">$${s.lossTaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
+                                <div><span class="sum-label">Exp Loss (M)</span><span class="sum-val val-red">$${s.lossMaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
                             </div>
                         </div>`;
                     });
@@ -3285,11 +3284,10 @@ function calculateBreakevenPrice(trade) {
                 });
             });
         }
-      function renderLiveTable(data) {
+ function renderLiveTable(data) {
     const trades = data || {};
 
     // --- 1. DYNAMIC ACCUMULATOR ---
-    // Keys will be like "Major_Long", "Scalp_Short", "Standard_Long"
     const groups = {}; 
 
     const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
@@ -3350,10 +3348,7 @@ function calculateBreakevenPrice(trade) {
         return `<tr>
             <td>${trade.symbol}</td>
             <td style="color: ${trade.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${trade.type}</td>
-            
-            <!-- NEW SETUP TYPE COLUMN -->
             ${masterEditableCell('editable-cell', 'setupType', id, setupCat, STATE.isMasterUser)}
-
             ${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}
             <td style="font-weight:bold; color:var(--subtle-text);">${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>
             ${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}
@@ -3415,7 +3410,9 @@ function calculateBreakevenPrice(trade) {
                     </div>
                     <div class="summary-grid-row financials">
                         <div><span class="sum-label">Exp Profit (T)</span><span class="sum-val val-green">$${s.profitTaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
+                        <div><span class="sum-label">Exp Profit (M)</span><span class="sum-val val-green">$${s.profitMaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
                         <div><span class="sum-label">Exp Loss (T)</span><span class="sum-val val-red">$${s.lossTaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
+                        <div><span class="sum-label">Exp Loss (M)</span><span class="sum-val val-red">$${s.lossMaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
                     </div>
                 </div>`;
             });
