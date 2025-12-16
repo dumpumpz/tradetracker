@@ -2008,50 +2008,46 @@
         .val-green { color: var(--green-text); }
         .val-red { color: var(--red-text); }
 
-/* --- FINAL SCROLLBAR FIX --- */
+/* --- FINAL SCROLLBAR FIX --- *//* --- HIGH CONTRAST SCROLLBAR FIX --- */
 
-/* 1. Set the size (Make it thick enough to grab) */
+/* 1. Set specific dimensions */
 .table-wrapper::-webkit-scrollbar {
-    height: 14px; /* Height for horizontal scroll */
-    width: 14px;  /* Width for vertical scroll */
+    height: 16px !important; /* Force it thick */
+    width: 16px !important;
+    background-color: #000;  /* Fallback color */
 }
 
-/* 2. THE TRACK (Background) - Dark Grey to match your theme */
+/* 2. THE TRACK (Background) - PURE BLACK */
 .table-wrapper::-webkit-scrollbar-track {
-    background: #2c2c2c; /* Matches your dark mode card background */
-    border: 1px solid #444; /* Subtle border to define the area */
+    background: #000000 !important; /* Black track */
+    border-top: 1px solid #333;     /* Subtle separator line */
 }
 
-/* 3. THE THUMB (Draggable Bar) - Bright Grey for High Contrast */
+/* 3. THE THUMB (The Bar) - BRIGHT GREY */
+/* This ensures it pops out against the black track */
 .table-wrapper::-webkit-scrollbar-thumb {
-    background-color: #a0a0a0 !important; /* Light Grey - Clearly visible against the dark track */
-    border-radius: 7px;       /* Rounded edges */
-    border: 2px solid #2c2c2c; /* Creates a small padding effect */
+    background-color: #888888 !important; 
+    border-radius: 8px;
+    border: 3px solid #000000; /* Creates padding effect */
 }
 
-/* 4. Hover Effect - Turn Blue */
+/* 4. HOVER STATE - WHITE */
 .table-wrapper::-webkit-scrollbar-thumb:hover {
-    background-color: var(--link-color) !important; /* Turns Blue when you mouse over it */
+    background-color: #ffffff !important; /* Turns white when you grab it */
 }
 
-/* 5. Hide the arrows (The "skinny" glitchy parts you mentioned) */
+/* 5. REMOVE ARROWS (The glitchy parts) */
 .table-wrapper::-webkit-scrollbar-button {
-    display: none !important;
+    display: none !important; 
+    width: 0;
+    height: 0;
 }
 
-/* 6. Firefox Support */
+/* 6. FIREFOX SUPPORT */
+/* Forces the colors in Firefox */
 .table-wrapper {
     scrollbar-width: auto;
-    scrollbar-color: #a0a0a0 #2c2c2c; /* Thumb Color / Track Color */
-}
-
-/* 7. Light Mode Specifics (In case you switch back to light theme) */
-:root:not([data-theme="dark"]) .table-wrapper::-webkit-scrollbar-track {
-    background: #e9ecef;
-}
-:root:not([data-theme="dark"]) .table-wrapper::-webkit-scrollbar-thumb {
-    background-color: #6c757d !important;
-    border: 2px solid #e9ecef;
+    scrollbar-color: #888888 #000000; /* Thumb(Grey) Track(Black) */
 }
     </style>
 <body>
