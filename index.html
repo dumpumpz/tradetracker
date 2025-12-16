@@ -84,13 +84,16 @@
         button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.3s; margin-top: 5px; }
         button:hover { opacity: 0.85; }
 
-        .table-wrapper { 
+.table-wrapper { 
     width: 100%;
-    display: block;       /* Ensures it behaves as a block container */
-    overflow-x: auto;     /* Forces horizontal scroll */
-    overflow-y: hidden;   /* Prevents unnecessary vertical scrollbars */
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling for touchscreens */
-    padding-bottom: 2px;  /* Tiny padding to prevent scrollbar overlapping bottom border */
+    overflow-x: auto;   /* Scroll horizontally */
+    overflow-y: hidden; /* Hide vertical overflow */
+    padding-bottom: 5px; /* Give space for the scrollbar */
+    margin-bottom: 10px;
+    
+    /* Firefox Specific - Force standard thickness */
+    scrollbar-width: auto; 
+    scrollbar-color: #6c757d #e9ecef; 
 }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; font-size: 14px; white-space: nowrap; vertical-align: top; }
@@ -2006,54 +2009,52 @@
         .val-red { color: var(--red-text); }
 
 
+/* --- HIGH VISIBILITY SCROLLBAR FIX --- */
 
-
-
-/* --- ROBUST SCROLLBAR FIX --- */
-
-/* 1. Target the table wrapper specifically */
+/* 1. Define dimensions (Force it to be thick) */
 .table-wrapper::-webkit-scrollbar {
-    height: 16px; /* Increased height for easier clicking on desktop */
-    width: 16px;  
+    height: 18px; /* TALLER for horizontal scroll */
+    width: 18px;  /* WIDER for vertical scroll */
+    -webkit-appearance: none; /* Turn off default browser styling */
 }
 
-/* 2. Style the "Track" (the background area) */
+/* 2. The Track (The background bar) */
 .table-wrapper::-webkit-scrollbar-track {
-    background-color: rgba(0, 0, 0, 0.05); /* Subtle background */
-    border-top: 1px solid var(--border-color); /* Visual separation from table */
+    background-color: #e9ecef; /* Visible light grey background */
+    border-top: 1px solid #ced4da; /* Line separating table from scrollbar */
+    border-radius: 0; /* Square edges for the track */
 }
 
-/* 3. Style the "Thumb" (the moving bar) */
+/* 3. The Thumb (The part you drag) */
 .table-wrapper::-webkit-scrollbar-thumb {
-    background-color: #b0b0b0; /* darker grey for better visibility */
-    border-radius: 10px;       /* Rounded pill shape */
-    border: 4px solid transparent; /* Transparent border creates the "padding" effect safely */
-    background-clip: content-box;  /* Ensures color stays inside the transparent border */
-    transition: background-color 0.2s ease;
+    background-color: #6c757d; /* Solid Dark Grey - High Contrast */
+    border-radius: 9px;        /* Rounded pill shape */
+    border: 3px solid #e9ecef; /* padding effect using border */
+    min-width: 50px;           /* Ensure thumb is never too small to grab */
 }
 
-/* 4. Hover Effect */
+/* 4. Hover Effect (Make it obvious when mouse is over it) */
 .table-wrapper::-webkit-scrollbar-thumb:hover {
-    background-color: var(--link-color); /* Blue on hover */
+    background-color: var(--link-color); /* Turns Blue on hover */
+    border-color: #e9ecef;
 }
 
-/* 5. Firefox Support */
-.table-wrapper {
-    scrollbar-width: auto; /* Uses standard width instead of thin */
-    scrollbar-color: #b0b0b0 var(--header-bg);
+/* 5. Button/Arrows (Remove them to stop glitching) */
+.table-wrapper::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
 }
 
-/* 6. Dark Mode Adjustments */
+/* 6. Dark Mode Override */
 [data-theme="dark"] .table-wrapper::-webkit-scrollbar-track {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: #2c2c2c;
+    border-top: 1px solid #444;
 }
 [data-theme="dark"] .table-wrapper::-webkit-scrollbar-thumb {
-    background-color: #555;
+    background-color: #888;
+    border-color: #2c2c2c;
 }
-[data-theme="dark"] .table-wrapper::-webkit-scrollbar-thumb:hover {
-    background-color: var(--link-color);
-}
-        }
     </style>
 <body>
     <div class="container">
