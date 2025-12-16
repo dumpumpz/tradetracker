@@ -86,14 +86,11 @@
 
 .table-wrapper { 
     width: 100%;
-    overflow-x: auto;   /* Scroll horizontally */
-    overflow-y: hidden; /* Hide vertical overflow */
-    padding-bottom: 5px; /* Give space for the scrollbar */
+    overflow-x: auto;   
+    overflow-y: hidden; 
+    padding-bottom: 5px; 
     margin-bottom: 10px;
-    
-    /* Firefox Specific - Force standard thickness */
-    scrollbar-width: auto; 
-    scrollbar-color: #6c757d #e9ecef; 
+    display: block; /* Ensures proper container behavior */
 }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; font-size: 14px; white-space: nowrap; vertical-align: top; }
@@ -2017,48 +2014,52 @@
 
 
             /* --- FLAT & SOLID SCROLLBAR FIX --- */
+/* --- UNIVERSAL SCROLLBAR FIX (NO ARROWS) --- */
 
-/* 1. Define the Scrollbar Area */
+/* 1. Reset standard properties to ensure WebKit styles work */
+.table-wrapper {
+    scrollbar-width: thin; /* For Firefox - keeps it thin */
+    scrollbar-color: #cccccc #2c2c2c; /* For Firefox - Silver Thumb / Dark Track */
+}
+
+/* 2. WebKit Scrollbar Setup (Chrome, Edge, Safari) */
 .table-wrapper::-webkit-scrollbar {
-    height: 12px !important; /* Standard height */
-    width: 12px !important;
-    background: transparent !important; /* Transparent background to prevent glitches */
+    height: 14px !important;  /* Thick enough to grab */
+    width: 14px !important;
+    background-color: transparent !important;
 }
 
-/* 2. THE TRACK (The road the bar moves on) */
-/* Making this Dark Grey so it is visible against the black card */
+/* 3. The Track (Background) */
 .table-wrapper::-webkit-scrollbar-track {
-    background: #404040 !important; 
+    background: #2c2c2c !important; /* Dark Grey matching your theme */
+    border: 1px solid #444 !important; /* Subtle border definition */
     border-radius: 4px;
-    margin: 2px 0; /* Tiny margin on ends */
 }
 
-/* 3. THE THUMB (The bar you drag) */
-/* Making this Bright Silver - NO BORDERS to prevent it from disappearing */
+/* 4. The Thumb (Draggable Bar) */
 .table-wrapper::-webkit-scrollbar-thumb {
-    background-color: #cccccc !important; 
-    border-radius: 4px;
-    border: none !important; /* Removing border ensures the color is always visible */
+    background-color: #c0c0c0 !important; /* Bright Silver - High Visibility */
+    border-radius: 6px;
+    border: 3px solid #2c2c2c !important; /* Padding effect: Dark border pushes grey color in */
+    min-width: 50px; /* Prevents bar from becoming too small */
 }
 
-/* 4. Hover Effect */
+/* 5. Hover State */
 .table-wrapper::-webkit-scrollbar-thumb:hover {
-    background-color: #ffffff !important; /* Bright White when hovering */
+    background-color: #ffffff !important; /* Pure White on hover */
+    border-color: #2c2c2c !important;
 }
 
-/* 5. Force Hide Arrows */
-/* We set dimensions to 0 to physically collapse them */
+/* 6. KILL THE ARROWS (The specific fix for your issue) */
 .table-wrapper::-webkit-scrollbar-button {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
-    background: transparent !important;
 }
 
-/* 6. Firefox Support */
-.table-wrapper {
-    scrollbar-width: auto;
-    scrollbar-color: #cccccc #404040;
+/* 7. Corner Fix */
+.table-wrapper::-webkit-scrollbar-corner {
+    background: transparent !important;
 }
     </style>
 <body>
