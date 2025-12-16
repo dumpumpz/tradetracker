@@ -3880,6 +3880,7 @@ function calculateFibLevels() {
             validLevelsCount++;
 
             // Create Row
+ // Create Row
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="font-weight:bold; color: var(--link-color); text-align: center;">${level}</td>
@@ -3900,6 +3901,7 @@ function calculateFibLevels() {
                         type="button"
                         data-entry="${entryPrice}" 
                         data-size="${positionSizeUSD}" 
+                        data-level="${level}" 
                         style="background-color: var(--link-color); padding: 6px 12px; font-size: 12px; color: white; border: none; border-radius: 4px; cursor: pointer;">
                         Add
                     </button>
@@ -3929,7 +3931,7 @@ function calculateFibLevels() {
         alert("Error in calculation: " + error.message);
     }
 }
-        function handleAddFibTrade(entry, size) {
+    function handleAddFibTrade(entry, size, level) { // <--- Added 'level' here
     if (!STATE.isMasterUser) {
         alert("Master Mode required.");
         return;
@@ -3962,7 +3964,8 @@ function calculateFibLevels() {
         date: firebase.database.ServerValue.TIMESTAMP,
         entry_prices: [parseFloat(entry)],
         entryFeeType: feeType,
-        note: `Fib Setup (${type})`
+        // --- UPDATED NOTE HERE ---
+        note: `Fib Setup (${type}) @ ${level} Fib` 
     };
 
     // 4. Calculate Metrics
@@ -3974,7 +3977,7 @@ function calculateFibLevels() {
 
     // 6. Send
     targetRef.push(tradeWithMetrics).then(() => {
-        alert(`Successfully added ${status.toUpperCase()} order for ${symbol} @ ${trade.entry.toFixed(4)}`);
+        alert(`Successfully added ${status.toUpperCase()} order for ${symbol} @ ${trade.entry.toFixed(4)} (${level} Fib)`);
     }).catch(e => alert(e.message));
 }
         function renderEmaSnapshot(safeSymbol) {
@@ -4659,6 +4662,7 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
     }
 
     // 2. Add Order Button Click (Event Delegation)
+    // 2. Add Order Button Click (Event Delegation)
     const fibResultsBody = document.getElementById('fib-results-tbody');
     if (fibResultsBody) {
         fibResultsBody.addEventListener('click', (e) => {
@@ -4667,7 +4671,9 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
                 // Read data attributes from the button
                 const entry = btn.getAttribute('data-entry');
                 const size = btn.getAttribute('data-size');
-                handleAddFibTrade(entry, size);
+                const level = btn.getAttribute('data-level'); // <--- Get the level
+                
+                handleAddFibTrade(entry, size, level); // <--- Pass it to the function
             }
         });
     }
