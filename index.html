@@ -3579,8 +3579,7 @@ function renderRestingTable(data) {
         }
     }
     setTimeout(() => adjustCollapsibleSize(DOM.tradesTbody), 10);
-}
-function renderCompletedTable(data) {
+}function renderCompletedTable(data) {
     const trades = data || {};
     // Sort all trades by date descending
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
@@ -3640,7 +3639,7 @@ function renderCompletedTable(data) {
         ${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
     };
 
-    // --- GROUP TRADES BY DATE ---
+    // --- GROUP TRADES BY DATE (For Pagination Mode) ---
     const tradesByDate = {};
     const uniqueDates = [];
 
@@ -3657,10 +3656,9 @@ function renderCompletedTable(data) {
     });
 
     if (STATE.completedTradesShowAll) {
-        // --- PAGINATION BY DAY LOGIC ---
+        // --- 1. PAGINATION/HISTORY VIEW LOGIC ---
         const totalPages = uniqueDates.length;
 
-        // Ensure page bounds
         if (STATE.completedTradesCurrentPage > totalPages) STATE.completedTradesCurrentPage = totalPages;
         if (STATE.completedTradesCurrentPage < 1) STATE.completedTradesCurrentPage = 1;
 
@@ -3668,25 +3666,19 @@ function renderCompletedTable(data) {
             const dateForPage = uniqueDates[STATE.completedTradesCurrentPage - 1];
             const pageTradeIds = tradesByDate[dateForPage] || [];
 
-            // --- CALCULATE DAILY STATS (WINS/LOSSES/PNL) ---
-            let dayWins = 0;
-            let dayLosses = 0;
-            let dayPnL = 0;
-
+            // Calc stats for the page
+            let dayWins = 0, dayLosses = 0, dayPnL = 0;
             pageTradeIds.forEach(id => {
                 const t = trades[id];
                 const net = parseFloat(t.net_result || 0);
                 dayPnL += net;
-                if (net > 0) dayWins++;
-                else dayLosses++;
+                if (net > 0) dayWins++; else dayLosses++;
             });
 
             const pnlClass = dayPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
             const pnlSign = dayPnL >= 0 ? '+' : '-';
             const pnlFormatted = `$${Math.abs(dayPnL).toFixed(2)}`;
 
-            // --- UPDATED: LEFT ALIGNED HEADER ---
-            // Changed text-align: center to text-align: left and added padding-left: 20px
             const dateHeaderRow = `<tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color);">
                 <td colspan="23" style="text-align: left; padding: 10px 10px 10px 20px;">
                     <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
@@ -3702,7 +3694,6 @@ function renderCompletedTable(data) {
             </tr>`;
 
             rowsHtml = dateHeaderRow + pageTradeIds.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
-            
             pageInfoSpan.textContent = `Page ${STATE.completedTradesCurrentPage} of ${totalPages}`;
         } else {
             rowsHtml = '<tr><td colspan="23" style="text-align:center;">No completed trades found.</td></tr>';
@@ -3710,7 +3701,6 @@ function renderCompletedTable(data) {
         }
 
         showAllButton.style.display = 'none';
-        
         if (totalPages > 1) {
             paginationControls.style.display = 'flex';
             document.getElementById('completed-trades-prev-page').disabled = (STATE.completedTradesCurrentPage === 1);
@@ -3720,19 +3710,62 @@ function renderCompletedTable(data) {
         }
 
     } else {
-        // --- DEFAULT LOGIC (ON LOAD) ---
+        // --- 2. DEFAULT LOGIC (ON LOAD - TODAY ONLY) ---
         let hasHistorical = false;
+        
+        // Track stats for "Today"
+        let todayWins = 0;
+        let todayLosses = 0;
+        let todayPnL = 0;
+        let todayCount = 0;
+
         rowsHtml = tradeIds.map(id => {
             let closedPerthDateStr = '', isHistorical = true;
-            if (trades[id].closed_date) {
-                const closedDate = new Date(trades[id].closed_date);
+            const t = trades[id];
+
+            if (t.closed_date) {
+                const closedDate = new Date(t.closed_date);
                 closedPerthDateStr = getPerthDateString(closedDate);
                 isHistorical = (closedPerthDateStr !== perthTodayStr);
             }
+            
+            // If it is NOT historical (meaning it is today), accumulate stats
+            if (!isHistorical) {
+                todayCount++;
+                const net = parseFloat(t.net_result || 0);
+                todayPnL += net;
+                if (net > 0) todayWins++; else todayLosses++;
+            }
+
             if (isHistorical) hasHistorical = true;
             const rowContent = createRowHtml(id);
+            // Render the row, but hide if historical
             return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedPerthDateStr}">${rowContent}</tr>`;
         }).join('');
+
+        // Generate the Header for Today if there are trades
+        if (todayCount > 0) {
+            const pnlClass = todayPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+            const pnlSign = todayPnL >= 0 ? '+' : '-';
+            const pnlFormatted = `$${Math.abs(todayPnL).toFixed(2)}`;
+
+            const todayHeaderRow = `<tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color);">
+                <td colspan="23" style="text-align: left; padding: 10px 10px 10px 20px;">
+                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
+                        Date: ${perthTodayStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${todayCount} Trades)</span>
+                    </div>
+                    <div style="font-size: 0.95em;">
+                        <span style="color: var(--green-text); font-weight: bold;">${todayWins} Wins</span> / 
+                        <span style="color: var(--red-text); font-weight: bold;">${todayLosses} Losses</span>
+                        <span style="margin: 0 10px; color: var(--border-color);">|</span>
+                        <span style="font-weight: bold; color: var(--text-color);">Daily PnL: <span style="color: ${pnlClass};">${pnlSign}${pnlFormatted}</span></span>
+                    </div>
+                </td>
+            </tr>`;
+            
+            // Prepend the header to the rows
+            rowsHtml = todayHeaderRow + rowsHtml;
+        }
 
         paginationControls.style.display = 'none';
         showAllButton.style.display = hasHistorical ? 'block' : 'none';
