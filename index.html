@@ -3640,19 +3640,17 @@ function renderCompletedTable(data) {
         ${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
     };
 
-    // --- NEW LOGIC: GROUP TRADES BY DATE ---
+    // --- GROUP TRADES BY DATE ---
     const tradesByDate = {};
     const uniqueDates = [];
 
     tradeIds.forEach(id => {
         const t = trades[id];
         if (t.closed_date) {
-            // Group by Perth Date String (DD/MM/YYYY or YYYY-MM-DD based on your helper)
             const dateStr = getPerthDateString(new Date(t.closed_date));
-            
             if (!tradesByDate[dateStr]) {
                 tradesByDate[dateStr] = [];
-                uniqueDates.push(dateStr); // Push keeps order because tradeIds is already sorted DESC
+                uniqueDates.push(dateStr); 
             }
             tradesByDate[dateStr].push(id);
         }
@@ -3660,8 +3658,6 @@ function renderCompletedTable(data) {
 
     if (STATE.completedTradesShowAll) {
         // --- PAGINATION BY DAY LOGIC ---
-        
-        // Total pages = Number of unique days
         const totalPages = uniqueDates.length;
 
         // Ensure page bounds
@@ -3669,21 +3665,43 @@ function renderCompletedTable(data) {
         if (STATE.completedTradesCurrentPage < 1) STATE.completedTradesCurrentPage = 1;
 
         if (totalPages > 0) {
-            // Get the specific date for the current page
-            // Page 1 = Index 0 (Most recent date)
             const dateForPage = uniqueDates[STATE.completedTradesCurrentPage - 1];
             const pageTradeIds = tradesByDate[dateForPage] || [];
 
-            // Optional: Add a header row to show the date clearly
+            // --- CALCULATE DAILY STATS (WINS/LOSSES/PNL) ---
+            let dayWins = 0;
+            let dayLosses = 0;
+            let dayPnL = 0;
+
+            pageTradeIds.forEach(id => {
+                const t = trades[id];
+                const net = parseFloat(t.net_result || 0);
+                dayPnL += net;
+                if (net > 0) dayWins++;
+                else dayLosses++;
+            });
+
+            const pnlClass = dayPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+            const pnlSign = dayPnL >= 0 ? '+' : '-';
+            const pnlFormatted = `$${Math.abs(dayPnL).toFixed(2)}`;
+
+            // --- UPDATED HEADER ROW WITH STATS ---
             const dateHeaderRow = `<tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color);">
-                <td colspan="23" style="text-align: center; font-weight: bold; font-size: 1.1em; padding: 10px;">
-                    Date: ${dateForPage} (${pageTradeIds.length} Trades)
+                <td colspan="23" style="text-align: center; padding: 10px;">
+                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
+                        Date: ${dateForPage} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${pageTradeIds.length} Trades)</span>
+                    </div>
+                    <div style="font-size: 0.95em;">
+                        <span style="color: var(--green-text); font-weight: bold;">${dayWins} Wins</span> / 
+                        <span style="color: var(--red-text); font-weight: bold;">${dayLosses} Losses</span>
+                        <span style="margin: 0 10px; color: var(--border-color);">|</span>
+                        <span style="font-weight: bold; color: var(--text-color);">Daily PnL: <span style="color: ${pnlClass};">${pnlSign}${pnlFormatted}</span></span>
+                    </div>
                 </td>
             </tr>`;
 
             rowsHtml = dateHeaderRow + pageTradeIds.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
             
-            // Update Info Text to show Date instead of just Page #
             pageInfoSpan.textContent = `Page ${STATE.completedTradesCurrentPage} of ${totalPages}`;
         } else {
             rowsHtml = '<tr><td colspan="23" style="text-align:center;">No completed trades found.</td></tr>';
@@ -3702,20 +3720,16 @@ function renderCompletedTable(data) {
 
     } else {
         // --- DEFAULT LOGIC (ON LOAD) ---
-        // Keeps exactly how it is currently: Shows today, hides history, "Show All" button visible
-        
         let hasHistorical = false;
         rowsHtml = tradeIds.map(id => {
             let closedPerthDateStr = '', isHistorical = true;
             if (trades[id].closed_date) {
                 const closedDate = new Date(trades[id].closed_date);
                 closedPerthDateStr = getPerthDateString(closedDate);
-                // Compare with today
                 isHistorical = (closedPerthDateStr !== perthTodayStr);
             }
             if (isHistorical) hasHistorical = true;
             const rowContent = createRowHtml(id);
-            // Hide historical rows by default
             return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedPerthDateStr}">${rowContent}</tr>`;
         }).join('');
 
