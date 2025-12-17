@@ -3581,107 +3581,151 @@ function renderRestingTable(data) {
     setTimeout(() => adjustCollapsibleSize(DOM.tradesTbody), 10);
 }
 function renderCompletedTable(data) {
-            const trades = data || {};
-            const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
-            const perthTodayStr = getPerthDateString();
-            let rowsHtml = '';
+    const trades = data || {};
+    // Sort all trades by date descending
+    const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
+    const perthTodayStr = getPerthDateString();
+    let rowsHtml = '';
 
-            const paginationControls = document.getElementById('completed-trades-pagination-controls');
-            const showAllButton = document.getElementById('toggle-all-completed-trades');
+    const paginationControls = document.getElementById('completed-trades-pagination-controls');
+    const showAllButton = document.getElementById('toggle-all-completed-trades');
+    const pageInfoSpan = document.getElementById('completed-trades-page-info');
 
-            // FIND THIS inside renderCompletedTable and REPLACE it:
-const masterButtonsHtml = (id) => STATE.isMasterUser ? 
-    `<td class="action-buttons">
-        <button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button>
-        <!-- NEW MERGE BUTTON ADDED HERE -->
-        <button class="merge-btn-completed" data-id="${id}" title="Combine with another trade" style="background-color: #6f42c1; color: white;">Merge</button>
-        <button class="note-btn-completed" data-id="${id}">Note 1</button>
-        <button class="note2-btn-completed" data-id="${id}">Note 2</button>
-        <button class="note3-btn-completed" data-id="${id}">Note 3</button>
-        <button class="delete-btn-completed" data-id="${id}">Delete</button>
-    </td>` : '';
-// REPLACE THE createRowHtml CONSTANT INSIDE renderCompletedTable
-const createRowHtml = (id) => {
-    const trade = trades[id];
-    const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-    const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
-    const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
+    // --- ROW CREATION HELPER ---
+    const masterButtonsHtml = (id) => STATE.isMasterUser ? 
+        `<td class="action-buttons">
+            <button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button>
+            <button class="merge-btn-completed" data-id="${id}" title="Combine with another trade" style="background-color: #6f42c1; color: white;">Merge</button>
+            <button class="note-btn-completed" data-id="${id}">Note 1</button>
+            <button class="note2-btn-completed" data-id="${id}">Note 2</button>
+            <button class="note3-btn-completed" data-id="${id}">Note 3</button>
+            <button class="delete-btn-completed" data-id="${id}">Delete</button>
+        </td>` : '';
 
-    // --- FIX: Force calculation here for Projected columns ---
-    const metrics = calculateTradeMetrics(trade);
+    const createRowHtml = (id) => {
+        const trade = trades[id];
+        const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+        const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
+        const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
 
-    const rrTakerString = metrics.rr_taker > 0 ? metrics.rr_taker : '--';
-    const rrMakerString = metrics.rr_maker > 0 ? metrics.rr_maker : '--';
+        const metrics = calculateTradeMetrics(trade);
+        const rrTakerString = metrics.rr_taker > 0 ? metrics.rr_taker : '--';
+        const rrMakerString = metrics.rr_maker > 0 ? metrics.rr_maker : '--';
 
-    const entryFeeTypeDisplay = (trade.entryFeeType || 'taker').charAt(0).toUpperCase() + (trade.entryFeeType || 'taker').slice(1);
-    const exitFeeTypeDisplay = (trade.exitFeeType || 'taker').charAt(0).toUpperCase() + (trade.exitFeeType || 'taker').slice(1);
-    const feeTooltip = `Entry: ${entryFeeTypeDisplay}, Exit: ${exitFeeTypeDisplay}`;
+        const entryFeeTypeDisplay = (trade.entryFeeType || 'taker').charAt(0).toUpperCase() + (trade.entryFeeType || 'taker').slice(1);
+        const exitFeeTypeDisplay = (trade.exitFeeType || 'taker').charAt(0).toUpperCase() + (trade.exitFeeType || 'taker').slice(1);
+        const feeTooltip = `Entry: ${entryFeeTypeDisplay}, Exit: ${exitFeeTypeDisplay}`;
 
-    return `<td>${trade.symbol}</td>
-    <td>${trade.type}</td>
-    <td>${parseFloat(trade.entry).toFixed(4)}</td>
-    <td class="note-cell">${entriesList}</td>
-    <td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td>
-    <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
-    <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
-    <td style="color: var(--green-text);">${formatCurrency(metrics.expected_profit_taker)}</td>
-    <td style="color: var(--green-text);">${formatCurrency(metrics.expected_profit_maker)}</td>
-    <td style="color: var(--red-text);">${formatCurrency(metrics.expected_loss_taker)}</td>
-    <td style="color: var(--red-text);">${formatCurrency(metrics.expected_loss_maker)}</td>
-    <td>${rrTakerString}</td>
-    <td>${rrMakerString}</td>
-    <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
-    <td title="${feeTooltip}">${totalFees.toFixed(2)}</td>
-    <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
-    <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
-    <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
-    <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
-    <td class="note-cell" title="${trade.note2 || ''}">${trade.note2 || ''}</td>
-    <td class="note-cell" title="${trade.note3 || ''}">${trade.note3 || ''}</td>
-    ${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
-};
-            if (STATE.completedTradesShowAll) {
-                const totalItems = tradeIds.length;
-                const totalPages = Math.ceil(totalItems / STATE.completedTradesItemsPerPage);
-                if (STATE.completedTradesCurrentPage > totalPages && totalPages > 0) STATE.completedTradesCurrentPage = totalPages;
-                if (STATE.completedTradesCurrentPage < 1) STATE.completedTradesCurrentPage = 1;
+        return `<td>${trade.symbol}</td>
+        <td>${trade.type}</td>
+        <td>${parseFloat(trade.entry).toFixed(4)}</td>
+        <td class="note-cell">${entriesList}</td>
+        <td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td>
+        <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
+        <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
+        <td style="color: var(--green-text);">${formatCurrency(metrics.expected_profit_taker)}</td>
+        <td style="color: var(--green-text);">${formatCurrency(metrics.expected_profit_maker)}</td>
+        <td style="color: var(--red-text);">${formatCurrency(metrics.expected_loss_taker)}</td>
+        <td style="color: var(--red-text);">${formatCurrency(metrics.expected_loss_maker)}</td>
+        <td>${rrTakerString}</td>
+        <td>${rrMakerString}</td>
+        <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
+        <td title="${feeTooltip}">${totalFees.toFixed(2)}</td>
+        <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
+        <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
+        <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
+        <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
+        <td class="note-cell" title="${trade.note2 || ''}">${trade.note2 || ''}</td>
+        <td class="note-cell" title="${trade.note3 || ''}">${trade.note3 || ''}</td>
+        ${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
+    };
 
-                const startIndex = (STATE.completedTradesCurrentPage - 1) * STATE.completedTradesItemsPerPage;
-                const endIndex = startIndex + STATE.completedTradesItemsPerPage;
-                const pageTradeIds = tradeIds.slice(startIndex, endIndex);
+    // --- NEW LOGIC: GROUP TRADES BY DATE ---
+    const tradesByDate = {};
+    const uniqueDates = [];
 
-                rowsHtml = pageTradeIds.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
-
-                showAllButton.style.display = 'none';
-                if (totalPages > 1) {
-                    paginationControls.style.display = 'flex';
-                    document.getElementById('completed-trades-page-info').textContent = `Page ${STATE.completedTradesCurrentPage} of ${totalPages}`;
-                    document.getElementById('completed-trades-prev-page').disabled = (STATE.completedTradesCurrentPage === 1);
-                    document.getElementById('completed-trades-next-page').disabled = (STATE.completedTradesCurrentPage === totalPages);
-                } else {
-                    paginationControls.style.display = 'none';
-                }
-            } else {
-                let hasHistorical = false;
-                rowsHtml = tradeIds.map(id => {
-                    let closedPerthDateStr = '', isHistorical = true;
-                    if (trades[id].closed_date) {
-                        const closedDate = new Date(trades[id].closed_date);
-                        closedPerthDateStr = getPerthDateString(closedDate);
-                        isHistorical = (closedPerthDateStr !== perthTodayStr);
-                    }
-                    if (isHistorical) hasHistorical = true;
-                    const rowContent = createRowHtml(id);
-                    return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedPerthDateStr}">${rowContent}</tr>`;
-                }).join('');
-
-                paginationControls.style.display = 'none';
-                showAllButton.style.display = hasHistorical ? 'block' : 'none';
+    tradeIds.forEach(id => {
+        const t = trades[id];
+        if (t.closed_date) {
+            // Group by Perth Date String (DD/MM/YYYY or YYYY-MM-DD based on your helper)
+            const dateStr = getPerthDateString(new Date(t.closed_date));
+            
+            if (!tradesByDate[dateStr]) {
+                tradesByDate[dateStr] = [];
+                uniqueDates.push(dateStr); // Push keeps order because tradeIds is already sorted DESC
             }
-
-            DOM.completedTradesTbody.innerHTML = rowsHtml;
-            adjustCollapsibleSize(DOM.completedTradesTbody);
+            tradesByDate[dateStr].push(id);
         }
+    });
+
+    if (STATE.completedTradesShowAll) {
+        // --- PAGINATION BY DAY LOGIC ---
+        
+        // Total pages = Number of unique days
+        const totalPages = uniqueDates.length;
+
+        // Ensure page bounds
+        if (STATE.completedTradesCurrentPage > totalPages) STATE.completedTradesCurrentPage = totalPages;
+        if (STATE.completedTradesCurrentPage < 1) STATE.completedTradesCurrentPage = 1;
+
+        if (totalPages > 0) {
+            // Get the specific date for the current page
+            // Page 1 = Index 0 (Most recent date)
+            const dateForPage = uniqueDates[STATE.completedTradesCurrentPage - 1];
+            const pageTradeIds = tradesByDate[dateForPage] || [];
+
+            // Optional: Add a header row to show the date clearly
+            const dateHeaderRow = `<tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color);">
+                <td colspan="23" style="text-align: center; font-weight: bold; font-size: 1.1em; padding: 10px;">
+                    Date: ${dateForPage} (${pageTradeIds.length} Trades)
+                </td>
+            </tr>`;
+
+            rowsHtml = dateHeaderRow + pageTradeIds.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
+            
+            // Update Info Text to show Date instead of just Page #
+            pageInfoSpan.textContent = `Page ${STATE.completedTradesCurrentPage} of ${totalPages}`;
+        } else {
+            rowsHtml = '<tr><td colspan="23" style="text-align:center;">No completed trades found.</td></tr>';
+            pageInfoSpan.textContent = 'Page 0 of 0';
+        }
+
+        showAllButton.style.display = 'none';
+        
+        if (totalPages > 1) {
+            paginationControls.style.display = 'flex';
+            document.getElementById('completed-trades-prev-page').disabled = (STATE.completedTradesCurrentPage === 1);
+            document.getElementById('completed-trades-next-page').disabled = (STATE.completedTradesCurrentPage === totalPages);
+        } else {
+            paginationControls.style.display = 'none';
+        }
+
+    } else {
+        // --- DEFAULT LOGIC (ON LOAD) ---
+        // Keeps exactly how it is currently: Shows today, hides history, "Show All" button visible
+        
+        let hasHistorical = false;
+        rowsHtml = tradeIds.map(id => {
+            let closedPerthDateStr = '', isHistorical = true;
+            if (trades[id].closed_date) {
+                const closedDate = new Date(trades[id].closed_date);
+                closedPerthDateStr = getPerthDateString(closedDate);
+                // Compare with today
+                isHistorical = (closedPerthDateStr !== perthTodayStr);
+            }
+            if (isHistorical) hasHistorical = true;
+            const rowContent = createRowHtml(id);
+            // Hide historical rows by default
+            return `<tr class="${isHistorical ? 'historical-entry' : ''}" style="${isHistorical ? 'display: none;' : ''}" data-date="${closedPerthDateStr}">${rowContent}</tr>`;
+        }).join('');
+
+        paginationControls.style.display = 'none';
+        showAllButton.style.display = hasHistorical ? 'block' : 'none';
+    }
+
+    DOM.completedTradesTbody.innerHTML = rowsHtml;
+    adjustCollapsibleSize(DOM.completedTradesTbody);
+}
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
             if (!containerElement) return;
