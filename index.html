@@ -3430,7 +3430,9 @@ function renderRestingTable(data) {
                     cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); 
                 });
             });
-        }function renderLiveTable(data) {
+        }
+        
+        function renderLiveTable(data) {
     const trades = data || {};
     const groups = {}; 
 
@@ -3445,16 +3447,29 @@ function renderRestingTable(data) {
         const setupCat = trade.setupType || 'Major';
         const groupKey = `${setupCat}_${trade.type}`;
 
+        // Initialize group with qtyTarget to track weighted targets
         if (!groups[groupKey]) {
-            groups[groupKey] = { name: `${setupCat} ${trade.type}`, direction: trade.type, count: 0, size: 0, qty: 0, qtyStop: 0, profitTaker: 0, profitMaker: 0, lossTaker: 0, lossMaker: 0 };
+            groups[groupKey] = { 
+                name: `${setupCat} ${trade.type}`, 
+                direction: trade.type, 
+                count: 0, 
+                size: 0, 
+                qty: 0, 
+                qtyStop: 0, 
+                qtyTarget: 0, // NEW: Track weighted target sum
+                profitTaker: 0, 
+                profitMaker: 0, 
+                lossTaker: 0, 
+                lossMaker: 0 
+            };
         }
 
         const g = groups[groupKey];
         const tSize = parseFloat(trade.size) || 0;
         const tEntry = parseFloat(trade.entry) || 0;
         const tStop = parseFloat(trade.stoploss) || 0;
+        const tTarget = parseFloat(trade.target) || 0; // Target from trade
         
-        // Calculate Quantity for this row
         const tQty = (tSize && tEntry) ? (tSize / tEntry) : 0;
 
         g.count++;
@@ -3462,6 +3477,7 @@ function renderRestingTable(data) {
             g.size += tSize;
             g.qty += tQty;
             g.qtyStop += (tStop * tQty);
+            g.qtyTarget += (tTarget * tQty); // NEW: Add to weighted sum
         }
         g.profitTaker += parseFloat(metrics.expected_profit_taker || 0);
         g.profitMaker += parseFloat(metrics.expected_profit_maker || 0);
@@ -3494,10 +3510,7 @@ function renderRestingTable(data) {
             <td style="color: var(--link-color); font-weight: 500;">${rr1Price}</td>
             <td style="color: var(--green-text); font-weight: 500;">${rr4Price}</td>
             ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
-            
-            <!-- QTY COLUMN -->
             <td style="font-family: 'Courier New'; font-weight: bold; color: var(--subtle-text);">${tQty.toFixed(4)}</td>
-
             <td>${parseFloat(metrics.estimated_total_fee || 0).toFixed(2)}</td>
             <td style="color: #28a745;">${profitTakerStr}</td>
             <td style="color: #28a745;">${profitMakerStr}</td>
@@ -3513,13 +3526,11 @@ function renderRestingTable(data) {
     }).join('');
 
     const thead = DOM.tradesTbody.closest('table').querySelector('thead');
-    // ADDED "Qty" Header
     if(thead) thead.innerHTML = `<tr><th>Symbol</th><th>Type</th><th>Setup</th><th style="border-right: 2px solid var(--border-color);">Avg. Entry (Raw)</th><th>Avg (+Fees)</th><th>Entries List</th><th>Stop Loss</th><th>Target</th><th style="color: var(--link-color);">1:1 Target</th><th style="color: var(--green-text);">1:4 Target</th><th>Position Value ($)</th><th>Qty</th><th>Est. Total Fee ($)</th><th>Profit (Taker)</th><th>Profit (Maker)</th><th>Loss (Taker)</th><th>Loss (Maker)</th><th>RR (Taker)</th><th>RR (Maker)</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>`;
     
     DOM.tradesTbody.innerHTML = rowsHtml;
 
-    // ... (Summary Rendering Logic remains the same) ...
-    // --- RENDER DYNAMIC CARDS ---
+    // --- RENDER DYNAMIC SUMMARY CARDS ---
     const summaryContainer = document.getElementById('live-trades-summary-container');
     if (summaryContainer) {
         const activeKeys = Object.keys(groups);
@@ -3527,13 +3538,14 @@ function renderRestingTable(data) {
             summaryContainer.style.display = 'block';
             let summaryHtml = '<div class="summary-split-container">';
 
-         activeKeys.forEach(key => {
+            activeKeys.forEach(key => {
                 const s = groups[key];
                 const avgEntry = s.qty > 0 ? (s.size / s.qty) : 0;
                 const avgStop = s.qty > 0 ? (s.qtyStop / s.qty) : 0;
+                const avgTarget = s.qty > 0 ? (s.qtyTarget / s.qty) : 0; // NEW: Actual Avg Target
                 const cardClass = s.direction === 'Long' ? 'long-card' : 'short-card';
                 
-                // --- MODIFIED CALCULATION START ---
+                // 1:1, 1:2, 1:4 Theoretical Projections
                 let t1 = "--", t2 = "--", t4 = "--";
                 if (avgEntry > 0 && avgStop > 0) {
                     const risk = Math.abs(avgEntry - avgStop);
@@ -3542,7 +3554,14 @@ function renderRestingTable(data) {
                     t2 = (avgEntry + (risk * 2 * dir)).toFixed(4);
                     t4 = (avgEntry + (risk * 4 * dir)).toFixed(4);
                 }
-                // --- MODIFIED CALCULATION END ---
+
+                // Actual Avg RR Calculation
+                let actualRR = "0.00";
+                if (avgEntry > 0 && avgStop > 0 && avgEntry !== avgStop) {
+                    const avgRisk = Math.abs(avgEntry - avgStop);
+                    const avgReward = Math.abs(avgTarget - avgEntry);
+                    actualRR = (avgReward / avgRisk).toFixed(2);
+                }
 
                 summaryHtml += `
                 <div class="summary-card ${cardClass}">
@@ -3552,7 +3571,12 @@ function renderRestingTable(data) {
                         <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
                     </div>
                     
-                    <!-- MODIFIED TARGETS ROW -->
+                    <!-- UPDATED: Added Actual Avg Target and RR -->
+                    <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 12px;">
+                        <div><span class="sum-label">Actual Avg Target</span><span class="sum-val" style="color: #ffc107;">${avgTarget.toFixed(4)}</span></div>
+                        <div><span class="sum-label">Avg Target RR</span><span class="sum-val" style="color: #ffc107;">${actualRR}:1</span></div>
+                    </div>
+
                     <div class="summary-grid-row">
                         <div><span class="sum-label">Avg Stop</span><span class="sum-val val-red">${avgStop.toFixed(4)}</span></div>
                         <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
@@ -3561,7 +3585,6 @@ function renderRestingTable(data) {
                         <div><span class="sum-label">1:2 Target</span><span class="sum-val" style="color:var(--green-text)">${t2}</span></div>
                         <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
                     </div>
-                    <!-- END MODIFIED TARGETS ROW -->
 
                     <div class="summary-grid-row financials">
                         <div><span class="sum-label">Exp Profit (T)</span><span class="sum-val val-green">$${s.profitTaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
@@ -3579,7 +3602,8 @@ function renderRestingTable(data) {
         }
     }
     setTimeout(() => adjustCollapsibleSize(DOM.tradesTbody), 10);
-}function renderCompletedTable(data) {
+}
+        function renderCompletedTable(data) {
     const trades = data || {};
     // Sort all trades by date descending
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
