@@ -3807,10 +3807,12 @@ function renderRestingTable(data) {
             const allImageIds = Object.keys(images).sort((a, b) => images[b].timestamp - images[a].timestamp);
             let imagesHtml = '';
 
+         
             const createImageHtml = (id, extraClasses = '', extraStyle = '') => {
                 const imgData = images[id]; if (!imgData?.url) return '';
                 const caption = imgData.caption || (imgData.timestamp ? new Date(imgData.timestamp).toLocaleString() : ' ');
-                return `<div class="library-image-wrapper ${extraClasses}" ${extraStyle}>${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption" title="${caption}">${caption}</div></div>`;
+                // MODIFIED LINE BELOW: Added ${STATE.isMasterUser ? '' : 'master-only'} to the caption div class
+                return `<div class="library-image-wrapper ${extraClasses}" ${extraStyle}>${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption ${STATE.isMasterUser ? '' : 'master-only'}" title="${caption}">${caption}</div></div>`;
             };
 
             if (libraryType === 'setups_images') {
