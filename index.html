@@ -4620,6 +4620,11 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
             const currentImage = STATE.modalImageGallery[STATE.modalImageIndex];
             DOM.modalImageContent.src = currentImage.url;
             DOM.modalCaption.textContent = currentImage.caption || '';
+            
+            // --- NEW LINE: Hide caption in modal if not master user ---
+            DOM.modalCaption.style.display = STATE.isMasterUser ? 'block' : 'none';
+            // ----------------------------------------------------------
+
             DOM.modalPrevBtn.style.display = STATE.modalImageIndex > 0 ? 'flex' : 'none';
             DOM.modalNextBtn.style.display = STATE.modalImageIndex < STATE.modalImageGallery.length - 1 ? 'flex' : 'none';
         }
