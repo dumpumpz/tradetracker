@@ -3604,13 +3604,14 @@ function renderRestingTable(data) {
     setTimeout(() => adjustCollapsibleSize(DOM.tradesTbody), 10);
 }
      // --- NEW HELPER FOR TRADING DAY LOGIC ---
+// --- HELPER: TRADING DAY LOGIC ---
 const getTradingDayString = (closedTS, openedTS) => {
     if (!closedTS) return 'Unknown';
     
     const closedDate = new Date(closedTS);
     const openedDate = openedTS ? new Date(openedTS) : closedDate;
 
-    // Get hours in Perth time specifically to match your trading window
+    // Get hours in Perth time
     const getPerthHour = (d) => {
         return parseInt(new Intl.DateTimeFormat('en-AU', {
             timeZone: 'Australia/Perth',
@@ -3625,75 +3626,29 @@ const getTradingDayString = (closedTS, openedTS) => {
     const closedCalDay = getPerthDateString(closedDate);
     const openedCalDay = getPerthDateString(openedDate);
 
-    // RULE: Anything closed before 6am
+    // RULE: If closed before 6am
     if (closedHour < 6) {
-        // EXCEPTION: Unless opened after 5am on the same calendar day
+        // EXCEPTION: Unless opened after 5am today
         if (openedCalDay === closedCalDay && openedHour >= 5) {
             return closedCalDay;
         } else {
-            // Part of the previous day's summary
+            // Roll back to previous day
             const prevDay = new Date(closedDate);
             prevDay.setDate(prevDay.getDate() - 1);
             return getPerthDateString(prevDay);
         }
     }
-    
     return closedCalDay;
 };
 
 function renderCompletedTable(data) {
     const trades = data || {};
-    // Sort all trades by actual closed date descending for initial ordering
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
-    const perthTodayStr = getPerthDateString();
     let rowsHtml = '';
-
     const paginationControls = document.getElementById('completed-trades-pagination-controls');
     const showAllButton = document.getElementById('toggle-all-completed-trades');
     const pageInfoSpan = document.getElementById('completed-trades-page-info');
-
-    // --- ROW CREATION HELPER ---
-    const masterButtonsHtml = (id) => STATE.isMasterUser ? 
-        `<td class="action-buttons">
-            <button class="attach-image-btn" data-id="${id}" data-type="completed" title="Attach Picture" style="background-color: #17a2b8;">Pic</button>
-            <button class="merge-btn-completed" data-id="${id}" title="Combine with another trade" style="background-color: #6f42c1; color: white;">Merge</button>
-            <button class="note-btn-completed" data-id="${id}">Note 1</button>
-            <button class="note2-btn-completed" data-id="${id}">Note 2</button>
-            <button class="note3-btn-completed" data-id="${id}">Note 3</button>
-            <button class="delete-btn-completed" data-id="${id}">Delete</button>
-        </td>` : '';
-
-    const createRowHtml = (id) => {
-        const trade = trades[id];
-        const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-        const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
-        const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
-        const metrics = calculateTradeMetrics(trade);
-        
-        return `<td>${trade.symbol}</td>
-        <td>${trade.type}</td>
-        <td>${parseFloat(trade.entry).toFixed(4)}</td>
-        <td class="note-cell">${entriesList}</td>
-        <td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td>
-        <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
-        <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
-        <td style="color: var(--green-text);">${formatCurrency(metrics.expected_profit_taker)}</td>
-        <td style="color: var(--green-text);">${formatCurrency(metrics.expected_profit_maker)}</td>
-        <td style="color: var(--red-text);">${formatCurrency(metrics.expected_loss_taker)}</td>
-        <td style="color: var(--red-text);">${formatCurrency(metrics.expected_loss_maker)}</td>
-        <td>${metrics.rr_taker || '--'}</td>
-        <td>${metrics.rr_maker || '--'}</td>
-        <td>${parseFloat(trade.exit_price).toFixed(2)}</td>
-        <td>${totalFees.toFixed(2)}</td>
-        <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
-        <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
-        <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
-        <td class="note-cell">${trade.note || ''}</td>
-        <td class="note-cell">${trade.note2 || ''}</td>
-        <td class="note-cell">${trade.note3 || ''}</td>
-        ${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtonsHtml(id)}`;
-    };
 
     // --- GROUP TRADES BY TRADING DAY ---
     const tradesByTradingDay = {};
@@ -3701,7 +3656,6 @@ function renderCompletedTable(data) {
 
     tradeIds.forEach(id => {
         const t = trades[id];
-        // Calculate the "Trading Day" string based on 6am cutoff and 5am open exception
         const tradingDayStr = getTradingDayString(t.closed_date, t.date);
         
         if (!tradesByTradingDay[tradingDayStr]) {
@@ -3711,76 +3665,107 @@ function renderCompletedTable(data) {
         tradesByTradingDay[tradingDayStr].push(id);
     });
 
-    // Sort unique dates descending so newest trading day is Page 1
+    // Sort dates descending (newest first)
     uniqueTradingDates.sort((a, b) => b.localeCompare(a));
 
+    // --- INNER HELPER: CREATE THE SUMMARY ROW ---
+    const createSummaryHeader = (dateStr, ids) => {
+        let dayWins = 0, dayLosses = 0, dayPnL = 0;
+        ids.forEach(id => {
+            const net = parseFloat(trades[id].net_result || 0);
+            dayPnL += net;
+            if (net > 0) dayWins++; else dayLosses++;
+        });
+
+        const pnlClass = dayPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+        const pnlSign = dayPnL >= 0 ? '+' : '-';
+        const pnlFormatted = `$${Math.abs(dayPnL).toFixed(2)}`;
+
+        return `<tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color);">
+            <td colspan="23" style="text-align: left; padding: 10px 10px 10px 20px;">
+                <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
+                    Date: ${dateStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${ids.length} Trades)</span>
+                </div>
+                <div style="font-size: 0.95em;">
+                    <span style="color: var(--green-text); font-weight: bold;">${dayWins} Wins</span> / 
+                    <span style="color: var(--red-text); font-weight: bold;">${dayLosses} Losses</span>
+                    <span style="margin: 0 10px; color: var(--border-color);">|</span>
+                    <span style="font-weight: bold; color: var(--text-color);">Daily PnL: <span style="color: ${pnlClass};">${pnlSign}${pnlFormatted}</span></span>
+                </div>
+            </td>
+        </tr>`;
+    };
+
+    // --- INNER HELPER: CREATE DATA ROW ---
+    const createRowHtml = (id) => {
+        const trade = trades[id];
+        const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+        const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
+        const metrics = calculateTradeMetrics(trade);
+        const masterButtons = STATE.isMasterUser ? `<td class="action-buttons">
+            <button class="attach-image-btn" data-id="${id}" data-type="completed">Pic</button>
+            <button class="merge-btn-completed" data-id="${id}">Merge</button>
+            <button class="note-btn-completed" data-id="${id}">Note 1</button>
+            <button class="note2-btn-completed" data-id="${id}">Note 2</button>
+            <button class="note3-btn-completed" data-id="${id}">Note 3</button>
+            <button class="delete-btn-completed" data-id="${id}">Delete</button>
+        </td>` : '';
+
+        return `<td>${trade.symbol}</td>
+        <td>${trade.type}</td>
+        <td>${parseFloat(trade.entry).toFixed(4)}</td>
+        <td class="note-cell">${(trade.entry_prices || [trade.entry]).join(', ')}</td>
+        <td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td>
+        <td>${parseFloat(trade.target || 0).toFixed(4)}</td>
+        <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
+        <td>${formatCurrency(metrics.expected_profit_taker)}</td>
+        <td>${formatCurrency(metrics.expected_profit_maker)}</td>
+        <td>${formatCurrency(metrics.expected_loss_taker)}</td>
+        <td>${formatCurrency(metrics.expected_loss_maker)}</td>
+        <td>${metrics.rr_taker || '--'}</td>
+        <td>${metrics.rr_maker || '--'}</td>
+        <td>${parseFloat(trade.exit_price).toFixed(4)}</td>
+        <td>${totalFees.toFixed(2)}</td>
+        <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
+        <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
+        <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
+        <td class="note-cell">${trade.note || ''}</td>
+        <td class="note-cell">${trade.note2 || ''}</td>
+        <td class="note-cell">${trade.note3 || ''}</td>
+        ${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtons}`;
+    };
+
     if (STATE.completedTradesShowAll) {
-        // --- 1. PAGINATION VIEW ---
+        // --- PAGINATION MODE ---
         const totalPages = uniqueTradingDates.length;
         if (STATE.completedTradesCurrentPage > totalPages) STATE.completedTradesCurrentPage = totalPages;
-        if (STATE.completedTradesCurrentPage < 1) STATE.completedTradesCurrentPage = 1;
-
+        
         if (totalPages > 0) {
             const dateForPage = uniqueTradingDates[STATE.completedTradesCurrentPage - 1];
             const pageTradeIds = tradesByTradingDay[dateForPage] || [];
-
-            let dayWins = 0, dayLosses = 0, dayPnL = 0;
-            pageTradeIds.forEach(id => {
-                const net = parseFloat(trades[id].net_result || 0);
-                dayPnL += net;
-                if (net > 0) dayWins++; else dayLosses++;
-            });
-
-            const dateHeaderRow = `<tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color);">
-                <td colspan="23" style="text-align: left; padding: 12px 20px;">
-                    <div style="font-weight: bold; font-size: 1.1em;">
-                        Trading Day: ${dateForPage} 
-                        <span style="margin-left:15px; color:${dayPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">
-                            PnL: $${dayPnL.toFixed(2)} (${dayWins}W / ${dayLosses}L)
-                        </span>
-                    </div>
-                </td>
-            </tr>`;
-
-            rowsHtml = dateHeaderRow + pageTradeIds.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
-            pageInfoSpan.textContent = `Trading Day ${STATE.completedTradesCurrentPage} of ${totalPages}`;
+            
+            rowsHtml = createSummaryHeader(dateForPage, pageTradeIds) + 
+                       pageTradeIds.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
+            
+            pageInfoSpan.textContent = `Page ${STATE.completedTradesCurrentPage} of ${totalPages}`;
         }
-
         showAllButton.style.display = 'none';
         paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
     } else {
-        // --- 2. DEFAULT VIEW (Today's Trading Day Only) ---
-        // Identify what the current "Trading Day" is right now
-        const currentTradingDay = getTradingDayString(Date.now(), Date.now());
-        
-        let todayTradingDayTrades = tradesByTradingDay[currentTradingDay] || [];
-        let hasHistorical = uniqueTradingDates.length > 1 || (uniqueTradingDates.length === 1 && uniqueTradingDates[0] !== currentTradingDay);
+        // --- DEFAULT MODE (CURRENT TRADING SESSION) ---
+        const currentLogicalTradingDay = getTradingDayString(Date.now(), Date.now());
+        const sessionTrades = tradesByTradingDay[currentLogicalTradingDay] || [];
+        const hasHistory = uniqueTradingDates.length > 1 || (uniqueTradingDates.length === 1 && uniqueTradingDates[0] !== currentLogicalTradingDay);
 
-        if (todayTradingDayTrades.length > 0) {
-            let dayWins = 0, dayLosses = 0, dayPnL = 0;
-            todayTradingDayTrades.forEach(id => {
-                const net = parseFloat(trades[id].net_result || 0);
-                dayPnL += net;
-                if (net > 0) dayWins++; else dayLosses++;
-            });
-
-            const todayHeader = `<tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color);">
-                <td colspan="23" style="text-align: left; padding: 12px 20px;">
-                    <div style="font-weight: bold; font-size: 1.1em;">
-                        Current Trading Day: ${currentTradingDay} 
-                        <span style="margin-left:15px; color:${dayPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">
-                            PnL: $${dayPnL.toFixed(2)} (${dayWins}W / ${dayLosses}L)
-                        </span>
-                    </div>
-                </td>
-            </tr>`;
-            rowsHtml = todayHeader + todayTradingDayTrades.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
+        if (sessionTrades.length > 0) {
+            rowsHtml = createSummaryHeader(currentLogicalTradingDay, sessionTrades) + 
+                       sessionTrades.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
         } else {
-            rowsHtml = '<tr><td colspan="23" style="text-align:center; padding: 20px;">No trades completed in the current trading session.</td></tr>';
+            rowsHtml = '<tr><td colspan="23" style="text-align:center; padding:20px;">No trades completed in current trading day session.</td></tr>';
         }
 
         paginationControls.style.display = 'none';
-        showAllButton.style.display = hasHistorical ? 'block' : 'none';
+        showAllButton.style.display = hasHistory ? 'block' : 'none';
     }
 
     DOM.completedTradesTbody.innerHTML = rowsHtml;
