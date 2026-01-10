@@ -61,7 +61,7 @@
             color: var(--text-color);
             transition: background-color 0.3s, color 0.3s;
         }
-        .container { max-width: 1200px; margin: auto; background: var(--container-bg); padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-color); transition: background-color 0.3s; }
+        .container { max-width: 1400px; margin: auto; background: var(--container-bg); padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-color); transition: background-color 0.3s; }
         h1 { text-align: center; color: var(--text-color); margin-bottom: 5px; }
         h2 { margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 20px; }
         h3 { text-align: center; color: var(--text-color); margin-top: 30px; margin-bottom: -5px; font-weight: 500;}
@@ -82,13 +82,13 @@
         input, select, button, textarea { padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%; box-sizing: border-box; font-family: inherit; background-color: var(--container-bg); color: var(--text-color); }
         button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.3s; margin-top: 5px; }
         button:hover { opacity: 0.85; }
-.table-wrapper { 
-    width: 100%;
-    overflow-x: auto;   
-    overflow-y: hidden; 
-    padding-bottom: 5px; 
-    margin-bottom: 10px;
-}
+        .table-wrapper { 
+            width: 100%;
+            overflow-x: auto;   
+            overflow-y: hidden; 
+            padding-bottom: 5px; 
+            margin-bottom: 10px;
+        }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; font-size: 14px; white-space: nowrap; vertical-align: top; }
         th { background-color: var(--header-bg); font-weight: bold; vertical-align: middle; text-align: center; }
@@ -117,6 +117,79 @@
         #journal-entry:read-only, #persistent-notes-entry:read-only, #tracker-scratchpad:read-only, .setups-notes-area:read-only { 
             background-color: var(--card-bg); 
             cursor: not-allowed; 
+        }
+
+        /* MATRIX STYLES */
+        .matrix-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+            width: 100%;
+        }
+        .matrix-card {
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .matrix-header {
+            background: var(--header-bg);
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--link-color);
+        }
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+        .matrix-table th {
+            padding: 4px;
+            font-size: 11px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+        }
+        .matrix-table td {
+            padding: 0;
+            border: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+        .matrix-label {
+            padding: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+            background-color: var(--bg-color);
+            vertical-align: middle;
+            text-align: center;
+            width: 1px; /* shrink to fit */
+        }
+        .matrix-textarea {
+            width: 100%;
+            min-height: 36px;
+            border: none;
+            resize: none;
+            padding: 6px;
+            font-family: inherit;
+            font-size: 12px;
+            background: transparent;
+            color: var(--text-color);
+            display: block;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .matrix-textarea:focus {
+            background: var(--container-bg);
+            outline: 2px solid var(--link-color);
+        }
+        .matrix-textarea:read-only {
+            cursor: default;
         }
 
         #image-upload-section { margin-top: 20px; border-top: 1px dashed var(--border-color); padding-top: 20px; }
@@ -1768,6 +1841,70 @@
                 <button id="date-next" class="date-nav-arrow">></button>
             </div>
 
+            <!-- NEW 3x3 COLUMN MATRIX SECTION -->
+            <div id="journal-matrix-container" class="matrix-wrapper">
+                
+                <!-- 1. ICT Killzones Table (Far Left) -->
+                <div class="matrix-card">
+                    <div class="matrix-header">ICT Killzones</div>
+                    <table class="matrix-table" data-matrix-id="killzones">
+                        <thead><tr><th>Zone</th><th>Longs</th><th>Shorts</th></tr></thead>
+                        <tbody>
+                            <tr><td class="matrix-label">Pre Asia</td><td><textarea class="matrix-textarea" data-row="pre_asia" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="pre_asia" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">Asia</td><td><textarea class="matrix-textarea" data-row="asia" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="asia" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">Pre London</td><td><textarea class="matrix-textarea" data-row="pre_london" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="pre_london" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">London</td><td><textarea class="matrix-textarea" data-row="london" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="london" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">Pre NY AM</td><td><textarea class="matrix-textarea" data-row="pre_ny_am" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="pre_ny_am" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">NY AM</td><td><textarea class="matrix-textarea" data-row="ny_am" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="ny_am" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">Pre NY Lunch</td><td><textarea class="matrix-textarea" data-row="pre_ny_lunch" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="pre_ny_lunch" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">NY Lunch</td><td><textarea class="matrix-textarea" data-row="ny_lunch" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="ny_lunch" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">Pre NY PM</td><td><textarea class="matrix-textarea" data-row="pre_ny_pm" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="pre_ny_pm" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">NY PM</td><td><textarea class="matrix-textarea" data-row="ny_pm" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="ny_pm" data-col="shorts"></textarea></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 2. Table 1 (HTF) -->
+                <div class="matrix-card">
+                    <div class="matrix-header">High Timeframe</div>
+                    <table class="matrix-table" data-matrix-id="htf">
+                        <thead><tr><th>TF</th><th>Longs</th><th>Shorts</th></tr></thead>
+                        <tbody>
+                            <tr><td class="matrix-label">Monthly</td><td><textarea class="matrix-textarea" data-row="monthly" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="monthly" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">Weekly</td><td><textarea class="matrix-textarea" data-row="weekly" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="weekly" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">Daily</td><td><textarea class="matrix-textarea" data-row="daily" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="daily" data-col="shorts"></textarea></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 3. Table 2 (Intraday) -->
+                <div class="matrix-card">
+                    <div class="matrix-header">Intraday</div>
+                    <table class="matrix-table" data-matrix-id="intraday">
+                        <thead><tr><th>TF</th><th>Longs</th><th>Shorts</th></tr></thead>
+                        <tbody>
+                            <tr><td class="matrix-label">4 Hour</td><td><textarea class="matrix-textarea" data-row="4hour" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="4hour" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">2 Hour</td><td><textarea class="matrix-textarea" data-row="2hour" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="2hour" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">1 Hour</td><td><textarea class="matrix-textarea" data-row="1hour" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="1hour" data-col="shorts"></textarea></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 4. Table 3 (Entry) -->
+                <div class="matrix-card">
+                    <div class="matrix-header">Entry</div>
+                    <table class="matrix-table" data-matrix-id="entry">
+                        <thead><tr><th>TF</th><th>Longs</th><th>Shorts</th></tr></thead>
+                        <tbody>
+                            <tr><td class="matrix-label">30 Min</td><td><textarea class="matrix-textarea" data-row="30min" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="30min" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">15 Min</td><td><textarea class="matrix-textarea" data-row="15min" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="15min" data-col="shorts"></textarea></td></tr>
+                            <tr><td class="matrix-label">5 Min</td><td><textarea class="matrix-textarea" data-row="5min" data-col="longs"></textarea></td><td><textarea class="matrix-textarea" data-row="5min" data-col="shorts"></textarea></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
             <div id="favourited-entry-container" style="display: none;">
                 <div class="favourited-header">
                     <span class="star-icon">⭐</span>
@@ -1851,7 +1988,7 @@
                 messagingSenderId: "1038636626553",
                 appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
             },
-            DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades', BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', GENERAL_NOTES: 'general_notes', RESTING_ORDERS: 'resting_orders' },
+            DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades', BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', GENERAL_NOTES: 'general_notes', RESTING_ORDERS: 'resting_orders', JOURNAL_MATRIX: 'journal_matrix' },
             TRADE_SETTINGS: {
                 MAKER_FEE_RATE: 0.0000, // 0% for Maker
                 TAKER_FEE_RATE: 0.00075, // Standard Taker fee
@@ -1925,22 +2062,25 @@
             calPrevBtn: document.getElementById('cal-prev-btn'),
             calNextBtn: document.getElementById('cal-next-btn'),
             pnlCalendarGrid: document.getElementById('pnl-calendar-grid'),
+            // Matrix DOM
+            journalMatrixContainer: document.getElementById('journal-matrix-container'),
         };
 
         // --- APPLICATION STATE ---
         const STATE = {
-            isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {}, favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null },
+            isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {}, favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, matrixSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null },
             allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,
             allSetupsImages: {}, setupsImagesShowAll: false, setupsImagesCurrentPage: 1, setupsImagesItemsPerPage: 50,
             chartInstances: {},
-            calendarViewDate: new Date() // State for PnL Calendar
+            calendarViewDate: new Date(),
+            journalMatrix: {}
         };
 
         // --- INITIALIZE FIREBASE ---
         firebase.initializeApp(CONFIG.FIREBASE);
         const database = firebase.database();
         const storage = firebase.storage();
-        const dbRefs = { trades: database.ref(CONFIG.DB_PATHS.TRADES), completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), bank: database.ref(CONFIG.DB_PATHS.BANK), journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES), restingOrders: database.ref(CONFIG.DB_PATHS.RESTING_ORDERS) };
+        const dbRefs = { trades: database.ref(CONFIG.DB_PATHS.TRADES), completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), bank: database.ref(CONFIG.DB_PATHS.BANK), journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES), restingOrders: database.ref(CONFIG.DB_PATHS.RESTING_ORDERS), journalMatrix: database.ref(CONFIG.DB_PATHS.JOURNAL_MATRIX) };
 
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
@@ -2591,36 +2731,39 @@ function renderCompletedTable(data) {
         }
 
         function updateJournalView(skipImages = false) { // <--- Added parameter
-    const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
-    const timeframe = DOM.journalTimeframeEl.value;
-    const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
-    
-    // 1. Handle Favourites (Pinned Notes)
-    const favouriteText = (STATE.favouriteEntries[safeSymbol] || {})[timeframe];
-    if (favouriteText) { 
-        DOM.favouritedEntryText.textContent = favouriteText; 
-        DOM.favouritedEntryContainer.style.display = 'block'; 
-    } else { 
-        DOM.favouritedEntryContainer.style.display = 'none'; 
-    }
+            const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
+            const timeframe = DOM.journalTimeframeEl.value;
+            const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
+            
+            // 1. Handle Favourites (Pinned Notes)
+            const favouriteText = (STATE.favouriteEntries[safeSymbol] || {})[timeframe];
+            if (favouriteText) { 
+                DOM.favouritedEntryText.textContent = favouriteText; 
+                DOM.favouritedEntryContainer.style.display = 'block'; 
+            } else { 
+                DOM.favouritedEntryContainer.style.display = 'none'; 
+            }
 
-    // 2. Handle Journal Text
-    const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
+            // 2. Handle Journal Text
+            const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
 
-    // CRITICAL FIX: Only update value if the user is NOT currently typing in it
-    if(document.activeElement !== DOM.journalEntryEl) {
-        DOM.journalEntryEl.value = dailyText;
-        // Only resize if we updated the value programmatically
-        setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); }, 50);
-    }
+            // CRITICAL FIX: Only update value if the user is NOT currently typing in it
+            if(document.activeElement !== DOM.journalEntryEl) {
+                DOM.journalEntryEl.value = dailyText;
+                // Only resize if we updated the value programmatically
+                setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); }, 50);
+            }
 
-    DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
+            DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
 
-    // 3. Handle Images - Only if NOT skipped
-    if (!skipImages) {
-        renderJournalImages(safeSymbol, timeframe, yyyymmdd);
-    }
-}
+            // 3. Handle Images - Only if NOT skipped
+            if (!skipImages) {
+                renderJournalImages(safeSymbol, timeframe, yyyymmdd);
+            }
+
+            // 4. Update Journal Matrix (Grid)
+            renderJournalMatrix(safeSymbol, yyyymmdd);
+        }
 
         function renderJournalImages(symbol, timeframe, selectedYMD) {
             const imagesForTimeframe = STATE.journalImages[symbol]?.[timeframe] || {};
@@ -2636,6 +2779,70 @@ function renderCompletedTable(data) {
             }).join('');
             DOM.journalImagesContainer.innerHTML = imagesHtml;
         }
+
+        function renderJournalMatrix(symbol, yyyymmdd) {
+            if (!DOM.journalMatrixContainer) return;
+            const matrixData = STATE.journalMatrix[symbol]?.[yyyymmdd] || {};
+            const textareas = DOM.journalMatrixContainer.querySelectorAll('.matrix-textarea');
+            
+            textareas.forEach(el => {
+                // If user is currently typing in this specific box, don't overwrite it
+                if (document.activeElement === el) return;
+                
+                // Find parent table to know ID
+                const table = el.closest('table');
+                if (!table) return;
+                
+                const tableId = table.dataset.matrixId;
+                const rowId = el.dataset.row;
+                const colId = el.dataset.col;
+                
+                const val = matrixData[tableId]?.[rowId]?.[colId] || '';
+                el.value = val;
+                autoResizeTextarea(el);
+            });
+            
+            // Set ReadOnly based on master mode
+            textareas.forEach(el => {
+               el.readOnly = !STATE.isMasterUser; 
+            });
+        }
+
+        function saveJournalMatrixInput(el) {
+            if (!STATE.isMasterUser) return;
+            const table = el.closest('table');
+            if (!table) return;
+            
+            const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
+            const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
+            
+            const tableId = table.dataset.matrixId;
+            const rowId = el.dataset.row;
+            const colId = el.dataset.col;
+            const val = el.value;
+
+            clearTimeout(STATE.matrixSaveTimer);
+            STATE.matrixSaveTimer = setTimeout(() => {
+                DOM.saveStatus.textContent = 'Saving Matrix...';
+                const path = `${safeSymbol}/${yyyymmdd}/${tableId}/${rowId}/${colId}`;
+                
+                // Optimistically update local state so we don't wait for roundtrip
+                if (!STATE.journalMatrix[safeSymbol]) STATE.journalMatrix[safeSymbol] = {};
+                if (!STATE.journalMatrix[safeSymbol][yyyymmdd]) STATE.journalMatrix[safeSymbol][yyyymmdd] = {};
+                if (!STATE.journalMatrix[safeSymbol][yyyymmdd][tableId]) STATE.journalMatrix[safeSymbol][yyyymmdd][tableId] = {};
+                if (!STATE.journalMatrix[safeSymbol][yyyymmdd][tableId][rowId]) STATE.journalMatrix[safeSymbol][yyyymmdd][tableId][rowId] = {};
+                STATE.journalMatrix[safeSymbol][yyyymmdd][tableId][rowId][colId] = val;
+
+                dbRefs.journalMatrix.child(path).set(val).then(() => {
+                    DOM.saveStatus.textContent = 'Saved.';
+                    setTimeout(() => DOM.saveStatus.textContent = '', 2000);
+                }).catch(e => {
+                    DOM.saveStatus.textContent = 'Error saving.';
+                    console.error(e);
+                });
+            }, 1000); // 1 sec debounce
+        }
+
 // --- FIBONACCI CALCULATOR LOGIC ---
 // --- 2. Main Calculation Function ---
 function calculateFibLevels() {
@@ -2924,7 +3131,7 @@ function getFeeRates(exchangeName) {
             dbRef.set(dataToSave).then(() => { statusElement.textContent = 'Saved.'; setTimeout(() => { statusElement.textContent = '' }, 2000); }).catch(e => { statusElement.textContent = `Error: ${e.message}`; console.error("Error saving setups table:", e); });
         }
 
-        const saveJournalEntry = () => {
+        const saveJournalEntry = () {
             clearTimeout(STATE.journalSaveTimer);
             STATE.journalSaveTimer = setTimeout(() => {
                 if (!STATE.isMasterUser) return;
@@ -3327,6 +3534,14 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
                     if (table.id === 'primary-setups-table') { saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); } else { saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'); }
                 }
             }, true);
+            
+            // NEW LISTENER FOR MATRIX INPUTS
+            DOM.journalMatrixContainer.addEventListener('input', (e) => {
+                if (e.target.matches('.matrix-textarea')) {
+                   autoResizeTextarea(e.target);
+                   saveJournalMatrixInput(e.target);
+                }
+            });
 
             DOM.primarySetupsNotes.addEventListener('input', (e) => {
                 autoResizeTextarea(e.target);
@@ -3954,22 +4169,33 @@ function handleAddTradeSubmit(e) {
             });
 
            // Listener 1: Text Updates (Pass 'true' to skip rendering images)
-dbRefs.journalText.on('value', (s) => { 
-    STATE.journalText = s.val() || {}; 
-    if (DOM.journalTab.classList.contains('active')) {
-        // FIX: Pass true to stop the image section from rebuilding and causing jumps
-        updateJournalView(true); 
-    }
-});
+            dbRefs.journalText.on('value', (s) => { 
+                STATE.journalText = s.val() || {}; 
+                if (DOM.journalTab.classList.contains('active')) {
+                    // FIX: Pass true to stop the image section from rebuilding and causing jumps
+                    updateJournalView(true); 
+                }
+            });
+            
+            // Listener 2: Matrix Updates
+            dbRefs.journalMatrix.on('value', (s) => {
+               STATE.journalMatrix = s.val() || {};
+               if (DOM.journalTab.classList.contains('active')) {
+                   // Update matrix values
+                   const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
+                   const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
+                   renderJournalMatrix(safeSymbol, yyyymmdd);
+               }
+            });
 
-// Listener 2: Image Updates (Pass 'false' or nothing to render images)
-dbRefs.journalImages.on('value', (s) => { 
-    STATE.journalImages = s.val() || {}; 
-    if (DOM.journalTab.classList.contains('active')) {
-        // Images changed, so we DO want to render images
-        updateJournalView(false); 
-    }
-});
+            // Listener 3: Image Updates (Pass 'false' or nothing to render images)
+            dbRefs.journalImages.on('value', (s) => { 
+                STATE.journalImages = s.val() || {}; 
+                if (DOM.journalTab.classList.contains('active')) {
+                    // Images changed, so we DO want to render images
+                    updateJournalView(false); 
+                }
+            });
             dbRefs.setupsImages.on('value', (s) => {
                 STATE.allSetupsImages = s.val() || {};
                 renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
@@ -4028,11 +4254,14 @@ dbRefs.journalImages.on('value', (s) => {
                     DOM.journalEntryEl.readOnly = false;
                     document.querySelectorAll('.setups-table .editable-setup-cell').forEach(cell => cell.setAttribute('contenteditable', 'true'));
                     DOM.primarySetupsNotes.readOnly = false; DOM.secondarySetupsNotes.readOnly = false;
+                    // Matrix Unlock
+                    document.querySelectorAll('.matrix-textarea').forEach(el => el.readOnly = false);
                 }
             }
             if (!STATE.isMasterUser) {
                 DOM.journalEntryEl.readOnly = true;
                 DOM.primarySetupsNotes.readOnly = true; DOM.secondarySetupsNotes.readOnly = true;
+                document.querySelectorAll('.matrix-textarea').forEach(el => el.readOnly = true);
             }
         }
 
