@@ -3848,22 +3848,37 @@ function renderCompletedTable(data) {
             DOM.dateButtonsContainer.innerHTML = buttonsHtml;
         }
 
-        function updateJournalView() {
-            const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
-            const timeframe = DOM.journalTimeframeEl.value;
-            const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
-            const favouriteText = (STATE.favouriteEntries[safeSymbol] || {})[timeframe];
-            if (favouriteText) { DOM.favouritedEntryText.textContent = favouriteText; DOM.favouritedEntryContainer.style.display = 'block'; } else { DOM.favouritedEntryContainer.style.display = 'none'; }
-            const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
+        function updateJournalView(skipImages = false) { // <--- Added parameter
+    const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
+    const timeframe = DOM.journalTimeframeEl.value;
+    const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
+    
+    // 1. Handle Favourites (Pinned Notes)
+    const favouriteText = (STATE.favouriteEntries[safeSymbol] || {})[timeframe];
+    if (favouriteText) { 
+        DOM.favouritedEntryText.textContent = favouriteText; 
+        DOM.favouritedEntryContainer.style.display = 'block'; 
+    } else { 
+        DOM.favouritedEntryContainer.style.display = 'none'; 
+    }
 
-            if(document.activeElement !== DOM.journalEntryEl) {
-                DOM.journalEntryEl.value = dailyText;
-            }
+    // 2. Handle Journal Text
+    const dailyText = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe]) || '';
 
-            setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); }, 50);
-            DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
-            renderJournalImages(safeSymbol, timeframe, yyyymmdd);
-        }
+    // CRITICAL FIX: Only update value if the user is NOT currently typing in it
+    if(document.activeElement !== DOM.journalEntryEl) {
+        DOM.journalEntryEl.value = dailyText;
+        // Only resize if we updated the value programmatically
+        setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); }, 50);
+    }
+
+    DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
+
+    // 3. Handle Images - Only if NOT skipped
+    if (!skipImages) {
+        renderJournalImages(safeSymbol, timeframe, yyyymmdd);
+    }
+}
 
         function renderJournalImages(symbol, timeframe, selectedYMD) {
             const imagesForTimeframe = STATE.journalImages[symbol]?.[timeframe] || {};
@@ -4835,10 +4850,9 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
             DOM.tradesTbody.addEventListener('blur', (e) => { if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); }, true);
 
             [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => {
-                updateJournalView();
-                renderDateNavigation(); 
-            }));
-
+    updateJournalView(false); // Render everything (Text + Images)
+    renderDateNavigation(); 
+}));
             DOM.dateButtonsContainer.addEventListener('click', (e) => { 
                 if (e.target.matches('.date-nav-btn')) { 
                     const parts = e.target.dataset.date.split('-'); 
@@ -5443,18 +5457,23 @@ function handleAddTradeSubmit(e) {
                 dbRefs.bank.set({ currentBalance: newBalance });
             });
 
-            dbRefs.journalText.on('value', (s) => { 
-                STATE.journalText = s.val() || {}; 
-                if (DOM.journalTab.classList.contains('active')) {
-                    updateJournalView(); 
-                }
-            });
-            dbRefs.journalImages.on('value', (s) => { 
-                STATE.journalImages = s.val() || {}; 
-                if (DOM.journalTab.classList.contains('active')) {
-                    updateJournalView(); 
-                }
-            });
+           // Listener 1: Text Updates (Pass 'true' to skip rendering images)
+dbRefs.journalText.on('value', (s) => { 
+    STATE.journalText = s.val() || {}; 
+    if (DOM.journalTab.classList.contains('active')) {
+        // FIX: Pass true to stop the image section from rebuilding and causing jumps
+        updateJournalView(true); 
+    }
+});
+
+// Listener 2: Image Updates (Pass 'false' or nothing to render images)
+dbRefs.journalImages.on('value', (s) => { 
+    STATE.journalImages = s.val() || {}; 
+    if (DOM.journalTab.classList.contains('active')) {
+        // Images changed, so we DO want to render images
+        updateJournalView(false); 
+    }
+});
             dbRefs.setupsImages.on('value', (s) => {
                 STATE.allSetupsImages = s.val() || {};
                 renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
