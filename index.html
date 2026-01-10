@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -101,7 +100,8 @@
         .controls-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin: 20px auto; }
         .controls-container > div { display: flex; align-items: center; gap: 8px; }
 
-        #journal-entry, #persistent-notes-entry, #tracker-scratchpad, .setups-notes-area {
+        /* MODIFIED: Separated #journal-entry to handle it differently */
+        #persistent-notes-entry, #tracker-scratchpad, .setups-notes-area {
             width: 100%; 
             resize: vertical;
             line-height: 1.6;
@@ -109,6 +109,18 @@
             overflow-y: hidden; 
             min-height: 120px; 
         }
+
+        /* NEW STYLE FOR JOURNAL ENTRY INPUT BOX */
+        #journal-entry {
+            width: 100%; 
+            resize: vertical;
+            line-height: 1.6;
+            margin-top: 5px;
+            overflow-y: auto; /* Enable Scrollbar */
+            height: 600px;    /* Fixed Height - Quite Long */
+            min-height: 200px;
+        }
+
         #tracker-scratchpad, #persistent-notes-entry { margin: 0; }
         .setups-notes-area {
             margin-top: 15px;
@@ -3860,7 +3872,9 @@ function renderCompletedTable(data) {
                 DOM.journalEntryEl.value = dailyText;
             }
 
-            setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); }, 50);
+            // MODIFIED: Removed automatic resizing for the journal entry
+            // setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); }, 50);
+            
             DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
             renderJournalImages(safeSymbol, timeframe, yyyymmdd);
         }
@@ -4679,7 +4693,8 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
                     DOM.statsPanel.classList.remove('active');
                 }
             });
-// Existing listener for Live Trades
+            
+            // Existing listener for Live Trades
             DOM.tradesTbody.addEventListener('blur', (e) => { 
                 if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
             }, true);
@@ -4745,30 +4760,29 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
                     }
                 }
             });
-// --- ADD THESE INSIDE setupEventListeners() ---
+            // --- ADD THESE INSIDE setupEventListeners() ---
 
             // 1. Calculate Button
-        const calcFibBtn = document.getElementById('calc-fib-btn');
-    if (calcFibBtn) {
-        calcFibBtn.addEventListener('click', calculateFibLevels);
-    }
-
-    // 2. Add Order Button Click (Event Delegation)
-    // 2. Add Order Button Click (Event Delegation)
-    const fibResultsBody = document.getElementById('fib-results-tbody');
-    if (fibResultsBody) {
-        fibResultsBody.addEventListener('click', (e) => {
-            const btn = e.target.closest('.add-fib-trade-btn');
-            if (btn) {
-                // Read data attributes from the button
-                const entry = btn.getAttribute('data-entry');
-                const size = btn.getAttribute('data-size');
-                const level = btn.getAttribute('data-level'); // <--- Get the level
-                
-                handleAddFibTrade(entry, size, level); // <--- Pass it to the function
+            const calcFibBtn = document.getElementById('calc-fib-btn');
+            if (calcFibBtn) {
+                calcFibBtn.addEventListener('click', calculateFibLevels);
             }
-        });
-    }
+
+            // 2. Add Order Button Click (Event Delegation)
+            const fibResultsBody = document.getElementById('fib-results-tbody');
+            if (fibResultsBody) {
+                fibResultsBody.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.add-fib-trade-btn');
+                    if (btn) {
+                        // Read data attributes from the button
+                        const entry = btn.getAttribute('data-entry');
+                        const size = btn.getAttribute('data-size');
+                        const level = btn.getAttribute('data-level'); // <--- Get the level
+                        
+                        handleAddFibTrade(entry, size, level); // <--- Pass it to the function
+                    }
+                });
+            }
             // --- Calendar Navigation Listeners ---
             if (DOM.calPrevBtn && DOM.calNextBtn) {
                 DOM.calPrevBtn.addEventListener('click', () => {
@@ -4851,7 +4865,14 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
             DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
             DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
 
-            DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveJournalEntry(); });
+            // MODIFIED: Removed autoResizeTextarea() from this specific listener 
+            // to support the vertical scrollbar request.
+            DOM.journalEntryEl.addEventListener('input', (e) => { 
+                // Removed: autoResizeTextarea(e.target); 
+                // Removed: debouncedResizeParent(e.target); 
+                saveJournalEntry(); 
+            });
+            
             DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
             DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
 
