@@ -117,7 +117,7 @@
             line-height: 1.6;
             margin-top: 5px;
             overflow-y: auto; /* Enable Scrollbar */
-            height: 600px;    /* Fixed Height - Quite Long */
+            height: 2400px;    /* Fixed Height - Quite Long */
             min-height: 200px;
         }
 
@@ -2062,6 +2062,101 @@
 .table-wrapper::-webkit-scrollbar-corner {
     background: #333333 !important;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            @media (max-width: 768px) { 
+            .container { padding: 10px; } 
+            #add-trade-form { grid-template-columns: 1fr; } 
+            .journal-image-wrapper { max-width: 100%; } 
+            th, td { font-size: 12px; padding: 6px; } 
+            .action-buttons button { font-size: 11px; padding: 4px 8px; } 
+            #stats-panel-container { bottom: 10px; left: 10px; }
+            #stats-fab { width: 50px; height: 50px; }
+            #stats-panel { width: calc(100vw - 40px); }
+            #sr-levels-container { grid-template-columns: 1fr; }
+            #sr-metadata-container { flex-direction: column; }
+            .theme-switch-wrapper { top: 8px; right: 10px; }
+            #chart-library-2-preview-container {
+                grid-template-columns: 1fr;
+            }
+            .modal-nav {
+                width: 40px;
+                height: 40px;
+                font-size: 24px;
+            }
+            #modal-prev { left: 5px; }
+            #modal-next { right: 5px; }
+            .collapsible-content-inner { padding: 15px 10px; }
+            .collapsible-header { padding: 10px 15px; }
+            .collapsible-header h2 { font-size: 1em; }
+            .ema-level-summary-grid { grid-template-columns: 1fr; }
+
+            .modal-overlay {
+                padding: 0;
+            }
+            .note-modal-container {
+                width: 100%;
+                min-height: 100%;
+                height: auto;
+                border-radius: 0;
+                box-shadow: none;
+                padding: 15px;
+            }
+            #note-modal-title { font-size: 20px; }
+            #note-modal-content { font-size: 15px; }
+
+            .setups-table th,
+            .setups-table td {
+                font-size: 11px;
+                padding: 6px 5px;
+            }
+
+            .setups-table thead tr:first-of-type th:first-child,
+            .setups-table tbody th:first-child {
+                position: -webkit-sticky;
+                position: sticky;
+                left: 0;
+            }
+
+            .setups-table thead tr:first-of-type th:first-child {
+                background-color: var(--header-bg);
+                z-index: 2;
+            }
+
+            .setups-table tbody th:first-child {
+                background-color: var(--card-bg);
+                z-index: 1;
+            }
+
+            #key-opens-container {
+                grid-template-columns: 1fr;
+                gap: 25px;
+            }
+            #options-oi-tab .chart-container {
+                aspect-ratio: 1 / 1.1;
+                min-height: 350px;
+            }
+
+            /* --- ADD THIS BLOCK TO RESET JOURNAL ON MOBILE --- */
+            #journal-entry {
+                height: auto !important;       /* Auto height for expansion */
+                min-height: 120px;
+                overflow-y: hidden !important; /* Hide scrollbar */
+            }
+        }
     </style>
 <body>
     <div class="container">
@@ -3860,7 +3955,7 @@ function renderCompletedTable(data) {
             DOM.dateButtonsContainer.innerHTML = buttonsHtml;
         }
 
-        function updateJournalView() {
+       function updateJournalView() {
             const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
             const timeframe = DOM.journalTimeframeEl.value;
             const yyyymmdd = getYYYYMMDD(STATE.selectedDate);
@@ -3872,8 +3967,10 @@ function renderCompletedTable(data) {
                 DOM.journalEntryEl.value = dailyText;
             }
 
-            // MODIFIED: Removed automatic resizing for the journal entry
-            // setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); }, 50);
+            // --- CHANGED: Only auto-resize if screen width is mobile (<= 768px) ---
+            if (window.innerWidth <= 768) {
+                setTimeout(() => { adjustCollapsibleSize(DOM.journalEntryEl); }, 50);
+            }
             
             DOM.favouriteBtn.classList.toggle('active', favouriteText && dailyText.trim() === favouriteText);
             renderJournalImages(safeSymbol, timeframe, yyyymmdd);
@@ -4867,9 +4964,12 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
 
             // MODIFIED: Removed autoResizeTextarea() from this specific listener 
             // to support the vertical scrollbar request.
+           // --- CHANGED: Conditional resizing for Mobile ---
             DOM.journalEntryEl.addEventListener('input', (e) => { 
-                // Removed: autoResizeTextarea(e.target); 
-                // Removed: debouncedResizeParent(e.target); 
+                if (window.innerWidth <= 768) {
+                    autoResizeTextarea(e.target); 
+                    debouncedResizeParent(e.target); 
+                }
                 saveJournalEntry(); 
             });
             
