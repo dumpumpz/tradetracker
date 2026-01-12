@@ -2481,6 +2481,7 @@ function closeGroup(groupId) {
 window.closeGroup = closeGroup;
 function renderCompletedTable(data) {
     const trades = data || {};
+    // Sort by Closed Date (Newest First)
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
     let rowsHtml = '';
@@ -2494,7 +2495,10 @@ function renderCompletedTable(data) {
 
     tradeIds.forEach(id => {
         const t = trades[id];
-        const tradingDayStr = getTradingDayString(t.closed_date, t.date);
+        // Use provided helper or fallback to simple date string
+        const tradingDayStr = (typeof getTradingDayString === 'function') 
+            ? getTradingDayString(t.closed_date, t.date) 
+            : new Date(t.closed_date).toLocaleDateString();
         
         if (!tradesByTradingDay[tradingDayStr]) {
             tradesByTradingDay[tradingDayStr] = [];
@@ -2503,10 +2507,9 @@ function renderCompletedTable(data) {
         tradesByTradingDay[tradingDayStr].push(id);
     });
 
-    // Sort dates descending (newest first)
     uniqueTradingDates.sort((a, b) => b.localeCompare(a));
 
-    // --- INNER HELPER: CREATE THE SUMMARY ROW ---
+    // --- HELPER: CREATE SUMMARY HEADER ROW ---
     const createSummaryHeader = (dateStr, ids) => {
         let dayWins = 0, dayLosses = 0, dayPnL = 0;
         ids.forEach(id => {
@@ -2534,12 +2537,16 @@ function renderCompletedTable(data) {
         </tr>`;
     };
 
-    // --- INNER HELPER: CREATE DATA ROW ---
+    // --- HELPER: CREATE DATA ROW ---
     const createRowHtml = (id) => {
         const trade = trades[id];
         const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
         const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
         const metrics = calculateTradeMetrics(trade);
+        
+        // Handle Group ID display if present
+        const symbolDisplay = trade.groupId ? `<strong>${trade.groupId}</strong><br><span style="font-size:0.8em">${trade.symbol}</span>` : trade.symbol;
+
         const masterButtons = STATE.isMasterUser ? `<td class="action-buttons">
             <button class="attach-image-btn" data-id="${id}" data-type="completed">Pic</button>
             <button class="merge-btn-completed" data-id="${id}">Merge</button>
@@ -2549,7 +2556,7 @@ function renderCompletedTable(data) {
             <button class="delete-btn-completed" data-id="${id}">Delete</button>
         </td>` : '';
 
-        return `<td>${trade.symbol}</td>
+        return `<td>${symbolDisplay}</td>
         <td>${trade.type}</td>
         <td>${parseFloat(trade.entry).toFixed(4)}</td>
         <td class="note-cell">${(trade.entry_prices || [trade.entry]).join(', ')}</td>
@@ -2591,7 +2598,10 @@ function renderCompletedTable(data) {
         paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
     } else {
         // --- DEFAULT MODE (CURRENT TRADING SESSION) ---
-        const currentLogicalTradingDay = getTradingDayString(Date.now(), Date.now());
+        const currentLogicalTradingDay = (typeof getTradingDayString === 'function') 
+            ? getTradingDayString(Date.now(), Date.now()) 
+            : new Date().toLocaleDateString();
+
         const sessionTrades = tradesByTradingDay[currentLogicalTradingDay] || [];
         const hasHistory = uniqueTradingDates.length > 1 || (uniqueTradingDates.length === 1 && uniqueTradingDates[0] !== currentLogicalTradingDay);
 
@@ -2599,7 +2609,7 @@ function renderCompletedTable(data) {
             rowsHtml = createSummaryHeader(currentLogicalTradingDay, sessionTrades) + 
                        sessionTrades.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
         } else {
-            rowsHtml = '<tr><td colspan="23" style="text-align:center; padding:20px;"></td></tr>';
+            rowsHtml = '<tr><td colspan="23" style="text-align:center; padding:20px;">No trades closed this session.</td></tr>';
         }
 
         paginationControls.style.display = 'none';
@@ -2607,7 +2617,6 @@ function renderCompletedTable(data) {
     }
 
     DOM.completedTradesTbody.innerHTML = rowsHtml;
-    adjustCollapsibleSize(DOM.completedTradesTbody);
 }
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
@@ -4034,105 +4043,136 @@ function handleAddTradeSubmit(e) {
             });
         }
 
-      function subscribeToData() {
-            // Live Trades Listener
-            dbRefs.trades.on('value', s => { 
-                const trades = s.val() || {}; 
-                renderLiveTable(trades); 
-                DOM.statOpenTrades.textContent = Object.keys(trades).length; 
-            });
+  function subscribeToData() {
+    // --- 1. Live Trades Listener ---
+    dbRefs.trades.on('value', s => { 
+        const trades = s.val() || {}; 
+        renderLiveTable(trades); 
+        DOM.statOpenTrades.textContent = Object.keys(trades).length; 
+    });
 
-            // Resting Orders Listener (NEW)
-            dbRefs.restingOrders.on('value', s => {
-                const orders = s.val() || {};
-                renderRestingTable(orders);
-            });
+    // --- 2. Resting Orders Listener ---
+    dbRefs.restingOrders.on('value', s => {
+        const orders = s.val() || {};
+        renderRestingTable(orders);
+    });
 
-            // Completed Trades Listener
-            dbRefs.completedTrades.on('value', s => {
-                STATE.allCompletedTrades = s.val() || {};
-                const completedData = STATE.allCompletedTrades;
-                renderCompletedTable(completedData);
+    // --- 3. Completed Trades Listener & Stats Calculation ---
+    dbRefs.completedTrades.on('value', s => {
+        STATE.allCompletedTrades = s.val() || {};
+        const completedData = STATE.allCompletedTrades;
+        
+        // A. Render the History Table
+        renderCompletedTable(completedData);
 
-                // Stats calculation
-                const resetDateStr = CONFIG.TRADE_SETTINGS.STATS_RESET_DATE;
-                const resetTimestamp = resetDateStr ? new Date(resetDateStr).getTime() : 0;
+        // B. Calculate Performance Stats
+        const resetDateStr = CONFIG.TRADE_SETTINGS.STATS_RESET_DATE;
+        const resetTimestamp = resetDateStr ? new Date(resetDateStr).getTime() : 0;
 
-                let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
+        let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
 
-                Object.values(completedData).forEach(trade => {
-                    const tradeTimestamp = trade.closed_date ? new Date(trade.closed_date).getTime() : 0;
+        Object.values(completedData).forEach(trade => {
+            const tradeTimestamp = trade.closed_date ? new Date(trade.closed_date).getTime() : 0;
 
-                    if (tradeTimestamp >= resetTimestamp) {
-                        const netResult = trade.net_result || 0;
-                        if (netResult > 0) {
-                            wins++;
-                            grossProfit += netResult;
-                        } else {
-                            losses++;
-                            grossLoss += Math.abs(netResult);
-                        }
-                    }
-                });
+            // Only count trades after the Reset Date
+            if (tradeTimestamp >= resetTimestamp) {
+                const netResult = parseFloat(trade.net_result || 0);
+                if (netResult > 0) {
+                    wins++;
+                    grossProfit += netResult;
+                } else {
+                    losses++;
+                    grossLoss += Math.abs(netResult);
+                }
+            }
+        });
 
-                const totalCompleted = wins + losses;
-                const winRate = totalCompleted > 0 ? (wins / totalCompleted) * 100 : 0;
-                const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
-                const avgWin = wins > 0 ? grossProfit / wins : 0;
-                const avgLoss = losses > 0 ? grossLoss / losses : 0;
-                const rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
-                const totalPL = grossProfit - grossLoss;
-                const newBalance = CONFIG.TRADE_SETTINGS.STARTING_BALANCE + totalPL;
+        const totalCompleted = wins + losses;
+        const winRate = totalCompleted > 0 ? (wins / totalCompleted) * 100 : 0;
+        const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
+        const avgWin = wins > 0 ? grossProfit / wins : 0;
+        const avgLoss = losses > 0 ? grossLoss / losses : 0;
+        const rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
+        const totalPL = grossProfit - grossLoss;
+        const newBalance = CONFIG.TRADE_SETTINGS.STARTING_BALANCE + totalPL;
 
-                // 1. Update Balance
-                DOM.statBalance.textContent = formatCurrency(newBalance);
-                DOM.statBalanceAud.textContent = formatCurrency(newBalance * STATE.usdToAudRate, 'A$');
+        // C. Update DOM Stats Elements
+        // Balance
+        DOM.statBalance.textContent = formatCurrency(newBalance);
+        DOM.statBalanceAud.textContent = formatCurrency(newBalance * STATE.usdToAudRate, 'A$');
 
-                // 2. Update Total P/L (2 Decimals)
-                DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}$${totalPL.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}A$${(totalPL * STATE.usdToAudRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        // Total PnL
+        DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}$${totalPL.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}A$${(totalPL * STATE.usdToAudRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-                // 3. Update Counts
-                DOM.statCompletedTrades.textContent = totalCompleted;
-                DOM.statWins.textContent = wins;
-                DOM.statLosses.textContent = losses;
+        // Counts
+        DOM.statCompletedTrades.textContent = totalCompleted;
+        DOM.statWins.textContent = wins;
+        DOM.statLosses.textContent = losses;
 
-                // 4. Update Ratios and Averages
-                DOM.statWinRate.textContent = `${winRate.toFixed(1)}%`;
-                DOM.statProfitFactor.textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
-                DOM.statAvgWin.textContent = formatCurrency(avgWin);
-                DOM.statAvgLoss.textContent = formatCurrency(avgLoss);
-                DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
+        // Metrics
+        DOM.statWinRate.textContent = `${winRate.toFixed(1)}%`;
+        DOM.statProfitFactor.textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
+        DOM.statAvgWin.textContent = formatCurrency(avgWin);
+        DOM.statAvgLoss.textContent = formatCurrency(avgLoss);
+        DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
 
-                dbRefs.bank.set({ currentBalance: newBalance });
-            });
+        // D. Sync Calculated Balance to Firebase (for other devices)
+        dbRefs.bank.set({ currentBalance: newBalance });
+    });
 
-           // Listener 1: Text Updates (Pass 'true' to skip rendering images)
-dbRefs.journalText.on('value', (s) => { 
-    STATE.journalText = s.val() || {}; 
-    if (DOM.journalTab.classList.contains('active')) {
-        // FIX: Pass true to stop the image section from rebuilding and causing jumps
-        updateJournalView(true); 
-    }
-});
-
-// Listener 2: Image Updates (Pass 'false' or nothing to render images)
-dbRefs.journalImages.on('value', (s) => { 
-    STATE.journalImages = s.val() || {}; 
-    if (DOM.journalTab.classList.contains('active')) {
-        // Images changed, so we DO want to render images
-        updateJournalView(false); 
-    }
-});
-            dbRefs.setupsImages.on('value', (s) => {
-                STATE.allSetupsImages = s.val() || {};
-                renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-            });
-            dbRefs.favourites.on('value', (s) => { STATE.favouriteEntries = s.val() || {}; if (DOM.journalTab.classList.contains('active')) updateJournalView(); });
-            dbRefs.setups1.on('value', (s) => { STATE.setupsData1 = s.val() || {}; renderSetupsTable(null, STATE.setupsData1, 'primary-setups-notes'); });
-            dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(null, STATE.setupsData2, 'secondary-setups-notes'); });
-            dbRefs.generalNotes.on('value', (s) => { STATE.generalNotes = s.val() || {}; if (DOM.noteEditModal.style.display === 'none') { renderNotes(STATE.generalNotes); } });
+    // --- 4. Journal Text Listener ---
+    dbRefs.journalText.on('value', (s) => { 
+        STATE.journalText = s.val() || {}; 
+        if (DOM.journalTab.classList.contains('active')) {
+            // Pass 'true' to skip image rendering to prevent flickering while typing
+            updateJournalView(true); 
+            renderDateNavigation(); // Refresh dots on date buttons
         }
+    });
+
+    // --- 5. Journal Images Listener ---
+    dbRefs.journalImages.on('value', (s) => { 
+        STATE.journalImages = s.val() || {}; 
+        if (DOM.journalTab.classList.contains('active')) {
+            // Pass 'false' (default) to force image rendering
+            updateJournalView(false); 
+        }
+    });
+
+    // --- 6. Setups Images Listener ---
+    dbRefs.setupsImages.on('value', (s) => {
+        STATE.allSetupsImages = s.val() || {};
+        renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+    });
+
+    // --- 7. Favourites Listener ---
+    dbRefs.favourites.on('value', (s) => { 
+        STATE.favouriteEntries = s.val() || {}; 
+        if (DOM.journalTab.classList.contains('active')) updateJournalView(); 
+    });
+
+    // --- 8. Setups Data (Table 1) ---
+    dbRefs.setups1.on('value', (s) => { 
+        STATE.setupsData1 = s.val() || {}; 
+        renderSetupsTable(DOM.setupsTable1, STATE.setupsData1, 'primary-setups-notes'); 
+    });
+
+    // --- 9. Setups Data (Table 2) ---
+    dbRefs.setups2.on('value', (s) => { 
+        STATE.setupsData2 = s.val() || {}; 
+        renderSetupsTable(DOM.setupsTable2, STATE.setupsData2, 'secondary-setups-notes'); 
+    });
+
+    // --- 10. General Notes Listener ---
+    dbRefs.generalNotes.on('value', (s) => { 
+        STATE.generalNotes = s.val() || {}; 
+        // Only re-render grid if we aren't currently editing a specific note
+        if (DOM.noteEditModal.style.display === 'none') { 
+            renderNotes(STATE.generalNotes); 
+        } 
+    });
+}
 
         function openCollapsibleSection(sectionElement) {
             if (!sectionElement || sectionElement.classList.contains('is-open')) return;
