@@ -3735,84 +3735,93 @@ function handleAddTradeSubmit(e) {
             }
         }
 
- function handleTradeAction(e) {
-     if (button.matches('.close-group-btn')) {
-    const groupId = button.dataset.group;
-    handleGroupClose(groupId);
-    return;
-}
-            if (!STATE.isMasterUser) return;
-            
-            // Handle Merge Mode clicks on rows
-            if (STATE.isMerging) {
-                const targetRow = e.target.closest('tr');
-                if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody' && !e.target.closest('button')) {
-                    const absorbedTradeId = targetRow.querySelector('.action-buttons button')?.dataset.id;
-                    if (absorbedTradeId) executeMerge(STATE.mergeBaseTradeId, absorbedTradeId);
-                }
-                return;
+function handleTradeAction(e) {
+    // 1. DEFINE BUTTON FIRST
+    const button = e.target.closest('button'); 
+    
+    // 2. Handle Merge Mode (Row clicks)
+    if (STATE.isMerging) {
+        const targetRow = e.target.closest('tr');
+        if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody' && !button) {
+            const absorbedTradeId = targetRow.querySelector('.action-buttons button')?.dataset.id;
+            if (absorbedTradeId) executeMerge(STATE.mergeBaseTradeId, absorbedTradeId);
+        }
+        return;
+    }
+
+    // 3. IF NO BUTTON CLICKED, STOP
+    if (!button) return;
+
+    // 4. CHECK FOR GROUP CLOSE BUTTON
+    if (button.matches('.close-group-btn')) {
+        const groupId = button.dataset.group;
+        // Make sure handleGroupClose function exists before calling
+        if (typeof handleGroupClose === 'function') {
+            handleGroupClose(groupId);
+        } else {
+            console.error("handleGroupClose function missing");
+        }
+        return;
+    }
+
+    if (!STATE.isMasterUser) return;
+    const { id } = button.dataset;
+
+    // --- 1. Handle RESTING ORDERS Actions ---
+    if (button.closest('#resting-trades-tbody')) {
+        if (button.matches('.delete-resting-btn')) {
+            if (confirm('Delete this resting order?')) { 
+                dbRefs.restingOrders.child(id).remove(); 
             }
-
-            const button = e.target.closest('button'); 
-            if (!button) return;
-            const { id } = button.dataset;
-
-            // --- 1. Handle RESTING ORDERS Actions ---
-            if (button.closest('#resting-trades-tbody')) {
-                if (button.matches('.delete-resting-btn')) {
-                    if (confirm('Delete this resting order?')) { 
-                        dbRefs.restingOrders.child(id).remove(); 
+        } else if (button.matches('.activate-btn')) {
+            if (confirm('Move this order to Live Trades?')) {
+                dbRefs.restingOrders.child(id).once('value', snapshot => {
+                    const tradeData = snapshot.val();
+                    if (tradeData) {
+                        const liveTrade = { ...tradeData, date: firebase.database.ServerValue.TIMESTAMP };
+                        dbRefs.trades.push(liveTrade)
+                            .then(() => dbRefs.restingOrders.child(id).remove())
+                            .catch(err => alert("Error moving trade: " + err.message));
                     }
-                } else if (button.matches('.activate-btn')) {
-                    if (confirm('Move this order to Live Trades?')) {
-                        dbRefs.restingOrders.child(id).once('value', snapshot => {
-                            const tradeData = snapshot.val();
-                            if (tradeData) {
-                                // Update date to now as it becomes live
-                                const liveTrade = { ...tradeData, date: firebase.database.ServerValue.TIMESTAMP };
-                                dbRefs.trades.push(liveTrade)
-                                    .then(() => dbRefs.restingOrders.child(id).remove())
-                                    .catch(err => alert("Error moving trade: " + err.message));
-                            }
-                        });
-                    }
-                }
-                return; 
-            }
-
-            // --- 2. Handle LIVE & COMPLETED Actions ---
-            const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
-            const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
-
-            if (button.matches('.win-btn')) completeTrade(id, 'win');
-            else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
-            else if (button.matches('.add-to-position-btn')) handleAddStaggeredEntry(id);
-            else if (button.matches('.merge-btn-completed')) initiateMerge(id);
-            else if (button.matches('.delete-btn, .delete-btn-completed')) { 
-                if (confirm('Delete this trade?')) { 
-                    resetMergeState(); 
-                    tradeRef.remove(); 
-                } 
-            } 
-            else if (button.matches('.note-btn, .note-btn-completed')) { 
-                tradeRef.child('note').once('value', snapshot => { 
-                    const newNote = prompt("Enter Note 1:", snapshot.val() || ""); 
-                    if (newNote !== null) tradeRef.update({ note: newNote }); 
-                }); 
-            }
-            else if (button.matches('.note2-btn-completed')) { 
-                tradeRef.child('note2').once('value', snapshot => { 
-                    const newNote2 = prompt("Enter Note 2:", snapshot.val() || ""); 
-                    if (newNote2 !== null) tradeRef.update({ note2: newNote2 }); 
-                }); 
-            }
-            else if (button.matches('.note3-btn-completed')) { 
-                tradeRef.child('note3').once('value', snapshot => { 
-                    const newNote3 = prompt("Enter Note 3:", snapshot.val() || ""); 
-                    if (newNote3 !== null) tradeRef.update({ note3: newNote3 }); 
-                }); 
+                });
             }
         }
+        return; 
+    }
+
+    // --- 2. Handle LIVE & COMPLETED Actions ---
+    const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
+    const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
+
+    if (button.matches('.win-btn')) completeTrade(id, 'win');
+    else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
+    else if (button.matches('.add-to-position-btn')) handleAddStaggeredEntry(id);
+    else if (button.matches('.merge-btn-completed')) initiateMerge(id);
+    else if (button.matches('.delete-btn, .delete-btn-completed')) { 
+        if (confirm('Delete this trade?')) { 
+            resetMergeState(); 
+            tradeRef.remove(); 
+        } 
+    } 
+    else if (button.matches('.note-btn, .note-btn-completed')) { 
+        tradeRef.child('note').once('value', snapshot => { 
+            const newNote = prompt("Enter Note 1:", snapshot.val() || ""); 
+            if (newNote !== null) tradeRef.update({ note: newNote }); 
+        }); 
+    }
+    else if (button.matches('.note2-btn-completed')) { 
+        tradeRef.child('note2').once('value', snapshot => { 
+            const newNote2 = prompt("Enter Note 2:", snapshot.val() || ""); 
+            if (newNote2 !== null) tradeRef.update({ note2: newNote2 }); 
+        }); 
+    }
+    else if (button.matches('.note3-btn-completed')) { 
+        tradeRef.child('note3').once('value', snapshot => { 
+            const newNote3 = prompt("Enter Note 3:", snapshot.val() || ""); 
+            if (newNote3 !== null) tradeRef.update({ note3: newNote3 }); 
+        }); 
+    }
+}
 
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); if (attachBtn) { handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type); return true; }
