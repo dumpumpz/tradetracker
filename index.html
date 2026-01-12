@@ -2182,7 +2182,7 @@ function renderRestingTable(data) {
             });
         }
         
-        function renderLiveTable(data) {
+       function renderLiveTable(data) {
     const trades = data || {};
     const groups = {}; 
 
@@ -2197,7 +2197,6 @@ function renderRestingTable(data) {
         const setupCat = trade.setupType || 'Major';
         const groupKey = `${setupCat}_${trade.type}`;
 
-        // Initialize group with qtyTarget to track weighted targets
         if (!groups[groupKey]) {
             groups[groupKey] = { 
                 name: `${setupCat} ${trade.type}`, 
@@ -2206,11 +2205,12 @@ function renderRestingTable(data) {
                 size: 0, 
                 qty: 0, 
                 qtyStop: 0, 
-                qtyTarget: 0, // NEW: Track weighted target sum
+                qtyTarget: 0, 
                 profitTaker: 0, 
                 profitMaker: 0, 
                 lossTaker: 0, 
-                lossMaker: 0 
+                lossMaker: 0,
+                pnlPer100: 0 // <--- NEW: Init accumulator
             };
         }
 
@@ -2218,7 +2218,7 @@ function renderRestingTable(data) {
         const tSize = parseFloat(trade.size) || 0;
         const tEntry = parseFloat(trade.entry) || 0;
         const tStop = parseFloat(trade.stoploss) || 0;
-        const tTarget = parseFloat(trade.target) || 0; // Target from trade
+        const tTarget = parseFloat(trade.target) || 0;
         
         const tQty = (tSize && tEntry) ? (tSize / tEntry) : 0;
 
@@ -2227,12 +2227,15 @@ function renderRestingTable(data) {
             g.size += tSize;
             g.qty += tQty;
             g.qtyStop += (tStop * tQty);
-            g.qtyTarget += (tTarget * tQty); // NEW: Add to weighted sum
+            g.qtyTarget += (tTarget * tQty);
         }
         g.profitTaker += parseFloat(metrics.expected_profit_taker || 0);
         g.profitMaker += parseFloat(metrics.expected_profit_maker || 0);
         g.lossTaker += parseFloat(metrics.expected_loss_taker || 0);
         g.lossMaker += parseFloat(metrics.expected_loss_maker || 0);
+        
+        // <--- NEW: Accumulate PnL per 100
+        g.pnlPer100 += parseFloat(metrics.pnl_per_100_move || 0);
 
         let rr1Price = "--", rr4Price = "--";
         if (tEntry > 0 && tStop > 0 && tEntry !== tStop) {
@@ -2247,6 +2250,7 @@ function renderRestingTable(data) {
         const lossTakerStr = `$${parseFloat(metrics.expected_loss_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_taker || 0).toFixed(2)}%)`;
         const lossMakerStr = `$${parseFloat(metrics.expected_loss_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_maker || 0).toFixed(2)}%)`;
         const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
+        const pnlPer100Val = parseFloat(metrics.pnl_per_100_move || 0).toFixed(2);
 
         return `<tr>
             <td>${trade.symbol}</td>
@@ -2261,6 +2265,10 @@ function renderRestingTable(data) {
             <td style="color: var(--green-text); font-weight: 500;">${rr4Price}</td>
             ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
             <td style="font-family: 'Courier New'; font-weight: bold; color: var(--subtle-text);">${tQty.toFixed(4)}</td>
+            
+            <!-- NEW COLUMN: PnL per $100 -->
+            <td style="font-weight:bold;">$${pnlPer100Val}</td>
+
             <td>${parseFloat(metrics.estimated_total_fee || 0).toFixed(2)}</td>
             <td style="color: #28a745;">${profitTakerStr}</td>
             <td style="color: #28a745;">${profitMakerStr}</td>
@@ -2276,7 +2284,7 @@ function renderRestingTable(data) {
     }).join('');
 
     const thead = DOM.tradesTbody.closest('table').querySelector('thead');
-    if(thead) thead.innerHTML = `<tr><th>Symbol</th><th>Type</th><th>Setup</th><th style="border-right: 2px solid var(--border-color);">Avg. Entry (Raw)</th><th>Avg (+Fees)</th><th>Entries List</th><th>Stop Loss</th><th>Target</th><th style="color: var(--link-color);">1:1 Target</th><th style="color: var(--green-text);">1:4 Target</th><th>Position Value ($)</th><th>Qty</th><th>Est. Total Fee ($)</th><th>Profit (Taker)</th><th>Profit (Maker)</th><th>Loss (Taker)</th><th>Loss (Maker)</th><th>RR (Taker)</th><th>RR (Maker)</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>`;
+    if(thead) thead.innerHTML = `<tr><th>Symbol</th><th>Type</th><th>Setup</th><th style="border-right: 2px solid var(--border-color);">Avg. Entry (Raw)</th><th>Avg (+Fees)</th><th>Entries List</th><th>Stop Loss</th><th>Target</th><th style="color: var(--link-color);">1:1 Target</th><th style="color: var(--green-text);">1:4 Target</th><th>Position Value ($)</th><th>Qty</th><th>+/- per $100</th><th>Est. Total Fee ($)</th><th>Profit (Taker)</th><th>Profit (Maker)</th><th>Loss (Taker)</th><th>Loss (Maker)</th><th>RR (Taker)</th><th>RR (Maker)</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>`;
     
     DOM.tradesTbody.innerHTML = rowsHtml;
 
@@ -2292,10 +2300,9 @@ function renderRestingTable(data) {
                 const s = groups[key];
                 const avgEntry = s.qty > 0 ? (s.size / s.qty) : 0;
                 const avgStop = s.qty > 0 ? (s.qtyStop / s.qty) : 0;
-                const avgTarget = s.qty > 0 ? (s.qtyTarget / s.qty) : 0; // NEW: Actual Avg Target
+                const avgTarget = s.qty > 0 ? (s.qtyTarget / s.qty) : 0;
                 const cardClass = s.direction === 'Long' ? 'long-card' : 'short-card';
                 
-                // 1:1, 1:2, 1:4 Theoretical Projections
                 let t1 = "--", t2 = "--", t4 = "--";
                 if (avgEntry > 0 && avgStop > 0) {
                     const risk = Math.abs(avgEntry - avgStop);
@@ -2305,7 +2312,6 @@ function renderRestingTable(data) {
                     t4 = (avgEntry + (risk * 4 * dir)).toFixed(4);
                 }
 
-                // Actual Avg RR Calculation
                 let actualRR = "0.00";
                 if (avgEntry > 0 && avgStop > 0 && avgEntry !== avgStop) {
                     const avgRisk = Math.abs(avgEntry - avgStop);
@@ -2318,12 +2324,13 @@ function renderRestingTable(data) {
                     <h5 style="color: ${s.direction === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${s.name}s (${s.count})</h5>
                     <div class="summary-grid-row">
                         <div><span class="sum-label">Total Size</span><span class="sum-val">$${s.size.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
-                        <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
+                        
+                        <!-- NEW SUMMARY ITEM: Total PnL per $100 -->
+                        <div><span class="sum-label">Total PnL / $100</span><span class="sum-val" style="font-weight:900;">$${s.pnlPer100.toFixed(2)}</span></div>
                     </div>
                     
-                    <!-- UPDATED: Added Actual Avg Target and RR -->
                     <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 12px;">
-                        <div><span class="sum-label">Avg Target</span><span class="sum-val" style="color: #ffc107;">${avgTarget.toFixed(4)}</span></div>
+                        <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
                         <div><span class="sum-label">Avg Target RR</span><span class="sum-val" style="color: #ffc107;">${actualRR}:1</span></div>
                     </div>
 
@@ -3420,12 +3427,12 @@ function calculateTradeMetrics(tradeData) {
         expected_profit_taker: 0, expected_profit_maker: 0, 
         expected_loss_taker: 0, expected_loss_maker: 0, 
         expected_profit_percent_taker: 0, expected_profit_percent_maker: 0,
-        expected_loss_percent_taker: 0, expected_loss_percent_maker: 0 
+        expected_loss_percent_taker: 0, expected_loss_percent_maker: 0,
+        pnl_per_100_move: 0 // <--- NEW DEFAULT
     };
 
     if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return baseReturn; }
 
-    // --- NEW: Get Rates based on Exchange ---
     const rates = getFeeRates(tradeData.exchange);
     const MAKER_FEE_RATE = rates.MAKER;
     const TAKER_FEE_RATE = rates.TAKER;
@@ -3434,6 +3441,10 @@ function calculateTradeMetrics(tradeData) {
 
     const positionQty = size / entry; 
     const entryFee = size * entryFeeRate;
+
+    // --- NEW CALCULATION ---
+    // How much $ is made/lost if price moves $100
+    const pnl_per_100_move = positionQty * 100; 
 
     let potentialProfit, potentialLoss;
     if (type === 'Long') { 
@@ -3489,7 +3500,8 @@ function calculateTradeMetrics(tradeData) {
         expected_profit_percent_taker: expected_profit_percent_taker,
         expected_profit_percent_maker: expected_profit_percent_maker,
         expected_loss_percent_taker: expected_loss_percent_taker,
-        expected_loss_percent_maker: expected_loss_percent_maker
+        expected_loss_percent_maker: expected_loss_percent_maker,
+        pnl_per_100_move: pnl_per_100_move // <--- Return the new value
     };
 }
 function handleAddTradeSubmit(e) {
