@@ -1278,6 +1278,48 @@
 .table-wrapper::-webkit-scrollbar-corner {
     background: #333333 !important;
 }
+
+
+
+            /* --- GROUPED TABLE STYLES --- */
+tr.group-header {
+    background-color: var(--header-bg);
+    border-bottom: 2px solid var(--border-color);
+    cursor: pointer;
+    font-weight: bold;
+}
+tr.group-header:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+tr.group-child {
+    background-color: var(--container-bg);
+    font-size: 0.9em;
+    color: var(--subtle-text);
+    display: none; /* Hidden by default */
+}
+tr.group-child.expanded {
+    display: table-row;
+}
+tr.group-child td:first-child {
+    border-left: 3px solid var(--link-color); /* Indentation marker */
+    padding-left: 15px;
+}
+.group-toggle-icon {
+    display: inline-block;
+    width: 20px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+.group-expanded .group-toggle-icon {
+    transform: rotate(90deg);
+}
+.group-summary-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    margin-right: 5px;
+    background: rgba(0,0,0,0.1);
+}
     </style>
 <body>
     <div class="container">
@@ -1334,35 +1376,36 @@
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
-               <form id="add-trade-form">
+            <!-- FIND <form id="add-trade-form"> AND REPLACE WITH THIS: -->
+<form id="add-trade-form">
     <div>
-        <label for="trade-setup-type">Setup Class:</label>
-        <select id="trade-setup-type">
-            <option value="Major">Major Swing</option>
-            <option value="Scalp">Fast/Scalp</option>
-            <option value="Intraday">Intraday</option>
-        </select>
-        <label for="trade-symbol">Symbol:</label>
-        <input type="text" id="trade-symbol" list="symbol-list" placeholder="Type or select a symbol">
-        <datalist id="symbol-list">
-            <option value="BTC/USDT">
-            <option value="ETH/USDT">
-   
+        <label for="trade-group-id">Trade Idea / Group Name:</label>
+        <input type="text" id="trade-group-id" list="existing-groups" placeholder="e.g. BTC Reversal, ETH Breakout..." required>
+        <datalist id="existing-groups">
+            <!-- Populated via JS -->
         </datalist>
     </div>
     
-    <!-- NEW: Exchange Selection -->
     <div>
-        <label for="trade-exchange">Exchange / Fees:</label>
+        <label for="trade-symbol">Symbol:</label>
+        <input type="text" id="trade-symbol" list="symbol-list" placeholder="BTC/USDT" required>
+        <datalist id="symbol-list">
+            <option value="BTC/USDT">
+            <option value="ETH/USDT">
+            <option value="SOL/USDT">
+        </datalist>
+    </div>
+    
+    <div>
+        <label for="trade-exchange">Exchange:</label>
         <select id="trade-exchange">
-            <option value="binance">Binance (0% M / 0.075% T)</option>
-            <option value="hyperliquid">Hyperliquid (0.015% M / 0.045% T)</option>
+            <option value="binance">Binance</option>
+            <option value="hyperliquid">Hyperliquid</option>
         </select>
     </div>
 
-    <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
+    <div><label for="trade-type">Direction:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
     
-    <!-- NEW: Trade Status Selection -->
     <div>
         <label for="trade-status">Status:</label>
         <select id="trade-status">
@@ -1382,7 +1425,7 @@
             <option value="maker">Maker Fee</option>
         </select>
     </div>
-    <div><button type="submit">Add Trade</button></div>
+    <div><button type="submit" style="background-color: var(--purple-bg); color: var(--text-color); font-weight: bold; border: 1px solid var(--border-color);">Add Trade</button></div>
 </form>
                     </div>
                 </div>
@@ -2174,215 +2217,268 @@ function renderRestingTable(data) {
             });
         }
         
-        function renderLiveTable(data) {
+       function renderLiveTable(data) {
     const trades = data || {};
     const groups = {}; 
+    const dataList = document.getElementById('existing-groups');
+    if(dataList) dataList.innerHTML = ''; // Clear suggestions
 
-    const masterButtonsHtml = (id) => STATE.isMasterUser ? `<td class="action-buttons"><button class="attach-image-btn" data-id="${id}" data-type="live" title="Attach Picture" style="background-color: #17a2b8;">Pic</button><button class="add-to-position-btn" data-id="${id}" title="Add to Position" style="background-color: #28a745;">+</button><button class="win-btn" data-id="${id}">Win</button><button class="loss-btn" data-id="${id}">Loss</button><button class="note-btn" data-id="${id}">Edit</button><button class="delete-btn" data-id="${id}">Delete</button></td>` : '';
-    const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { const formattedValue = (typeof value === 'number') ? value.toFixed(digits) : value; return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; };
+    // 1. Group Data
+    Object.keys(trades).forEach(id => {
+        const t = trades[id];
+        const gid = t.groupId || t.setupType || "Ungrouped"; // Fallback for old trades
+        
+        // Add to datalist for autocomplete
+        if(dataList && !dataList.querySelector(`option[value="${gid}"]`)) {
+            const opt = document.createElement('option');
+            opt.value = gid;
+            dataList.appendChild(opt);
+        }
 
-    const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date)).map(id => {
-        const trade = trades[id];
-        const metrics = calculateTradeMetrics(trade);
-        const breakevenPrice = calculateBreakevenPrice(trade);
-
-        const setupCat = trade.setupType || 'Major';
-        const groupKey = `${setupCat}_${trade.type}`;
-
-        // Initialize group with qtyTarget to track weighted targets
-        if (!groups[groupKey]) {
-            groups[groupKey] = { 
-                name: `${setupCat} ${trade.type}`, 
-                direction: trade.type, 
-                count: 0, 
-                size: 0, 
-                qty: 0, 
-                qtyStop: 0, 
-                qtyTarget: 0, // NEW: Track weighted target sum
-                profitTaker: 0, 
-                profitMaker: 0, 
-                lossTaker: 0, 
-                lossMaker: 0 
+        if (!groups[gid]) {
+            groups[gid] = {
+                id: gid,
+                ids: [],
+                trades: [],
+                symbol: t.symbol,
+                type: t.type,
+                totalSize: 0,
+                totalCoins: 0,
+                weightedEntrySum: 0,
+                projectedProfit: 0,
+                projectedLoss: 0,
+                feeSum: 0
             };
         }
-
-        const g = groups[groupKey];
-        const tSize = parseFloat(trade.size) || 0;
-        const tEntry = parseFloat(trade.entry) || 0;
-        const tStop = parseFloat(trade.stoploss) || 0;
-        const tTarget = parseFloat(trade.target) || 0; // Target from trade
         
-        const tQty = (tSize && tEntry) ? (tSize / tEntry) : 0;
+        const g = groups[gid];
+        g.ids.push(id);
+        g.trades.push({ ...t, dbId: id });
+        
+        const size = parseFloat(t.size) || 0;
+        const entry = parseFloat(t.entry) || 0;
+        const coins = (size && entry) ? size/entry : 0;
+        
+        g.totalSize += size;
+        g.totalCoins += coins;
+        g.weightedEntrySum += (entry * coins); // Not strictly needed if we derive avg entry from TotalSize/TotalCoins
+        
+        const metrics = calculateTradeMetrics(t);
+        g.projectedProfit += parseFloat(metrics.expected_profit_taker || 0);
+        g.projectedLoss += parseFloat(metrics.expected_loss_taker || 0);
+        g.feeSum += parseFloat(metrics.estimated_total_fee || 0);
+    });
 
-        g.count++;
-        if (tSize > 0 && tEntry > 0) {
-            g.size += tSize;
-            g.qty += tQty;
-            g.qtyStop += (tStop * tQty);
-            g.qtyTarget += (tTarget * tQty); // NEW: Add to weighted sum
-        }
-        g.profitTaker += parseFloat(metrics.expected_profit_taker || 0);
-        g.profitMaker += parseFloat(metrics.expected_profit_maker || 0);
-        g.lossTaker += parseFloat(metrics.expected_loss_taker || 0);
-        g.lossMaker += parseFloat(metrics.expected_loss_maker || 0);
-
-        let rr1Price = "--", rr4Price = "--";
-        if (tEntry > 0 && tStop > 0 && tEntry !== tStop) {
-            const risk = Math.abs(tEntry - tStop);
-            const direction = trade.type === 'Long' ? 1 : -1;
-            rr1Price = (tEntry + (risk * direction)).toFixed(4);
-            rr4Price = (tEntry + (risk * 4 * direction)).toFixed(4);
-        }
-
-        const profitTakerStr = `$${parseFloat(metrics.expected_profit_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_taker || 0).toFixed(2)}%)`;
-        const profitMakerStr = `$${parseFloat(metrics.expected_profit_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_profit_percent_maker || 0).toFixed(2)}%)`;
-        const lossTakerStr = `$${parseFloat(metrics.expected_loss_taker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_taker || 0).toFixed(2)}%)`;
-        const lossMakerStr = `$${parseFloat(metrics.expected_loss_maker || 0).toFixed(2)} (${parseFloat(metrics.expected_loss_percent_maker || 0).toFixed(2)}%)`;
-        const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
-
-        return `<tr>
-            <td>${trade.symbol}</td>
-            <td style="color: ${trade.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${trade.type}</td>
-            ${masterEditableCell('editable-cell', 'setupType', id, setupCat, STATE.isMasterUser)}
-            ${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}
-            <td style="font-weight:bold; color:var(--subtle-text);">${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>
-            ${masterEditableCell('note-cell editable-cell', 'entry_prices', id, entriesList, STATE.isMasterUser)}
-            ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}
-            ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}
-            <td style="color: var(--link-color); font-weight: 500;">${rr1Price}</td>
-            <td style="color: var(--green-text); font-weight: 500;">${rr4Price}</td>
-            ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
-            <td style="font-family: 'Courier New'; font-weight: bold; color: var(--subtle-text);">${tQty.toFixed(4)}</td>
-            <td>${parseFloat(metrics.estimated_total_fee || 0).toFixed(2)}</td>
-            <td style="color: #28a745;">${profitTakerStr}</td>
-            <td style="color: #28a745;">${profitMakerStr}</td>
-            <td style="color: #dc3545;">${lossTakerStr}</td>
-            <td style="color: #dc3545;">${lossMakerStr}</td>
-            <td>${metrics.rr_taker}</td>
-            <td>${metrics.rr_maker}</td>
-            <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
-            <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
-            ${renderAttachmentThumbnails(trade, id, 'live')}
-            ${masterButtonsHtml(id)}
+    // 2. Build HTML
+    let tableHtml = '';
+    
+    Object.values(groups).forEach(g => {
+        // Calculate Group Averages
+        const avgEntry = g.totalCoins > 0 ? (g.totalSize / g.totalCoins) : 0;
+        const color = g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)';
+        
+        // Group Header Row
+        tableHtml += `
+        <tr class="group-header" onclick="toggleGroupRow(this)">
+            <td><span class="group-toggle-icon">▶</span> <strong>${g.id}</strong> <span style="font-size:0.8em; color:var(--subtle-text)">(${g.trades.length} trades)</span></td>
+            <td style="color:${color}; font-weight:bold;">${g.type}</td>
+            <td style="font-weight:bold;">${avgEntry.toFixed(4)}</td>
+            <td>--</td> <!-- Stoploss (varies) -->
+            <td>--</td> <!-- Target (varies) -->
+            <td>--</td>
+            <td>--</td>
+            <td style="font-family:'Courier New'; font-weight:800;">$${g.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+            <td>${g.totalCoins.toFixed(4)}</td>
+            <td>$${g.feeSum.toFixed(2)}</td>
+            <td style="color:var(--green-text)">$${g.projectedProfit.toFixed(2)}</td>
+            <td>--</td>
+            <td style="color:var(--red-text)">$${g.projectedLoss.toFixed(2)}</td>
+            <td>--</td>
+            <td>--</td>
+            <td>--</td>
+            <td>--</td>
+            <td>
+                 ${STATE.isMasterUser ? `
+                 <button class="close-group-btn" data-group-id="${g.id}" onclick="event.stopPropagation(); closeGroup('${g.id}')" style="background:var(--purple-bg); color:var(--text-color); border:1px solid var(--border-color); font-size:11px; padding:4px 8px;">Close Position</button>
+                 ` : ''}
+            </td>
+            <td></td>
+            <td></td>
         </tr>`;
-    }).join('');
+
+        // Child Rows (Individual Trades)
+        g.trades.forEach(t => {
+            const metrics = calculateTradeMetrics(t);
+            const masterButtons = STATE.isMasterUser ? `
+                <button class="win-btn" data-id="${t.dbId}" style="padding:2px 5px; font-size:10px;">Close</button>
+                <button class="delete-btn" data-id="${t.dbId}" style="padding:2px 5px; font-size:10px;">Del</button>
+                <button class="note-btn" data-id="${t.dbId}" style="padding:2px 5px; font-size:10px;">Note</button>
+            ` : '';
+
+            tableHtml += `
+            <tr class="group-child group-${g.id.replace(/\s+/g, '-')}">
+                <td style="padding-left:30px; font-style:italic;">${t.symbol}</td>
+                <td style="opacity:0.7">${t.type}</td>
+                <td>${parseFloat(t.entry).toFixed(4)}</td>
+                <td>--</td>
+                <td>${parseFloat(t.stoploss).toFixed(4)}</td>
+                <td>${parseFloat(t.target).toFixed(4)}</td>
+                <td>--</td>
+                <td>$${parseFloat(t.size).toFixed(2)}</td>
+                <td>${((parseFloat(t.size)/parseFloat(t.entry)) || 0).toFixed(4)}</td>
+                <td>${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
+                <td style="opacity:0.7">$${parseFloat(metrics.expected_profit_taker).toFixed(2)}</td>
+                <td></td>
+                <td style="opacity:0.7">$${parseFloat(metrics.expected_loss_taker).toFixed(2)}</td>
+                <td></td>
+                <td>${metrics.rr_taker}</td>
+                <td></td>
+                <td>${new Date(t.date).toLocaleDateString()}</td>
+                <td class="note-cell">${t.note || ''}</td>
+                <td>${renderAttachmentThumbnails(t, t.dbId, 'live')}</td>
+                <td class="action-buttons">${masterButtons}</td>
+            </tr>
+            `;
+        });
+    });
 
     const thead = DOM.tradesTbody.closest('table').querySelector('thead');
-    if(thead) thead.innerHTML = `<tr><th>Symbol</th><th>Type</th><th>Setup</th><th style="border-right: 2px solid var(--border-color);">Avg. Entry (Raw)</th><th>Avg (+Fees)</th><th>Entries List</th><th>Stop Loss</th><th>Target</th><th style="color: var(--link-color);">1:1 Target</th><th style="color: var(--green-text);">1:4 Target</th><th>Position Value ($)</th><th>Qty</th><th>Est. Total Fee ($)</th><th>Profit (Taker)</th><th>Profit (Maker)</th><th>Loss (Taker)</th><th>Loss (Maker)</th><th>RR (Taker)</th><th>RR (Maker)</th><th>Date Opened</th><th>Note</th><th>Charts</th><th class="master-only">Actions</th></tr>`;
-    
-    DOM.tradesTbody.innerHTML = rowsHtml;
+    if(thead) thead.innerHTML = `
+    <tr>
+        <th>Group / Symbol</th>
+        <th>Type</th>
+        <th>Avg Entry</th>
+        <th>Entries</th>
+        <th>Stop</th>
+        <th>Target</th>
+        <th>1:1</th>
+        <th>Total Size ($)</th>
+        <th>Qty</th>
+        <th>Est Fee</th>
+        <th>Exp Profit</th>
+        <th>(M)</th>
+        <th>Exp Loss</th>
+        <th>(M)</th>
+        <th>RR</th>
+        <th>(M)</th>
+        <th>Date</th>
+        <th>Note</th>
+        <th>Charts</th>
+        <th class="master-only">Actions</th>
+    </tr>`;
 
-    // --- RENDER DYNAMIC SUMMARY CARDS ---
-    const summaryContainer = document.getElementById('live-trades-summary-container');
-    if (summaryContainer) {
-        const activeKeys = Object.keys(groups);
-        if (activeKeys.length > 0) {
-            summaryContainer.style.display = 'block';
-            let summaryHtml = '<div class="summary-split-container">';
-
-            activeKeys.forEach(key => {
-                const s = groups[key];
-                const avgEntry = s.qty > 0 ? (s.size / s.qty) : 0;
-                const avgStop = s.qty > 0 ? (s.qtyStop / s.qty) : 0;
-                const avgTarget = s.qty > 0 ? (s.qtyTarget / s.qty) : 0; // NEW: Actual Avg Target
-                const cardClass = s.direction === 'Long' ? 'long-card' : 'short-card';
-                
-                // 1:1, 1:2, 1:4 Theoretical Projections
-                let t1 = "--", t2 = "--", t4 = "--";
-                if (avgEntry > 0 && avgStop > 0) {
-                    const risk = Math.abs(avgEntry - avgStop);
-                    const dir = s.direction === 'Long' ? 1 : -1;
-                    t1 = (avgEntry + (risk * dir)).toFixed(4);
-                    t2 = (avgEntry + (risk * 2 * dir)).toFixed(4);
-                    t4 = (avgEntry + (risk * 4 * dir)).toFixed(4);
-                }
-
-                // Actual Avg RR Calculation
-                let actualRR = "0.00";
-                if (avgEntry > 0 && avgStop > 0 && avgEntry !== avgStop) {
-                    const avgRisk = Math.abs(avgEntry - avgStop);
-                    const avgReward = Math.abs(avgTarget - avgEntry);
-                    actualRR = (avgReward / avgRisk).toFixed(2);
-                }
-
-                summaryHtml += `
-                <div class="summary-card ${cardClass}">
-                    <h5 style="color: ${s.direction === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${s.name}s (${s.count})</h5>
-                    <div class="summary-grid-row">
-                        <div><span class="sum-label">Total Size</span><span class="sum-val">$${s.size.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
-                        <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
-                    </div>
-                    
-                    <!-- UPDATED: Added Actual Avg Target and RR -->
-                    <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 12px;">
-                        <div><span class="sum-label">Avg Target</span><span class="sum-val" style="color: #ffc107;">${avgTarget.toFixed(4)}</span></div>
-                        <div><span class="sum-label">Avg Target RR</span><span class="sum-val" style="color: #ffc107;">${actualRR}:1</span></div>
-                    </div>
-
-                    <div class="summary-grid-row">
-                        <div><span class="sum-label">Avg Stop</span><span class="sum-val val-red">${avgStop.toFixed(4)}</span></div>
-                        <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
-                    </div>
-                    <div class="summary-grid-row">
-                        <div><span class="sum-label">1:2 Target</span><span class="sum-val" style="color:var(--green-text)">${t2}</span></div>
-                        <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
-                    </div>
-
-                    <div class="summary-grid-row financials">
-                        <div><span class="sum-label">Exp Profit (T)</span><span class="sum-val val-green">$${s.profitTaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
-                        <div><span class="sum-label">Exp Profit (M)</span><span class="sum-val val-green">$${s.profitMaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
-                        <div><span class="sum-label">Exp Loss (T)</span><span class="sum-val val-red">$${s.lossTaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
-                        <div><span class="sum-label">Exp Loss (M)</span><span class="sum-val val-red">$${s.lossMaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
-                    </div>
-                </div>`;
-            });
-
-            summaryHtml += '</div>';
-            summaryContainer.innerHTML = summaryHtml;
-        } else {
-            summaryContainer.style.display = 'none';
-        }
-    }
-    setTimeout(() => adjustCollapsibleSize(DOM.tradesTbody), 10);
+    DOM.tradesTbody.innerHTML = tableHtml;
 }
-     // --- NEW HELPER FOR TRADING DAY LOGIC ---
-// --- HELPER: TRADING DAY LOGIC ---
-const getTradingDayString = (closedTS, openedTS) => {
-    if (!closedTS) return 'Unknown';
-    
-    const closedDate = new Date(closedTS);
-    const openedDate = openedTS ? new Date(openedTS) : closedDate;
 
-    // Get hours in Perth time
-    const getPerthHour = (d) => {
-        return parseInt(new Intl.DateTimeFormat('en-AU', {
-            timeZone: 'Australia/Perth',
-            hour: 'numeric',
-            hour12: false
-        }).format(d));
-    };
-
-    const closedHour = getPerthHour(closedDate);
-    const openedHour = getPerthHour(openedDate);
-    
-    const closedCalDay = getPerthDateString(closedDate);
-    const openedCalDay = getPerthDateString(openedDate);
-
-    // RULE: If closed before 6am
-    if (closedHour < 6) {
-        // EXCEPTION: Unless opened after 5am today
-        if (openedCalDay === closedCalDay && openedHour >= 5) {
-            return closedCalDay;
-        } else {
-            // Roll back to previous day
-            const prevDay = new Date(closedDate);
-            prevDay.setDate(prevDay.getDate() - 1);
-            return getPerthDateString(prevDay);
-        }
+// Helper for UI expansion
+function toggleGroupRow(row) {
+    row.classList.toggle('group-expanded');
+    let nextRow = row.nextElementSibling;
+    while(nextRow && nextRow.classList.contains('group-child')) {
+        nextRow.classList.toggle('expanded');
+        nextRow = nextRow.nextElementSibling;
     }
-    return closedCalDay;
-};
+}
+// Make globally available
+window.toggleGroupRow = toggleGroupRow;
+function closeGroup(groupId) {
+    if(!STATE.isMasterUser) return;
+    
+    // 1. Fetch all trades in this group
+    dbRefs.trades.once('value', snapshot => {
+        const allTrades = snapshot.val() || {};
+        const groupTrades = [];
+        const groupTradeIds = [];
+        
+        Object.keys(allTrades).forEach(id => {
+            const t = allTrades[id];
+            // Match by groupId OR setupType (backward compatibility)
+            if(t.groupId === groupId || t.setupType === groupId) {
+                groupTrades.push(t);
+                groupTradeIds.push(id);
+            }
+        });
 
+        if(groupTrades.length === 0) return alert("No trades found in this group.");
+
+        // 2. Ask for Exit Details
+        const exitPriceStr = prompt(`Closing Group: "${groupId}"\n(${groupTrades.length} trades)\n\nEnter Average Exit Price:`);
+        if(exitPriceStr === null) return;
+        const exitPrice = parseFloat(exitPriceStr);
+        if(isNaN(exitPrice)) return alert("Invalid Price");
+
+        let exitFeeType = prompt("Exit Fee Type (maker/taker)?", "taker");
+        if(exitFeeType === null) return;
+        exitFeeType = exitFeeType.toLowerCase();
+
+        // 3. Aggregate Data for the "Master Record"
+        let totalSize = 0;
+        let totalCoins = 0;
+        let firstDate = Infinity;
+        let entryPrices = [];
+        let combinedNotes = `Group Close: ${groupId}\n`;
+
+        groupTrades.forEach(t => {
+            const size = parseFloat(t.size);
+            const entry = parseFloat(t.entry);
+            totalSize += size;
+            totalCoins += (size/entry);
+            if(t.date < firstDate) firstDate = t.date;
+            entryPrices.push(entry);
+            if(t.note) combinedNotes += `[${t.entry}]: ${t.note}; `;
+        });
+
+        const avgEntry = totalSize / totalCoins;
+        
+        // 4. Calculate Final PnL
+        // Reconstruct a temporary trade object to reuse existing calculator logic
+        const tempTrade = {
+            symbol: groupTrades[0].symbol, // Assumes all in group are same symbol
+            exchange: groupTrades[0].exchange,
+            type: groupTrades[0].type,
+            size: totalSize,
+            entry: avgEntry,
+            entryFeeType: 'taker' // Approximation for average entry fee
+        };
+        
+        const result = calculateNetResult(tempTrade, exitPrice, exitFeeType);
+
+        // 5. Create Completed Record
+        const completedRecord = {
+            symbol: tempTrade.symbol,
+            type: tempTrade.type,
+            groupId: groupId,
+            entry: avgEntry,
+            size: totalSize,
+            exit_price: exitPrice,
+            entry_prices: entryPrices,
+            closed_date: firebase.database.ServerValue.TIMESTAMP,
+            date: firstDate,
+            note: combinedNotes,
+            
+            net_result: result.net_result,
+            entry_fee: result.entry_fee,
+            exit_fee: result.exit_fee
+        };
+
+        // 6. Database Updates (Atomic-ish)
+        const updates = {};
+        // Add to completed
+        const newKey = dbRefs.completedTrades.push().key;
+        updates[`/${CONFIG.DB_PATHS.COMPLETED_TRADES}/${newKey}`] = completedRecord;
+        
+        // Remove individual live trades
+        groupTradeIds.forEach(id => {
+            updates[`/${CONFIG.DB_PATHS.TRADES}/${id}`] = null;
+        });
+
+        firebase.database().ref().update(updates)
+            .then(() => alert(`Group "${groupId}" closed successfully. Net PnL: $${result.net_result.toFixed(2)}`))
+            .catch(e => alert(e.message));
+    });
+}
+// Make globally available
+window.closeGroup = closeGroup;
 function renderCompletedTable(data) {
     const trades = data || {};
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
@@ -3485,34 +3581,42 @@ function calculateTradeMetrics(tradeData) {
     };
 }
 function handleAddTradeSubmit(e) {
-    e.preventDefault(); if (!STATE.isMasterUser) return;
+    e.preventDefault(); 
+    if (!STATE.isMasterUser) return;
     
     const status = document.getElementById('trade-status').value;
+    const groupId = document.getElementById('trade-group-id').value.trim(); // NEW
+
+    if(!groupId) return alert("Please enter a Trade Idea / Group Name");
 
     const trade = { 
         symbol: document.getElementById('trade-symbol').value, 
         exchange: document.getElementById('trade-exchange').value,
         type: document.getElementById('trade-type').value, 
-        // --- NEW LINE HERE ---
-        setupType: document.getElementById('trade-setup-type').value, 
-        // --------------------
+        groupId: groupId, // NEW: Using Group ID instead of Setup Class
         entry: parseFloat(document.getElementById('entry-price').value), 
         stoploss: parseFloat(document.getElementById('stop-loss').value), 
         target: parseFloat(document.getElementById('target').value), 
         size: parseFloat(document.getElementById('position-value').value), 
         date: firebase.database.ServerValue.TIMESTAMP, 
         entry_prices: [],
-        entryFeeType: document.getElementById('entry-fee-type').value
+        entryFeeType: document.getElementById('entry-fee-type').value,
+        note: ""
     };
 
     if (Object.values(trade).some(val => val === null || (isNaN(val) && typeof val === 'number'))) return alert('Please fill all fields correctly.');
     trade.entry_prices.push(trade.entry);
     
+    // Calculate metrics immediately
     const metrics = calculateTradeMetrics(trade);
     const tradeWithMetrics = { ...trade, ...metrics };
     
     const targetRef = (status === 'resting') ? dbRefs.restingOrders : dbRefs.trades;
-    targetRef.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error: ${error.message}`));
+    targetRef.push(tradeWithMetrics).then(() => {
+        e.target.reset();
+        // Keep the group ID for convenience if adding multiple legs
+        document.getElementById('trade-group-id').value = groupId; 
+    }).catch(error => alert(`Error: ${error.message}`));
 }
       function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
@@ -3643,79 +3747,129 @@ function handleAddTradeSubmit(e) {
         }
 
  function handleTradeAction(e) {
-            if (!STATE.isMasterUser) return;
-            
-            // Handle Merge Mode clicks on rows
-            if (STATE.isMerging) {
-                const targetRow = e.target.closest('tr');
-                if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody' && !e.target.closest('button')) {
-                    const absorbedTradeId = targetRow.querySelector('.action-buttons button')?.dataset.id;
-                    if (absorbedTradeId) executeMerge(STATE.mergeBaseTradeId, absorbedTradeId);
-                }
-                return;
-            }
+    if (!STATE.isMasterUser) return;
 
-            const button = e.target.closest('button'); 
-            if (!button) return;
-            const { id } = button.dataset;
+    // --- 1. Handle Merge Mode (Clicking rows to absorb them) ---
+    if (STATE.isMerging) {
+        const targetRow = e.target.closest('tr');
+        // Ensure we are in the completed table and didn't click a specific button
+        if (targetRow && targetRow.closest('#completed-trades-tbody') && !e.target.closest('button')) {
+            // Find the ID of the trade in this row (looking for a button with data-id)
+            const actionBtn = targetRow.querySelector('.action-buttons button');
+            const absorbedTradeId = actionBtn ? actionBtn.dataset.id : null;
 
-            // --- 1. Handle RESTING ORDERS Actions ---
-            if (button.closest('#resting-trades-tbody')) {
-                if (button.matches('.delete-resting-btn')) {
-                    if (confirm('Delete this resting order?')) { 
-                        dbRefs.restingOrders.child(id).remove(); 
-                    }
-                } else if (button.matches('.activate-btn')) {
-                    if (confirm('Move this order to Live Trades?')) {
-                        dbRefs.restingOrders.child(id).once('value', snapshot => {
-                            const tradeData = snapshot.val();
-                            if (tradeData) {
-                                // Update date to now as it becomes live
-                                const liveTrade = { ...tradeData, date: firebase.database.ServerValue.TIMESTAMP };
-                                dbRefs.trades.push(liveTrade)
-                                    .then(() => dbRefs.restingOrders.child(id).remove())
-                                    .catch(err => alert("Error moving trade: " + err.message));
-                            }
-                        });
-                    }
-                }
-                return; 
-            }
-
-            // --- 2. Handle LIVE & COMPLETED Actions ---
-            const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
-            const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
-
-            if (button.matches('.win-btn')) completeTrade(id, 'win');
-            else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
-            else if (button.matches('.add-to-position-btn')) handleAddStaggeredEntry(id);
-            else if (button.matches('.merge-btn-completed')) initiateMerge(id);
-            else if (button.matches('.delete-btn, .delete-btn-completed')) { 
-                if (confirm('Delete this trade?')) { 
-                    resetMergeState(); 
-                    tradeRef.remove(); 
-                } 
-            } 
-            else if (button.matches('.note-btn, .note-btn-completed')) { 
-                tradeRef.child('note').once('value', snapshot => { 
-                    const newNote = prompt("Enter Note 1:", snapshot.val() || ""); 
-                    if (newNote !== null) tradeRef.update({ note: newNote }); 
-                }); 
-            }
-            else if (button.matches('.note2-btn-completed')) { 
-                tradeRef.child('note2').once('value', snapshot => { 
-                    const newNote2 = prompt("Enter Note 2:", snapshot.val() || ""); 
-                    if (newNote2 !== null) tradeRef.update({ note2: newNote2 }); 
-                }); 
-            }
-            else if (button.matches('.note3-btn-completed')) { 
-                tradeRef.child('note3').once('value', snapshot => { 
-                    const newNote3 = prompt("Enter Note 3:", snapshot.val() || ""); 
-                    if (newNote3 !== null) tradeRef.update({ note3: newNote3 }); 
-                }); 
+            if (absorbedTradeId) {
+                executeMerge(STATE.mergeBaseTradeId, absorbedTradeId);
             }
         }
+        return; // Stop further processing if in merge mode
+    }
 
+    // --- 2. Identify the Button ---
+    const button = e.target.closest('button');
+    if (!button) return;
+
+    const { id } = button.dataset;
+
+    // --- 3. Handle RESTING ORDERS Actions ---
+    if (button.closest('#resting-trades-tbody')) {
+        if (button.matches('.delete-resting-btn')) {
+            if (confirm('Delete this resting order?')) {
+                dbRefs.restingOrders.child(id).remove();
+            }
+        } 
+        else if (button.matches('.activate-btn')) {
+            if (confirm('Move this order to Live Trades?')) {
+                dbRefs.restingOrders.child(id).once('value', snapshot => {
+                    const tradeData = snapshot.val();
+                    if (tradeData) {
+                        // Prepare data for Live Trades
+                        // MIGRATION LOGIC: If 'groupId' is missing, use 'setupType' or fallback to "Ungrouped"
+                        const liveTrade = {
+                            ...tradeData,
+                            groupId: tradeData.groupId || tradeData.setupType || "Ungrouped",
+                            date: firebase.database.ServerValue.TIMESTAMP
+                        };
+                        
+                        // Atomic move: Add to Live, Remove from Resting
+                        dbRefs.trades.push(liveTrade)
+                            .then(() => dbRefs.restingOrders.child(id).remove())
+                            .catch(err => alert("Error moving trade: " + err.message));
+                    }
+                });
+            }
+        }
+        return;
+    }
+
+    // --- 4. Handle LIVE & COMPLETED Actions ---
+    // Determine which DB path to use based on the table ID
+    const isCompleted = button.closest('#completed-trades-tbody') !== null;
+    const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
+
+    // -- Live Trade Actions --
+    if (button.matches('.win-btn')) {
+        completeTrade(id, 'win');
+    }
+    else if (button.matches('.loss-btn')) {
+        completeTrade(id, 'loss');
+    }
+    else if (button.matches('.add-to-position-btn')) {
+        handleAddStaggeredEntry(id);
+    }
+    
+    // -- Group Actions (Fallback for event delegation) --
+    else if (button.matches('.close-group-btn')) {
+        const groupId = button.dataset.groupId;
+        if(groupId) closeGroup(groupId);
+    }
+
+    // -- Completed Trade Specifics --
+    else if (button.matches('.merge-btn-completed')) {
+        initiateMerge(id);
+    }
+    
+    // -- Notes --
+    else if (button.matches('.note-btn') || button.matches('.note-btn-completed')) {
+        tradeRef.child('note').once('value', snapshot => {
+            const oldNote = snapshot.val() || "";
+            const newNote = prompt("Edit Note:", oldNote);
+            if (newNote !== null && newNote !== oldNote) {
+                tradeRef.update({ note: newNote });
+            }
+        });
+    }
+    else if (button.matches('.note2-btn-completed')) {
+        tradeRef.child('note2').once('value', snapshot => {
+            const oldNote = snapshot.val() || "";
+            const newNote = prompt("Edit Note 2:", oldNote);
+            if (newNote !== null && newNote !== oldNote) {
+                tradeRef.update({ note2: newNote });
+            }
+        });
+    }
+    else if (button.matches('.note3-btn-completed')) {
+        tradeRef.child('note3').once('value', snapshot => {
+            const oldNote = snapshot.val() || "";
+            const newNote = prompt("Edit Note 3:", oldNote);
+            if (newNote !== null && newNote !== oldNote) {
+                tradeRef.update({ note3: newNote });
+            }
+        });
+    }
+
+    // -- Common Actions (Delete / Attach) --
+    else if (button.matches('.delete-btn') || button.matches('.delete-btn-completed')) {
+        if (confirm('Delete this trade record completely? This cannot be undone.')) {
+            if (STATE.isMerging) resetMergeState();
+            tradeRef.remove().catch(e => alert(e.message));
+        }
+    }
+    else if (button.matches('.attach-image-btn')) {
+        const type = isCompleted ? 'completed' : 'live';
+        handleAttachAttachmentClick(id, type);
+    }
+}
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); if (attachBtn) { handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type); return true; }
             const delImgBtn = e.target.closest('.delete-trade-image'); if (delImgBtn) { const { entryId, entryType, imageId, filename } = delImgBtn.dataset; handleDeleteAttachmentImage(entryId, entryType, imageId, filename); return true; }
