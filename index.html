@@ -1762,13 +1762,7 @@
             <div class="controls-container" id="journal-controls">
                 <div><label for="journal-symbol">Symbol:</label><select id="journal-symbol"><option value="BTC/USDT">BTC/USDT</option><option value="ETH/USDT">ETH/USDT</option></select></div>
                 <div><label for="journal-timeframe">Timeframe:</label><select id="journal-timeframe"><option value="15min">15min</option><option value="30min">30min</option><option value="1hour">1hour</option><option value="2hour">2hour</option><option value="4hour">4hour</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div>
-                <div>
-                    <label for="journal-image-filter">Filter Images:</label>
-                    <select id="journal-image-filter">
-                        <option value="all" selected>All for Timeframe</option>
-                        <option value="today">Selected Day Only</option>
-                    </select>
-                </div>
+             
             </div>
             <div class="date-nav-container">
                 <button id="date-prev" class="date-nav-arrow"><</button>
@@ -2641,7 +2635,7 @@ function renderCompletedTable(data) {
             const imagesForTimeframe = STATE.journalImages[symbol]?.[timeframe] || {};
             const allImageKeys = Object.keys(imagesForTimeframe);
             const filterMode = DOM.journalImageFilterEl.value;
-            const imageKeysToRender = (filterMode === 'today') ? allImageKeys.filter(key => getYYYYMMDD(new Date(imagesForTimeframe[key].timestamp)) === selectedYMD) : allImageKeys;
+           const imageKeysToRender = allImageKeys.filter(key => getYYYYMMDD(new Date(imagesForTimeframe[key].timestamp)) === selectedYMD);
             if (imageKeysToRender.length === 0) { DOM.journalImagesContainer.innerHTML = ''; return; }
             const deleteButtonHtml = (id, fileName) => (STATE.isMasterUser) ? `<button class="delete-journal-image" title="Delete Image" data-safe-symbol="${symbol}" data-timeframe="${timeframe}" data-id="${id}" data-filename="${fileName}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button>` : '';
             const imagesHtml = imageKeysToRender.sort((a, b) => imagesForTimeframe[b].timestamp - imagesForTimeframe[a].timestamp).map(id => {
