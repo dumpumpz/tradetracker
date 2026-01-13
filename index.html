@@ -2538,22 +2538,28 @@ function renderCompletedTable(data) {
             let imagesHtml = '';
 
          
-           const createImageHtml = (id, extraClasses = '', extraStyle = '') => {
+      const createImageHtml = (id, extraClasses = '', extraStyle = '') => {
                 const imgData = images[id]; 
                 if (!imgData?.url) return '';
 
                 const caption = imgData.caption || (imgData.timestamp ? new Date(imgData.timestamp).toLocaleString() : ' ');
                 
-                // Logic: Check if image is less than 7 days old
-                // 7 days * 24 hours * 60 min * 60 sec * 1000 ms
-                const sevenDaysMs = 604800000; 
-                const imageTimestamp = Number(imgData.timestamp) || 0;
-                const isRecent = (Date.now() - imageTimestamp) < sevenDaysMs;
+                // --- VISIBILITY LOGIC ---
+                // 1. Get image time safely (handles string or number formats)
+                const imgTime = imgData.timestamp ? new Date(imgData.timestamp).getTime() : 0;
+                
+                // 2. Define 7 days in milliseconds
+                const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+                
+                // 3. Check if image is recent (current time - image time < 7 days)
+                const isRecent = (Date.now() - imgTime) < sevenDaysMs;
 
-                // Show caption if: (User is Master) OR (Image has a timestamp AND is recent)
-                // Otherwise, add 'master-only' class to hide it
-                const showCaption = STATE.isMasterUser || (imageTimestamp > 0 && isRecent);
+                // 4. Show if: (User is Master) OR (Image is valid AND Recent)
+                const showCaption = STATE.isMasterUser || (imgTime > 0 && isRecent);
+                
+                // 5. Apply class: if showCaption is false, add 'master-only' to hide it
                 const captionClass = showCaption ? '' : 'master-only';
+                // ------------------------
 
                 return `<div class="library-image-wrapper ${extraClasses}" ${extraStyle}>${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption ${captionClass}" title="${caption}">${caption}</div></div>`;
             };
