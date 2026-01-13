@@ -2538,11 +2538,23 @@ function renderCompletedTable(data) {
             let imagesHtml = '';
 
          
-            const createImageHtml = (id, extraClasses = '', extraStyle = '') => {
-                const imgData = images[id]; if (!imgData?.url) return '';
+           const createImageHtml = (id, extraClasses = '', extraStyle = '') => {
+                const imgData = images[id]; 
+                if (!imgData?.url) return '';
+                
                 const caption = imgData.caption || (imgData.timestamp ? new Date(imgData.timestamp).toLocaleString() : ' ');
-                // MODIFIED LINE BELOW: Added ${STATE.isMasterUser ? '' : 'master-only'} to the caption div class
-                return `<div class="library-image-wrapper ${extraClasses}" ${extraStyle}>${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption ${STATE.isMasterUser ? '' : 'master-only'}" title="${caption}">${caption}</div></div>`;
+                
+                // --- NEW LOGIC: Calculate 7 Day Visibility ---
+                const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+                const imageAge = Date.now() - (imgData.timestamp || 0);
+                const isRecent = imageAge < sevenDaysInMs;
+
+                // Show caption if: User is Master OR Image is less than 7 days old
+                // Otherwise apply 'master-only' class to hide it
+                const captionClass = (STATE.isMasterUser || isRecent) ? '' : 'master-only';
+                // ---------------------------------------------
+
+                return `<div class="library-image-wrapper ${extraClasses}" ${extraStyle}>${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption ${captionClass}" title="${caption}">${caption}</div></div>`;
             };
 
             if (libraryType === 'setups_images') {
