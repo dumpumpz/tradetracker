@@ -2541,18 +2541,19 @@ function renderCompletedTable(data) {
            const createImageHtml = (id, extraClasses = '', extraStyle = '') => {
                 const imgData = images[id]; 
                 if (!imgData?.url) return '';
-                
+
                 const caption = imgData.caption || (imgData.timestamp ? new Date(imgData.timestamp).toLocaleString() : ' ');
                 
-                // --- NEW LOGIC: Calculate 7 Day Visibility ---
-                const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-                const imageAge = Date.now() - (imgData.timestamp || 0);
-                const isRecent = imageAge < sevenDaysInMs;
+                // Logic: Check if image is less than 7 days old
+                // 7 days * 24 hours * 60 min * 60 sec * 1000 ms
+                const sevenDaysMs = 604800000; 
+                const imageTimestamp = Number(imgData.timestamp) || 0;
+                const isRecent = (Date.now() - imageTimestamp) < sevenDaysMs;
 
-                // Show caption if: User is Master OR Image is less than 7 days old
-                // Otherwise apply 'master-only' class to hide it
-                const captionClass = (STATE.isMasterUser || isRecent) ? '' : 'master-only';
-                // ---------------------------------------------
+                // Show caption if: (User is Master) OR (Image has a timestamp AND is recent)
+                // Otherwise, add 'master-only' class to hide it
+                const showCaption = STATE.isMasterUser || (imageTimestamp > 0 && isRecent);
+                const captionClass = showCaption ? '' : 'master-only';
 
                 return `<div class="library-image-wrapper ${extraClasses}" ${extraStyle}>${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="${libraryType} Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption ${captionClass}" title="${caption}">${caption}</div></div>`;
             };
