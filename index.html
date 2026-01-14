@@ -1977,8 +1977,19 @@ function calculateBreakevenPrice(trade) {
         return entry * (1 - entryFeeRate) / (1 + exitFeeRate);
     }
 }
-        function autoResizeTextarea(textarea) { if (!textarea || textarea.tagName !== 'TEXTAREA') return; textarea.style.height = 'auto'; textarea.style.height = `${textarea.scrollHeight}px`; }
-        function resizeParentCollapsible(elementInside) { const section = elementInside.closest('.collapsible-section'); if (section && section.classList.contains('is-open')) { const content = section.querySelector('.collapsible-content'); if (content) { content.style.maxHeight = content.scrollHeight + 'px'; } } }
+    // FIND THIS FUNCTION
+function autoResizeTextarea(textarea) { 
+    if (!textarea || textarea.tagName !== 'TEXTAREA') return; 
+    
+    // START FIX: Save the current scroll position
+    const currentScrollPos = window.scrollY;
+    
+    textarea.style.height = 'auto'; 
+    textarea.style.height = `${textarea.scrollHeight}px`; 
+    
+    // END FIX: Restore the scroll position immediately
+    window.scrollTo(window.scrollX, currentScrollPos);
+}  function resizeParentCollapsible(elementInside) { const section = elementInside.closest('.collapsible-section'); if (section && section.classList.contains('is-open')) { const content = section.querySelector('.collapsible-content'); if (content) { content.style.maxHeight = content.scrollHeight + 'px'; } } }
         const debouncedResizeParent = debounce(resizeParentCollapsible, 250);
         const formatCurrency = (num, symbol = '$') => { if (typeof num !== 'number' || isNaN(num)) { return '--'; } const maximumFractionDigits = num > 100 ? 2 : (num > 1 ? 4 : 8); return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`; };
         function adjustCollapsibleSize(elementInside) { if (!elementInside) return; if (elementInside.tagName === 'TEXTAREA') { autoResizeTextarea(elementInside); } resizeParentCollapsible(elementInside); }
@@ -3993,14 +4004,22 @@ function handleAddTradeSubmit(e) {
             });
 
            // Listener 1: Text Updates (Pass 'true' to skip rendering images)
+// Listener 1: Text Updates (Pass 'true' to skip rendering images)
 dbRefs.journalText.on('value', (s) => { 
     STATE.journalText = s.val() || {}; 
+    
+    // Check if the Journal Tab is active AND if the user is NOT currently typing
     if (DOM.journalTab.classList.contains('active')) {
+        // If the user is currently typing in the journal entry, DO NOT update the view.
+        // The user already has the latest text (they are typing it), so we don't need to re-render.
+        if (document.activeElement === DOM.journalEntryEl) {
+            return;
+        }
+        
         // FIX: Pass true to stop the image section from rebuilding and causing jumps
         updateJournalView(true); 
     }
 });
-
 // Listener 2: Image Updates (Pass 'false' or nothing to render images)
 dbRefs.journalImages.on('value', (s) => { 
     STATE.journalImages = s.val() || {}; 
