@@ -2471,45 +2471,54 @@ function renderLiveSummaryCards(groupedTrades) {
         
         // 3. Target Levels (1:1, 1:2, 1:4)
         let t1 = "--", t2 = "--", t4 = "--", actualRR = "0.00";
-        
         if (avgEntry > 0 && avgOrigStop > 0 && riskDistance > 0) {
             t1 = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(4);
             t2 = (avgEntry + (riskDistance * 2 * directionMult)).toFixed(4);
             t4 = (avgEntry + (riskDistance * 4 * directionMult)).toFixed(4);
             
-            // Calculate Current Target RR
             const rewardDistance = Math.abs(avgTarget - avgEntry);
             actualRR = (rewardDistance / riskDistance).toFixed(2);
         }
 
-        // 4. Select Financials based on Type (Short=Maker, Long=Taker)
+        // 4. DETERMINE DOMINANT FEE TYPE
+        // We sum up the size of maker trades vs taker trades to see which is dominant
+        let makerSize = 0;
+        let takerSize = 0;
+        
+        g.trades.forEach(t => {
+            const s = parseFloat(t.size) || 0;
+            if (t.entryFeeType === 'maker') makerSize += s;
+            else takerSize += s;
+        });
+
+        const isMakerDominant = makerSize > takerSize;
+        const feeLabel = isMakerDominant ? 'Maker' : 'Taker';
+
+        // 5. Select Financials based on the detected dominant fee type
         let expProfit = 0, expLoss = 0;
         
-        if (g.type === 'Long') {
-            expProfit = g.profitTaker;
-            expLoss = g.lossTaker;
-        } else {
-            // Short
+        if (isMakerDominant) {
             expProfit = g.profitMaker;
             expLoss = g.lossMaker;
+        } else {
+            expProfit = g.profitTaker;
+            expLoss = g.lossTaker;
         }
 
         const cardClass = g.type === 'Long' ? 'long-card' : 'short-card';
 
-        // 5. Build HTML
+        // 6. Build HTML
         summaryHtml += `
         <div class="summary-card ${cardClass}">
             <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id} (${g.type})</h5>
             
             <div class="summary-grid-row">
                 <div><span class="sum-label">Total Size</span><span class="sum-val">$${g.totalSize.toLocaleString(undefined, {minimumFractionDigits:0})}</span></div>
-                <!-- NEW: PnL per $100 -->
                 <div><span class="sum-label">PnL per $100</span><span class="sum-val" style="font-weight:900;">$${g.pnlPer100.toFixed(2)}</span></div>
             </div>
             
             <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 8px;">
                 <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
-                <!-- Target RR based on Original Stop -->
                 <div><span class="sum-label">Avg Target RR</span><span class="sum-val" style="color: #d39e00;">${actualRR}:1</span></div>
             </div>
 
@@ -2522,14 +2531,13 @@ function renderLiveSummaryCards(groupedTrades) {
                 <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
             </div>
 
-            <!-- Financials: Conditional Labeling -->
             <div class="summary-grid-row financials">
                 <div>
-                    <span class="sum-label">Exp Profit (${g.type === 'Long' ? 'Taker' : 'Maker'})</span>
+                    <span class="sum-label">Exp Profit (${feeLabel})</span>
                     <span class="sum-val val-green">$${expProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
                 </div>
                 <div>
-                    <span class="sum-label">Exp Loss (${g.type === 'Long' ? 'Taker' : 'Maker'})</span>
+                    <span class="sum-label">Exp Loss (${feeLabel})</span>
                     <span class="sum-val val-red">$${expLoss.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
                 </div>
             </div>
