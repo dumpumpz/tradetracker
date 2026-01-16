@@ -2324,7 +2324,6 @@ function renderLiveTable(data) {
         // --- 1. Group Data & Aggregate ---
         Object.keys(trades).forEach(id => {
             const trade = trades[id];
-            // Fallback for legacy trades
             const gid = trade.groupId || `${trade.symbol}_${trade.type}_Legacy`; 
             
             if (!groupedTrades[gid]) {
@@ -2335,11 +2334,10 @@ function renderLiveTable(data) {
                     trades: [],
                     totalSize: 0,
                     totalQty: 0,
-                    // Weighted Sums for Averages
                     wEntry: 0,
-                    wOrigStop: 0, // Using Original Stop for Risk Calc
+                    wOrigStop: 0,
                     wTarget: 0,
-                    // Financials
+                    // Financial Aggregates
                     profitTaker: 0, profitMaker: 0,
                     lossTaker: 0, lossMaker: 0,
                     fees: 0,
@@ -2351,17 +2349,14 @@ function renderLiveTable(data) {
 
             const size = parseFloat(trade.size) || 0;
             const entry = parseFloat(trade.entry) || 0;
-            // Use Original Stop if available, else current stop
             const origStop = parseFloat(trade.original_stoploss) || parseFloat(trade.stoploss) || 0;
             const target = parseFloat(trade.target) || 0;
-            
             const qty = (entry > 0) ? size / entry : 0;
             const metrics = calculateTradeMetrics(trade);
 
             groupedTrades[gid].totalSize += size;
             groupedTrades[gid].totalQty += qty;
             
-            // Weighted Accumulation
             groupedTrades[gid].wEntry += (entry * qty);
             groupedTrades[gid].wOrigStop += (origStop * qty);
             groupedTrades[gid].wTarget += (target * qty);
@@ -2377,7 +2372,6 @@ function renderLiveTable(data) {
         // --- 2. Generate HTML ---
         let tableHtml = '';
         
-        // Sort groups by most recent trade date
         const sortedGroupKeys = Object.keys(groupedTrades).sort((a, b) => {
             const getLatestDate = (group) => Math.max(...group.trades.map(t => t.date || 0));
             return getLatestDate(groupedTrades[b]) - getLatestDate(groupedTrades[a]);
@@ -2387,13 +2381,13 @@ function renderLiveTable(data) {
             const group = groupedTrades[gid];
             const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
             
-            // Determine relevant PnL based on direction (Short=Maker, Long=Taker)
-            const relevantProfit = group.type === 'Short' ? group.profitMaker : group.profitTaker;
-            const relevantLoss = group.type === 'Short' ? group.lossMaker : group.lossTaker;
+            // Determine Dominant Fee Type for Group Summary
+            // (Used just to pick a "primary" PnL to show in the summary row)
+            const dominantProfit = (group.type === 'Short') ? group.profitMaker : group.profitTaker;
+            const dominantLoss = (group.type === 'Short') ? group.lossMaker : group.lossTaker;
 
-            // Parent Row Button (Master Only)
-            // Note: We use the 'master-only' class so it hides/shows via CSS based on login status
-            const masterGroupBtn = `<button class="close-group-btn" data-group-id="${gid}">Close Idea</button>`;
+            const masterGroupBtn = STATE.isMasterUser ? 
+                `<button class="close-group-btn" data-group-id="${gid}">Close Idea</button>` : '';
 
             // --- PARENT ROW (Summary) ---
             tableHtml += `
@@ -2404,18 +2398,17 @@ function renderLiveTable(data) {
                 
                 <td>--</td> <td>--</td> <td>--</td> <td>--</td> <td>--</td> 
                 
-                <!-- Group Totals -->
                 <td style="font-size: 1.05em;">$${group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
                 <td style="font-family: 'Courier New';">${group.totalQty.toFixed(4)}</td>
                 <td>$${group.pnlPer100.toFixed(2)}</td>
                 <td>$${group.fees.toFixed(2)}</td>
                 
-                <!-- Display Relevant PnL (Merged view for table cleanliness) -->
+                <!-- Group Summary PnL (Merged Columns) -->
                 <td colspan="2" style="text-align:center; color: var(--green-text); opacity: 0.8;">
-                    TP: $${relevantProfit.toFixed(2)}
+                    TP: $${dominantProfit.toFixed(2)}
                 </td>
                 <td colspan="2" style="text-align:center; color: var(--red-text); opacity: 0.8;">
-                    SL: $${relevantLoss.toFixed(2)}
+                    SL: $${dominantLoss.toFixed(2)}
                 </td>
                 
                 <td colspan="4" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(4)}</td>
@@ -2428,18 +2421,30 @@ function renderLiveTable(data) {
                 const breakevenPrice = calculateBreakevenPrice(trade);
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
                 
-                const masterButtons = `
-                    <div style="display:flex; gap:2px; justify-content:flex-end;">
+                // CONDITIONAL DISPLAY: Only show values relevant to the entry fee type
+                const isMaker = (trade.entryFeeType === 'maker');
+                
+                const valProfitTaker = !isMaker ? parseFloat(metrics.expected_profit_taker).toFixed(2) : '--';
+                const valProfitMaker = isMaker ? parseFloat(metrics.expected_profit_maker).toFixed(2) : '--';
+                const valLossTaker = !isMaker ? parseFloat(metrics.expected_loss_taker).toFixed(2) : '--';
+                const valLossMaker = isMaker ? parseFloat(metrics.expected_loss_maker).toFixed(2) : '--';
+
+                // Opacity style to highlight active numbers
+                const styleTaker = !isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
+                const styleMaker = isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
+
+                const masterButtons = STATE.isMasterUser ? 
+                    `<div style="display:flex; gap:2px; justify-content:flex-end;">
                         <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#28a745;">W</button>
                         <button class="loss-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#dc3545;">L</button>
                         <button class="add-to-position-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#17a2b8;">+</button>
                         <button class="delete-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#6c757d;">×</button>
-                    </div>`;
+                    </div>` : '';
 
                 tableHtml += `
                 <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
                     <td></td> <td></td> 
-                    <td style="text-align:right;">↳ Trade:</td>
+                    <td style="text-align:right;">↳ Trade (${trade.entryFeeType}):</td>
                     
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(4)}</td>
                     <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>
@@ -2456,10 +2461,12 @@ function renderLiveTable(data) {
                     <td>--</td>
                     
                     <td>${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
-                    <td style="opacity:0.7;">${parseFloat(metrics.expected_profit_taker).toFixed(2)}</td>
-                    <td style="opacity:0.7;">${parseFloat(metrics.expected_profit_maker).toFixed(2)}</td>
-                    <td style="opacity:0.7;">${parseFloat(metrics.expected_loss_taker).toFixed(2)}</td>
-                    <td style="opacity:0.7;">${parseFloat(metrics.expected_loss_maker).toFixed(2)}</td>
+                    
+                    <!-- Conditional PnL Columns -->
+                    <td style="${styleTaker}">${valProfitTaker}</td>
+                    <td style="${styleMaker}">${valProfitMaker}</td>
+                    <td style="${styleTaker}">${valLossTaker}</td>
+                    <td style="${styleMaker}">${valLossMaker}</td>
 
                     <td colspan="4" class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
                     <td class="master-only">${masterButtons}</td>
