@@ -2692,7 +2692,7 @@ function renderLiveTable(data) {
                     <td style="${styleTaker}">${valLossTaker}</td>
                     <td style="${styleMaker}">${valLossMaker}</td>
 
-                    <td colspan="4" class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
+                    <td colspan="4" class="note-cell editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}">${trade.note || ''}</td>
                     <td class="master-only">${masterButtons}</td>
                 </tr>`;
             });
@@ -2712,6 +2712,23 @@ function renderLiveTable(data) {
     } catch (e) {
         console.error("Error rendering live table:", e);
     }
+}
+
+
+
+        function handleLiveNoteUpdate(cell) {
+    if (!STATE.isMasterUser) return;
+
+    const tradeId = cell.dataset.id;
+    const newNote = cell.textContent.trim();
+
+    dbRefs.trades.child(tradeId).update({
+        note: newNote
+    }).then(() => {
+        // Optional: Flash background green to confirm save
+        cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+        setTimeout(() => cell.style.backgroundColor = '', 500);
+    }).catch(err => alert("Error saving note: " + err.message));
 }
 // Helper for Summary Cards (Separated for clarity)
 function renderLiveSummaryCards(groupedTrades) {
@@ -3786,6 +3803,17 @@ function completeTrade(tradeId, outcome) {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
     });
+
+         // --- 5. EDITABLE CELL UPDATES (Blur Event) ---
+    if (DOM.tradesTbody) {
+        DOM.tradesTbody.addEventListener('blur', (e) => { 
+            // Existing check for numeric fields
+            if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
+            
+            // --- NEW: Check for Live Note ---
+            if (e.target.matches('.editable-live-note')) handleLiveNoteUpdate(e.target);
+        }, true);
+    }
 
     // --- 2. Tab Navigation ---
     DOM.tabs.addEventListener('click', (e) => {
