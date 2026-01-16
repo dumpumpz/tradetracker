@@ -2287,15 +2287,14 @@ function renderRestingTable(data) {
             });
         }
         
- function renderLiveTable(data) {
+function renderLiveTable(data) {
     try {
         const trades = data || {};
         const groupedTrades = {};
 
-        // 1. Group Data
+        // 1. Group Data & Aggregate
         Object.keys(trades).forEach(id => {
             const trade = trades[id];
-            // Safe fallback for old trades that don't have a groupId yet
             const gid = trade.groupId || `${trade.symbol}_${trade.type}_Legacy`; 
             
             if (!groupedTrades[gid]) {
@@ -2306,7 +2305,12 @@ function renderRestingTable(data) {
                     trades: [],
                     totalSize: 0,
                     totalQty: 0,
-                    fees: 0,
+                    // Weighted Sums for Averages
+                    wEntry: 0,
+                    wStop: 0,
+                    wOrigStop: 0, // For Original Risk Calc
+                    wTarget: 0,
+                    // Financials
                     profitTaker: 0, profitMaker: 0,
                     lossTaker: 0, lossMaker: 0,
                     pnlPer100: 0
@@ -2317,12 +2321,22 @@ function renderRestingTable(data) {
 
             const size = parseFloat(trade.size) || 0;
             const entry = parseFloat(trade.entry) || 0;
+            const stop = parseFloat(trade.stoploss) || 0;
+            const origStop = parseFloat(trade.original_stoploss) || stop; // Fallback to current if missing
+            const target = parseFloat(trade.target) || 0;
+            
             const qty = (entry > 0) ? size / entry : 0;
             const metrics = calculateTradeMetrics(trade);
 
             groupedTrades[gid].totalSize += size;
             groupedTrades[gid].totalQty += qty;
-            groupedTrades[gid].fees += parseFloat(metrics.estimated_total_fee || 0);
+            
+            // Weighted Sums
+            groupedTrades[gid].wEntry += (entry * qty);
+            groupedTrades[gid].wStop += (stop * qty);
+            groupedTrades[gid].wOrigStop += (origStop * qty);
+            groupedTrades[gid].wTarget += (target * qty);
+
             groupedTrades[gid].profitTaker += parseFloat(metrics.expected_profit_taker || 0);
             groupedTrades[gid].profitMaker += parseFloat(metrics.expected_profit_maker || 0);
             groupedTrades[gid].lossTaker += parseFloat(metrics.expected_loss_taker || 0);
@@ -2333,7 +2347,6 @@ function renderRestingTable(data) {
         // 2. Generate HTML
         let tableHtml = '';
         
-        // Sort groups by most recent trade date
         const sortedGroupKeys = Object.keys(groupedTrades).sort((a, b) => {
             const getLatestDate = (group) => Math.max(...group.trades.map(t => t.date || 0));
             return getLatestDate(groupedTrades[b]) - getLatestDate(groupedTrades[a]);
@@ -2341,36 +2354,35 @@ function renderRestingTable(data) {
 
         sortedGroupKeys.forEach(gid => {
             const group = groupedTrades[gid];
-            const avgEntry = group.totalQty > 0 ? (group.totalSize / group.totalQty) : 0;
+            const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
             
-            // Parent Row (Summary)
             const masterGroupBtn = STATE.isMasterUser ? 
                 `<button class="close-group-btn" data-group-id="${gid}" style="background-color: var(--purple-bg); color: #fff; width:100%; font-size: 11px; padding: 4px;">Close Idea</button>` : '';
 
+            // Group Summary Row (Table View)
             tableHtml += `
             <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color); font-weight: bold;">
                 <td style="border-left: 3px solid var(--link-color);">${group.symbol}</td>
                 <td style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${group.type}</td>
                 <td colspan="3" style="color: var(--text-color); font-size: 0.95em;">📂 ${gid}</td>
-                
                 <td>--</td> <td>--</td> <td>--</td> <td>--</td> <td>--</td> 
                 
-                <!-- Group Aggregates -->
                 <td style="font-size: 1.05em;">$${group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
                 <td style="font-family: 'Courier New';">${group.totalQty.toFixed(4)}</td>
                 <td>$${group.pnlPer100.toFixed(2)}</td>
-                <td>$${group.fees.toFixed(2)}</td>
+                <td>--</td> <!-- Fees handled in summary card -->
                 
-                <td style="color: var(--green-text);">$${group.profitTaker.toFixed(2)}</td>
-                <td style="color: var(--green-text);">$${group.profitMaker.toFixed(2)}</td>
-                <td style="color: var(--red-text);">$${group.lossTaker.toFixed(2)}</td>
-                <td style="color: var(--red-text);">$${group.lossMaker.toFixed(2)}</td>
+                <!-- Display PnL based on type preference (Visual only for table, full details in card) -->
+                <td style="color: var(--green-text); opacity: 0.5;">${group.type === 'Long' ? group.profitTaker.toFixed(2) : '--'}</td>
+                <td style="color: var(--green-text); opacity: 0.5;">${group.type === 'Short' ? group.profitMaker.toFixed(2) : '--'}</td>
+                <td style="color: var(--red-text); opacity: 0.5;">${group.type === 'Long' ? group.lossTaker.toFixed(2) : '--'}</td>
+                <td style="color: var(--red-text); opacity: 0.5;">${group.type === 'Short' ? group.lossMaker.toFixed(2) : '--'}</td>
                 
                 <td colspan="4" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(4)}</td>
                 <td class="master-only">${masterGroupBtn}</td>
             </tr>`;
 
-            // Child Rows (Individual Trades)
+            // Child Rows
             group.trades.forEach(trade => {
                 const metrics = calculateTradeMetrics(trade);
                 const breakevenPrice = calculateBreakevenPrice(trade);
@@ -2417,11 +2429,11 @@ function renderRestingTable(data) {
 
         DOM.tradesTbody.innerHTML = tableHtml;
         
-        // Update Table Headers
+        // Header Update
         const thead = DOM.tradesTbody.closest('table').querySelector('thead');
         if(thead) thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th class="master-only">Actions</th></tr>`;
 
-        // Update Summaries
+        // Render Cards
         if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades);
         
         setTimeout(() => adjustCollapsibleSize(DOM.tradesTbody), 10);
@@ -2447,26 +2459,86 @@ function renderLiveSummaryCards(groupedTrades) {
 
     groupKeys.forEach(key => {
         const g = groupedTrades[key];
-        const avgEntry = g.totalQty > 0 ? (g.totalSize / g.totalQty) : 0;
+        
+        // 1. Calculate Averages
+        const avgEntry = g.totalQty > 0 ? (g.wEntry / g.totalQty) : 0;
+        const avgOrigStop = g.totalQty > 0 ? (g.wOrigStop / g.totalQty) : 0;
+        const avgTarget = g.totalQty > 0 ? (g.wTarget / g.totalQty) : 0;
+        
+        // 2. Risk Calculations based on ORIGINAL STOP
+        const riskDistance = Math.abs(avgEntry - avgOrigStop);
+        const directionMult = (g.type === 'Long') ? 1 : -1;
+        
+        // 3. Target Levels (1:1, 1:2, 1:4)
+        let t1 = "--", t2 = "--", t4 = "--", actualRR = "0.00";
+        
+        if (avgEntry > 0 && avgOrigStop > 0 && riskDistance > 0) {
+            t1 = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(4);
+            t2 = (avgEntry + (riskDistance * 2 * directionMult)).toFixed(4);
+            t4 = (avgEntry + (riskDistance * 4 * directionMult)).toFixed(4);
+            
+            // Calculate Current Target RR
+            const rewardDistance = Math.abs(avgTarget - avgEntry);
+            actualRR = (rewardDistance / riskDistance).toFixed(2);
+        }
+
+        // 4. Select Financials based on Type (Short=Maker, Long=Taker)
+        let expProfit = 0, expLoss = 0;
+        
+        if (g.type === 'Long') {
+            expProfit = g.profitTaker;
+            expLoss = g.lossTaker;
+        } else {
+            // Short
+            expProfit = g.profitMaker;
+            expLoss = g.lossMaker;
+        }
+
         const cardClass = g.type === 'Long' ? 'long-card' : 'short-card';
 
+        // 5. Build HTML
         summaryHtml += `
         <div class="summary-card ${cardClass}">
-            <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id}</h5>
+            <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id} (${g.type})</h5>
+            
             <div class="summary-grid-row">
                 <div><span class="sum-label">Total Size</span><span class="sum-val">$${g.totalSize.toLocaleString(undefined, {minimumFractionDigits:0})}</span></div>
-                <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
+                <!-- NEW: PnL per $100 -->
+                <div><span class="sum-label">PnL per $100</span><span class="sum-val" style="font-weight:900;">$${g.pnlPer100.toFixed(2)}</span></div>
             </div>
+            
+            <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 8px;">
+                <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
+                <!-- Target RR based on Original Stop -->
+                <div><span class="sum-label">Avg Target RR</span><span class="sum-val" style="color: #d39e00;">${actualRR}:1</span></div>
+            </div>
+
+            <div class="summary-grid-row">
+                <div><span class="sum-label">Avg Orig Stop</span><span class="sum-val val-red">${avgOrigStop.toFixed(4)}</span></div>
+                <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
+            </div>
+            <div class="summary-grid-row">
+                <div><span class="sum-label">1:2 Target</span><span class="sum-val" style="color:var(--green-text)">${t2}</span></div>
+                <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
+            </div>
+
+            <!-- Financials: Conditional Labeling -->
             <div class="summary-grid-row financials">
-                <div><span class="sum-label">Total Fee</span><span class="sum-val">$${g.fees.toFixed(2)}</span></div>
-                <div><span class="sum-label">Exp PnL (Taker)</span><span class="sum-val val-green">$${(g.profitTaker - g.lossTaker).toFixed(2)}</span></div> <!-- Rough net view -->
+                <div>
+                    <span class="sum-label">Exp Profit (${g.type === 'Long' ? 'Taker' : 'Maker'})</span>
+                    <span class="sum-val val-green">$${expProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                </div>
+                <div>
+                    <span class="sum-label">Exp Loss (${g.type === 'Long' ? 'Taker' : 'Maker'})</span>
+                    <span class="sum-val val-red">$${expLoss.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                </div>
             </div>
         </div>`;
     });
+    
     summaryHtml += '</div>';
     summaryContainer.innerHTML = summaryHtml;
 }
-
 
         function handleCloseGroup(groupId) {
     if (!STATE.isMasterUser) return;
@@ -3649,22 +3721,23 @@ function handleAddTradeSubmit(e) {
     
     const status = document.getElementById('trade-status').value;
     
-    // --- NEW LOGIC: Combine Session + ID ---
     const session = document.getElementById('trade-session').value;
     const variant = document.getElementById('trade-variant').value;
     const generatedGroupId = `${session}_${variant}`;
+
+    const entryPrice = parseFloat(document.getElementById('entry-price').value);
+    const stopLossPrice = parseFloat(document.getElementById('stop-loss').value);
 
     const trade = { 
         symbol: document.getElementById('trade-symbol').value, 
         exchange: document.getElementById('trade-exchange').value,
         type: document.getElementById('trade-type').value, 
         setupType: document.getElementById('trade-setup-type')?.value || 'Major', 
-        
-        // Use the generated ID
         groupId: generatedGroupId, 
-        
-        entry: parseFloat(document.getElementById('entry-price').value), 
-        stoploss: parseFloat(document.getElementById('stop-loss').value), 
+        entry: entryPrice, 
+        stoploss: stopLossPrice,
+        // NEW: Persist the initial risk level
+        original_stoploss: stopLossPrice, 
         target: parseFloat(document.getElementById('target').value), 
         size: parseFloat(document.getElementById('position-value').value), 
         date: firebase.database.ServerValue.TIMESTAMP, 
@@ -3683,15 +3756,11 @@ function handleAddTradeSubmit(e) {
     
     const targetRef = (status === 'resting') ? dbRefs.restingOrders : dbRefs.trades;
     targetRef.push(tradeWithMetrics).then(() => {
-        // Optional: Do not reset the session/variant dropdowns so you can add multiple trades to same group easily
-        // e.target.reset(); 
-        
-        // Reset only specific fields if desired, otherwise full reset:
+        // Clear only numeric fields to allow rapid entry of same setup
         document.getElementById('entry-price').value = '';
         document.getElementById('stop-loss').value = '';
         document.getElementById('target').value = '';
         document.getElementById('position-value').value = '';
-        
     }).catch(error => alert(`Error: ${error.message}`));
 }
       function handleLiveTradeUpdate(cell) {
