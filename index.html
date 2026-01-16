@@ -1345,6 +1345,26 @@ body.is-master th.master-only {
 .completed-child-row td:first-child {
     border-left: 3px solid var(--border-color);
 }
+
+
+
+
+
+            /* Ensure pagination buttons don't get pushed off screen */
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 15px;
+    flex-wrap: wrap; /* <--- ALLOWS WRAPPING */
+    padding-bottom: 10px; /* Space for the bottom edge */
+}
+
+/* Ensure the wrapper handles scroll bars correctly on zoom */
+.collapsible-content-inner {
+    padding-bottom: 25px; /* Extra padding at bottom to prevent cut-off */
+}
     </style>
 <body>
     <div class="container">
@@ -2104,8 +2124,19 @@ function autoResizeTextarea(textarea) {
     
     // END FIX: Restore the scroll position immediately
     window.scrollTo(window.scrollX, currentScrollPos);
-}  function resizeParentCollapsible(elementInside) { const section = elementInside.closest('.collapsible-section'); if (section && section.classList.contains('is-open')) { const content = section.querySelector('.collapsible-content'); if (content) { content.style.maxHeight = content.scrollHeight + 'px'; } } }
-        const debouncedResizeParent = debounce(resizeParentCollapsible, 250);
+}  
+        
+function resizeParentCollapsible(elementInside) {
+    const section = elementInside.closest('.collapsible-section');
+    if (section && section.classList.contains('is-open')) {
+        const content = section.querySelector('.collapsible-content');
+        if (content) {
+            // FIX: Add +100px buffer to ensure buttons/pagination are never cut off
+            const newHeight = content.scrollHeight + 100;
+            content.style.maxHeight = newHeight + 'px';
+        }
+    }
+}        const debouncedResizeParent = debounce(resizeParentCollapsible, 250);
         const formatCurrency = (num, symbol = '$') => { if (typeof num !== 'number' || isNaN(num)) { return '--'; } const maximumFractionDigits = num > 100 ? 2 : (num > 1 ? 4 : 8); return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`; };
         function adjustCollapsibleSize(elementInside) { if (!elementInside) return; if (elementInside.tagName === 'TEXTAREA') { autoResizeTextarea(elementInside); } resizeParentCollapsible(elementInside); }
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
@@ -3041,7 +3072,7 @@ function renderLiveSummaryCards(groupedTrades) {
     
     setTimeout(() => {
         adjustCollapsibleSize(DOM.completedTradesTbody);
-    }, 150);
+    }, 200);
 }
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
@@ -3779,7 +3810,15 @@ function completeTrade(tradeId, outcome) {
     if (DOM.tradesTbody) DOM.tradesTbody.removeEventListener('click', handleTradeAction);
     if (DOM.completedTradesTbody) DOM.completedTradesTbody.removeEventListener('click', handleTradeAction);
     if (DOM.restingTradesTbody) DOM.restingTradesTbody.removeEventListener('click', handleTradeAction);
-
+window.addEventListener('resize', () => {
+        document.querySelectorAll('.collapsible-section.is-open').forEach(section => {
+            const content = section.querySelector('.collapsible-content');
+            if (content) {
+                // Recalculate height + buffer
+                content.style.maxHeight = (content.scrollHeight + 100) + 'px';
+            }
+        });
+    });
     // Attach Clean Listeners
     if (DOM.tradesTbody) DOM.tradesTbody.addEventListener('click', handleTradeAction);
     if (DOM.completedTradesTbody) DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
