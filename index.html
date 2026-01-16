@@ -2022,7 +2022,7 @@ body.is-master th.master-only {
 
         // --- APPLICATION STATE ---
         const STATE = {
-            isMasterUser: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {}, favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null },
+            isMasterUser: false,  isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {}, favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null },
             allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,
             allSetupsImages: {}, setupsImagesShowAll: false, setupsImagesCurrentPage: 1, setupsImagesItemsPerPage: 50,
             chartInstances: {},
@@ -2587,37 +2587,47 @@ function renderLiveSummaryCards(groupedTrades) {
     summaryContainer.innerHTML = summaryHtml;
 }
 
-       function handleCloseGroup(groupId) {
+    function handleCloseGroup(groupId) {
     if (!STATE.isMasterUser) return;
     
-    // 1. Get all live trades
+    // 1. BLOCK double clicks
+    if (STATE.isProcessing) return;
+    STATE.isProcessing = true;
+    
     dbRefs.trades.once('value', snapshot => {
         const allTrades = snapshot.val() || {};
         
-        // 2. Filter for this group
         const groupTradeIds = Object.keys(allTrades).filter(id => {
             const t = allTrades[id];
             const tGid = t.groupId || `${t.symbol}_${t.type}_Legacy`;
             return tGid === groupId;
         });
 
-        if (groupTradeIds.length === 0) return alert("No active trades found for this group.");
+        if (groupTradeIds.length === 0) {
+            STATE.isProcessing = false;
+            return alert("No active trades found for this group.");
+        }
 
-        // 3. Ask for Exit Details
         const exitPriceStr = prompt(`Closing Group: ${groupId}\n(${groupTradeIds.length} active trades)\n\nEnter Exit Price:`);
-        if (exitPriceStr === null) return;
+        if (exitPriceStr === null) {
+            STATE.isProcessing = false;
+            return;
+        }
         
         const exitPrice = parseFloat(exitPriceStr);
-        if (isNaN(exitPrice)) return alert("Invalid Price");
+        if (isNaN(exitPrice)) {
+            STATE.isProcessing = false;
+            return alert("Invalid Price");
+        }
 
         let exitFeeType = prompt("Enter exit fee type (maker/taker):", "taker");
-        if (!exitFeeType || (exitFeeType !== 'maker' && exitFeeType !== 'taker')) return;
+        if (!exitFeeType || (exitFeeType !== 'maker' && exitFeeType !== 'taker')) {
+            STATE.isProcessing = false;
+            return;
+        }
 
-        // 4. Process Each Trade
-        groupTradeIds.forEach(tradeId => {
+        const promises = groupTradeIds.map(tradeId => {
             const trade = allTrades[tradeId];
-            
-            // Calculate Result
             const result = calculateNetResult(trade, exitPrice, exitFeeType);
 
             const completedTrade = {
@@ -2626,19 +2636,24 @@ function renderLiveSummaryCards(groupedTrades) {
                 closed_date: firebase.database.ServerValue.TIMESTAMP,
                 exit_price: exitPrice,
                 exitFeeType: exitFeeType,
-                // Note logic: Append closing info
                 note: (trade.note || '') + `\nGroup Close (${groupId}) @ $${exitPrice}`
             };
 
-            // Atomic move: Add to Completed, Remove from Live
-            dbRefs.completedTrades.push(completedTrade);
-            dbRefs.trades.child(tradeId).remove();
+            // Push AND Remove
+            return dbRefs.completedTrades.push(completedTrade)
+                .then(() => dbRefs.trades.child(tradeId).remove());
         });
 
-        alert(`Closed ${groupTradeIds.length} trades in group ${groupId}.`);
+        // Wait for all to finish before releasing lock
+        Promise.all(promises).then(() => {
+            alert(`Closed ${groupTradeIds.length} trades in group ${groupId}.`);
+            STATE.isProcessing = false;
+        }).catch(err => {
+            console.error(err);
+            STATE.isProcessing = false;
+        });
     });
 }
-
 function renderCompletedTable(data) {
     const trades = data || {};
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
@@ -2654,7 +2669,7 @@ function renderCompletedTable(data) {
 
     tradeIds.forEach(id => {
         const t = trades[id];
-        // Ensure helper exists, otherwise fallback to simple date
+        // Safe check for helper
         const tradingDayStr = (typeof getTradingDayString === 'function') 
             ? getTradingDayString(t.closed_date, t.date) 
             : new Date(t.closed_date).toLocaleDateString();
@@ -2668,6 +2683,7 @@ function renderCompletedTable(data) {
 
     uniqueTradingDates.sort((a, b) => b.localeCompare(a));
 
+    // Helper: Header Row
     const createSummaryHeader = (dateStr, ids) => {
         let dayWins = 0, dayLosses = 0, dayPnL = 0;
         ids.forEach(id => {
@@ -2695,13 +2711,14 @@ function renderCompletedTable(data) {
         </tr>`;
     };
 
+    // Helper: Data Row
     const createRowHtml = (id) => {
         const trade = trades[id];
         const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
         const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
         const metrics = calculateTradeMetrics(trade);
         
-        // Show Group ID if it exists
+        // Show Group ID
         const groupIdDisplay = trade.groupId 
             ? `<div style="font-size:0.85em; color:var(--link-color); font-weight:bold;">${trade.groupId}</div>` 
             : '';
@@ -2716,10 +2733,7 @@ function renderCompletedTable(data) {
         </td>` : '';
 
         return `
-        <td>
-            ${trade.symbol}
-            ${groupIdDisplay} <!-- Added Group ID here -->
-        </td>
+        <td>${trade.symbol}${groupIdDisplay}</td>
         <td>${trade.type}</td>
         <td>${parseFloat(trade.entry).toFixed(4)}</td>
         <td class="note-cell">${(trade.entry_prices || [trade.entry]).join(', ')}</td>
@@ -2743,7 +2757,6 @@ function renderCompletedTable(data) {
         ${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtons}`;
     };
 
-    // Pagination Logic
     if (STATE.completedTradesShowAll) {
         const totalPages = uniqueTradingDates.length;
         if (STATE.completedTradesCurrentPage > totalPages) STATE.completedTradesCurrentPage = totalPages;
@@ -2779,6 +2792,11 @@ function renderCompletedTable(data) {
     }
 
     DOM.completedTradesTbody.innerHTML = rowsHtml;
+    
+    // --- FIX: Force Section to Expand ---
+    setTimeout(() => {
+        adjustCollapsibleSize(DOM.completedTradesTbody);
+    }, 150);
 }
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
@@ -3326,24 +3344,45 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
         exit_fee: exitFee 
     };
 }
- function completeTrade(tradeId, outcome) {
+function completeTrade(tradeId, outcome) {
+    // 1. BLOCK: If already processing, stop.
+    if (STATE.isProcessing) return; 
+    STATE.isProcessing = true;
+
     dbRefs.trades.child(tradeId).once('value', snapshot => {
-        const trade = snapshot.val(); if (!trade) return;
+        const trade = snapshot.val(); 
+        
+        // Safety check: if trade is gone (already deleted), release lock and exit
+        if (!trade) {
+            STATE.isProcessing = false;
+            return;
+        }
         
         // 1. Ask for Exit Price
         const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
         const exitPriceStr = prompt(`Closing Trade (${trade.groupId || trade.symbol})\n\nEnter exact exit price:`, defaultExit);
-        if (exitPriceStr === null) return;
+        
+        // If Cancelled
+        if (exitPriceStr === null) {
+            STATE.isProcessing = false; // Release lock
+            return;
+        }
 
-        // 2. Ask for Amount to Close (Partial Support)
+        // 2. Ask for Amount to Close
         const currentSize = parseFloat(trade.size);
         const closeSizeStr = prompt(`How much Value ($) are you closing?\n(Current Total: $${currentSize.toFixed(2)})`, currentSize);
-        if (closeSizeStr === null) return;
+        if (closeSizeStr === null) {
+            STATE.isProcessing = false; // Release lock
+            return;
+        }
         
         let exitFeeType = null;
         while (exitFeeType !== 'maker' && exitFeeType !== 'taker') {
              const exitFeeTypeStr = prompt(`Enter exit fee type (maker/taker):`, "taker");
-             if (exitFeeTypeStr === null) return;
+             if (exitFeeTypeStr === null) {
+                 STATE.isProcessing = false;
+                 return;
+             }
              exitFeeType = exitFeeTypeStr.toLowerCase().trim();
         }
 
@@ -3351,16 +3390,17 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
         const closingSize = parseFloat(closeSizeStr);
 
         if (isNaN(exitPrice) || isNaN(closingSize) || closingSize <= 0 || closingSize > currentSize) {
+            STATE.isProcessing = false;
             return alert("Invalid input values.");
         }
 
-        // 3. Calculate results for the portion being closed
+        // 3. Process
         const tradePortion = { ...trade, size: closingSize };
         const result = calculateNetResult(tradePortion, exitPrice, exitFeeType);
 
         const completedTrade = {
-            ...trade, // Keeps groupId, etc.
-            size: closingSize, // Only log the size we closed
+            ...trade, 
+            size: closingSize, 
             ...result,
             closed_date: firebase.database.ServerValue.TIMESTAMP,
             exit_price: exitPrice,
@@ -3368,29 +3408,35 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
             note: (trade.note || '') + `\nClosed $${closingSize.toFixed(2)} @ $${exitPrice}`
         };
 
-        // 4. Determine if Full Close or Partial Close
         if (Math.abs(currentSize - closingSize) < 1) {
             // FULL CLOSE
-            dbRefs.completedTrades.push(completedTrade).then(() => dbRefs.trades.child(tradeId).remove());
+            dbRefs.completedTrades.push(completedTrade)
+                .then(() => dbRefs.trades.child(tradeId).remove())
+                .then(() => { STATE.isProcessing = false; }) // Release lock on success
+                .catch(e => { 
+                    alert(e); 
+                    STATE.isProcessing = false; 
+                });
         } else {
             // PARTIAL CLOSE
             const remainingSize = currentSize - closingSize;
-            
             const updatedLiveTrade = {
                 size: remainingSize,
                 note: (trade.note || '') + `\nPartial close: -$${closingSize.toFixed(2)} on ${new Date().toLocaleDateString()}`
             };
-
             const recalcMetrics = calculateTradeMetrics({ ...trade, size: remainingSize });
             Object.assign(updatedLiveTrade, recalcMetrics);
 
-            // Push partial result to history, update live trade with remainder
             dbRefs.completedTrades.push(completedTrade);
-            dbRefs.trades.child(tradeId).update(updatedLiveTrade);
+            dbRefs.trades.child(tradeId).update(updatedLiveTrade)
+                .then(() => { STATE.isProcessing = false; })
+                .catch(e => {
+                    alert(e);
+                    STATE.isProcessing = false;
+                });
         }
     });
 }
-
         function openImageModal(imageArray, clickedIndex) {
             STATE.modalImageGallery = imageArray;
             STATE.modalImageIndex = clickedIndex;
