@@ -1342,9 +1342,10 @@
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
-               <form id="add-trade-form">
- <div style="display: flex; gap: 10px;">
-        <div style="flex: 3;">
+              <form id="add-trade-form">
+    <!-- Row 1, Item 1: Session & Number (Combined in one cell) -->
+    <div style="display: flex; gap: 5px;">
+        <div style="flex: 2;">
             <label for="trade-session">Session:</label>
             <select id="trade-session">
                 <option value="Pre_Asia">Pre Asia</option>
@@ -1370,16 +1371,19 @@
             </select>
         </div>
     </div>
+
+    <!-- Row 1, Item 2: Symbol -->
+    <div>
         <label for="trade-symbol">Symbol:</label>
-        <input type="text" id="trade-symbol" list="symbol-list" placeholder="Type or select a symbol">
+        <input type="text" id="trade-symbol" list="symbol-list" placeholder="BTC/USDT">
         <datalist id="symbol-list">
             <option value="BTC/USDT">
             <option value="ETH/USDT">
-   
+            <option value="SOL/USDT">
         </datalist>
     </div>
-    
-    <!-- NEW: Exchange Selection -->
+
+    <!-- Row 1, Item 3: Exchange -->
     <div>
         <label for="trade-exchange">Exchange / Fees:</label>
         <select id="trade-exchange">
@@ -1388,9 +1392,16 @@
         </select>
     </div>
 
-    <div><label for="trade-type">Trade Type:</label><select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select></div>
+    <!-- Row 2, Item 1: Type -->
+    <div>
+        <label for="trade-type">Trade Type:</label>
+        <select id="trade-type">
+            <option value="Long">Long</option>
+            <option value="Short">Short</option>
+        </select>
+    </div>
     
-    <!-- NEW: Trade Status Selection -->
+    <!-- Row 2, Item 2: Status -->
     <div>
         <label for="trade-status">Status:</label>
         <select id="trade-status">
@@ -1399,10 +1410,31 @@
         </select>
     </div>
 
-    <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
-    <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
-    <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
-    <div><label for="position-value">Position Value ($):</label><input type="number" id="position-value" step="any" required></div>
+    <!-- Row 2, Item 3: Entry -->
+    <div>
+        <label for="entry-price">Entry Price:</label>
+        <input type="number" id="entry-price" step="any" required>
+    </div>
+
+    <!-- Row 3, Item 1: Stop Loss -->
+    <div>
+        <label for="stop-loss">Stop Loss:</label>
+        <input type="number" id="stop-loss" step="any" required>
+    </div>
+
+    <!-- Row 3, Item 2: Target -->
+    <div>
+        <label for="target">Target:</label>
+        <input type="number" id="target" step="any" required>
+    </div>
+
+    <!-- Row 3, Item 3: Position Size -->
+    <div>
+        <label for="position-value">Position Value ($):</label>
+        <input type="number" id="position-value" step="any" required>
+    </div>
+
+    <!-- Row 4, Item 1: Fee Type -->
     <div>
         <label for="entry-fee-type">Entry Fee:</label>
         <select id="entry-fee-type">
@@ -1410,7 +1442,11 @@
             <option value="maker">Maker Fee</option>
         </select>
     </div>
-    <div><button type="submit">Add Trade</button></div>
+
+    <!-- Row 4, Item 2: Submit Button -->
+    <div>
+        <button type="submit">Add Trade</button>
+    </div>
 </form>
                     </div>
                 </div>
@@ -4205,7 +4241,81 @@ dbRefs.journalImages.on('value', (s) => {
                 DOM.primarySetupsNotes.readOnly = true; DOM.secondarySetupsNotes.readOnly = true;
             }
         }
+// 1. Helper to open a specific section
+function openCollapsibleSection(sectionElement) {
+    if (!sectionElement || sectionElement.classList.contains('is-open')) return;
+    
+    const content = sectionElement.querySelector('.collapsible-content');
+    const toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
+    
+    if (content && toggleBtn) {
+        sectionElement.classList.add('is-open'); 
+        toggleBtn.textContent = '−'; 
+        toggleBtn.style.transform = 'rotate(180deg)';
+        
+        // Slight delay to ensure DOM render before calculating height
+        setTimeout(() => {
+            content.style.maxHeight = content.scrollHeight + 'px';
+        }, 50);
+    }
+}
 
+// 2. Logic to find and open the default sections
+function openDefaultSectionsInContainer(containerElement) {
+    if (!containerElement) return;
+    
+    // Exact text of the <h2> titles you want open by default
+    const sectionsToOpen = [
+        'Add New Trade',
+        'Resting Limit Orders', 
+        'Live Trades', 
+        'Completed Trades', 
+        'Trading Setups', 
+        'Setups',
+        'My Notes'
+    ];
+    
+    containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
+        const title = h2.textContent.trim();
+        if (sectionsToOpen.includes(title)) {
+            const section = h2.closest('.collapsible-section');
+            
+            // Open it, unless it's a hidden master-only section
+            if (section && !(section.classList.contains('master-only') && !STATE.isMasterUser)) {
+                openCollapsibleSection(section);
+            }
+        }
+    });
+}
+
+// 3. The Init Function (Make sure this calls the open function at the end)
+async function initializeApp() {
+    checkMasterMode(); 
+    getViewerId();
+    await fetchLiveConversionRate();
+
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) { 
+        document.documentElement.setAttribute('data-theme', savedTheme); 
+        DOM.themeToggle.checked = savedTheme === 'dark'; 
+    }
+    
+    const today = new Date(); 
+    today.setUTCHours(0, 0, 0, 0);
+    STATE.selectedDate = new Date(today); 
+    STATE.centerDate = new Date(today);
+    
+    setupEventListeners(); 
+    subscribeToData();
+    renderDateNavigation(); 
+
+    // --- FIX: AUTO-OPEN SECTIONS ON LOAD ---
+    const activeTabContent = document.querySelector('.tab-content.active');
+    if (activeTabContent) {
+        openDefaultSectionsInContainer(activeTabContent);
+        activeTabContent.dataset.sectionsInitialized = 'true';
+    }
+}
         async function initializeApp() {
             checkMasterMode(); 
             getViewerId();
