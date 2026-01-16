@@ -1355,10 +1355,26 @@ body.is-master th.master-only {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 15px;
-    margin-top: 15px;
-    flex-wrap: wrap; /* <--- ALLOWS WRAPPING */
-    padding-bottom: 10px; /* Space for the bottom edge */
+    gap: 20px; /* Space between buttons and text */
+    margin-top: 20px;
+    width: 100%;
+    flex-direction: row; /* Forces horizontal alignment */
+    flex-wrap: nowrap;   /* Prevents them from stacking vertically */
+    padding-bottom: 15px; /* Keeps the bottom buffer */
+}
+
+/* Ensure text doesn't wrap inside the buttons */
+.pagination-btn {
+    white-space: nowrap;
+    min-width: 80px; 
+}
+
+/* Ensure the page number text stays on one line */
+#completed-trades-page-info, 
+#setups-images-page-info {
+    white-space: nowrap;
+    font-weight: bold;
+    color: var(--text-color);
 }
 
 /* Ensure the wrapper handles scroll bars correctly on zoom */
