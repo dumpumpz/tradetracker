@@ -1315,6 +1315,36 @@ body.is-master th.master-only {
 .table-wrapper::-webkit-scrollbar-corner {
     background: #333333 !important;
 }
+
+
+
+
+
+
+
+
+            /* Completed Table - Group Header */
+.completed-group-header {
+    background-color: rgba(0, 123, 255, 0.1) !important; /* Light Blue */
+    font-weight: 600;
+    color: var(--text-color);
+    border-top: 2px solid var(--border-color);
+}
+[data-theme="dark"] .completed-group-header {
+    background-color: rgba(0, 123, 255, 0.2) !important;
+}
+
+.completed-group-header .group-stats {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    font-size: 0.95em;
+}
+
+/* Indent child rows in completed table */
+.completed-child-row td:first-child {
+    border-left: 3px solid var(--border-color);
+}
     </style>
 <body>
     <div class="container">
@@ -2660,8 +2690,7 @@ function renderLiveSummaryCards(groupedTrades) {
             STATE.isProcessing = false;
         });
     });
-}
-function renderCompletedTable(data) {
+}function renderCompletedTable(data) {
     const trades = data || {};
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
@@ -2670,137 +2699,185 @@ function renderCompletedTable(data) {
     const showAllButton = document.getElementById('toggle-all-completed-trades');
     const pageInfoSpan = document.getElementById('completed-trades-page-info');
 
-    // --- GROUP TRADES BY TRADING DAY ---
-    const tradesByTradingDay = {};
+    // --- 1. ORGANIZE DATA: Date -> Group -> Trades ---
+    const tradesByDayAndGroup = {};
     const uniqueTradingDates = [];
 
     tradeIds.forEach(id => {
         const t = trades[id];
-        // Safe check for helper
+        // Date Grouping
         const tradingDayStr = (typeof getTradingDayString === 'function') 
             ? getTradingDayString(t.closed_date, t.date) 
             : new Date(t.closed_date).toLocaleDateString();
         
-        if (!tradesByTradingDay[tradingDayStr]) {
-            tradesByTradingDay[tradingDayStr] = [];
+        // Group Idea Grouping
+        const groupId = t.groupId || 'Ungrouped / Single';
+
+        if (!tradesByDayAndGroup[tradingDayStr]) {
+            tradesByDayAndGroup[tradingDayStr] = {}; // Object for Groups
             uniqueTradingDates.push(tradingDayStr); 
         }
-        tradesByTradingDay[tradingDayStr].push(id);
+        
+        if (!tradesByDayAndGroup[tradingDayStr][groupId]) {
+            tradesByDayAndGroup[tradingDayStr][groupId] = [];
+        }
+
+        tradesByDayAndGroup[tradingDayStr][groupId].push({ ...t, dbId: id });
     });
 
-    uniqueTradingDates.sort((a, b) => b.localeCompare(a));
+    uniqueTradingDates.sort((a, b) => b.localeCompare(a)); // Sort Dates Descending
 
-    // Helper: Header Row
-    const createSummaryHeader = (dateStr, ids) => {
-        let dayWins = 0, dayLosses = 0, dayPnL = 0;
-        ids.forEach(id => {
-            const net = parseFloat(trades[id].net_result || 0);
-            dayPnL += net;
-            if (net > 0) dayWins++; else dayLosses++;
-        });
-
-        const pnlClass = dayPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-        const pnlSign = dayPnL >= 0 ? '+' : '-';
-        const pnlFormatted = `$${Math.abs(dayPnL).toFixed(2)}`;
-
-        return `<tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color);">
-            <td colspan="24" style="text-align: left; padding: 10px 10px 10px 20px;">
-                <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
-                    Date: ${dateStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${ids.length} Trades)</span>
-                </div>
-                <div style="font-size: 0.95em;">
-                    <span style="color: var(--green-text); font-weight: bold;">${dayWins} Wins</span> / 
-                    <span style="color: var(--red-text); font-weight: bold;">${dayLosses} Losses</span>
-                    <span style="margin: 0 10px; color: var(--border-color);">|</span>
-                    <span style="font-weight: bold; color: var(--text-color);">Daily PnL: <span style="color: ${pnlClass};">${pnlSign}${pnlFormatted}</span></span>
-                </div>
-            </td>
-        </tr>`;
-    };
-
-    // Helper: Data Row
-    const createRowHtml = (id) => {
-        const trade = trades[id];
-        const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-        const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
-        const metrics = calculateTradeMetrics(trade);
-        
-        // Show Group ID
-        const groupIdDisplay = trade.groupId 
-            ? `<div style="font-size:0.85em; color:var(--link-color); font-weight:bold;">${trade.groupId}</div>` 
-            : '';
-
-        const masterButtons = STATE.isMasterUser ? `<td class="action-buttons">
-            <button class="attach-image-btn" data-id="${id}" data-type="completed">Pic</button>
-            <button class="merge-btn-completed" data-id="${id}">Merge</button>
-            <button class="note-btn-completed" data-id="${id}">Note 1</button>
-            <button class="note2-btn-completed" data-id="${id}">Note 2</button>
-            <button class="note3-btn-completed" data-id="${id}">Note 3</button>
-            <button class="delete-btn-completed" data-id="${id}">Delete</button>
-        </td>` : '';
-
-        return `
-        <td>${trade.symbol}${groupIdDisplay}</td>
-        <td>${trade.type}</td>
-        <td>${parseFloat(trade.entry).toFixed(4)}</td>
-        <td class="note-cell">${(trade.entry_prices || [trade.entry]).join(', ')}</td>
-        <td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td>
-        <td>${parseFloat(trade.target || 0).toFixed(4)}</td>
-        <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
-        <td>${formatCurrency(metrics.expected_profit_taker)}</td>
-        <td>${formatCurrency(metrics.expected_profit_maker)}</td>
-        <td>${formatCurrency(metrics.expected_loss_taker)}</td>
-        <td>${formatCurrency(metrics.expected_loss_maker)}</td>
-        <td>${metrics.rr_taker || '--'}</td>
-        <td>${metrics.rr_maker || '--'}</td>
-        <td>${parseFloat(trade.exit_price).toFixed(4)}</td>
-        <td>${totalFees.toFixed(2)}</td>
-        <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
-        <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
-        <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
-        <td class="note-cell">${trade.note || ''}</td>
-        <td class="note-cell">${trade.note2 || ''}</td>
-        <td class="note-cell">${trade.note3 || ''}</td>
-        ${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtons}`;
-    };
-
+    // --- 2. PAGINATION LOGIC ---
+    let visibleDates = uniqueTradingDates;
     if (STATE.completedTradesShowAll) {
         const totalPages = uniqueTradingDates.length;
         if (STATE.completedTradesCurrentPage > totalPages) STATE.completedTradesCurrentPage = totalPages;
         
-        if (totalPages > 0) {
-            const dateForPage = uniqueTradingDates[STATE.completedTradesCurrentPage - 1];
-            const pageTradeIds = tradesByTradingDay[dateForPage] || [];
-            
-            rowsHtml = createSummaryHeader(dateForPage, pageTradeIds) + 
-                       pageTradeIds.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
-            
-            pageInfoSpan.textContent = `Page ${STATE.completedTradesCurrentPage} of ${totalPages}`;
-        }
+        // Slice dates for current page
+        const start = STATE.completedTradesCurrentPage - 1;
+        visibleDates = uniqueTradingDates.slice(start, start + 1); // Show 1 day per page (or adjust slice for more)
+        
+        pageInfoSpan.textContent = `Page ${STATE.completedTradesCurrentPage} of ${totalPages}`;
         showAllButton.style.display = 'none';
         paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
     } else {
+        // Default: Show only Today
         const currentLogicalTradingDay = (typeof getTradingDayString === 'function') 
             ? getTradingDayString(Date.now(), Date.now()) 
             : new Date().toLocaleDateString();
-            
-        const sessionTrades = tradesByTradingDay[currentLogicalTradingDay] || [];
+        
+        // If today exists, show it. If not, show empty state later.
+        visibleDates = uniqueTradingDates.filter(d => d === currentLogicalTradingDay);
+        
         const hasHistory = uniqueTradingDates.length > 1 || (uniqueTradingDates.length === 1 && uniqueTradingDates[0] !== currentLogicalTradingDay);
-
-        if (sessionTrades.length > 0) {
-            rowsHtml = createSummaryHeader(currentLogicalTradingDay, sessionTrades) + 
-                       sessionTrades.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
-        } else {
-            rowsHtml = '<tr><td colspan="24" style="text-align:center; padding:20px;">No completed trades for today.</td></tr>';
-        }
-
-        paginationControls.style.display = 'none';
         showAllButton.style.display = hasHistory ? 'block' : 'none';
+        paginationControls.style.display = 'none';
+    }
+
+    // --- 3. RENDER LOOP ---
+    if (visibleDates.length === 0) {
+        rowsHtml = '<tr><td colspan="24" style="text-align:center; padding:20px;">No completed trades for this view.</td></tr>';
+    } else {
+        visibleDates.forEach(dateStr => {
+            const groupsInDate = tradesByDayAndGroup[dateStr];
+            
+            // A. CALCULATE DAILY TOTALS
+            let dailyPnL = 0;
+            let dailyWins = 0, dailyLosses = 0, totalDailyTrades = 0;
+
+            Object.values(groupsInDate).forEach(groupTrades => {
+                groupTrades.forEach(t => {
+                    dailyPnL += parseFloat(t.net_result || 0);
+                    if (parseFloat(t.net_result) >= 0) dailyWins++; else dailyLosses++;
+                    totalDailyTrades++;
+                });
+            });
+
+            // B. RENDER DATE HEADER
+            const datePnlClass = dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+            rowsHtml += `
+            <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
+                <td colspan="24" style="padding: 10px 15px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size: 1.1em; font-weight: 800; color: var(--text-color);">📅 ${dateStr}</span>
+                        <span style="font-size: 0.95em;">
+                            <span style="color: var(--green-text); font-weight: bold;">${dailyWins}W</span> / 
+                            <span style="color: var(--red-text); font-weight: bold;">${dailyLosses}L</span>
+                            <span style="margin: 0 10px;">|</span>
+                            Daily Net: <span style="color: ${datePnlClass}; font-weight:800; font-size:1.1em;">$${dailyPnL.toFixed(2)}</span>
+                        </span>
+                    </div>
+                </td>
+            </tr>`;
+
+            // C. RENDER GROUPS
+            Object.keys(groupsInDate).forEach(groupId => {
+                const groupTrades = groupsInDate[groupId];
+                
+                // Calculate Group Stats
+                let groupNet = 0, groupFees = 0;
+                let groupWins = 0, groupLosses = 0;
+                let groupVolume = 0;
+                
+                groupTrades.forEach(t => {
+                    groupNet += parseFloat(t.net_result || 0);
+                    groupFees += (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0));
+                    groupVolume += parseFloat(t.size || 0); // Note: This sums all partial sizes closed
+                    if (parseFloat(t.net_result) >= 0) groupWins++; else groupLosses++;
+                });
+
+                const groupPnlClass = groupNet >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                const groupType = groupTrades[0].type || 'Mixed'; // Assuming all in group are same type usually
+
+                // D. RENDER GROUP SUMMARY ROW
+                rowsHtml += `
+                <tr class="completed-group-header">
+                    <td colspan="24" style="padding: 8px 15px;">
+                        <div class="group-stats">
+                            <span style="flex:1; font-weight:bold; color:var(--link-color);">📂 ${groupId} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${groupType})</span></span>
+                            
+                            <span style="width: 100px;">Vol: $${groupVolume.toLocaleString(undefined, {maximumFractionDigits:0})}</span>
+                            <span style="width: 80px; font-size:0.9em;">Fees: $${groupFees.toFixed(2)}</span>
+                            <span style="width: 80px;">${groupWins}W - ${groupLosses}L</span>
+                            
+                            <span style="width: 120px; text-align:right; font-weight:bold; font-size:1.1em; color:${groupPnlClass};">
+                                Net: $${groupNet.toFixed(2)}
+                            </span>
+                        </div>
+                    </td>
+                </tr>`;
+
+                // E. RENDER INDIVIDUAL TRADES (CHILDREN)
+                groupTrades.forEach(trade => {
+                    const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                    const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
+                    const metrics = calculateTradeMetrics(trade);
+                    
+                    const masterButtons = STATE.isMasterUser ? `<td class="action-buttons">
+                        <button class="attach-image-btn" data-id="${trade.dbId}" data-type="completed">Pic</button>
+                        <button class="merge-btn-completed" data-id="${trade.dbId}">Merge</button>
+                        <button class="note-btn-completed" data-id="${trade.dbId}">Note 1</button>
+                        <button class="note2-btn-completed" data-id="${trade.dbId}">Note 2</button>
+                        <button class="note3-btn-completed" data-id="${trade.dbId}">Note 3</button>
+                        <button class="delete-btn-completed" data-id="${trade.dbId}">Del</button>
+                    </td>` : '';
+
+                    rowsHtml += `
+                    <tr class="completed-child-row" style="font-size: 0.95em;">
+                        <td>${trade.symbol}</td>
+                        <td>${trade.type}</td>
+                        <td>${parseFloat(trade.entry).toFixed(4)}</td>
+                        <td class="note-cell">${(trade.entry_prices || [trade.entry]).join(', ')}</td>
+                        <td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td>
+                        <td>${parseFloat(trade.target || 0).toFixed(4)}</td>
+                        <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
+                        
+                        <td style="opacity:0.6;">${formatCurrency(metrics.expected_profit_taker)}</td>
+                        <td style="opacity:0.6;">${formatCurrency(metrics.expected_profit_maker)}</td>
+                        <td style="opacity:0.6;">${formatCurrency(metrics.expected_loss_taker)}</td>
+                        <td style="opacity:0.6;">${formatCurrency(metrics.expected_loss_maker)}</td>
+                        
+                        <td>${metrics.rr_taker || '--'}</td>
+                        <td>${metrics.rr_maker || '--'}</td>
+                        <td>${parseFloat(trade.exit_price).toFixed(4)}</td>
+                        <td>${totalFees.toFixed(2)}</td>
+                        <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
+                        <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
+                        <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
+                        <td class="note-cell">${trade.note || ''}</td>
+                        <td class="note-cell">${trade.note2 || ''}</td>
+                        <td class="note-cell">${trade.note3 || ''}</td>
+                        ${renderAttachmentThumbnails(trade, trade.dbId, 'completed')}
+                        ${masterButtons}
+                    </tr>`;
+                });
+            });
+        });
     }
 
     DOM.completedTradesTbody.innerHTML = rowsHtml;
     
-    // --- FIX: Force Section to Expand ---
+    // Auto-expand section to fit new content
     setTimeout(() => {
         adjustCollapsibleSize(DOM.completedTradesTbody);
     }, 150);
