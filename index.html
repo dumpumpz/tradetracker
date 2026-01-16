@@ -84,8 +84,37 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        .master-only { display: none; }
-        #add-trade-form { margin: 0 auto; padding: 0; border: none; border-radius: 0; background-color: transparent; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end; }
+/* Default: Hidden */
+.master-only { 
+    display: none !important; 
+}
+
+/* If Body has 'is-master' class, show block elements */
+body.is-master .master-only {
+    display: block !important;
+}
+
+/* If Body has 'is-master' class, show table cells properly */
+body.is-master td.master-only,
+body.is-master th.master-only {
+    display: table-cell !important;
+}
+
+/* Specific styling for the Close Group button */
+.close-group-btn {
+    background-color: var(--purple-bg) !important; 
+    color: var(--text-color) !important;
+    border: 1px solid var(--border-color);
+    width: 100%; 
+    font-size: 11px; 
+    padding: 6px; 
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 4px;
+}
+.close-group-btn:hover {
+    filter: brightness(0.9);
+}        #add-trade-form { margin: 0 auto; padding: 0; border: none; border-radius: 0; background-color: transparent; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end; }
         label { margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input, select, button, textarea { padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; width: 100%; box-sizing: border-box; font-family: inherit; background-color: var(--container-bg); color: var(--text-color); }
         button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.3s; margin-top: 5px; }
@@ -2292,9 +2321,10 @@ function renderLiveTable(data) {
         const trades = data || {};
         const groupedTrades = {};
 
-        // 1. Group Data & Aggregate
+        // --- 1. Group Data & Aggregate ---
         Object.keys(trades).forEach(id => {
             const trade = trades[id];
+            // Fallback for legacy trades
             const gid = trade.groupId || `${trade.symbol}_${trade.type}_Legacy`; 
             
             if (!groupedTrades[gid]) {
@@ -2307,12 +2337,12 @@ function renderLiveTable(data) {
                     totalQty: 0,
                     // Weighted Sums for Averages
                     wEntry: 0,
-                    wStop: 0,
-                    wOrigStop: 0, // For Original Risk Calc
+                    wOrigStop: 0, // Using Original Stop for Risk Calc
                     wTarget: 0,
                     // Financials
                     profitTaker: 0, profitMaker: 0,
                     lossTaker: 0, lossMaker: 0,
+                    fees: 0,
                     pnlPer100: 0
                 };
             }
@@ -2321,8 +2351,8 @@ function renderLiveTable(data) {
 
             const size = parseFloat(trade.size) || 0;
             const entry = parseFloat(trade.entry) || 0;
-            const stop = parseFloat(trade.stoploss) || 0;
-            const origStop = parseFloat(trade.original_stoploss) || stop; // Fallback to current if missing
+            // Use Original Stop if available, else current stop
+            const origStop = parseFloat(trade.original_stoploss) || parseFloat(trade.stoploss) || 0;
             const target = parseFloat(trade.target) || 0;
             
             const qty = (entry > 0) ? size / entry : 0;
@@ -2331,9 +2361,8 @@ function renderLiveTable(data) {
             groupedTrades[gid].totalSize += size;
             groupedTrades[gid].totalQty += qty;
             
-            // Weighted Sums
+            // Weighted Accumulation
             groupedTrades[gid].wEntry += (entry * qty);
-            groupedTrades[gid].wStop += (stop * qty);
             groupedTrades[gid].wOrigStop += (origStop * qty);
             groupedTrades[gid].wTarget += (target * qty);
 
@@ -2341,12 +2370,14 @@ function renderLiveTable(data) {
             groupedTrades[gid].profitMaker += parseFloat(metrics.expected_profit_maker || 0);
             groupedTrades[gid].lossTaker += parseFloat(metrics.expected_loss_taker || 0);
             groupedTrades[gid].lossMaker += parseFloat(metrics.expected_loss_maker || 0);
+            groupedTrades[gid].fees += parseFloat(metrics.estimated_total_fee || 0);
             groupedTrades[gid].pnlPer100 += parseFloat(metrics.pnl_per_100_move || 0);
         });
 
-        // 2. Generate HTML
+        // --- 2. Generate HTML ---
         let tableHtml = '';
         
+        // Sort groups by most recent trade date
         const sortedGroupKeys = Object.keys(groupedTrades).sort((a, b) => {
             const getLatestDate = (group) => Math.max(...group.trades.map(t => t.date || 0));
             return getLatestDate(groupedTrades[b]) - getLatestDate(groupedTrades[a]);
@@ -2356,45 +2387,54 @@ function renderLiveTable(data) {
             const group = groupedTrades[gid];
             const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
             
-            const masterGroupBtn = STATE.isMasterUser ? 
-                `<button class="close-group-btn" data-group-id="${gid}" style="background-color: var(--purple-bg); color: #fff; width:100%; font-size: 11px; padding: 4px;">Close Idea</button>` : '';
+            // Determine relevant PnL based on direction (Short=Maker, Long=Taker)
+            const relevantProfit = group.type === 'Short' ? group.profitMaker : group.profitTaker;
+            const relevantLoss = group.type === 'Short' ? group.lossMaker : group.lossTaker;
 
-            // Group Summary Row (Table View)
+            // Parent Row Button (Master Only)
+            // Note: We use the 'master-only' class so it hides/shows via CSS based on login status
+            const masterGroupBtn = `<button class="close-group-btn" data-group-id="${gid}">Close Idea</button>`;
+
+            // --- PARENT ROW (Summary) ---
             tableHtml += `
             <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color); font-weight: bold;">
-                <td style="border-left: 3px solid var(--link-color);">${group.symbol}</td>
+                <td style="border-left: 4px solid var(--link-color);">${group.symbol}</td>
                 <td style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${group.type}</td>
                 <td colspan="3" style="color: var(--text-color); font-size: 0.95em;">📂 ${gid}</td>
+                
                 <td>--</td> <td>--</td> <td>--</td> <td>--</td> <td>--</td> 
                 
+                <!-- Group Totals -->
                 <td style="font-size: 1.05em;">$${group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
                 <td style="font-family: 'Courier New';">${group.totalQty.toFixed(4)}</td>
                 <td>$${group.pnlPer100.toFixed(2)}</td>
-                <td>--</td> <!-- Fees handled in summary card -->
+                <td>$${group.fees.toFixed(2)}</td>
                 
-                <!-- Display PnL based on type preference (Visual only for table, full details in card) -->
-                <td style="color: var(--green-text); opacity: 0.5;">${group.type === 'Long' ? group.profitTaker.toFixed(2) : '--'}</td>
-                <td style="color: var(--green-text); opacity: 0.5;">${group.type === 'Short' ? group.profitMaker.toFixed(2) : '--'}</td>
-                <td style="color: var(--red-text); opacity: 0.5;">${group.type === 'Long' ? group.lossTaker.toFixed(2) : '--'}</td>
-                <td style="color: var(--red-text); opacity: 0.5;">${group.type === 'Short' ? group.lossMaker.toFixed(2) : '--'}</td>
+                <!-- Display Relevant PnL (Merged view for table cleanliness) -->
+                <td colspan="2" style="text-align:center; color: var(--green-text); opacity: 0.8;">
+                    TP: $${relevantProfit.toFixed(2)}
+                </td>
+                <td colspan="2" style="text-align:center; color: var(--red-text); opacity: 0.8;">
+                    SL: $${relevantLoss.toFixed(2)}
+                </td>
                 
                 <td colspan="4" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(4)}</td>
                 <td class="master-only">${masterGroupBtn}</td>
             </tr>`;
 
-            // Child Rows
+            // --- CHILD ROWS (Individual Trades) ---
             group.trades.forEach(trade => {
                 const metrics = calculateTradeMetrics(trade);
                 const breakevenPrice = calculateBreakevenPrice(trade);
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
                 
-                const masterButtons = STATE.isMasterUser ? 
-                    `<div style="display:flex; gap:2px; justify-content:flex-end;">
-                        <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px;">W</button>
-                        <button class="loss-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px;">L</button>
-                        <button class="add-to-position-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px;">+</button>
-                        <button class="delete-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:var(--red-text);">×</button>
-                     </div>` : '';
+                const masterButtons = `
+                    <div style="display:flex; gap:2px; justify-content:flex-end;">
+                        <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#28a745;">W</button>
+                        <button class="loss-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#dc3545;">L</button>
+                        <button class="add-to-position-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#17a2b8;">+</button>
+                        <button class="delete-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#6c757d;">×</button>
+                    </div>`;
 
                 tableHtml += `
                 <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
@@ -2429,7 +2469,7 @@ function renderLiveTable(data) {
 
         DOM.tradesTbody.innerHTML = tableHtml;
         
-        // Header Update
+        // Update Headers
         const thead = DOM.tradesTbody.closest('table').querySelector('thead');
         if(thead) thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th class="master-only">Actions</th></tr>`;
 
@@ -2442,7 +2482,6 @@ function renderLiveTable(data) {
         console.error("Error rendering live table:", e);
     }
 }
-
 // Helper for Summary Cards (Separated for clarity)
 function renderLiveSummaryCards(groupedTrades) {
     const summaryContainer = document.getElementById('live-trades-summary-container');
@@ -3914,12 +3953,11 @@ function handleAddTradeSubmit(e) {
                 });
             }
         }
-
 function handleTradeAction(e) {
     if (!STATE.isMasterUser) return;
 
-    // --- 1. Handle Merge Mode clicks on rows (Specific to Completed Trades table) ---
-    // If we are in merge mode, clicking a row (not a button) triggers the merge execution
+    // --- 1. Handle Merge Mode (Specific to Completed Trades) ---
+    // If we are in merge mode, clicking a ROW (not a button) triggers the merge.
     if (STATE.isMerging) {
         const targetRow = e.target.closest('tr');
         if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody' && !e.target.closest('button')) {
@@ -3929,20 +3967,20 @@ function handleTradeAction(e) {
         return;
     }
 
+    // --- 2. Button Detection ---
     const button = e.target.closest('button');
     if (!button) return;
 
-    // --- 2. NEW: Handle Close Group (Top-level check) ---
-    // This handles the "Close Group Idea" button on the Parent Row
+    const { id } = button.dataset;
+
+    // --- 3. NEW: Close Group Idea (Parent Row) ---
     if (button.matches('.close-group-btn')) {
         const groupId = button.dataset.groupId;
         handleCloseGroup(groupId);
         return;
     }
 
-    const { id } = button.dataset;
-
-    // --- 3. Handle RESTING ORDERS Actions ---
+    // --- 4. Resting Orders Logic ---
     if (button.closest('#resting-trades-tbody')) {
         if (button.matches('.delete-resting-btn')) {
             if (confirm('Delete this resting order?')) {
@@ -3953,7 +3991,6 @@ function handleTradeAction(e) {
                 dbRefs.restingOrders.child(id).once('value', snapshot => {
                     const tradeData = snapshot.val();
                     if (tradeData) {
-                        // Update date to now as it becomes live
                         const liveTrade = { ...tradeData, date: firebase.database.ServerValue.TIMESTAMP };
                         dbRefs.trades.push(liveTrade)
                             .then(() => dbRefs.restingOrders.child(id).remove())
@@ -3965,7 +4002,7 @@ function handleTradeAction(e) {
         return;
     }
 
-    // --- 4. Handle LIVE & COMPLETED Individual Actions ---
+    // --- 5. Live & Completed Individual Actions ---
     const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
     const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
 
@@ -3983,7 +4020,7 @@ function handleTradeAction(e) {
     } 
     else if (button.matches('.delete-btn, .delete-btn-completed')) {
         if (confirm('Delete this trade?')) {
-            if (isCompleted) resetMergeState(); // Safety cleanup
+            if (isCompleted) resetMergeState();
             tradeRef.remove();
         }
     } 
@@ -3992,13 +4029,13 @@ function handleTradeAction(e) {
             const newNote = prompt("Enter Note 1:", snapshot.val() || "");
             if (newNote !== null) tradeRef.update({ note: newNote });
         });
-    } 
+    }
     else if (button.matches('.note2-btn-completed')) {
         tradeRef.child('note2').once('value', snapshot => {
             const newNote2 = prompt("Enter Note 2:", snapshot.val() || "");
             if (newNote2 !== null) tradeRef.update({ note2: newNote2 });
         });
-    } 
+    }
     else if (button.matches('.note3-btn-completed')) {
         tradeRef.child('note3').once('value', snapshot => {
             const newNote3 = prompt("Enter Note 3:", snapshot.val() || "");
@@ -4006,7 +4043,6 @@ function handleTradeAction(e) {
         });
     }
 }
-
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); if (attachBtn) { handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type); return true; }
             const delImgBtn = e.target.closest('.delete-trade-image'); if (delImgBtn) { const { entryId, entryType, imageId, filename } = delImgBtn.dataset; handleDeleteAttachmentImage(entryId, entryType, imageId, filename); return true; }
@@ -4307,33 +4343,34 @@ dbRefs.journalImages.on('value', (s) => {
             });
         }
 
-        function checkMasterMode() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('master') === 'true') {
-                const password = prompt("Please enter master password:");
-                if (password) {
-                    STATE.isMasterUser = true; STATE.masterPassword = password;
-                    document.querySelectorAll('.master-only').forEach(el => {
-                       if (el.classList.contains('collapsible-section') || el.id === 'favourite-btn') {
-                           el.style.display = 'block';
-                       } else if (el.tagName === 'TH' || el.tagName === 'TD') {
-                           el.style.display = 'table-cell';
-                       } else if (el.id.startsWith('save-setups-')) {
-                           el.style.display = 'inline-block';
-                       } else {
-                           el.style.display = 'block';
-                       }
-                    });
-                    DOM.journalEntryEl.readOnly = false;
-                    document.querySelectorAll('.setups-table .editable-setup-cell').forEach(cell => cell.setAttribute('contenteditable', 'true'));
-                    DOM.primarySetupsNotes.readOnly = false; DOM.secondarySetupsNotes.readOnly = false;
-                }
-            }
-            if (!STATE.isMasterUser) {
-                DOM.journalEntryEl.readOnly = true;
-                DOM.primarySetupsNotes.readOnly = true; DOM.secondarySetupsNotes.readOnly = true;
-            }
+   function checkMasterMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('master') === 'true') {
+        // Simple password check
+        const password = prompt("Please enter master password:");
+        if (password) {
+            STATE.isMasterUser = true;
+            STATE.masterPassword = password;
+            
+            // --- THE FIX: Add class to body ---
+            document.body.classList.add('is-master');
+            
+            // Enable Inputs
+            DOM.journalEntryEl.readOnly = false;
+            document.querySelectorAll('.setups-table .editable-setup-cell')
+                .forEach(cell => cell.setAttribute('contenteditable', 'true'));
+            DOM.primarySetupsNotes.readOnly = false; 
+            DOM.secondarySetupsNotes.readOnly = false;
         }
+    }
+    
+    if (!STATE.isMasterUser) {
+        document.body.classList.remove('is-master');
+        DOM.journalEntryEl.readOnly = true;
+        DOM.primarySetupsNotes.readOnly = true; 
+        DOM.secondarySetupsNotes.readOnly = true;
+    }
+}
 // 1. Helper to open a specific section
 function openCollapsibleSection(sectionElement) {
     if (!sectionElement || sectionElement.classList.contains('is-open')) return;
