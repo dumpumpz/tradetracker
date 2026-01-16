@@ -2191,115 +2191,262 @@ const getTradingDayString = (closedTS, openedTS) => {
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 function renderRestingTable(data) {
-            const trades = data || {};
-            const groups = {};
+    try {
+        const trades = data || {};
+        const groupedTrades = {};
 
-            const masterEditableCell = (className, field, tradeId, value, isMaster, digits = 2) => { 
-                const formattedValue = (typeof value === 'number') ? parseFloat(value).toFixed(digits) : value; 
-                return isMaster ? `<td class="${className}" data-id="${tradeId}" data-field="${field}" contenteditable="true" title="Click to edit">${formattedValue}</td>` : `<td>${formattedValue}</td>`; 
-            };
+        // --- 1. Group & Aggregate ---
+        Object.keys(trades).forEach(id => {
+            const trade = trades[id];
+            const gid = trade.groupId || `${trade.symbol}_${trade.type}_Legacy`;
 
-            const masterButtonsHtml = (id) => STATE.isMasterUser ? 
-                `<td class="action-buttons">
-                    <button class="activate-btn" data-id="${id}" title="Move to Live Trades" style="background-color: #28a745; display: flex; align-items: center; justify-content: center; width: 100%; font-weight: bold;">▶ Active</button>
-                    <button class="delete-resting-btn" data-id="${id}" style="margin-top: 4px; background-color: #dc3545;">Delete</button>
-                 </td>` : '';
+            if (!groupedTrades[gid]) {
+                groupedTrades[gid] = {
+                    id: gid,
+                    symbol: trade.symbol,
+                    type: trade.type,
+                    trades: [],
+                    totalSize: 0,
+                    totalQty: 0,
+                    wEntry: 0,
+                    wStop: 0,
+                    wTarget: 0,
+                    // Financials
+                    profitTaker: 0, profitMaker: 0,
+                    lossTaker: 0, lossMaker: 0,
+                    fees: 0,
+                    pnlPer100: 0
+                };
+            }
 
-            const rowsHtml = Object.keys(trades).sort((a, b) => new Date(trades[b].date) - new Date(trades[a].date)).map(id => {
-                const trade = trades[id];
+            groupedTrades[gid].trades.push({ ...trade, dbId: id });
+
+            const size = parseFloat(trade.size) || 0;
+            const entry = parseFloat(trade.entry) || 0;
+            const stop = parseFloat(trade.stoploss) || 0;
+            const target = parseFloat(trade.target) || 0;
+            const qty = (entry > 0) ? size / entry : 0;
+            
+            const metrics = calculateTradeMetrics(trade);
+
+            groupedTrades[gid].totalSize += size;
+            groupedTrades[gid].totalQty += qty;
+            
+            groupedTrades[gid].wEntry += (entry * qty);
+            groupedTrades[gid].wStop += (stop * qty);
+            groupedTrades[gid].wTarget += (target * qty);
+
+            groupedTrades[gid].profitTaker += parseFloat(metrics.expected_profit_taker || 0);
+            groupedTrades[gid].profitMaker += parseFloat(metrics.expected_profit_maker || 0);
+            groupedTrades[gid].lossTaker += parseFloat(metrics.expected_loss_taker || 0);
+            groupedTrades[gid].lossMaker += parseFloat(metrics.expected_loss_maker || 0);
+            groupedTrades[gid].fees += parseFloat(metrics.estimated_total_fee || 0);
+            groupedTrades[gid].pnlPer100 += parseFloat(metrics.pnl_per_100_move || 0);
+        });
+
+        // --- 2. Generate HTML ---
+        let tableHtml = '';
+        
+        // Sort by most recent added
+        const sortedGroupKeys = Object.keys(groupedTrades).sort((a, b) => {
+            const getLatestDate = (group) => Math.max(...group.trades.map(t => t.date || 0));
+            return getLatestDate(groupedTrades[b]) - getLatestDate(groupedTrades[a]);
+        });
+
+        sortedGroupKeys.forEach(gid => {
+            const group = groupedTrades[gid];
+            const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
+            
+            // Dominant PnL for Summary Row
+            const dominantProfit = (group.type === 'Short') ? group.profitMaker : group.profitTaker;
+            const dominantLoss = (group.type === 'Short') ? group.lossMaker : group.lossTaker;
+
+            // --- PARENT ROW (Summary) ---
+            tableHtml += `
+            <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color); font-weight: bold;">
+                <td style="border-left: 4px solid var(--subtle-text);">${group.symbol}</td>
+                <td style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${group.type}</td>
+                <td colspan="3" style="color: var(--text-color); font-size: 0.95em;">📂 ${gid}</td>
+                
+                <td>--</td> <td>--</td> <td>--</td> <td>--</td> <td>--</td> 
+                
+                <!-- Totals -->
+                <td style="font-size: 1.05em;">$${group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                <td style="font-family: 'Courier New';">${group.totalQty.toFixed(4)}</td>
+                <td>$${group.pnlPer100.toFixed(2)}</td>
+                <td>$${group.fees.toFixed(2)}</td>
+                
+                <td colspan="2" style="text-align:center; color: var(--green-text); opacity: 0.8;">
+                    TP: $${dominantProfit.toFixed(2)}
+                </td>
+                <td colspan="2" style="text-align:center; color: var(--red-text); opacity: 0.8;">
+                    SL: $${dominantLoss.toFixed(2)}
+                </td>
+                
+                <td colspan="3" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(4)}</td>
+                <td class="master-only"></td> <!-- Placeholder for future Group Action -->
+            </tr>`;
+
+            // --- CHILD ROWS ---
+            group.trades.forEach(trade => {
                 const metrics = calculateTradeMetrics(trade);
+                
+                // Conditional PnL Columns
+                const isMaker = (trade.entryFeeType === 'maker');
+                const valProfitTaker = !isMaker ? parseFloat(metrics.expected_profit_taker).toFixed(2) : '--';
+                const valProfitMaker = isMaker ? parseFloat(metrics.expected_profit_maker).toFixed(2) : '--';
+                const valLossTaker = !isMaker ? parseFloat(metrics.expected_loss_taker).toFixed(2) : '--';
+                const valLossMaker = isMaker ? parseFloat(metrics.expected_loss_maker).toFixed(2) : '--';
 
-                const tSize = parseFloat(trade.size) || 0;
-                const tEntry = parseFloat(trade.entry) || 0;
-                const tQty = (tSize && tEntry) ? (tSize / tEntry) : 0;
+                const styleTaker = !isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
+                const styleMaker = isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
 
+                // Note: 'setupType' is editable for legacy reasons or quick categorization
                 const setupCat = trade.setupType || 'Major';
-                const groupKey = `${setupCat}_${trade.type}`;
 
-                if (!groups[groupKey]) {
-                    groups[groupKey] = { name: `${setupCat} ${trade.type}`, direction: trade.type, count: 0, size: 0, qty: 0, profitTaker: 0, profitMaker: 0, lossTaker: 0, lossMaker: 0 };
-                }
+                const masterButtons = STATE.isMasterUser ? 
+                    `<div style="display:flex; gap:2px; justify-content:flex-end;">
+                        <button class="activate-btn" data-id="${trade.dbId}" style="padding:4px 8px; font-size:11px; background:#28a745; width:auto;">▶ Active</button>
+                        <button class="delete-resting-btn" data-id="${trade.dbId}" style="padding:4px 8px; font-size:11px; background:#dc3545; width:auto;">Del</button>
+                     </div>` : '';
 
-                const g = groups[groupKey];
-                g.count++;
-                if (tSize > 0 && tEntry > 0) {
-                    g.size += tSize;
-                    g.qty += tQty;
-                }
-                g.profitTaker += parseFloat(metrics.expected_profit_taker || 0);
-                g.profitMaker += parseFloat(metrics.expected_profit_maker || 0);
-                g.lossTaker += parseFloat(metrics.expected_loss_taker || 0);
-                g.lossMaker += parseFloat(metrics.expected_loss_maker || 0);
-
-                return `<tr>
-                    <td>${trade.symbol}</td>
-                    <td style="color: ${trade.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${trade.type}</td>
-                    ${masterEditableCell('editable-cell', 'setupType', id, setupCat, STATE.isMasterUser)}
-                    ${masterEditableCell('editable-cell', 'entry', id, trade.entry, STATE.isMasterUser, 4)}
-                    ${masterEditableCell('editable-cell', 'stoploss', id, trade.stoploss, STATE.isMasterUser, 4)}
-                    ${masterEditableCell('editable-cell', 'target', id, trade.target, STATE.isMasterUser, 4)}
-                    ${masterEditableCell('editable-cell', 'size', id, trade.size, STATE.isMasterUser, 2)}
+                tableHtml += `
+                <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
+                    <td></td> <td></td> 
+                    <td style="text-align:right;">↳ Order:</td>
                     
-                    <!-- QTY COLUMN -->
-                    <td style="font-family: 'Courier New'; font-weight: bold; color: var(--subtle-text);">${tQty.toFixed(4)}</td>
+                    ${/* Editable Setup Type */ ''}
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="setupType" contenteditable="${STATE.isMasterUser}">${setupCat}</td>
 
-                    <td>${parseFloat(metrics.estimated_total_fee || 0).toFixed(2)}</td>
-                    <td style="color: #28a745;">$${parseFloat(metrics.expected_profit_taker || 0).toFixed(2)}</td>
-                    <td style="color: #28a745;">$${parseFloat(metrics.expected_profit_maker || 0).toFixed(2)}</td>
-                    <td style="color: #dc3545;">$${parseFloat(metrics.expected_loss_taker || 0).toFixed(2)}</td>
-                    <td style="color: #dc3545;">$${parseFloat(metrics.expected_loss_maker || 0).toFixed(2)}</td>
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(4)}</td>
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(4)}</td>
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(4)}</td>
+                    
                     <td>${metrics.rr_taker}</td>
                     <td>${metrics.rr_maker}</td>
-                    <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
-                    <td class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
-                    ${masterButtonsHtml(id)}
+
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="size" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.size).toFixed(2)}</td>
+                    <td>${(parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
+                    <td>--</td>
+                    
+                    <td>${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
+                    
+                    <td style="${styleTaker}">${valProfitTaker}</td>
+                    <td style="${styleMaker}">${valProfitMaker}</td>
+                    <td style="${styleTaker}">${valLossTaker}</td>
+                    <td style="${styleMaker}">${valLossMaker}</td>
+
+                    <td colspan="3" class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
+                    <td class="master-only">${masterButtons}</td>
                 </tr>`;
-            }).join('');
+            });
+        });
 
-            // ADDED "Qty" Header
-            const thead = DOM.restingTradesTbody.closest('table').querySelector('thead');
-            if(thead) thead.innerHTML = `<tr><th>Symbol</th><th>Type</th><th>Setup</th><th>Entry Price</th><th>Stop Loss</th><th>Target</th><th>Position Value ($)</th><th>Qty</th><th>Est. Total Fee ($)</th><th>Proj. Profit (Taker)</th><th>Proj. Profit (Maker)</th><th>Proj. Loss (Taker)</th><th>Proj. Loss (Maker)</th><th>RR (Taker)</th><th>RR (Maker)</th><th>Date Added</th><th>Note</th><th class="master-only">Actions</th></tr>`;
+        DOM.restingTradesTbody.innerHTML = tableHtml;
+        
+        // Update Headers to match Live Table + 'Setup' column
+        const thead = DOM.restingTradesTbody.closest('table').querySelector('thead');
+        if(thead) thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Setup</th><th>Entry</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="3">Notes / Date</th><th class="master-only">Actions</th></tr>`;
 
-            DOM.restingTradesTbody.innerHTML = rowsHtml;
+        // Render Summaries
+        renderRestingSummaryCards(groupedTrades);
+        
+        setTimeout(() => adjustCollapsibleSize(DOM.restingTradesTbody), 10);
 
-            // --- RENDER DYNAMIC CARDS ---
-            const summaryContainer = document.getElementById('resting-trades-summary-container');
-            if (summaryContainer) {
-                const activeKeys = Object.keys(groups);
-                if (activeKeys.length > 0) {
-                    summaryContainer.style.display = 'block';
-                    let summaryHtml = '<div class="summary-split-container">';
-
-                    activeKeys.forEach(key => {
-                        const s = groups[key];
-                        const avgEntry = s.qty > 0 ? (s.size / s.qty) : 0;
-                        const cardClass = s.direction === 'Long' ? 'long-card' : 'short-card';
-
-                        summaryHtml += `
-                        <div class="summary-card ${cardClass}">
-                            <h5 style="color: ${s.direction === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${s.name} Orders (${s.count})</h5>
-                            <div class="summary-grid-row">
-                                <div><span class="sum-label">Total Size</span><span class="sum-val">$${s.size.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
-                                <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
-                            </div>
-                            <div class="summary-grid-row financials">
-                                <div><span class="sum-label">Exp Profit (T)</span><span class="sum-val val-green">$${s.profitTaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
-                                <div><span class="sum-label">Exp Profit (M)</span><span class="sum-val val-green">$${s.profitMaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
-                                <div><span class="sum-label">Exp Loss (T)</span><span class="sum-val val-red">$${s.lossTaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
-                                <div><span class="sum-label">Exp Loss (M)</span><span class="sum-val val-red">$${s.lossMaker.toLocaleString(undefined, {minimumFractionDigits:2})}</span></div>
-                            </div>
-                        </div>`;
-                    });
-
-                    summaryHtml += '</div>';
-                    summaryContainer.innerHTML = summaryHtml;
-                } else {
-                    summaryContainer.style.display = 'none';
-                }
-            }
-            setTimeout(() => adjustCollapsibleSize(DOM.restingTradesTbody), 10);
+    } catch (e) {
+        console.error("Error rendering resting table:", e);
+    }
 }
 
+
+        function renderRestingSummaryCards(groupedTrades) {
+    const summaryContainer = document.getElementById('resting-trades-summary-container');
+    if (!summaryContainer) return;
+    
+    const groupKeys = Object.keys(groupedTrades);
+    if (groupKeys.length === 0) {
+        summaryContainer.style.display = 'none';
+        return;
+    }
+
+    summaryContainer.style.display = 'block';
+    let summaryHtml = '<div class="summary-split-container">';
+
+    groupKeys.forEach(key => {
+        const g = groupedTrades[key];
+        
+        // Averages
+        const avgEntry = g.totalQty > 0 ? (g.wEntry / g.totalQty) : 0;
+        const avgStop = g.totalQty > 0 ? (g.wStop / g.totalQty) : 0;
+        const avgTarget = g.totalQty > 0 ? (g.wTarget / g.totalQty) : 0;
+        
+        const riskDistance = Math.abs(avgEntry - avgStop);
+        const directionMult = (g.type === 'Long') ? 1 : -1;
+        
+        let t1 = "--", t2 = "--", t4 = "--", actualRR = "0.00";
+        if (avgEntry > 0 && avgStop > 0 && riskDistance > 0) {
+            t1 = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(4);
+            t2 = (avgEntry + (riskDistance * 2 * directionMult)).toFixed(4);
+            t4 = (avgEntry + (riskDistance * 4 * directionMult)).toFixed(4);
+            
+            const rewardDistance = Math.abs(avgTarget - avgEntry);
+            actualRR = (rewardDistance / riskDistance).toFixed(2);
+        }
+
+        // Dominant Fee Logic
+        let makerSize = 0, takerSize = 0;
+        g.trades.forEach(t => {
+            const s = parseFloat(t.size) || 0;
+            if (t.entryFeeType === 'maker') makerSize += s;
+            else takerSize += s;
+        });
+        const isMakerDominant = makerSize > takerSize;
+        const feeLabel = isMakerDominant ? 'Maker' : 'Taker';
+
+        let expProfit = isMakerDominant ? g.profitMaker : g.profitTaker;
+        let expLoss = isMakerDominant ? g.lossMaker : g.lossTaker;
+
+        const cardClass = g.type === 'Long' ? 'long-card' : 'short-card';
+
+        summaryHtml += `
+        <div class="summary-card ${cardClass}">
+            <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id} (${g.type})</h5>
+            
+            <div class="summary-grid-row">
+                <div><span class="sum-label">Total Size</span><span class="sum-val">$${g.totalSize.toLocaleString(undefined, {minimumFractionDigits:0})}</span></div>
+                <div><span class="sum-label">PnL per $100</span><span class="sum-val" style="font-weight:900;">$${g.pnlPer100.toFixed(2)}</span></div>
+            </div>
+            
+            <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 8px;">
+                <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
+                <div><span class="sum-label">Target RR</span><span class="sum-val" style="color: #d39e00;">${actualRR}:1</span></div>
+            </div>
+
+            <div class="summary-grid-row">
+                <div><span class="sum-label">Avg Stop</span><span class="sum-val val-red">${avgStop.toFixed(4)}</span></div>
+                <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
+            </div>
+            <div class="summary-grid-row">
+                <div><span class="sum-label">1:2 Target</span><span class="sum-val" style="color:var(--green-text)">${t2}</span></div>
+                <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
+            </div>
+
+            <div class="summary-grid-row financials">
+                <div>
+                    <span class="sum-label">Proj Profit (${feeLabel})</span>
+                    <span class="sum-val val-green">$${expProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                </div>
+                <div>
+                    <span class="sum-label">Proj Loss (${feeLabel})</span>
+                    <span class="sum-val val-red">$${expLoss.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                </div>
+            </div>
+        </div>`;
+    });
+    
+    summaryHtml += '</div>';
+    summaryContainer.innerHTML = summaryHtml;
+}
     function handleRestingTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
             const tradeId = cell.dataset.id;
