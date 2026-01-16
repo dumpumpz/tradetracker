@@ -2548,7 +2548,7 @@ function renderLiveSummaryCards(groupedTrades) {
     summaryContainer.innerHTML = summaryHtml;
 }
 
-        function handleCloseGroup(groupId) {
+       function handleCloseGroup(groupId) {
     if (!STATE.isMasterUser) return;
     
     // 1. Get all live trades
@@ -2564,20 +2564,21 @@ function renderLiveSummaryCards(groupedTrades) {
 
         if (groupTradeIds.length === 0) return alert("No active trades found for this group.");
 
-        // 3. Ask details ONCE
-        const exitPriceStr = prompt(`Closing Group: ${groupId}\n(${groupTradeIds.length} trades)\n\nEnter Exit Price:`);
+        // 3. Ask for Exit Details
+        const exitPriceStr = prompt(`Closing Group: ${groupId}\n(${groupTradeIds.length} active trades)\n\nEnter Exit Price:`);
         if (exitPriceStr === null) return;
+        
         const exitPrice = parseFloat(exitPriceStr);
         if (isNaN(exitPrice)) return alert("Invalid Price");
 
         let exitFeeType = prompt("Enter exit fee type (maker/taker):", "taker");
         if (!exitFeeType || (exitFeeType !== 'maker' && exitFeeType !== 'taker')) return;
 
-        // 4. Loop and Close
+        // 4. Process Each Trade
         groupTradeIds.forEach(tradeId => {
             const trade = allTrades[tradeId];
             
-            // Calc Net Result
+            // Calculate Result
             const result = calculateNetResult(trade, exitPrice, exitFeeType);
 
             const completedTrade = {
@@ -2586,10 +2587,11 @@ function renderLiveSummaryCards(groupedTrades) {
                 closed_date: firebase.database.ServerValue.TIMESTAMP,
                 exit_price: exitPrice,
                 exitFeeType: exitFeeType,
+                // Note logic: Append closing info
                 note: (trade.note || '') + `\nGroup Close (${groupId}) @ $${exitPrice}`
             };
 
-            // Push to completed, Remove from live
+            // Atomic move: Add to Completed, Remove from Live
             dbRefs.completedTrades.push(completedTrade);
             dbRefs.trades.child(tradeId).remove();
         });
@@ -2613,7 +2615,10 @@ function renderCompletedTable(data) {
 
     tradeIds.forEach(id => {
         const t = trades[id];
-        const tradingDayStr = getTradingDayString(t.closed_date, t.date);
+        // Ensure helper exists, otherwise fallback to simple date
+        const tradingDayStr = (typeof getTradingDayString === 'function') 
+            ? getTradingDayString(t.closed_date, t.date) 
+            : new Date(t.closed_date).toLocaleDateString();
         
         if (!tradesByTradingDay[tradingDayStr]) {
             tradesByTradingDay[tradingDayStr] = [];
@@ -2622,10 +2627,8 @@ function renderCompletedTable(data) {
         tradesByTradingDay[tradingDayStr].push(id);
     });
 
-    // Sort dates descending (newest first)
     uniqueTradingDates.sort((a, b) => b.localeCompare(a));
 
-    // --- INNER HELPER: CREATE THE SUMMARY ROW ---
     const createSummaryHeader = (dateStr, ids) => {
         let dayWins = 0, dayLosses = 0, dayPnL = 0;
         ids.forEach(id => {
@@ -2639,7 +2642,7 @@ function renderCompletedTable(data) {
         const pnlFormatted = `$${Math.abs(dayPnL).toFixed(2)}`;
 
         return `<tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color);">
-            <td colspan="23" style="text-align: left; padding: 10px 10px 10px 20px;">
+            <td colspan="24" style="text-align: left; padding: 10px 10px 10px 20px;">
                 <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
                     Date: ${dateStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${ids.length} Trades)</span>
                 </div>
@@ -2653,12 +2656,17 @@ function renderCompletedTable(data) {
         </tr>`;
     };
 
-    // --- INNER HELPER: CREATE DATA ROW ---
     const createRowHtml = (id) => {
         const trade = trades[id];
         const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
         const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
         const metrics = calculateTradeMetrics(trade);
+        
+        // Show Group ID if it exists
+        const groupIdDisplay = trade.groupId 
+            ? `<div style="font-size:0.85em; color:var(--link-color); font-weight:bold;">${trade.groupId}</div>` 
+            : '';
+
         const masterButtons = STATE.isMasterUser ? `<td class="action-buttons">
             <button class="attach-image-btn" data-id="${id}" data-type="completed">Pic</button>
             <button class="merge-btn-completed" data-id="${id}">Merge</button>
@@ -2668,7 +2676,11 @@ function renderCompletedTable(data) {
             <button class="delete-btn-completed" data-id="${id}">Delete</button>
         </td>` : '';
 
-        return `<td>${trade.symbol}</td>
+        return `
+        <td>
+            ${trade.symbol}
+            ${groupIdDisplay} <!-- Added Group ID here -->
+        </td>
         <td>${trade.type}</td>
         <td>${parseFloat(trade.entry).toFixed(4)}</td>
         <td class="note-cell">${(trade.entry_prices || [trade.entry]).join(', ')}</td>
@@ -2692,8 +2704,8 @@ function renderCompletedTable(data) {
         ${renderAttachmentThumbnails(trade, id, 'completed')}${masterButtons}`;
     };
 
+    // Pagination Logic
     if (STATE.completedTradesShowAll) {
-        // --- PAGINATION MODE ---
         const totalPages = uniqueTradingDates.length;
         if (STATE.completedTradesCurrentPage > totalPages) STATE.completedTradesCurrentPage = totalPages;
         
@@ -2709,8 +2721,10 @@ function renderCompletedTable(data) {
         showAllButton.style.display = 'none';
         paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
     } else {
-        // --- DEFAULT MODE (CURRENT TRADING SESSION) ---
-        const currentLogicalTradingDay = getTradingDayString(Date.now(), Date.now());
+        const currentLogicalTradingDay = (typeof getTradingDayString === 'function') 
+            ? getTradingDayString(Date.now(), Date.now()) 
+            : new Date().toLocaleDateString();
+            
         const sessionTrades = tradesByTradingDay[currentLogicalTradingDay] || [];
         const hasHistory = uniqueTradingDates.length > 1 || (uniqueTradingDates.length === 1 && uniqueTradingDates[0] !== currentLogicalTradingDay);
 
@@ -2718,7 +2732,7 @@ function renderCompletedTable(data) {
             rowsHtml = createSummaryHeader(currentLogicalTradingDay, sessionTrades) + 
                        sessionTrades.map(id => `<tr>${createRowHtml(id)}</tr>`).join('');
         } else {
-            rowsHtml = '<tr><td colspan="23" style="text-align:center; padding:20px;"></td></tr>';
+            rowsHtml = '<tr><td colspan="24" style="text-align:center; padding:20px;">No completed trades for today.</td></tr>';
         }
 
         paginationControls.style.display = 'none';
@@ -2726,7 +2740,6 @@ function renderCompletedTable(data) {
     }
 
     DOM.completedTradesTbody.innerHTML = rowsHtml;
-    adjustCollapsibleSize(DOM.completedTradesTbody);
 }
         function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
@@ -3274,15 +3287,16 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
         exit_fee: exitFee 
     };
 }
-   function completeTrade(tradeId, outcome) {
+ function completeTrade(tradeId, outcome) {
     dbRefs.trades.child(tradeId).once('value', snapshot => {
         const trade = snapshot.val(); if (!trade) return;
         
         // 1. Ask for Exit Price
-        const exitPriceStr = prompt(`Enter exact exit price:`, outcome === 'win' ? trade.target : trade.stoploss);
+        const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
+        const exitPriceStr = prompt(`Closing Trade (${trade.groupId || trade.symbol})\n\nEnter exact exit price:`, defaultExit);
         if (exitPriceStr === null) return;
 
-        // 2. Ask for Amount to Close
+        // 2. Ask for Amount to Close (Partial Support)
         const currentSize = parseFloat(trade.size);
         const closeSizeStr = prompt(`How much Value ($) are you closing?\n(Current Total: $${currentSize.toFixed(2)})`, currentSize);
         if (closeSizeStr === null) return;
@@ -3302,12 +3316,11 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
         }
 
         // 3. Calculate results for the portion being closed
-        // We create a temporary trade object representing JUST the part we are selling
         const tradePortion = { ...trade, size: closingSize };
         const result = calculateNetResult(tradePortion, exitPrice, exitFeeType);
 
         const completedTrade = {
-            ...trade,
+            ...trade, // Keeps groupId, etc.
             size: closingSize, // Only log the size we closed
             ...result,
             closed_date: firebase.database.ServerValue.TIMESTAMP,
@@ -3318,25 +3331,22 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
 
         // 4. Determine if Full Close or Partial Close
         if (Math.abs(currentSize - closingSize) < 1) {
-            // FULL CLOSE: Push to completed, remove from live
+            // FULL CLOSE
             dbRefs.completedTrades.push(completedTrade).then(() => dbRefs.trades.child(tradeId).remove());
         } else {
-            // PARTIAL CLOSE: Push to completed, UPDATE live
+            // PARTIAL CLOSE
             const remainingSize = currentSize - closingSize;
             
-            // Hyperliquid logic: Average Entry stays the SAME, only size changes.
             const updatedLiveTrade = {
                 size: remainingSize,
                 note: (trade.note || '') + `\nPartial close: -$${closingSize.toFixed(2)} on ${new Date().toLocaleDateString()}`
             };
 
-            // Recalculate metrics for the remaining live trade
             const recalcMetrics = calculateTradeMetrics({ ...trade, size: remainingSize });
             Object.assign(updatedLiveTrade, recalcMetrics);
 
-            // 1. Add record to completed list
+            // Push partial result to history, update live trade with remainder
             dbRefs.completedTrades.push(completedTrade);
-            // 2. Update the live trade with smaller size
             dbRefs.trades.child(tradeId).update(updatedLiveTrade);
         }
     });
@@ -3427,7 +3437,13 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
                     renderDateNavigation(); 
                 }
             });
+// Inside setupEventListeners()
 
+// Listener for Live Trades Table (Delegation)
+DOM.tradesTbody.addEventListener('click', handleTradeAction);
+
+// Listener for Completed Trades Table (Delegation)
+DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
             DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
             DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
             document.addEventListener('click', (e) => {
