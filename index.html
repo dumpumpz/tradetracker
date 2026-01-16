@@ -1343,10 +1343,32 @@
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
                <form id="add-trade-form">
-   <div>
-        <label for="trade-group-id">Trade Idea ID:</label>
-        <input type="text" id="trade-group-id" list="active-groups" placeholder="e.g. BTC_Swing_1" required>
-        <datalist id="active-groups"></datalist> <!-- Auto-populated via JS -->
+ <div style="display: flex; gap: 10px;">
+        <div style="flex: 3;">
+            <label for="trade-session">Session:</label>
+            <select id="trade-session">
+                <option value="Pre_Asia">Pre Asia</option>
+                <option value="Asia">Asia</option>
+                <option value="Pre_London">Pre London</option>
+                <option value="London">London</option>
+                <option value="Pre_NY_AM">Pre NY AM</option>
+                <option value="NY_AM">NY AM</option>
+                <option value="Pre_NYL">Pre NYL</option>
+                <option value="NYL">NYL</option>
+                <option value="Pre_NY_PM">Pre NY PM</option>
+                <option value="NY_PM">NY PM</option>
+            </select>
+        </div>
+        <div style="flex: 1;">
+            <label for="trade-variant">#:</label>
+            <select id="trade-variant">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+        </div>
     </div>
         <label for="trade-symbol">Symbol:</label>
         <input type="text" id="trade-symbol" list="symbol-list" placeholder="Type or select a symbol">
@@ -2229,173 +2251,148 @@ function renderRestingTable(data) {
             });
         }
         
-    function renderLiveTable(data) {
-    const trades = data || {};
-    
-    // 1. Group Trades by groupId
-    const groupedTrades = {};
-    const groupListDatalist = document.getElementById('active-groups'); // For the input autocomplete
-    const uniqueGroups = new Set();
+ function renderLiveTable(data) {
+    try {
+        const trades = data || {};
+        const groupedTrades = {};
 
-    Object.keys(trades).forEach(id => {
-        const trade = trades[id];
-        // Fallback for old trades without a group ID
-        const gid = trade.groupId || `${trade.symbol}_${trade.type}_Legacy`; 
-        uniqueGroups.add(gid);
-
-        if (!groupedTrades[gid]) {
-            groupedTrades[gid] = {
-                id: gid,
-                symbol: trade.symbol,
-                type: trade.type,
-                trades: [],
-                totalSize: 0,
-                totalQty: 0, // Coins
-                weightedEntrySum: 0, // For Avg Entry Calc
-                
-                // Aggregated Financials
-                profitTaker: 0, profitMaker: 0,
-                lossTaker: 0, lossMaker: 0,
-                fees: 0
-            };
-        }
-        
-        // Add trade to group
-        groupedTrades[gid].trades.push({ ...trade, dbId: id });
-        
-        // Accumulate Stats
-        const size = parseFloat(trade.size) || 0;
-        const entry = parseFloat(trade.entry) || 0;
-        const qty = (entry > 0) ? size / entry : 0;
-        const metrics = calculateTradeMetrics(trade);
-
-        groupedTrades[gid].totalSize += size;
-        groupedTrades[gid].totalQty += qty;
-        groupedTrades[gid].weightedEntrySum += (size); // Value basis
-        
-        groupedTrades[gid].profitTaker += parseFloat(metrics.expected_profit_taker || 0);
-        groupedTrades[gid].profitMaker += parseFloat(metrics.expected_profit_maker || 0);
-        groupedTrades[gid].lossTaker += parseFloat(metrics.expected_loss_taker || 0);
-        groupedTrades[gid].lossMaker += parseFloat(metrics.expected_loss_maker || 0);
-        groupedTrades[gid].fees += parseFloat(metrics.estimated_total_fee || 0);
-    });
-
-    // Update Datalist for Autocomplete
-    if(groupListDatalist) {
-        groupListDatalist.innerHTML = Array.from(uniqueGroups).map(g => `<option value="${g}">`).join('');
-    }
-
-    // 2. Render HTML
-    let tableHtml = '';
-
-    // Sort groups by latest trade date
-    const sortedGroupKeys = Object.keys(groupedTrades).sort((a, b) => {
-        const lastDateA = Math.max(...groupedTrades[a].trades.map(t => t.date || 0));
-        const lastDateB = Math.max(...groupedTrades[b].trades.map(t => t.date || 0));
-        return lastDateB - lastDateA;
-    });
-
-    sortedGroupKeys.forEach(gid => {
-        const group = groupedTrades[gid];
-        
-        // Calculate Group Averages
-        const avgEntry = group.totalQty > 0 ? (group.totalSize / group.totalQty) : 0;
-        
-        // Group Master Row HTML (Summary)
-        // We use a slight background color to distinguish the Parent Row
-        const masterButtonsHtml = STATE.isMasterUser ? 
-            `<button class="close-group-btn" data-group-id="${gid}" style="background-color: var(--purple-bg); color: #fff; width:100%;">Close Group Idea</button>` : '';
-
-        tableHtml += `
-        <tr style="background-color: rgba(127, 127, 127, 0.1); border-top: 2px solid var(--border-color); font-weight: bold;">
-            <td style="border-left: 4px solid var(--link-color);">${group.symbol}</td>
-            <td style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${group.type}</td>
-            <td colspan="3" style="text-align:left; color: var(--text-color);">${gid} (Summary)</td>
+        // 1. Group Data
+        Object.keys(trades).forEach(id => {
+            const trade = trades[id];
+            // Safe fallback for old trades that don't have a groupId yet
+            const gid = trade.groupId || `${trade.symbol}_${trade.type}_Legacy`; 
             
-            <td>--</td> <!-- Stoploss (varies) -->
-            <td>--</td> <!-- Target (varies) -->
-            <td>--</td> <!-- RRs -->
-            <td>--</td>
-            
-            <!-- Group Total Size -->
-            <td style="font-size: 1.1em;">$${group.totalSize.toFixed(2)}</td>
-            <td style="font-family: 'Courier New';">${group.totalQty.toFixed(4)}</td>
-            <td>--</td>
-            
-            <!-- Group Total Fees/PnL -->
-            <td>$${group.fees.toFixed(2)}</td>
-            <td style="color: var(--green-text);">$${group.profitTaker.toFixed(2)}</td>
-            <td style="color: var(--green-text);">$${group.profitMaker.toFixed(2)}</td>
-            <td style="color: var(--red-text);">$${group.lossTaker.toFixed(2)}</td>
-            <td style="color: var(--red-text);">$${group.lossMaker.toFixed(2)}</td>
-            
-            <td colspan="4" style="text-align:right; font-style:italic; font-weight:normal;">
-                Avg Entry: ${avgEntry.toFixed(4)}
-            </td>
-            <td class="master-only">${masterButtonsHtml}</td>
-        </tr>
-        `;
+            if (!groupedTrades[gid]) {
+                groupedTrades[gid] = {
+                    id: gid,
+                    symbol: trade.symbol,
+                    type: trade.type,
+                    trades: [],
+                    totalSize: 0,
+                    totalQty: 0,
+                    fees: 0,
+                    profitTaker: 0, profitMaker: 0,
+                    lossTaker: 0, lossMaker: 0,
+                    pnlPer100: 0
+                };
+            }
 
-        // Render Individual Child Trades
-        group.trades.forEach(trade => {
+            groupedTrades[gid].trades.push({ ...trade, dbId: id });
+
+            const size = parseFloat(trade.size) || 0;
+            const entry = parseFloat(trade.entry) || 0;
+            const qty = (entry > 0) ? size / entry : 0;
             const metrics = calculateTradeMetrics(trade);
-            const breakevenPrice = calculateBreakevenPrice(trade);
+
+            groupedTrades[gid].totalSize += size;
+            groupedTrades[gid].totalQty += qty;
+            groupedTrades[gid].fees += parseFloat(metrics.estimated_total_fee || 0);
+            groupedTrades[gid].profitTaker += parseFloat(metrics.expected_profit_taker || 0);
+            groupedTrades[gid].profitMaker += parseFloat(metrics.expected_profit_maker || 0);
+            groupedTrades[gid].lossTaker += parseFloat(metrics.expected_loss_taker || 0);
+            groupedTrades[gid].lossMaker += parseFloat(metrics.expected_loss_maker || 0);
+            groupedTrades[gid].pnlPer100 += parseFloat(metrics.pnl_per_100_move || 0);
+        });
+
+        // 2. Generate HTML
+        let tableHtml = '';
+        
+        // Sort groups by most recent trade date
+        const sortedGroupKeys = Object.keys(groupedTrades).sort((a, b) => {
+            const getLatestDate = (group) => Math.max(...group.trades.map(t => t.date || 0));
+            return getLatestDate(groupedTrades[b]) - getLatestDate(groupedTrades[a]);
+        });
+
+        sortedGroupKeys.forEach(gid => {
+            const group = groupedTrades[gid];
+            const avgEntry = group.totalQty > 0 ? (group.totalSize / group.totalQty) : 0;
             
-            // Indent child rows slightly
-            const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
-            const masterButtons = STATE.isMasterUser ? 
-                `<div style="display:flex; gap:2px; justify-content:flex-end;">
-                    <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px;">W</button>
-                    <button class="loss-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px;">L</button>
-                    <button class="add-to-position-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px;">+</button>
-                    <button class="delete-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:var(--red-text);">×</button>
-                 </div>` : '';
+            // Parent Row (Summary)
+            const masterGroupBtn = STATE.isMasterUser ? 
+                `<button class="close-group-btn" data-group-id="${gid}" style="background-color: var(--purple-bg); color: #fff; width:100%; font-size: 11px; padding: 4px;">Close Idea</button>` : '';
 
             tableHtml += `
-            <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
-                <td></td> <!-- Indent Symbol -->
-                <td></td> <!-- Indent Type -->
-                <td style="text-align:right;">↳ Entry:</td>
+            <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color); font-weight: bold;">
+                <td style="border-left: 3px solid var(--link-color);">${group.symbol}</td>
+                <td style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${group.type}</td>
+                <td colspan="3" style="color: var(--text-color); font-size: 0.95em;">📂 ${gid}</td>
                 
-                <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(4)}</td>
-                <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>
+                <td>--</td> <td>--</td> <td>--</td> <td>--</td> <td>--</td> 
                 
-                <td class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
-                <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(4)}</td>
-                <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(4)}</td>
+                <!-- Group Aggregates -->
+                <td style="font-size: 1.05em;">$${group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                <td style="font-family: 'Courier New';">${group.totalQty.toFixed(4)}</td>
+                <td>$${group.pnlPer100.toFixed(2)}</td>
+                <td>$${group.fees.toFixed(2)}</td>
                 
-                <td>${metrics.rr_taker}</td>
-                <td>${metrics.rr_maker}</td>
+                <td style="color: var(--green-text);">$${group.profitTaker.toFixed(2)}</td>
+                <td style="color: var(--green-text);">$${group.profitMaker.toFixed(2)}</td>
+                <td style="color: var(--red-text);">$${group.lossTaker.toFixed(2)}</td>
+                <td style="color: var(--red-text);">$${group.lossMaker.toFixed(2)}</td>
+                
+                <td colspan="4" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(4)}</td>
+                <td class="master-only">${masterGroupBtn}</td>
+            </tr>`;
 
-                <td class="editable-cell" data-id="${trade.dbId}" data-field="size" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.size).toFixed(2)}</td>
-                <td>${(parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
+            // Child Rows (Individual Trades)
+            group.trades.forEach(trade => {
+                const metrics = calculateTradeMetrics(trade);
+                const breakevenPrice = calculateBreakevenPrice(trade);
+                const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
                 
-                <td>$${parseFloat(metrics.pnl_per_100_move || 0).toFixed(2)}</td> <!-- PnL per 100 -->
+                const masterButtons = STATE.isMasterUser ? 
+                    `<div style="display:flex; gap:2px; justify-content:flex-end;">
+                        <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px;">W</button>
+                        <button class="loss-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px;">L</button>
+                        <button class="add-to-position-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px;">+</button>
+                        <button class="delete-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:var(--red-text);">×</button>
+                     </div>` : '';
 
-                <td>${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
-                <!-- Individual PnL (Dimmed slightly as group matters more) -->
-                <td style="opacity:0.7;">${parseFloat(metrics.expected_profit_taker).toFixed(2)}</td>
-                <td style="opacity:0.7;">${parseFloat(metrics.expected_profit_maker).toFixed(2)}</td>
-                <td style="opacity:0.7;">${parseFloat(metrics.expected_loss_taker).toFixed(2)}</td>
-                <td style="opacity:0.7;">${parseFloat(metrics.expected_loss_maker).toFixed(2)}</td>
+                tableHtml += `
+                <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
+                    <td></td> <td></td> 
+                    <td style="text-align:right;">↳ Trade:</td>
+                    
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(4)}</td>
+                    <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>
+                    <td class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
+                    
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(4)}</td>
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(4)}</td>
+                    
+                    <td>${metrics.rr_taker}</td>
+                    <td>${metrics.rr_maker}</td>
 
-                <td colspan="4" class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
-                <td class="master-only">${masterButtons}</td>
-            </tr>
-            `;
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="size" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.size).toFixed(2)}</td>
+                    <td>${(parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
+                    <td>--</td>
+                    
+                    <td>${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
+                    <td style="opacity:0.7;">${parseFloat(metrics.expected_profit_taker).toFixed(2)}</td>
+                    <td style="opacity:0.7;">${parseFloat(metrics.expected_profit_maker).toFixed(2)}</td>
+                    <td style="opacity:0.7;">${parseFloat(metrics.expected_loss_taker).toFixed(2)}</td>
+                    <td style="opacity:0.7;">${parseFloat(metrics.expected_loss_maker).toFixed(2)}</td>
+
+                    <td colspan="4" class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
+                    <td class="master-only">${masterButtons}</td>
+                </tr>`;
+            });
         });
-    });
 
-    DOM.tradesTbody.innerHTML = tableHtml;
-    
-    // Update Header to match new columns
-    const thead = DOM.tradesTbody.closest('table').querySelector('thead');
-    if(thead) thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes / Date</th><th class="master-only">Actions</th></tr>`;
+        DOM.tradesTbody.innerHTML = tableHtml;
+        
+        // Update Table Headers
+        const thead = DOM.tradesTbody.closest('table').querySelector('thead');
+        if(thead) thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th class="master-only">Actions</th></tr>`;
 
-    // Render Summary Cards (using aggregated group data)
-    renderLiveSummaryCards(groupedTrades);
-    
-    setTimeout(() => adjustCollapsibleSize(DOM.tradesTbody), 10);
+        // Update Summaries
+        if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades);
+        
+        setTimeout(() => adjustCollapsibleSize(DOM.tradesTbody), 10);
+
+    } catch (e) {
+        console.error("Error rendering live table:", e);
+    }
 }
 
 // Helper for Summary Cards (Separated for clarity)
@@ -3611,18 +3608,25 @@ function calculateTradeMetrics(tradeData) {
     };
 }
 function handleAddTradeSubmit(e) {
-    e.preventDefault(); if (!STATE.isMasterUser) return;
+    e.preventDefault(); 
+    if (!STATE.isMasterUser) return;
     
     const status = document.getElementById('trade-status').value;
-    // NEW: Get the Group ID
-    const groupId = document.getElementById('trade-group-id').value.trim();
+    
+    // --- NEW LOGIC: Combine Session + ID ---
+    const session = document.getElementById('trade-session').value;
+    const variant = document.getElementById('trade-variant').value;
+    const generatedGroupId = `${session}_${variant}`;
 
     const trade = { 
         symbol: document.getElementById('trade-symbol').value, 
         exchange: document.getElementById('trade-exchange').value,
         type: document.getElementById('trade-type').value, 
-        // CHANGED: Use groupId instead of setupType
-        groupId: groupId || 'Uncategorized', 
+        setupType: document.getElementById('trade-setup-type')?.value || 'Major', 
+        
+        // Use the generated ID
+        groupId: generatedGroupId, 
+        
         entry: parseFloat(document.getElementById('entry-price').value), 
         stoploss: parseFloat(document.getElementById('stop-loss').value), 
         target: parseFloat(document.getElementById('target').value), 
@@ -3632,14 +3636,27 @@ function handleAddTradeSubmit(e) {
         entryFeeType: document.getElementById('entry-fee-type').value
     };
 
-    if (Object.values(trade).some(val => val === null || (isNaN(val) && typeof val === 'number'))) return alert('Please fill all fields correctly.');
+    if (Object.values(trade).some(val => val === null || (isNaN(val) && typeof val === 'number'))) {
+        return alert('Please fill all fields correctly.');
+    }
+    
     trade.entry_prices.push(trade.entry);
     
     const metrics = calculateTradeMetrics(trade);
     const tradeWithMetrics = { ...trade, ...metrics };
     
     const targetRef = (status === 'resting') ? dbRefs.restingOrders : dbRefs.trades;
-    targetRef.push(tradeWithMetrics).then(() => e.target.reset()).catch(error => alert(`Error: ${error.message}`));
+    targetRef.push(tradeWithMetrics).then(() => {
+        // Optional: Do not reset the session/variant dropdowns so you can add multiple trades to same group easily
+        // e.target.reset(); 
+        
+        // Reset only specific fields if desired, otherwise full reset:
+        document.getElementById('entry-price').value = '';
+        document.getElementById('stop-loss').value = '';
+        document.getElementById('target').value = '';
+        document.getElementById('position-value').value = '';
+        
+    }).catch(error => alert(`Error: ${error.message}`));
 }
       function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
