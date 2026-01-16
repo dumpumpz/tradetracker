@@ -2690,7 +2690,8 @@ function renderLiveSummaryCards(groupedTrades) {
             STATE.isProcessing = false;
         });
     });
-}function renderCompletedTable(data) {
+}
+        function renderCompletedTable(data) {
     const trades = data || {};
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
@@ -2705,16 +2706,14 @@ function renderLiveSummaryCards(groupedTrades) {
 
     tradeIds.forEach(id => {
         const t = trades[id];
-        // Date Grouping
         const tradingDayStr = (typeof getTradingDayString === 'function') 
             ? getTradingDayString(t.closed_date, t.date) 
             : new Date(t.closed_date).toLocaleDateString();
         
-        // Group Idea Grouping
         const groupId = t.groupId || 'Ungrouped / Single';
 
         if (!tradesByDayAndGroup[tradingDayStr]) {
-            tradesByDayAndGroup[tradingDayStr] = {}; // Object for Groups
+            tradesByDayAndGroup[tradingDayStr] = {}; 
             uniqueTradingDates.push(tradingDayStr); 
         }
         
@@ -2725,7 +2724,7 @@ function renderLiveSummaryCards(groupedTrades) {
         tradesByDayAndGroup[tradingDayStr][groupId].push({ ...t, dbId: id });
     });
 
-    uniqueTradingDates.sort((a, b) => b.localeCompare(a)); // Sort Dates Descending
+    uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
 
     // --- 2. PAGINATION LOGIC ---
     let visibleDates = uniqueTradingDates;
@@ -2733,20 +2732,17 @@ function renderLiveSummaryCards(groupedTrades) {
         const totalPages = uniqueTradingDates.length;
         if (STATE.completedTradesCurrentPage > totalPages) STATE.completedTradesCurrentPage = totalPages;
         
-        // Slice dates for current page
         const start = STATE.completedTradesCurrentPage - 1;
-        visibleDates = uniqueTradingDates.slice(start, start + 1); // Show 1 day per page (or adjust slice for more)
+        visibleDates = uniqueTradingDates.slice(start, start + 1); 
         
         pageInfoSpan.textContent = `Page ${STATE.completedTradesCurrentPage} of ${totalPages}`;
         showAllButton.style.display = 'none';
         paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
     } else {
-        // Default: Show only Today
         const currentLogicalTradingDay = (typeof getTradingDayString === 'function') 
             ? getTradingDayString(Date.now(), Date.now()) 
             : new Date().toLocaleDateString();
         
-        // If today exists, show it. If not, show empty state later.
         visibleDates = uniqueTradingDates.filter(d => d === currentLogicalTradingDay);
         
         const hasHistory = uniqueTradingDates.length > 1 || (uniqueTradingDates.length === 1 && uniqueTradingDates[0] !== currentLogicalTradingDay);
@@ -2773,19 +2769,21 @@ function renderLiveSummaryCards(groupedTrades) {
                 });
             });
 
-            // B. RENDER DATE HEADER
             const datePnlClass = dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+            const pnlSign = dailyPnL >= 0 ? '+' : '-';
+
+            // B. RENDER DATE HEADER (Original Formal Style)
             rowsHtml += `
             <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
-                <td colspan="24" style="padding: 10px 15px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size: 1.1em; font-weight: 800; color: var(--text-color);">📅 ${dateStr}</span>
-                        <span style="font-size: 0.95em;">
-                            <span style="color: var(--green-text); font-weight: bold;">${dailyWins}W</span> / 
-                            <span style="color: var(--red-text); font-weight: bold;">${dailyLosses}L</span>
-                            <span style="margin: 0 10px;">|</span>
-                            Daily Net: <span style="color: ${datePnlClass}; font-weight:800; font-size:1.1em;">$${dailyPnL.toFixed(2)}</span>
-                        </span>
+                <td colspan="24" style="text-align: left; padding: 10px 10px 10px 20px;">
+                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
+                        Date: ${dateStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${totalDailyTrades} Trades)</span>
+                    </div>
+                    <div style="font-size: 0.95em;">
+                        <span style="color: var(--green-text); font-weight: bold;">${dailyWins} Wins</span> / 
+                        <span style="color: var(--red-text); font-weight: bold;">${dailyLosses} Losses</span>
+                        <span style="margin: 0 10px; color: var(--border-color);">|</span>
+                        <span style="font-weight: bold; color: var(--text-color);">Daily PnL: <span style="color: ${datePnlClass};">${pnlSign}$${Math.abs(dailyPnL).toFixed(2)}</span></span>
                     </div>
                 </td>
             </tr>`;
@@ -2794,7 +2792,6 @@ function renderLiveSummaryCards(groupedTrades) {
             Object.keys(groupsInDate).forEach(groupId => {
                 const groupTrades = groupsInDate[groupId];
                 
-                // Calculate Group Stats
                 let groupNet = 0, groupFees = 0;
                 let groupWins = 0, groupLosses = 0;
                 let groupVolume = 0;
@@ -2802,32 +2799,49 @@ function renderLiveSummaryCards(groupedTrades) {
                 groupTrades.forEach(t => {
                     groupNet += parseFloat(t.net_result || 0);
                     groupFees += (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0));
-                    groupVolume += parseFloat(t.size || 0); // Note: This sums all partial sizes closed
+                    groupVolume += parseFloat(t.size || 0);
                     if (parseFloat(t.net_result) >= 0) groupWins++; else groupLosses++;
                 });
 
                 const groupPnlClass = groupNet >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-                const groupType = groupTrades[0].type || 'Mixed'; // Assuming all in group are same type usually
+                const groupType = groupTrades[0].type || 'Mixed'; 
 
-                // D. RENDER GROUP SUMMARY ROW
+                // D. RENDER GROUP SUMMARY ROW (Magnetic Left)
                 rowsHtml += `
                 <tr class="completed-group-header">
-                    <td colspan="24" style="padding: 8px 15px;">
-                        <div class="group-stats">
-                            <span style="flex:1; font-weight:bold; color:var(--link-color);">📂 ${groupId} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${groupType})</span></span>
+                    <td colspan="24" style="padding: 8px 15px; text-align: left;">
+                        <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
                             
-                            <span style="width: 100px;">Vol: $${groupVolume.toLocaleString(undefined, {maximumFractionDigits:0})}</span>
-                            <span style="width: 80px; font-size:0.9em;">Fees: $${groupFees.toFixed(2)}</span>
-                            <span style="width: 80px;">${groupWins}W - ${groupLosses}L</span>
+                            <!-- 1. ID -->
+                            <span style="font-weight:bold; color:var(--link-color); font-size:1.05em;">
+                                📂 ${groupId} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${groupType})</span>
+                            </span>
                             
-                            <span style="width: 120px; text-align:right; font-weight:bold; font-size:1.1em; color:${groupPnlClass};">
-                                Net: $${groupNet.toFixed(2)}
+                            <span style="color:var(--border-color);">|</span>
+
+                            <!-- 2. Result -->
+                            <span style="font-weight:bold; font-size:1.05em; color:var(--text-color);">
+                                Net: <span style="color:${groupPnlClass};">$${groupNet.toFixed(2)}</span>
+                            </span>
+
+                            <span style="color:var(--border-color);">|</span>
+
+                            <!-- 3. Stats -->
+                            <span style="font-size:0.95em; color:var(--text-color);">
+                                ${groupWins} Wins / ${groupLosses} Losses
+                            </span>
+
+                            <span style="color:var(--border-color);">|</span>
+
+                            <!-- 4. Details -->
+                            <span style="font-size:0.9em; color:var(--subtle-text);">
+                                Vol: $${groupVolume.toLocaleString(undefined, {maximumFractionDigits:0})}
                             </span>
                         </div>
                     </td>
                 </tr>`;
 
-                // E. RENDER INDIVIDUAL TRADES (CHILDREN)
+                // E. RENDER INDIVIDUAL TRADES
                 groupTrades.forEach(trade => {
                     const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                     const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
@@ -2877,7 +2891,7 @@ function renderLiveSummaryCards(groupedTrades) {
 
     DOM.completedTradesTbody.innerHTML = rowsHtml;
     
-    // Auto-expand section to fit new content
+    // Auto-expand
     setTimeout(() => {
         adjustCollapsibleSize(DOM.completedTradesTbody);
     }, 150);
