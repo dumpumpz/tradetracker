@@ -1994,6 +1994,44 @@ function autoResizeTextarea(textarea) {
         const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
         const getPerthDateString = (date = new Date()) => { try { const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Perth', year: 'numeric', month: '2-digit', day: '2-digit' }); return formatter.format(date); } catch (e) { console.error("Timezone formatting failed, using fallback.", e); const perthTime = new Date(date.getTime() + (8 * 60 * 60 * 1000)); return perthTime.toISOString().split('T')[0]; } };
         const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
+        // --- MISSING HELPER: TRADING DAY LOGIC ---
+const getTradingDayString = (closedTS, openedTS) => {
+    if (!closedTS) return 'Unknown';
+    
+    const closedDate = new Date(closedTS);
+    const openedDate = openedTS ? new Date(openedTS) : closedDate;
+
+    // Get hours in Perth time (or fallback to local)
+    const getPerthHour = (d) => {
+        try {
+            return parseInt(new Intl.DateTimeFormat('en-AU', {
+                timeZone: 'Australia/Perth',
+                hour: 'numeric',
+                hour12: false
+            }).format(d));
+        } catch (e) { return d.getHours(); }
+    };
+
+    const closedHour = getPerthHour(closedDate);
+    const openedHour = getPerthHour(openedDate);
+    
+    const closedCalDay = getPerthDateString(closedDate);
+    const openedCalDay = getPerthDateString(openedDate);
+
+    // RULE: If closed before 6am
+    if (closedHour < 6) {
+        // EXCEPTION: Unless opened after 5am today
+        if (openedCalDay === closedCalDay && openedHour >= 5) {
+            return closedCalDay;
+        } else {
+            // Roll back to previous day
+            const prevDay = new Date(closedDate);
+            prevDay.setDate(prevDay.getDate() - 1);
+            return getPerthDateString(prevDay);
+        }
+    }
+    return closedCalDay;
+};
         function getViewerId() { if (STATE.viewerId) return STATE.viewerId; let id = localStorage.getItem('viewerId'); if (!id) { id = `viewer_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`; localStorage.setItem('viewerId', id); } STATE.viewerId = id; return id; }
 
         // --- DATA FETCHING ---
