@@ -3932,31 +3932,84 @@ function handleAddTradeSubmit(e) {
         document.getElementById('position-value').value = '';
     }).catch(error => alert(`Error: ${error.message}`));
 }
-      function handleLiveTradeUpdate(cell) {
-            if (!STATE.isMasterUser) return;
-            const tradeId = cell.dataset.id;
-            const fieldToUpdate = cell.dataset.field;
-            const tradeRef = dbRefs.trades.child(tradeId);
-            tradeRef.once('value', snapshot => {
-                const trade = snapshot.val(); if (!trade) { alert('Error: Trade not found.'); return; }
-                const updates = {};
-                if (fieldToUpdate === 'entry_prices') {
-                    const newPricesArray = cell.textContent.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0);
-                    if (newPricesArray.length === 0) { alert("Invalid entry prices list."); cell.textContent = (trade.entry_prices || [trade.entry]).join(', '); return; }
-                    updates.entry_prices = newPricesArray; updates.note = (trade.note || '') + `\nEntry list updated ${new Date().toLocaleString()}`; tradeRef.update(updates); return; 
-                } 
-                let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, ''));
-                const precision = ['entry', 'stoploss', 'target'].includes(fieldToUpdate) ? 4 : 2;
-                if (isNaN(newValue)) { alert('Invalid number.'); cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); return; }
-                if (parseFloat(trade[fieldToUpdate]).toFixed(precision) === newValue.toFixed(precision)) { cell.textContent = newValue.toFixed(precision); return; }
-                updates[fieldToUpdate] = newValue;
-                const tempTradeForCalc = { ...trade, ...updates };
-                const newMetrics = calculateTradeMetrics(tempTradeForCalc);
-                Object.assign(updates, newMetrics);
-                updates.note = (trade.note || '') + `\n${fieldToUpdate} updated to ${newValue.toFixed(precision)} on ${new Date().toLocaleString()}`;
-                tradeRef.update(updates).catch(error => { alert('Failed to update trade: ' + error.message); cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); });
-            });
+    function handleLiveTradeUpdate(cell) {
+    if (!STATE.isMasterUser) return;
+    
+    const tradeId = cell.dataset.id;
+    const fieldToUpdate = cell.dataset.field;
+    const tradeRef = dbRefs.trades.child(tradeId);
+
+    tradeRef.once('value', snapshot => {
+        const trade = snapshot.val(); 
+        if (!trade) { alert('Error: Trade not found.'); return; }
+        
+        const updates = {};
+
+        // --- 1. Handle Entry Prices List ---
+        if (fieldToUpdate === 'entry_prices') {
+            // Parse the new input
+            const newPricesArray = cell.textContent.split(',')
+                .map(s => parseFloat(s.trim()))
+                .filter(n => !isNaN(n) && n > 0);
+
+            // Validation: Must have at least one valid price
+            if (newPricesArray.length === 0) { 
+                alert("Invalid entry prices list."); 
+                cell.textContent = (trade.entry_prices || [trade.entry]).join(', '); 
+                return; 
+            }
+
+            // --- FIX: COMPARE ARRAYS TO PREVENT UNNECESSARY UPDATES ---
+            const currentPrices = trade.entry_prices || [trade.entry];
+            
+            // Check if arrays are different
+            const isDifferent = (newPricesArray.length !== currentPrices.length) || 
+                                newPricesArray.some((val, index) => val !== currentPrices[index]);
+
+            if (!isDifferent) {
+                // If data is the same, just format the text nicely and EXIT
+                cell.textContent = currentPrices.join(', ');
+                return; 
+            }
+            // -----------------------------------------------------------
+
+            updates.entry_prices = newPricesArray; 
+            updates.note = (trade.note || '') + `\nEntry list updated ${new Date().toLocaleString()}`; 
+            tradeRef.update(updates); 
+            return; 
+        } 
+
+        // --- 2. Handle Single Number Fields (Entry, Stop, Target, Size) ---
+        let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, ''));
+        const precision = ['entry', 'stoploss', 'target'].includes(fieldToUpdate) ? 4 : 2;
+
+        if (isNaN(newValue)) { 
+            alert('Invalid number.'); 
+            cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); 
+            return; 
         }
+
+        // Compare values to prevent unnecessary updates
+        if (parseFloat(trade[fieldToUpdate]).toFixed(precision) === newValue.toFixed(precision)) { 
+            cell.textContent = newValue.toFixed(precision); 
+            return; 
+        }
+
+        updates[fieldToUpdate] = newValue;
+        
+        // Recalculate metrics based on new value
+        const tempTradeForCalc = { ...trade, ...updates };
+        const newMetrics = calculateTradeMetrics(tempTradeForCalc);
+        Object.assign(updates, newMetrics);
+        
+        updates.note = (trade.note || '') + `\n${fieldToUpdate} updated to ${newValue.toFixed(precision)} on ${new Date().toLocaleString()}`;
+        
+        tradeRef.update(updates).catch(error => { 
+            alert('Failed to update trade: ' + error.message); 
+            cell.textContent = parseFloat(trade[fieldToUpdate]).toFixed(precision); 
+        });
+    });
+}
 
      function handleAddStaggeredEntry(tradeId) {
     if (!STATE.isMasterUser) return;
