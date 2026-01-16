@@ -3345,62 +3345,58 @@ function calculateNetResult(trade, exitPrice, exitFeeType) {
     };
 }
 function completeTrade(tradeId, outcome) {
-    // 1. BLOCK: If already processing, stop.
-    if (STATE.isProcessing) return; 
+    // 1. Lock check (already done in handleTradeAction, but redundant safety is good)
+    if (STATE.isProcessing) return;
     STATE.isProcessing = true;
 
     dbRefs.trades.child(tradeId).once('value', snapshot => {
         const trade = snapshot.val(); 
-        
-        // Safety check: if trade is gone (already deleted), release lock and exit
         if (!trade) {
             STATE.isProcessing = false;
             return;
         }
         
-        // 1. Ask for Exit Price
         const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
         const exitPriceStr = prompt(`Closing Trade (${trade.groupId || trade.symbol})\n\nEnter exact exit price:`, defaultExit);
         
-        // If Cancelled
+        // CANCELLED? RESET LOCK
         if (exitPriceStr === null) {
-            STATE.isProcessing = false; // Release lock
+            STATE.isProcessing = false;
             return;
         }
 
-        // 2. Ask for Amount to Close
         const currentSize = parseFloat(trade.size);
         const closeSizeStr = prompt(`How much Value ($) are you closing?\n(Current Total: $${currentSize.toFixed(2)})`, currentSize);
+        
+        // CANCELLED? RESET LOCK
         if (closeSizeStr === null) {
-            STATE.isProcessing = false; // Release lock
+            STATE.isProcessing = false;
             return;
         }
         
-        let exitFeeType = null;
-        while (exitFeeType !== 'maker' && exitFeeType !== 'taker') {
-             const exitFeeTypeStr = prompt(`Enter exit fee type (maker/taker):`, "taker");
-             if (exitFeeTypeStr === null) {
-                 STATE.isProcessing = false;
-                 return;
-             }
-             exitFeeType = exitFeeTypeStr.toLowerCase().trim();
+        let exitFeeType = prompt("Enter exit fee type (maker/taker):", "taker");
+        // CANCELLED? RESET LOCK
+        if (exitFeeType === null) {
+            STATE.isProcessing = false;
+            return;
         }
+        exitFeeType = exitFeeType.toLowerCase().trim();
 
         const exitPrice = parseFloat(exitPriceStr);
         const closingSize = parseFloat(closeSizeStr);
 
         if (isNaN(exitPrice) || isNaN(closingSize) || closingSize <= 0 || closingSize > currentSize) {
+            alert("Invalid input values.");
             STATE.isProcessing = false;
-            return alert("Invalid input values.");
+            return;
         }
 
-        // 3. Process
         const tradePortion = { ...trade, size: closingSize };
         const result = calculateNetResult(tradePortion, exitPrice, exitFeeType);
 
         const completedTrade = {
-            ...trade, 
-            size: closingSize, 
+            ...trade,
+            size: closingSize,
             ...result,
             closed_date: firebase.database.ServerValue.TIMESTAMP,
             exit_price: exitPrice,
@@ -3412,11 +3408,7 @@ function completeTrade(tradeId, outcome) {
             // FULL CLOSE
             dbRefs.completedTrades.push(completedTrade)
                 .then(() => dbRefs.trades.child(tradeId).remove())
-                .then(() => { STATE.isProcessing = false; }) // Release lock on success
-                .catch(e => { 
-                    alert(e); 
-                    STATE.isProcessing = false; 
-                });
+                .finally(() => { STATE.isProcessing = false; }); // RESET LOCK
         } else {
             // PARTIAL CLOSE
             const remainingSize = currentSize - closingSize;
@@ -3429,11 +3421,7 @@ function completeTrade(tradeId, outcome) {
 
             dbRefs.completedTrades.push(completedTrade);
             dbRefs.trades.child(tradeId).update(updatedLiveTrade)
-                .then(() => { STATE.isProcessing = false; })
-                .catch(e => {
-                    alert(e);
-                    STATE.isProcessing = false;
-                });
+                .finally(() => { STATE.isProcessing = false; }); // RESET LOCK
         }
     });
 }
@@ -3499,223 +3487,288 @@ function completeTrade(tradeId, outcome) {
             renderNotes(STATE.generalNotes);
         }
 
-         function setupEventListeners() {
-            DOM.themeToggle.addEventListener('change', (e) => {
-                const theme = e.target.checked ? 'dark' : 'light';
-                document.documentElement.setAttribute('data-theme', theme);
-                localStorage.setItem('theme', theme);
-            });
+     function setupEventListeners() {
+    // --- 1. Theme Toggle ---
+    DOM.themeToggle.addEventListener('change', (e) => {
+        const theme = e.target.checked ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    });
 
-            DOM.tabs.addEventListener('click', (e) => {
-                if (!e.target.matches('.tab-link')) return;
-                document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
-                e.target.classList.add('active');
-                const tabId = e.target.dataset.tab;
-                const newTabContent = document.getElementById(`${tabId}-tab`);
-                if (newTabContent) {
-                    newTabContent.classList.add('active');
-                    if (!newTabContent.dataset.sectionsInitialized) { openDefaultSectionsInContainer(newTabContent); newTabContent.dataset.sectionsInitialized = 'true'; }
-                }
-                DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'journal') ? 'block' : 'none';
-                if (tabId === 'journal') { 
-                    updateJournalView();
-                    renderDateNavigation(); 
-                }
-            });
-// Inside setupEventListeners()
+    // --- 2. Tab Navigation ---
+    DOM.tabs.addEventListener('click', (e) => {
+        if (!e.target.matches('.tab-link')) return;
+        document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
+        e.target.classList.add('active');
+        const tabId = e.target.dataset.tab;
+        const newTabContent = document.getElementById(`${tabId}-tab`);
+        if (newTabContent) {
+            newTabContent.classList.add('active');
+            // Auto-open sections if first time visiting tab
+            if (!newTabContent.dataset.sectionsInitialized) { 
+                openDefaultSectionsInContainer(newTabContent); 
+                newTabContent.dataset.sectionsInitialized = 'true'; 
+            }
+        }
+        // Show Stats panel only on main tabs
+        DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'journal') ? 'block' : 'none';
+        
+        // Refresh Journal View if active
+        if (tabId === 'journal') { 
+            updateJournalView();
+            renderDateNavigation(); 
+        }
+    });
 
-// Listener for Live Trades Table (Delegation)
-DOM.tradesTbody.addEventListener('click', handleTradeAction);
+    // --- 3. Stats Panel Toggle ---
+    DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
+    DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
+    document.addEventListener('click', (e) => {
+        if (!DOM.statsPanel.contains(e.target) && !DOM.statsFab.contains(e.target) && DOM.statsPanel.classList.contains('active')) {
+            DOM.statsPanel.classList.remove('active');
+        }
+    });
 
-// Listener for Completed Trades Table (Delegation)
-DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
-            DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
-            DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
-            document.addEventListener('click', (e) => {
-                if (!DOM.statsPanel.contains(e.target) && !DOM.statsFab.contains(e.target) && DOM.statsPanel.classList.contains('active')) {
-                    DOM.statsPanel.classList.remove('active');
-                }
-            });
-// Existing listener for Live Trades
-            DOM.tradesTbody.addEventListener('blur', (e) => { 
-                if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
-            }, true);
+    // --- 4. TABLE ACTION LISTENERS (Critical for Buttons) ---
+    // Remove existing first to safely prevent duplicate listeners if init runs twice
+    if (DOM.tradesTbody) DOM.tradesTbody.removeEventListener('click', handleTradeAction);
+    if (DOM.completedTradesTbody) DOM.completedTradesTbody.removeEventListener('click', handleTradeAction);
+    if (DOM.restingTradesTbody) DOM.restingTradesTbody.removeEventListener('click', handleTradeAction);
 
-            // --- ADD THIS NEW LISTENER ---
-            DOM.restingTradesTbody.addEventListener('blur', (e) => { 
-                if (e.target.matches('.editable-cell')) handleRestingTradeUpdate(e.target); 
-            }, true);
-            DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
+    // Attach Clean Listeners
+    if (DOM.tradesTbody) DOM.tradesTbody.addEventListener('click', handleTradeAction);
+    if (DOM.completedTradesTbody) DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
+    if (DOM.restingTradesTbody) DOM.restingTradesTbody.addEventListener('click', handleTradeAction);
 
-            document.body.addEventListener('click', (e) => {
-                const header = e.target.closest('.collapsible-header');
-                if (header) {
-                    const section = header.parentElement;
-                    const content = section.querySelector('.collapsible-content');
-                    const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-                    section.classList.toggle('is-open');
-                    toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
-                    toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
-                    if (section.classList.contains('is-open')) {
-                        content.style.maxHeight = content.scrollHeight + 'px';
-                        setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; }, 150);
-                    } else { content.style.maxHeight = '0px'; }
-                }
+    // --- 5. EDITABLE CELL UPDATES (Blur Event) ---
+    if (DOM.tradesTbody) {
+        DOM.tradesTbody.addEventListener('blur', (e) => { 
+            if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
+        }, true);
+    }
+    if (DOM.restingTradesTbody) {
+        DOM.restingTradesTbody.addEventListener('blur', (e) => { 
+            if (e.target.matches('.editable-cell')) handleRestingTradeUpdate(e.target); 
+        }, true);
+    }
 
-                if (handleAttachmentActions(e)) return;
+    // --- 6. ADD TRADE FORM ---
+    if (DOM.addTradeForm) {
+        DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
+    }
 
-                if (e.target.closest('#setups-image-container, #image-library-container')) {
-                    handleGenericImageLibraryClick(e);
-                } else if (e.target.closest('#trades-tbody, #completed-trades-tbody, #resting-trades-tbody')) {
-                    handleTradeAction(e);
-                } else if (e.target.id === 'toggle-all-completed-trades') {
-                    STATE.completedTradesShowAll = true;
-                    STATE.completedTradesCurrentPage = 1;
-                    renderCompletedTable(STATE.allCompletedTrades);
+    // --- 7. GLOBAL BODY CLICKS (Collapsibles & Pagination) ---
+    document.body.addEventListener('click', (e) => {
+        // A. Collapsible Section Toggle
+        const header = e.target.closest('.collapsible-header');
+        if (header) {
+            const section = header.parentElement;
+            const content = section.querySelector('.collapsible-content');
+            const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+            section.classList.toggle('is-open');
+            toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
+            toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+            
+            if (section.classList.contains('is-open')) {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                // Double check height after transition to ensure full content visible
+                setTimeout(() => { 
+                    if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; 
+                }, 150);
+            } else { 
+                content.style.maxHeight = '0px'; 
+            }
+        }
 
-                } else if (e.target.id === 'completed-trades-prev-page') {
-                    if (STATE.completedTradesCurrentPage > 1) { STATE.completedTradesCurrentPage--; renderCompletedTable(STATE.allCompletedTrades);  }
-                } else if (e.target.id === 'completed-trades-next-page') {
-                    const totalPages = Math.ceil(Object.keys(STATE.allCompletedTrades).length / STATE.completedTradesItemsPerPage);
-                    if (STATE.completedTradesCurrentPage < totalPages) { STATE.completedTradesCurrentPage++; renderCompletedTable(STATE.allCompletedTrades);  }
-                } else if (e.target.id === 'toggle-all-setups-images') {
-                    STATE.setupsImagesShowAll = true;
-                    STATE.setupsImagesCurrentPage = 1;
-                    renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-                } else if (e.target.id === 'setups-images-prev-page') {
-                    if (STATE.setupsImagesCurrentPage > 1) { 
-                        STATE.setupsImagesCurrentPage--; 
-                        renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-                    }
-                } else if (e.target.id === 'setups-images-next-page') {
-                    const totalPages = Math.ceil(Object.keys(STATE.allSetupsImages).length / STATE.setupsImagesItemsPerPage);
-                    if (STATE.setupsImagesCurrentPage < totalPages) { 
-                        STATE.setupsImagesCurrentPage++;
-                        renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-                    }
-                }
-            });
-// --- ADD THESE INSIDE setupEventListeners() ---
+        // B. Handle Image Actions (Delete/Click)
+        if (handleAttachmentActions(e)) return;
 
-            // 1. Calculate Button
-        const calcFibBtn = document.getElementById('calc-fib-btn');
+        // C. Generic Library Interaction (Setups/Images)
+        if (e.target.closest('#setups-image-container, #image-library-container')) {
+            handleGenericImageLibraryClick(e);
+        } 
+        // D. Completed Trades Pagination
+        else if (e.target.id === 'toggle-all-completed-trades') {
+            STATE.completedTradesShowAll = true;
+            STATE.completedTradesCurrentPage = 1;
+            renderCompletedTable(STATE.allCompletedTrades);
+        } else if (e.target.id === 'completed-trades-prev-page') {
+            if (STATE.completedTradesCurrentPage > 1) { 
+                STATE.completedTradesCurrentPage--; 
+                renderCompletedTable(STATE.allCompletedTrades);  
+            }
+        } else if (e.target.id === 'completed-trades-next-page') {
+            const totalPages = Math.ceil(Object.keys(STATE.allCompletedTrades).length / STATE.completedTradesItemsPerPage);
+            if (STATE.completedTradesCurrentPage < totalPages) { 
+                STATE.completedTradesCurrentPage++; 
+                renderCompletedTable(STATE.allCompletedTrades);  
+            }
+        } 
+        // E. Setups Image Pagination
+        else if (e.target.id === 'toggle-all-setups-images') {
+            STATE.setupsImagesShowAll = true;
+            STATE.setupsImagesCurrentPage = 1;
+            renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+        } else if (e.target.id === 'setups-images-prev-page') {
+            if (STATE.setupsImagesCurrentPage > 1) { 
+                STATE.setupsImagesCurrentPage--; 
+                renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+            }
+        } else if (e.target.id === 'setups-images-next-page') {
+            const totalPages = Math.ceil(Object.keys(STATE.allSetupsImages).length / STATE.setupsImagesItemsPerPage);
+            if (STATE.setupsImagesCurrentPage < totalPages) { 
+                STATE.setupsImagesCurrentPage++;
+                renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+            }
+        }
+    });
+
+    // --- 8. CALENDAR NAVIGATION ---
+    if (DOM.calPrevBtn && DOM.calNextBtn) {
+        DOM.calPrevBtn.addEventListener('click', () => {
+            STATE.calendarViewDate.setMonth(STATE.calendarViewDate.getMonth() - 1);
+            if (typeof renderPnlCalendar === 'function') renderPnlCalendar();
+        });
+        DOM.calNextBtn.addEventListener('click', () => {
+            STATE.calendarViewDate.setMonth(STATE.calendarViewDate.getMonth() + 1);
+            if (typeof renderPnlCalendar === 'function') renderPnlCalendar();
+        });
+    }
+
+    // --- 9. NOTES MODULE ---
+    if (DOM.createNewNoteBtn) {
+        DOM.createNewNoteBtn.addEventListener('click', () => {
+            if (!STATE.isMasterUser) return;
+            const title = prompt("Enter a title for the new note:");
+            if (title && title.trim()) { 
+                dbRefs.generalNotes.push({ 
+                    title: title.trim(), 
+                    content: '', 
+                    timestamp: firebase.database.ServerValue.TIMESTAMP 
+                }); 
+            }
+        });
+    }
+
+    if (DOM.notesContainer) {
+        DOM.notesContainer.addEventListener('click', (e) => {
+            const header = e.target.closest('.note-item-header');
+            const deleteBtn = e.target.closest('.note-delete-btn');
+            
+            if (deleteBtn && STATE.isMasterUser) { 
+                e.stopPropagation(); 
+                const noteId = deleteBtn.dataset.noteId; 
+                if (confirm(`Are you sure you want to delete this note?`)) { 
+                    dbRefs.generalNotes.child(noteId).remove(); 
+                } 
+                return; 
+            }
+            if (header) { 
+                const noteId = header.dataset.noteId; 
+                openNoteForEditing(noteId); 
+            }
+        });
+    }
+
+    DOM.noteModalClose.addEventListener('click', closeNoteModal);
+    DOM.noteEditModal.addEventListener('click', e => { if (e.target.id === 'note-edit-modal') closeNoteModal(); });
+    DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
+    DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
+
+    // --- 10. SETUPS TABLE (Blur & Input) ---
+    document.body.addEventListener('blur', (e) => {
+        if (e.target.matches('.setups-table .editable-setup-cell')) {
+            const table = e.target.closest('.setups-table');
+            const row = e.target.closest('tr');
+            applyHighlightingToSetupsTable(table);
+            if (row) calculateAndDisplayPercentages(row);
+            if (table.id === 'primary-setups-table') saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); 
+            else saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
+        }
+    }, true);
+
+    DOM.primarySetupsNotes.addEventListener('input', (e) => {
+        autoResizeTextarea(e.target);
+        debouncedResizeParent(e.target);
+    });
+    DOM.secondarySetupsNotes.addEventListener('input', (e) => {
+        autoResizeTextarea(e.target);
+        debouncedResizeParent(e.target);
+    });
+    DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
+    DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
+
+    // --- 11. FILE UPLOADS ---
+    DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
+    DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
+    DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
+
+    // --- 12. IMAGE MODAL ---
+    DOM.modalClose.addEventListener('click', closeModal);
+    DOM.imageModal.addEventListener('click', (e) => { if (e.target.id === 'image-modal') closeModal(); });
+    DOM.modalPrevBtn.addEventListener('click', () => { if (STATE.modalImageIndex > 0) { STATE.modalImageIndex--; displayModalImage(); } });
+    DOM.modalNextBtn.addEventListener('click', () => { if (STATE.modalImageIndex < STATE.modalImageGallery.length - 1) { STATE.modalImageIndex++; displayModalImage(); } });
+
+    // --- 13. JOURNAL CONTROLS ---
+    [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => {
+        updateJournalView(false); 
+        renderDateNavigation(); 
+    }));
+    
+    DOM.dateButtonsContainer.addEventListener('click', (e) => { 
+        if (e.target.matches('.date-nav-btn')) { 
+            const parts = e.target.dataset.date.split('-'); 
+            STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); 
+            STATE.centerDate = new Date(STATE.selectedDate); 
+            updateJournalView();
+            renderDateNavigation(); 
+        } 
+    });
+    DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
+    DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
+
+    DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveJournalEntry(); });
+    DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
+
+    // Journal Image Clicks & Drag-Drop
+    DOM.journalTab.addEventListener('click', (e) => {
+        if (e.target.closest('.delete-journal-image')) { handleImageDelete(e); return; }
+        const img = e.target.closest('#journal-images-container img');
+        if(img) { 
+            const allImageElements = DOM.journalImagesContainer.querySelectorAll('img'); 
+            const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })); 
+            const clickedIndex = Array.from(allImageElements).indexOf(img); 
+            openImageModal(imageArray, clickedIndex); 
+        }
+    });
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { DOM.journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }); });
+    ['dragenter', 'dragover'].forEach(eventName => { DOM.journalTab.addEventListener(eventName, () => { if (STATE.isMasterUser) DOM.journalTab.classList.add('drag-over'); }); });
+    DOM.journalTab.addEventListener('dragleave', () => DOM.journalTab.classList.remove('drag-over'));
+    DOM.journalTab.addEventListener('drop', (e) => { 
+        DOM.journalTab.classList.remove('drag-over'); 
+        if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); 
+    });
+
+    // --- 14. FIB CALCULATOR & BUTTONS ---
+    const calcFibBtn = document.getElementById('calc-fib-btn');
     if (calcFibBtn) {
         calcFibBtn.addEventListener('click', calculateFibLevels);
     }
 
-    // 2. Add Order Button Click (Event Delegation)
-    // 2. Add Order Button Click (Event Delegation)
     const fibResultsBody = document.getElementById('fib-results-tbody');
     if (fibResultsBody) {
         fibResultsBody.addEventListener('click', (e) => {
             const btn = e.target.closest('.add-fib-trade-btn');
             if (btn) {
-                // Read data attributes from the button
                 const entry = btn.getAttribute('data-entry');
                 const size = btn.getAttribute('data-size');
-                const level = btn.getAttribute('data-level'); // <--- Get the level
-                
-                handleAddFibTrade(entry, size, level); // <--- Pass it to the function
+                const level = btn.getAttribute('data-level');
+                handleAddFibTrade(entry, size, level);
             }
         });
     }
-            // --- Calendar Navigation Listeners ---
-            if (DOM.calPrevBtn && DOM.calNextBtn) {
-                DOM.calPrevBtn.addEventListener('click', () => {
-                    STATE.calendarViewDate.setMonth(STATE.calendarViewDate.getMonth() - 1);
-                    renderPnlCalendar();
-                });
-                DOM.calNextBtn.addEventListener('click', () => {
-                    STATE.calendarViewDate.setMonth(STATE.calendarViewDate.getMonth() + 1);
-                    renderPnlCalendar();
-                });
-            }
-
-            if (DOM.createNewNoteBtn) {
-                DOM.createNewNoteBtn.addEventListener('click', () => {
-                    if (!STATE.isMasterUser) return;
-                    const title = prompt("Enter a title for the new note:");
-                    if (title && title.trim()) { dbRefs.generalNotes.push({ title: title.trim(), content: '', timestamp: firebase.database.ServerValue.TIMESTAMP }); }
-                });
-            }
-
-            if (DOM.notesContainer) {
-                DOM.notesContainer.addEventListener('click', (e) => {
-                    const header = e.target.closest('.note-item-header');
-                    const deleteBtn = e.target.closest('.note-delete-btn');
-                    if (deleteBtn && STATE.isMasterUser) { e.stopPropagation(); const noteId = deleteBtn.dataset.noteId; if (confirm(`Are you sure you want to delete this note?`)) { dbRefs.generalNotes.child(noteId).remove(); } return; }
-                    if (header) { const noteId = header.dataset.noteId; openNoteForEditing(noteId); }
-                });
-            }
-
-            DOM.noteModalClose.addEventListener('click', closeNoteModal);
-            DOM.noteEditModal.addEventListener('click', e => { if (e.target.id === 'note-edit-modal') closeNoteModal(); });
-            DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
-            DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
-
-            document.body.addEventListener('blur', (e) => {
-                if (e.target.matches('.setups-table .editable-setup-cell')) {
-                    const table = e.target.closest('.setups-table');
-                    const row = e.target.closest('tr');
-                    applyHighlightingToSetupsTable(table);
-                    if (row) { calculateAndDisplayPercentages(row); }
-                    if (table.id === 'primary-setups-table') { saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); } else { saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes'); }
-                }
-            }, true);
-
-            DOM.primarySetupsNotes.addEventListener('input', (e) => {
-                autoResizeTextarea(e.target);
-                debouncedResizeParent(e.target);
-            });
-            DOM.secondarySetupsNotes.addEventListener('input', (e) => {
-                autoResizeTextarea(e.target);
-                debouncedResizeParent(e.target);
-            });
-            DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
-            DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
-
-            DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
-            DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
-
-            DOM.modalClose.addEventListener('click', closeModal);
-            DOM.imageModal.addEventListener('click', (e) => { if (e.target.id === 'image-modal') closeModal(); });
-            DOM.modalPrevBtn.addEventListener('click', () => { if (STATE.modalImageIndex > 0) { STATE.modalImageIndex--; displayModalImage(); } });
-            DOM.modalNextBtn.addEventListener('click', () => { if (STATE.modalImageIndex < STATE.modalImageGallery.length - 1) { STATE.modalImageIndex++; displayModalImage(); } });
-
-            DOM.tradesTbody.addEventListener('blur', (e) => { if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); }, true);
-
-            [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => {
-    updateJournalView(false); // Render everything (Text + Images)
-    renderDateNavigation(); 
-}));
-            DOM.dateButtonsContainer.addEventListener('click', (e) => { 
-                if (e.target.matches('.date-nav-btn')) { 
-                    const parts = e.target.dataset.date.split('-'); 
-                    STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); 
-                    STATE.centerDate = new Date(STATE.selectedDate); 
-                    updateJournalView();
-                    renderDateNavigation(); 
-                } 
-            });
-            DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
-            DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
-
-            DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveJournalEntry(); });
-            DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
-            DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
-
-            DOM.journalTab.addEventListener('click', (e) => {
-                if (e.target.closest('.delete-journal-image')) { handleImageDelete(e); return; }
-                const img = e.target.closest('#journal-images-container img');
-                if(img) { const allImageElements = DOM.journalImagesContainer.querySelectorAll('img'); const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })); const clickedIndex = Array.from(allImageElements).indexOf(img); openImageModal(imageArray, clickedIndex); }
-            });
-
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { DOM.journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }); });
-            ['dragenter', 'dragover'].forEach(eventName => { DOM.journalTab.addEventListener(eventName, () => { if (STATE.isMasterUser) DOM.journalTab.classList.add('drag-over'); }); });
-            DOM.journalTab.addEventListener('dragleave', () => DOM.journalTab.classList.remove('drag-over'));
-            DOM.journalTab.addEventListener('drop', (e) => { DOM.journalTab.classList.remove('drag-over'); if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); });
-        }
-
+}
         function setupSpinbox(inputElement) {
             const handleAdjustment = (multiplier) => {
                 let currentValue = parseFloat(inputElement.value) || 0;
@@ -3999,34 +4052,51 @@ function handleAddTradeSubmit(e) {
                 });
             }
         }
+// Add this to your STATE object if not already there (at top of script)
+// STATE.lastClickTime = 0; 
+
 function handleTradeAction(e) {
     if (!STATE.isMasterUser) return;
 
-    // --- 1. Handle Merge Mode (Specific to Completed Trades) ---
-    // If we are in merge mode, clicking a ROW (not a button) triggers the merge.
-    if (STATE.isMerging) {
+    // 1. Find the button
+    const button = e.target.closest('button');
+    
+    // If we are in Merge Mode, handle row clicks (ignore buttons for a moment)
+    if (STATE.isMerging && !button) {
         const targetRow = e.target.closest('tr');
-        if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody' && !e.target.closest('button')) {
+        if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody') {
             const absorbedTradeId = targetRow.querySelector('.action-buttons button')?.dataset.id;
             if (absorbedTradeId) executeMerge(STATE.mergeBaseTradeId, absorbedTradeId);
         }
         return;
     }
 
-    // --- 2. Button Detection ---
-    const button = e.target.closest('button');
     if (!button) return;
+
+    // 2. STOP PROPAGATION (Fixes "Double Prompt" if listeners are nested)
+    e.stopPropagation();
+    e.preventDefault();
+
+    // 3. COOLDOWN (Prevents rapid double-clicks)
+    const now = Date.now();
+    if (now - (STATE.lastClickTime || 0) < 500) return; 
+    STATE.lastClickTime = now;
+
+    // 4. PROCESSING LOCK
+    if (STATE.isProcessing) return;
 
     const { id } = button.dataset;
 
-    // --- 3. NEW: Close Group Idea (Parent Row) ---
+    // --- BUTTON ROUTING ---
+
+    // A. Close Group Idea
     if (button.matches('.close-group-btn')) {
         const groupId = button.dataset.groupId;
         handleCloseGroup(groupId);
         return;
     }
 
-    // --- 4. Resting Orders Logic ---
+    // B. Resting Orders
     if (button.closest('#resting-trades-tbody')) {
         if (button.matches('.delete-resting-btn')) {
             if (confirm('Delete this resting order?')) {
@@ -4048,7 +4118,7 @@ function handleTradeAction(e) {
         return;
     }
 
-    // --- 5. Live & Completed Individual Actions ---
+    // C. Live & Completed Actions
     const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
     const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
 
