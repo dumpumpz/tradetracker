@@ -2691,7 +2691,7 @@ function renderLiveSummaryCards(groupedTrades) {
         });
     });
 }
-        function renderCompletedTable(data) {
+    function renderCompletedTable(data) {
     const trades = data || {};
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
@@ -2700,7 +2700,7 @@ function renderLiveSummaryCards(groupedTrades) {
     const showAllButton = document.getElementById('toggle-all-completed-trades');
     const pageInfoSpan = document.getElementById('completed-trades-page-info');
 
-    // --- 1. ORGANIZE DATA: Date -> Group -> Trades ---
+    // --- 1. ORGANIZE DATA ---
     const tradesByDayAndGroup = {};
     const uniqueTradingDates = [];
 
@@ -2726,15 +2726,13 @@ function renderLiveSummaryCards(groupedTrades) {
 
     uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
 
-    // --- 2. PAGINATION LOGIC ---
+    // --- 2. PAGINATION ---
     let visibleDates = uniqueTradingDates;
     if (STATE.completedTradesShowAll) {
         const totalPages = uniqueTradingDates.length;
         if (STATE.completedTradesCurrentPage > totalPages) STATE.completedTradesCurrentPage = totalPages;
-        
         const start = STATE.completedTradesCurrentPage - 1;
         visibleDates = uniqueTradingDates.slice(start, start + 1); 
-        
         pageInfoSpan.textContent = `Page ${STATE.completedTradesCurrentPage} of ${totalPages}`;
         showAllButton.style.display = 'none';
         paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
@@ -2742,9 +2740,7 @@ function renderLiveSummaryCards(groupedTrades) {
         const currentLogicalTradingDay = (typeof getTradingDayString === 'function') 
             ? getTradingDayString(Date.now(), Date.now()) 
             : new Date().toLocaleDateString();
-        
         visibleDates = uniqueTradingDates.filter(d => d === currentLogicalTradingDay);
-        
         const hasHistory = uniqueTradingDates.length > 1 || (uniqueTradingDates.length === 1 && uniqueTradingDates[0] !== currentLogicalTradingDay);
         showAllButton.style.display = hasHistory ? 'block' : 'none';
         paginationControls.style.display = 'none';
@@ -2757,7 +2753,7 @@ function renderLiveSummaryCards(groupedTrades) {
         visibleDates.forEach(dateStr => {
             const groupsInDate = tradesByDayAndGroup[dateStr];
             
-            // A. CALCULATE DAILY TOTALS
+            // A. Daily Totals
             let dailyPnL = 0;
             let dailyWins = 0, dailyLosses = 0, totalDailyTrades = 0;
 
@@ -2772,7 +2768,7 @@ function renderLiveSummaryCards(groupedTrades) {
             const datePnlClass = dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
             const pnlSign = dailyPnL >= 0 ? '+' : '-';
 
-            // B. RENDER DATE HEADER (Original Formal Style)
+            // B. Date Header
             rowsHtml += `
             <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
                 <td colspan="24" style="text-align: left; padding: 10px 10px 10px 20px;">
@@ -2788,7 +2784,7 @@ function renderLiveSummaryCards(groupedTrades) {
                 </td>
             </tr>`;
 
-            // C. RENDER GROUPS
+            // C. Groups
             Object.keys(groupsInDate).forEach(groupId => {
                 const groupTrades = groupsInDate[groupId];
                 
@@ -2806,34 +2802,23 @@ function renderLiveSummaryCards(groupedTrades) {
                 const groupPnlClass = groupNet >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                 const groupType = groupTrades[0].type || 'Mixed'; 
 
-                // D. RENDER GROUP SUMMARY ROW (Magnetic Left)
+                // D. Group Header
                 rowsHtml += `
                 <tr class="completed-group-header">
                     <td colspan="24" style="padding: 8px 15px; text-align: left;">
                         <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
-                            
-                            <!-- 1. ID -->
                             <span style="font-weight:bold; color:var(--link-color); font-size:1.05em;">
                                 📂 ${groupId} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${groupType})</span>
                             </span>
-                            
                             <span style="color:var(--border-color);">|</span>
-
-                            <!-- 2. Result -->
                             <span style="font-weight:bold; font-size:1.05em; color:var(--text-color);">
                                 Net: <span style="color:${groupPnlClass};">$${groupNet.toFixed(2)}</span>
                             </span>
-
                             <span style="color:var(--border-color);">|</span>
-
-                            <!-- 3. Stats -->
                             <span style="font-size:0.95em; color:var(--text-color);">
                                 ${groupWins} Wins / ${groupLosses} Losses
                             </span>
-
                             <span style="color:var(--border-color);">|</span>
-
-                            <!-- 4. Details -->
                             <span style="font-size:0.9em; color:var(--subtle-text);">
                                 Vol: $${groupVolume.toLocaleString(undefined, {maximumFractionDigits:0})}
                             </span>
@@ -2841,18 +2826,31 @@ function renderLiveSummaryCards(groupedTrades) {
                     </td>
                 </tr>`;
 
-                // E. RENDER INDIVIDUAL TRADES
+                // E. Individual Trades
                 groupTrades.forEach(trade => {
                     const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                     const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
                     const metrics = calculateTradeMetrics(trade);
                     
+                    // --- 1. CONDITIONAL FEE COLUMNS ---
+                    const isMaker = (trade.entryFeeType === 'maker');
+                    
+                    const valProfitTaker = !isMaker ? formatCurrency(metrics.expected_profit_taker) : '--';
+                    const valProfitMaker = isMaker ? formatCurrency(metrics.expected_profit_maker) : '--';
+                    const valLossTaker = !isMaker ? formatCurrency(metrics.expected_loss_taker) : '--';
+                    const valLossMaker = isMaker ? formatCurrency(metrics.expected_loss_maker) : '--';
+
+                    const styleTaker = !isMaker ? "opacity: 0.6;" : "opacity: 0.1;";
+                    const styleMaker = isMaker ? "opacity: 0.6;" : "opacity: 0.1;";
+
+                    // --- 2. EDITABLE NOTES & REDUCED BUTTONS ---
+                    // Only show contenteditable if Master User
+                    const editAttr = STATE.isMasterUser ? 'contenteditable="true"' : '';
+                    const editClass = STATE.isMasterUser ? 'editable-completed-cell' : '';
+
                     const masterButtons = STATE.isMasterUser ? `<td class="action-buttons">
                         <button class="attach-image-btn" data-id="${trade.dbId}" data-type="completed">Pic</button>
                         <button class="merge-btn-completed" data-id="${trade.dbId}">Merge</button>
-                        <button class="note-btn-completed" data-id="${trade.dbId}">Note 1</button>
-                        <button class="note2-btn-completed" data-id="${trade.dbId}">Note 2</button>
-                        <button class="note3-btn-completed" data-id="${trade.dbId}">Note 3</button>
                         <button class="delete-btn-completed" data-id="${trade.dbId}">Del</button>
                     </td>` : '';
 
@@ -2866,10 +2864,10 @@ function renderLiveSummaryCards(groupedTrades) {
                         <td>${parseFloat(trade.target || 0).toFixed(4)}</td>
                         <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
                         
-                        <td style="opacity:0.6;">${formatCurrency(metrics.expected_profit_taker)}</td>
-                        <td style="opacity:0.6;">${formatCurrency(metrics.expected_profit_maker)}</td>
-                        <td style="opacity:0.6;">${formatCurrency(metrics.expected_loss_taker)}</td>
-                        <td style="opacity:0.6;">${formatCurrency(metrics.expected_loss_maker)}</td>
+                        <td style="${styleTaker}">${valProfitTaker}</td>
+                        <td style="${styleMaker}">${valProfitMaker}</td>
+                        <td style="${styleTaker}">${valLossTaker}</td>
+                        <td style="${styleMaker}">${valLossMaker}</td>
                         
                         <td>${metrics.rr_taker || '--'}</td>
                         <td>${metrics.rr_maker || '--'}</td>
@@ -2878,9 +2876,12 @@ function renderLiveSummaryCards(groupedTrades) {
                         <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
                         <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
                         <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
-                        <td class="note-cell">${trade.note || ''}</td>
-                        <td class="note-cell">${trade.note2 || ''}</td>
-                        <td class="note-cell">${trade.note3 || ''}</td>
+                        
+                        <!-- Editable Notes -->
+                        <td class="note-cell ${editClass}" data-id="${trade.dbId}" data-field="note" ${editAttr}>${trade.note || ''}</td>
+                        <td class="note-cell ${editClass}" data-id="${trade.dbId}" data-field="note2" ${editAttr}>${trade.note2 || ''}</td>
+                        <td class="note-cell ${editClass}" data-id="${trade.dbId}" data-field="note3" ${editAttr}>${trade.note3 || ''}</td>
+                        
                         ${renderAttachmentThumbnails(trade, trade.dbId, 'completed')}
                         ${masterButtons}
                     </tr>`;
@@ -2891,7 +2892,6 @@ function renderLiveSummaryCards(groupedTrades) {
 
     DOM.completedTradesTbody.innerHTML = rowsHtml;
     
-    // Auto-expand
     setTimeout(() => {
         adjustCollapsibleSize(DOM.completedTradesTbody);
     }, 150);
@@ -3654,6 +3654,22 @@ function completeTrade(tradeId, outcome) {
     if (DOM.addTradeForm) {
         DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
     }
+ // --- 5. EDITABLE CELL UPDATES (Blur Event) ---
+    if (DOM.tradesTbody) {
+        DOM.tradesTbody.addEventListener('blur', (e) => { 
+            if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
+        }, true);
+    }
+    
+    // --- NEW: COMPLETED TRADES EDIT LISTENER ---
+    if (DOM.completedTradesTbody) {
+        DOM.completedTradesTbody.addEventListener('blur', (e) => { 
+            // Check for the specific class we will add in the next step
+            if (e.target.matches('.editable-completed-cell')) {
+                handleCompletedTradeUpdate(e.target); 
+            }
+        }, true);
+    }
 
     // --- 7. GLOBAL BODY CLICKS (Collapsibles & Pagination) ---
     document.body.addEventListener('click', (e) => {
@@ -4023,6 +4039,27 @@ function handleAddTradeSubmit(e) {
         document.getElementById('position-value').value = '';
     }).catch(error => alert(`Error: ${error.message}`));
 }
+
+
+        function handleCompletedTradeUpdate(cell) {
+    if (!STATE.isMasterUser) return;
+
+    const tradeId = cell.dataset.id;
+    const field = cell.dataset.field; // note, note2, or note3
+    const newValue = cell.textContent.trim();
+
+    // Update Firebase directly
+    dbRefs.completedTrades.child(tradeId).update({
+        [field]: newValue
+    }).then(() => {
+        // Optional: Visual feedback (e.g., flash green)
+        cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+        setTimeout(() => cell.style.backgroundColor = '', 500);
+    }).catch(err => alert("Error saving note: " + err.message));
+}
+
+
+        
     function handleLiveTradeUpdate(cell) {
     if (!STATE.isMasterUser) return;
     
