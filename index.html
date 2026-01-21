@@ -3839,6 +3839,7 @@ window.addEventListener('resize', () => {
         }
 
    // REPLACE THE ENTIRE calculateTradeMetrics FUNCTION
+// REPLACE THE ENTIRE calculateTradeMetrics FUNCTION
 function calculateTradeMetrics(tradeData) {
     const entry = parseFloat(tradeData.entry); 
     const stoploss = parseFloat(tradeData.stoploss); 
@@ -3852,7 +3853,7 @@ function calculateTradeMetrics(tradeData) {
         expected_loss_taker: 0, expected_loss_maker: 0, 
         expected_profit_percent_taker: 0, expected_profit_percent_maker: 0,
         expected_loss_percent_taker: 0, expected_loss_percent_maker: 0,
-        pnl_per_100_move: 0 // <--- NEW DEFAULT
+        pnl_per_100_move: 0 
     };
 
     if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return baseReturn; }
@@ -3861,8 +3862,8 @@ function calculateTradeMetrics(tradeData) {
     const MAKER_FEE_RATE = rates.MAKER;
     const TAKER_FEE_RATE = rates.TAKER;
 
+    // Determine Entry Fee
     const entryFeeRate = tradeData.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
-
     const positionQty = size / entry; 
     const entryFee = size * entryFeeRate;
 
@@ -3890,7 +3891,10 @@ function calculateTradeMetrics(tradeData) {
     const exitFeeAtTarget_Maker = exitValueAtTarget * MAKER_FEE_RATE;
     const expected_profit_maker = potentialProfit - entryFee - exitFeeAtTarget_Maker;
 
-    const estimated_total_fee = entryFee + exitFeeAtTarget_Taker; 
+    // --- FIX: Logic for Estimated Total Fee Column ---
+    // If entered as Maker, assume Maker exit. If entered as Taker, assume Taker exit.
+    const projectedExitFee = tradeData.entryFeeType === 'maker' ? exitFeeAtTarget_Maker : exitFeeAtTarget_Taker;
+    const estimated_total_fee = entryFee + projectedExitFee; 
 
     // --- Loss Calculations ---
     const exitValueAtStop = (stoploss / entry) * size; 
@@ -3925,7 +3929,7 @@ function calculateTradeMetrics(tradeData) {
         expected_profit_percent_maker: expected_profit_percent_maker,
         expected_loss_percent_taker: expected_loss_percent_taker,
         expected_loss_percent_maker: expected_loss_percent_maker,
-        pnl_per_100_move: pnl_per_100_move // <--- Return the new value
+        pnl_per_100_move: pnl_per_100_move
     };
 }
 function handleAddTradeSubmit(e) {
