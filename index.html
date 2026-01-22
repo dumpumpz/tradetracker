@@ -3015,17 +3015,29 @@ function renderLiveSummaryCards(groupedTrades) {
         adjustCollapsibleSize(DOM.completedTradesTbody);
     }, 200);
 }
-    function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
+   function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             const images = imagesData || {};
             if (!containerElement) return;
             const perthTodayStr = getPerthDateString();
-            
+
             // Helper to generate buttons
             const masterButtonsHtml = (id, fileName) => (STATE.isMasterUser) ? `<button class="delete-library-image" title="Delete Image" data-id="${id}" data-filename="${fileName}" data-library-type="${libraryType}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button><button class="edit-caption-btn" title="Edit Caption" data-id="${id}" data-library-type="${libraryType}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M471.6 21.7c-21.9-21.9-57.3-21.9-79.2 0L362.3 51.7l97.9 97.9 30.1-30.1c21.9-21.9 21.9-57.3 0-79.2L471.6 21.7zm-299.2 220c-6.1 6.1-10.8 13.6-13.5 21.9l-29.6 88.8c-2.9 8.6-.6 18.1 5.8 24.6s15.9 8.7 24.6 5.8l88.8-29.6c8.2-2.7 15.7-7.4 21.9-13.5L437.7 172.3 339.7 74.3 172.4 241.7zM96 64C43 64 0 107 0 160V416c0 53 43 96 96 96H352c53 0 96-43 96-96V320c0-17.7-14.3-32-32-32s-32 14.3-32 32v96c0 17.7-14.3 32-32 32H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h96c17.7 0 32-14.3 32-32s-14.3-32-32-32H96z"/></svg></button>` : '';
 
             // Sort all images newest first
             const allImageIds = Object.keys(images).sort((a, b) => images[b].timestamp - images[a].timestamp);
             let imagesHtml = '';
+
+            // Helper: Calculate 6am-6am Trading Day String
+            // Perth is UTC+8. Day break is 06:00 Perth.
+            // 06:00 Perth = 22:00 UTC (Previous Day).
+            // Logic: If we add 2 hours to UTC time, the DATE component aligns exactly with the 6am-6am trading day.
+            // Example: Jan 20, 06:00 Perth -> Jan 19, 22:00 UTC. Add 2hr -> Jan 20, 00:00 UTC. Date = Jan 20.
+            // Example: Jan 20, 05:59 Perth -> Jan 19, 21:59 UTC. Add 2hr -> Jan 19, 23:59 UTC. Date = Jan 19.
+            const getTradingDayKey = (ts) => {
+                if (!ts) return "Unknown";
+                // 2 hours in milliseconds = 7200000
+                return new Date(ts + 7200000).toISOString().split('T')[0];
+            };
 
             // Helper to create Image HTML
             const createImageHtml = (id, extraClasses = '', extraStyle = '') => {
@@ -3050,20 +3062,20 @@ function renderLiveSummaryCards(groupedTrades) {
                 const pageInfo = document.getElementById('setups-images-page-info');
 
                 if (STATE.setupsImagesShowAll) {
-                    // --- PAGINATE BY DAYS ---
+                    // --- PAGINATE BY 6AM TRADING DAYS ---
                     
-                    // 1. Extract unique dates from the data
+                    // 1. Extract unique Trading Days
                     const uniqueDatesSet = new Set();
                     allImageIds.forEach(id => {
                         const ts = images[id].timestamp;
-                        if(ts) uniqueDatesSet.add(getPerthDateString(new Date(ts)));
+                        if(ts) uniqueDatesSet.add(getTradingDayKey(ts));
                     });
                     
                     // 2. Sort dates descending (Newest first)
                     const sortedUniqueDates = Array.from(uniqueDatesSet).sort((a, b) => b.localeCompare(a));
 
-                    // 3. Define Days per Page
-                    const DAYS_PER_PAGE = 2; 
+                    // 3. Define Days per Page (1 Day = 6am to 6am view)
+                    const DAYS_PER_PAGE = 1; 
                     
                     // 4. Calculate total pages
                     const totalPages = Math.ceil(sortedUniqueDates.length / DAYS_PER_PAGE);
@@ -3076,10 +3088,10 @@ function renderLiveSummaryCards(groupedTrades) {
                     const startIndex = (STATE.setupsImagesCurrentPage - 1) * DAYS_PER_PAGE;
                     const datesForThisPage = sortedUniqueDates.slice(startIndex, startIndex + DAYS_PER_PAGE);
 
-                    // 7. Filter images that belong to these dates
+                    // 7. Filter images that belong to these Trading Days
                     const idsToRender = allImageIds.filter(id => {
-                        const imgDate = getPerthDateString(new Date(images[id].timestamp));
-                        return datesForThisPage.includes(imgDate);
+                        const imgDateKey = getTradingDayKey(images[id].timestamp);
+                        return datesForThisPage.includes(imgDateKey);
                     });
 
                     // 8. Render
@@ -3089,6 +3101,7 @@ function renderLiveSummaryCards(groupedTrades) {
                     showAllButton.style.display = 'none';
                     if (totalPages > 1) {
                         paginationControls.style.display = 'flex';
+                        // Removed Date Text as requested, just Page X of Y
                         pageInfo.textContent = `Page ${STATE.setupsImagesCurrentPage} of ${totalPages}`;
                         document.getElementById('setups-images-prev-page').disabled = (STATE.setupsImagesCurrentPage === 1);
                         document.getElementById('setups-images-next-page').disabled = (STATE.setupsImagesCurrentPage === totalPages);
