@@ -3050,7 +3050,7 @@ function renderLiveSummaryCards(groupedTrades) {
                 const pageInfo = document.getElementById('setups-images-page-info');
 
                 if (STATE.setupsImagesShowAll) {
-                    // --- NEW LOGIC: PAGINATE BY DAYS ---
+                    // --- PAGINATE BY DAYS ---
                     
                     // 1. Extract unique dates from the data
                     const uniqueDatesSet = new Set();
@@ -3063,7 +3063,7 @@ function renderLiveSummaryCards(groupedTrades) {
                     const sortedUniqueDates = Array.from(uniqueDatesSet).sort((a, b) => b.localeCompare(a));
 
                     // 3. Define Days per Page
-                    const DAYS_PER_PAGE = 2; // <--- CHANGED FROM ITEMS TO DAYS
+                    const DAYS_PER_PAGE = 2; 
                     
                     // 4. Calculate total pages
                     const totalPages = Math.ceil(sortedUniqueDates.length / DAYS_PER_PAGE);
@@ -3089,16 +3089,7 @@ function renderLiveSummaryCards(groupedTrades) {
                     showAllButton.style.display = 'none';
                     if (totalPages > 1) {
                         paginationControls.style.display = 'flex';
-                        
-                        // Optional: Show Date Range in pagination info
-                        let dateRangeStr = "";
-                        if(datesForThisPage.length > 0) {
-                            dateRangeStr = ` (${datesForThisPage[0]}` + 
-                                (datesForThisPage.length > 1 ? ` - ${datesForThisPage[datesForThisPage.length-1]}` : "") + 
-                                `)`;
-                        }
-                        
-                        pageInfo.textContent = `Page ${STATE.setupsImagesCurrentPage} of ${totalPages}${dateRangeStr}`;
+                        pageInfo.textContent = `Page ${STATE.setupsImagesCurrentPage} of ${totalPages}`;
                         document.getElementById('setups-images-prev-page').disabled = (STATE.setupsImagesCurrentPage === 1);
                         document.getElementById('setups-images-next-page').disabled = (STATE.setupsImagesCurrentPage === totalPages);
                     } else {
@@ -3126,7 +3117,6 @@ function renderLiveSummaryCards(groupedTrades) {
             containerElement.innerHTML = imagesHtml;
             adjustCollapsibleSize(containerElement);
         }
-
         function renderDateNavigation() {
             const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
             const timeframe = DOM.journalTimeframeEl.value;
