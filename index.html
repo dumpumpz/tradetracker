@@ -1452,13 +1452,11 @@ body.is-master th.master-only {
             <button class="tab-link" data-tab="notes">Notes</button>
         </div>
 
-        <div id="tracker-tab" class="tab-content active">
 <div id="tracker-tab" class="tab-content active">
-
-    <!-- INSERT THIS LINE HERE: -->
+    <!-- Market Alert Banner Container -->
     <div id="tracker-alerts"></div> 
 
-    <!-- Add New Trade Section -->
+    <!-- Add New Trade Section (Only visible to Master) -->
     <div class="collapsible-section master-only">
         <!-- ... existing code ... -->
             <!-- Add New Trade Section -->
@@ -2776,56 +2774,99 @@ function renderLiveSummaryCards(groupedTrades) {
 }
 
 
-                   function checkMarketAlerts() {
+                  function checkMarketAlerts() {
     const container = document.getElementById('tracker-alerts');
     if (!container) return;
 
-    // --- TESTING ---
-    // Change this to TRUE if you want to see the alerts right now to verify they look good.
-    // Change back to FALSE for real usage.
-    const forceTest = false; 
-    // ---------------
+    // --- CONFIGURATION ---
+    const forceTest = false; // Set TRUE to preview all alerts
+    // ---------------------
 
     const today = new Date();
-    const dayOfWeek = today.getDay(); // 0=Sun, 4=Thu, 5=Fri
+    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
     const dateOfMonth = today.getDate();
     
-    // --- CALCULATE LAST FRIDAY OF MONTH (Crypto Expiry) ---
-    // 1. Get the last day of the current month
+    // Helper: Days in current month
     const lastDayCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    // 2. Calculate how many days to subtract to get back to Friday (5)
+    
+    // --- CALCULATION: LAST FRIDAY (Crypto Options Expiry) ---
     let offsetToLastFriday = (lastDayCurrentMonth.getDay() - 5 + 7) % 7;
     const lastFridayDate = lastDayCurrentMonth.getDate() - offsetToLastFriday;
 
     const messages = [];
 
-    // --- ALERT 1: Generic Friday Warning ---
-    if (dayOfWeek === 5 || forceTest) {
+    // ======================================================
+    // 1. MONDAY: Fakeout / Range Construction (Blue Alert)
+    // ======================================================
+    if (dayOfWeek === 1 || forceTest) {
         messages.push(`
-            <div class="alert-banner">
-                <strong>Friday Warning:</strong> 
-                Fridays often trend bearish closing out weekly positions. 
-                Volume drops off late NY. Don't force trades.
+            <div class="alert-banner" style="background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb;">
+                <strong>Monday Range Construction:</strong> 
+                "Monday Highs/Lows" are often swept later in the week. 
+                Don't trust the initial trend immediately.
             </div>
         `);
     }
 
-    // --- ALERT 2: It is the Last Friday (Expiry Day) ---
+    // ======================================================
+    // 2. FRIDAY ALERTS
+    // ======================================================
+
+    // A. NFP Warning (1st Friday of Month) -> High Danger
+    // Logic: It is Friday AND the date is between 1st and 7th
+    if ((dayOfWeek === 5 && dateOfMonth <= 7) || forceTest) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
+                <strong>🇺🇸 NFP Data Release:</strong> 
+                It is the 1st Friday of the month. Non-Farm Payrolls at 8:30 AM NY. 
+                Do not hold tight stops through the release.
+            </div>
+        `);
+    }
+
+    // B. Crypto Monthly Expiry (Last Friday) -> High Danger
     if ((dayOfWeek === 5 && dateOfMonth === lastFridayDate) || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
                 <strong>⚠️ Monthly Crypto Expiry:</strong> 
-                Today is the Last Friday of the month. Massive options expiry usually causes "pinning" or volatility.
+                Last Friday of the month. Deribit/CME expiry may cause "pinning" or volatility.
             </div>
         `);
     }
 
-    // --- ALERT 3: It is the Thursday Before Last Friday (Pre-Expiry) ---
+    // C. Standard Friday Warning (Only show if it's NOT NFP or Expiry to avoid clutter)
+    const isSpecialFriday = (dateOfMonth <= 7) || (dateOfMonth === lastFridayDate);
+    if ((dayOfWeek === 5 && !isSpecialFriday) || forceTest) {
+        messages.push(`
+            <div class="alert-banner">
+                <strong>Friday Warning:</strong> 
+                Weekly close approaching. Volume often drops late NY. 
+                Watch out for profit-taking reversals.
+            </div>
+        `);
+    }
+
+    // ======================================================
+    // 3. THURSDAY: Pre-Expiry (Purple Alert)
+    // ======================================================
     if ((dayOfWeek === 4 && dateOfMonth === (lastFridayDate - 1)) || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;">
                 <strong>⚠️ Pre-Expiry Volatility:</strong> 
-                Tomorrow is Monthly Crypto Expiry. Expect positioning adjustments and erratic moves today.
+                Tomorrow is Monthly Expiry. Expect positioning adjustments today.
+            </div>
+        `);
+    }
+
+    // ======================================================
+    // 4. SATURDAY: Low Liquidity (Grey Alert)
+    // ======================================================
+    if (dayOfWeek === 6 || forceTest) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #e2e3e5; color: #383d41; border-color: #d6d8db;">
+                <strong>Weekend Trading:</strong> 
+                Banks/CME closed. Liquidity is thin. 
+                Price is easily manipulated (stop hunts) and often fills the "CME Gap" by Sunday night.
             </div>
         `);
     }
@@ -2836,74 +2877,6 @@ function renderLiveSummaryCards(groupedTrades) {
     } else {
         container.innerHTML = '';
     }
-}
-
-    function handleCloseGroup(groupId) {
-    if (!STATE.isMasterUser) return;
-    
-    // 1. BLOCK double clicks
-    if (STATE.isProcessing) return;
-    STATE.isProcessing = true;
-    
-    dbRefs.trades.once('value', snapshot => {
-        const allTrades = snapshot.val() || {};
-        
-        const groupTradeIds = Object.keys(allTrades).filter(id => {
-            const t = allTrades[id];
-            const tGid = t.groupId || `${t.symbol}_${t.type}_Legacy`;
-            return tGid === groupId;
-        });
-
-        if (groupTradeIds.length === 0) {
-            STATE.isProcessing = false;
-            return alert("No active trades found for this group.");
-        }
-
-        const exitPriceStr = prompt(`Closing Group: ${groupId}\n(${groupTradeIds.length} active trades)\n\nEnter Exit Price:`);
-        if (exitPriceStr === null) {
-            STATE.isProcessing = false;
-            return;
-        }
-        
-        const exitPrice = parseFloat(exitPriceStr);
-        if (isNaN(exitPrice)) {
-            STATE.isProcessing = false;
-            return alert("Invalid Price");
-        }
-
-        let exitFeeType = prompt("Enter exit fee type (maker/taker):", "taker");
-        if (!exitFeeType || (exitFeeType !== 'maker' && exitFeeType !== 'taker')) {
-            STATE.isProcessing = false;
-            return;
-        }
-
-        const promises = groupTradeIds.map(tradeId => {
-            const trade = allTrades[tradeId];
-            const result = calculateNetResult(trade, exitPrice, exitFeeType);
-
-            const completedTrade = {
-                ...trade,
-                ...result,
-                closed_date: firebase.database.ServerValue.TIMESTAMP,
-                exit_price: exitPrice,
-                exitFeeType: exitFeeType,
-                note: (trade.note || '') + `\nGroup Close (${groupId}) @ $${exitPrice}`
-            };
-
-            // Push AND Remove
-            return dbRefs.completedTrades.push(completedTrade)
-                .then(() => dbRefs.trades.child(tradeId).remove());
-        });
-
-        // Wait for all to finish before releasing lock
-        Promise.all(promises).then(() => {
-            alert(`Closed ${groupTradeIds.length} trades in group ${groupId}.`);
-            STATE.isProcessing = false;
-        }).catch(err => {
-            console.error(err);
-            STATE.isProcessing = false;
-        });
-    });
 }
     function renderCompletedTable(data) {
     const trades = data || {};
@@ -4795,33 +4768,6 @@ function openDefaultSectionsInContainer(containerElement) {
 
 // 3. The Init Function (Make sure this calls the open function at the end)
 async function initializeApp() {
-    checkMasterMode(); 
-    getViewerId();
-    await fetchLiveConversionRate();
-
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) { 
-        document.documentElement.setAttribute('data-theme', savedTheme); 
-        DOM.themeToggle.checked = savedTheme === 'dark'; 
-    }
-    
-    const today = new Date(); 
-    today.setUTCHours(0, 0, 0, 0);
-    STATE.selectedDate = new Date(today); 
-    STATE.centerDate = new Date(today);
-    
-    setupEventListeners(); 
-    subscribeToData();
-    renderDateNavigation(); 
-
-    // --- FIX: AUTO-OPEN SECTIONS ON LOAD ---
-    const activeTabContent = document.querySelector('.tab-content.active');
-    if (activeTabContent) {
-        openDefaultSectionsInContainer(activeTabContent);
-        activeTabContent.dataset.sectionsInitialized = 'true';
-    }
-}
-        async function initializeApp() {
             checkMasterMode(); 
             getViewerId();
             await fetchLiveConversionRate();
@@ -4831,15 +4777,18 @@ async function initializeApp() {
                 document.documentElement.setAttribute('data-theme', savedTheme); 
                 DOM.themeToggle.checked = savedTheme === 'dark'; 
             }
+            
             const today = new Date(); 
             today.setUTCHours(0, 0, 0, 0);
             STATE.selectedDate = new Date(today); 
             STATE.centerDate = new Date(today);
+            
             setupEventListeners(); 
             subscribeToData();
             renderDateNavigation(); 
-          // ADD THIS LINE HERE:
-            checkMarketAlerts();
+            checkMarketAlerts(); // Initializes your new Friday/NFP alerts
+
+            // Auto-open sections for the first tab
             const activeTabContent = document.querySelector('.tab-content.active');
             if (activeTabContent) {
                 openDefaultSectionsInContainer(activeTabContent);
@@ -4848,7 +4797,7 @@ async function initializeApp() {
         }
 
         initializeApp();
-    });
-    </script>
+    }); // This closes the DOMContentLoaded listener
+</script>
     </body>
     </html>
