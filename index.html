@@ -1381,6 +1381,31 @@ body.is-master th.master-only {
 .collapsible-content-inner {
     padding-bottom: 25px; /* Extra padding at bottom to prevent cut-off */
 }
+
+
+
+            /* Market Alert Banners */
+.alert-banner {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.5;
+    animation: fadeIn 0.5s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.alert-banner strong {
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-right: 5px;
+}
+.alert-banner + .alert-banner {
+    margin-top: -10px; /* Stack them closer if multiple exist */
+}
     </style>
 <body>
     <div class="container">
@@ -1428,7 +1453,14 @@ body.is-master th.master-only {
         </div>
 
         <div id="tracker-tab" class="tab-content active">
+<div id="tracker-tab" class="tab-content active">
 
+    <!-- INSERT THIS LINE HERE: -->
+    <div id="tracker-alerts"></div> 
+
+    <!-- Add New Trade Section -->
+    <div class="collapsible-section master-only">
+        <!-- ... existing code ... -->
             <!-- Add New Trade Section -->
             <div class="collapsible-section master-only">
                 <div class="collapsible-header">
@@ -2741,6 +2773,64 @@ function renderLiveSummaryCards(groupedTrades) {
     
     summaryHtml += '</div>';
     summaryContainer.innerHTML = summaryHtml;
+}
+
+
+                    function checkMarketAlerts() {
+    const container = document.getElementById('tracker-alerts');
+    if (!container) return;
+
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 4=Thu, 5=Fri, 6=Sat
+    const dateOfMonth = today.getDate();
+    const messages = [];
+
+    // --- 1. Friday Logic ---
+    if (dayOfWeek === 5) {
+        messages.push(`
+            <div class="alert-banner">
+                <strong>Friday Warning:</strong> 
+                Fridays often trend bearish as traders close out weekly positions. 
+                Volume may drop off late in the NY session. Trade with caution.
+            </div>
+        `);
+    }
+
+    // --- 2. Options Expiry Logic (3rd Friday) ---
+    // Calculate the date of the 3rd Friday of the current month
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    // Find offset to the first Friday (Friday is index 5)
+    let offsetToFirstFriday = (5 - firstDayOfMonth.getDay() + 7) % 7;
+    // 1st Friday date = 1 + offset
+    // 3rd Friday date = 1st Friday + 14 days
+    const thirdFridayDate = 1 + offsetToFirstFriday + 14;
+
+    // Check if Today is the 3rd Friday
+    if (dayOfWeek === 5 && dateOfMonth === thirdFridayDate) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
+                <strong>⚠️ Monthly Options Expiry:</strong> 
+                Today is the 3rd Friday of the month. Expect volatility, "pinning" price action, and erratic moves.
+            </div>
+        `);
+    }
+
+    // Check if Today is Thursday (Day 4) AND Tomorrow is the 3rd Friday
+    if (dayOfWeek === 4 && dateOfMonth === (thirdFridayDate - 1)) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;">
+                <strong>⚠️ Pre-Expiry Volatility:</strong> 
+                Tomorrow is Monthly Options Expiry. Expect positioning adjustments and potential volatility today.
+            </div>
+        `);
+    }
+
+    // Render alerts
+    if (messages.length > 0) {
+        container.innerHTML = messages.join('');
+    } else {
+        container.innerHTML = '';
+    }
 }
 
     function handleCloseGroup(groupId) {
@@ -4743,7 +4833,8 @@ async function initializeApp() {
             setupEventListeners(); 
             subscribeToData();
             renderDateNavigation(); 
-
+          // ADD THIS LINE HERE:
+            checkMarketAlerts();
             const activeTabContent = document.querySelector('.tab-content.active');
             if (activeTabContent) {
                 openDefaultSectionsInContainer(activeTabContent);
