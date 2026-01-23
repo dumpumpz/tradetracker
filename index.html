@@ -2776,51 +2776,56 @@ function renderLiveSummaryCards(groupedTrades) {
 }
 
 
-                    function checkMarketAlerts() {
+                   function checkMarketAlerts() {
     const container = document.getElementById('tracker-alerts');
     if (!container) return;
 
+    // --- TESTING ---
+    // Change this to TRUE if you want to see the alerts right now to verify they look good.
+    // Change back to FALSE for real usage.
+    const forceTest = false; 
+    // ---------------
+
     const today = new Date();
-    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 4=Thu, 5=Fri, 6=Sat
+    const dayOfWeek = today.getDay(); // 0=Sun, 4=Thu, 5=Fri
     const dateOfMonth = today.getDate();
+    
+    // --- CALCULATE LAST FRIDAY OF MONTH (Crypto Expiry) ---
+    // 1. Get the last day of the current month
+    const lastDayCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    // 2. Calculate how many days to subtract to get back to Friday (5)
+    let offsetToLastFriday = (lastDayCurrentMonth.getDay() - 5 + 7) % 7;
+    const lastFridayDate = lastDayCurrentMonth.getDate() - offsetToLastFriday;
+
     const messages = [];
 
-    // --- 1. Friday Logic ---
-    if (dayOfWeek === 5) {
+    // --- ALERT 1: Generic Friday Warning ---
+    if (dayOfWeek === 5 || forceTest) {
         messages.push(`
             <div class="alert-banner">
                 <strong>Friday Warning:</strong> 
-                Fridays often trend bearish as traders close out weekly positions. 
-                Volume may drop off late in the NY session. Trade with caution.
+                Fridays often trend bearish closing out weekly positions. 
+                Volume drops off late NY. Don't force trades.
             </div>
         `);
     }
 
-    // --- 2. Options Expiry Logic (3rd Friday) ---
-    // Calculate the date of the 3rd Friday of the current month
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    // Find offset to the first Friday (Friday is index 5)
-    let offsetToFirstFriday = (5 - firstDayOfMonth.getDay() + 7) % 7;
-    // 1st Friday date = 1 + offset
-    // 3rd Friday date = 1st Friday + 14 days
-    const thirdFridayDate = 1 + offsetToFirstFriday + 14;
-
-    // Check if Today is the 3rd Friday
-    if (dayOfWeek === 5 && dateOfMonth === thirdFridayDate) {
+    // --- ALERT 2: It is the Last Friday (Expiry Day) ---
+    if ((dayOfWeek === 5 && dateOfMonth === lastFridayDate) || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
-                <strong>⚠️ Monthly Options Expiry:</strong> 
-                Today is the 3rd Friday of the month. Expect volatility, "pinning" price action, and erratic moves.
+                <strong>⚠️ Monthly Crypto Expiry:</strong> 
+                Today is the Last Friday of the month. Massive options expiry usually causes "pinning" or volatility.
             </div>
         `);
     }
 
-    // Check if Today is Thursday (Day 4) AND Tomorrow is the 3rd Friday
-    if (dayOfWeek === 4 && dateOfMonth === (thirdFridayDate - 1)) {
+    // --- ALERT 3: It is the Thursday Before Last Friday (Pre-Expiry) ---
+    if ((dayOfWeek === 4 && dateOfMonth === (lastFridayDate - 1)) || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;">
                 <strong>⚠️ Pre-Expiry Volatility:</strong> 
-                Tomorrow is Monthly Options Expiry. Expect positioning adjustments and potential volatility today.
+                Tomorrow is Monthly Crypto Expiry. Expect positioning adjustments and erratic moves today.
             </div>
         `);
     }
