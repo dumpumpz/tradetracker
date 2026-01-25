@@ -3448,29 +3448,32 @@ function completeTrade(tradeId, outcome) {
     }
 
     // --- 2. Tab Navigation ---
-    DOM.tabs.addEventListener('click', (e) => {
-        if (!e.target.matches('.tab-link')) return;
-        document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
-        e.target.classList.add('active');
-        const tabId = e.target.dataset.tab;
-        const newTabContent = document.getElementById(`${tabId}-tab`);
-        if (newTabContent) {
-            newTabContent.classList.add('active');
-            // Auto-open sections if first time visiting tab
-            if (!newTabContent.dataset.sectionsInitialized) { 
-                openDefaultSectionsInContainer(newTabContent); 
-                newTabContent.dataset.sectionsInitialized = 'true'; 
-            }
+// --- 2. Tab Navigation ---
+DOM.tabs.addEventListener('click', (e) => {
+    if (!e.target.matches('.tab-link')) return;
+    document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
+    e.target.classList.add('active');
+    const tabId = e.target.dataset.tab;
+    const newTabContent = document.getElementById(`${tabId}-tab`);
+    if (newTabContent) {
+        newTabContent.classList.add('active');
+        // Auto-open sections if first time visiting tab
+        if (!newTabContent.dataset.sectionsInitialized) { 
+            openDefaultSectionsInContainer(newTabContent); 
+            newTabContent.dataset.sectionsInitialized = 'true'; 
         }
-        // Show Stats panel only on main tabs
-        DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'journal') ? 'block' : 'none';
-        
-        // Refresh Journal View if active
-        if (tabId === 'journal') { 
-            updateJournalView();
-            renderDateNavigation(); 
-        }
-    });
+    }
+
+    // CHANGE THIS LINE BELOW:
+    // Only show the stats panel if the active tab is 'tracker'
+    DOM.statsPanelContainer.style.display = (tabId === 'tracker') ? 'block' : 'none';
+    
+    // Refresh Journal View if active
+    if (tabId === 'journal') { 
+        updateJournalView();
+        renderDateNavigation(); 
+    }
+});
 
     // --- 3. Stats Panel Toggle ---
     DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
