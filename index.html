@@ -2244,6 +2244,79 @@ function renderRestingTable(data) {
                 });
             });
         }
+        function handleCloseGroup(groupId) {
+    if (STATE.isProcessing) return;
+    
+    // 1. Confirm with user
+    if (!confirm(`Are you sure you want to close ALL trades in group: ${groupId}?`)) return;
+
+    dbRefs.trades.once('value', snapshot => {
+        const allTrades = snapshot.val();
+        if (!allTrades) return;
+
+        // 2. Find all trades belonging to this groupId
+        const groupEntries = Object.entries(allTrades).filter(([id, t]) => t.groupId === groupId);
+        
+        if (groupEntries.length === 0) {
+            alert("No live trades found for this group.");
+            return;
+        }
+
+        // 3. Prompt for closing details (applying to the whole group)
+        const defaultExit = groupEntries[0][1].target;
+        const exitPriceStr = prompt(`Closing Group: ${groupId}\nEnter exit price for ALL positions:`, defaultExit);
+        if (exitPriceStr === null) return; // User cancelled
+
+        let exitFeeType = prompt("Enter exit fee type (maker/taker):", "taker");
+        if (exitFeeType === null) return;
+        exitFeeType = exitFeeType.toLowerCase().trim();
+
+        const exitPrice = parseFloat(exitPriceStr);
+        if (isNaN(exitPrice)) {
+            alert("Invalid exit price.");
+            return;
+        }
+
+        // 4. Start processing
+        STATE.isProcessing = true;
+        const updates = {};
+        const completedPromises = [];
+
+        groupEntries.forEach(([id, trade]) => {
+            // Calculate results for this specific trade portion
+            const result = calculateNetResult(trade, exitPrice, exitFeeType);
+
+            const completedTrade = {
+                ...trade,
+                ...result,
+                closed_date: firebase.database.ServerValue.TIMESTAMP,
+                exit_price: exitPrice,
+                exitFeeType: exitFeeType,
+                note: (trade.note || '') + `\nGroup closed @ $${exitPrice}`
+            };
+
+            // Add to Completed Trades
+            completedPromises.push(dbRefs.completedTrades.push(completedTrade));
+            // Queue for removal from Live Trades
+            updates[id] = null; 
+        });
+
+        // 5. Execute all updates
+        Promise.all(completedPromises)
+            .then(() => {
+                return dbRefs.trades.update(updates);
+            })
+            .then(() => {
+                alert(`Successfully closed ${groupEntries.length} trades in group ${groupId}.`);
+            })
+            .catch(err => {
+                alert("Error closing group: " + err.message);
+            })
+            .finally(() => {
+                STATE.isProcessing = false;
+            });
+    });
+}
         
 function renderLiveTable(data) {
     try {
