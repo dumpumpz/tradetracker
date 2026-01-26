@@ -2758,7 +2758,7 @@ if (dayOfWeek === 2 || forceTest) {
         container.innerHTML = '';
     }
 }
- function renderCompletedTable(data) {
+function renderCompletedTable(data) {
     const trades = data || {};
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
@@ -2858,13 +2858,12 @@ if (dayOfWeek === 2 || forceTest) {
                 let groupNet = 0;
                 let groupWins = 0, groupLosses = 0;
                 let groupVolume = 0;
-                let groupPnL100 = 0; // The per $100 move aggregator
+                let groupPnL100 = 0; 
 
                 groupTrades.forEach(t => {
                     groupNet += parseFloat(t.net_result || 0);
                     groupVolume += parseFloat(t.size || 0);
                     
-                    // Calculate PnL per $100 for this specific trade size
                     const metrics = calculateTradeMetrics(t);
                     groupPnL100 += parseFloat(metrics.pnl_per_100_move || 0);
 
@@ -2888,7 +2887,7 @@ if (dayOfWeek === 2 || forceTest) {
                             </span>
                             <span style="color:var(--border-color);">|</span>
                             <span style="font-size:0.95em; color:var(--text-color);">
-                                ${groupWins} W / ${groupLosses} L
+                                ${groupWins} Wins / ${groupLosses} Losses
                             </span>
                             <span style="color:var(--border-color);">|</span>
                             <span style="font-size:0.9em; color:var(--subtle-text);">
@@ -2963,7 +2962,6 @@ if (dayOfWeek === 2 || forceTest) {
 
     DOM.completedTradesTbody.innerHTML = rowsHtml;
     
-    // Adjust height for collapsible container
     setTimeout(() => {
         if (typeof adjustCollapsibleSize === 'function') {
             adjustCollapsibleSize(DOM.completedTradesTbody);
