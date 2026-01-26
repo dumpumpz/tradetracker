@@ -4162,6 +4162,73 @@ function handleTradeAction(e) {
         });
     }
 }
+
+        // --- MISSING FUNCTION: Renders the Setups / Setup Image Library ---
+function renderGenericImageLibrary(data, container, libraryType) {
+    if (!container) return;
+    const images = data || {};
+    const imageIds = Object.keys(images).sort((a, b) => images[b].timestamp - images[a].timestamp);
+    
+    const paginationControls = document.getElementById(`${container.id.split('-')[0]}s-images-pagination-controls`);
+    const pageInfoSpan = document.getElementById(`${container.id.split('-')[0]}s-images-page-info`);
+    const showAllButton = document.getElementById(`toggle-all-${container.id.split('-')[0]}s-images`);
+
+    let visibleIds = imageIds;
+    const itemsPerPage = STATE.setupsImagesItemsPerPage;
+
+    // Handle Pagination
+    if (STATE.setupsImagesShowAll) {
+        const totalPages = Math.ceil(imageIds.length / itemsPerPage);
+        if (STATE.setupsImagesCurrentPage > totalPages) STATE.setupsImagesCurrentPage = totalPages;
+        const start = (STATE.setupsImagesCurrentPage - 1) * itemsPerPage;
+        visibleIds = imageIds.slice(start, start + itemsPerPage);
+        
+        if (pageInfoSpan) pageInfoSpan.textContent = `Page ${STATE.setupsImagesCurrentPage} of ${totalPages || 1}`;
+        if (showAllButton) showAllButton.style.display = 'none';
+        if (paginationControls) paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
+    } else {
+        // Just show the most recent 4 if not in "Show All" mode
+        visibleIds = imageIds.slice(0, 4);
+        if (showAllButton) showAllButton.style.display = imageIds.length > 4 ? 'block' : 'none';
+        if (paginationControls) paginationControls.style.display = 'none';
+    }
+
+    if (visibleIds.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:var(--subtle-text); grid-column: 1/-1;">No images found.</p>';
+        return;
+    }
+
+    const html = visibleIds.map(id => {
+        const img = images[id];
+        const isToday = getYYYYMMDD(new Date(img.timestamp)) === getPerthDateString();
+        
+        const deleteBtn = STATE.isMasterUser ? `
+            <button class="delete-library-image" data-id="${id}" data-filename="${img.fileName}">
+                <svg viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg>
+            </button>` : '';
+
+        const editBtn = STATE.isMasterUser ? `
+            <button class="edit-caption-btn" data-id="${id}">
+                <svg viewBox="0 0 512 512"><path d="M410.3 231l11.3-11.3c3.9-3.9 3.9-10.2 0-14.1L306.4 90.4c-3.9-3.9-10.2-3.9-14.1 0L281 101.7 410.3 231zM258.4 124.4L45.4 337.4 1.2 470.6c-1.5 4.4 .7 9.1 5 10.6s9.1-.7 10.6-5L60.2 343.4 273.2 130.4 258.4 124.4z"/></svg>
+            </button>` : '';
+
+        return `
+            <div class="library-image-wrapper">
+                ${deleteBtn}
+                ${editBtn}
+                <img src="${img.url}" data-full-src="${img.url}" data-caption="${img.caption || ''}" alt="Setup">
+                <div class="library-image-caption ${isToday ? 'is-today' : ''}">
+                    ${img.caption || (isToday ? 'New Upload' : '')}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = html;
+    
+    // Auto-resize the collapsible height since images just loaded
+    adjustCollapsibleSize(container);
+}
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); if (attachBtn) { handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type); return true; }
             const delImgBtn = e.target.closest('.delete-trade-image'); if (delImgBtn) { const { entryId, entryType, imageId, filename } = delImgBtn.dataset; handleDeleteAttachmentImage(entryId, entryType, imageId, filename); return true; }
