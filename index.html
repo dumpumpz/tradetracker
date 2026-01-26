@@ -2767,7 +2767,7 @@ function renderCompletedTable(data) {
     const showAllButton = document.getElementById('toggle-all-completed-trades');
     const pageInfoSpan = document.getElementById('completed-trades-page-info');
 
-    // --- 1. NEW: INJECT HEADERS ---
+    // --- 1. HEADERS (Added % Net) ---
     const table = DOM.completedTradesTbody.closest('table');
     let thead = table.querySelector('thead');
     if (!thead) {
@@ -2779,6 +2779,7 @@ function renderCompletedTable(data) {
             <th>Sym</th><th>Type</th><th>Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th>
             <th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th>
             <th>RR(T)</th><th>RR(M)</th><th>Exit</th><th>Fees</th><th>Net PnL</th>
+            <th>% (Net)</th> <!-- New Column -->
             <th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th>
         </tr>
     `;
@@ -2831,7 +2832,7 @@ function renderCompletedTable(data) {
 
     // --- 4. RENDER LOOP ---
     if (visibleDates.length === 0) {
-        rowsHtml = '<tr><td colspan="24" style="text-align:center; padding:20px; color: var(--subtle-text);">No completed trades for this period.</td></tr>';
+        rowsHtml = '<tr><td colspan="25" style="text-align:center; padding:20px; color: var(--subtle-text);">No completed trades for this period.</td></tr>';
     } else {
         visibleDates.forEach(dateStr => {
             const groupsInDate = tradesByDayAndGroup[dateStr];
@@ -2852,7 +2853,7 @@ function renderCompletedTable(data) {
 
             rowsHtml += `
             <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
-                <td colspan="24" style="text-align: left; padding: 10px 10px 10px 20px;">
+                <td colspan="25" style="text-align: left; padding: 10px 10px 10px 20px;">
                     <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
                         Date: ${dateStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${totalDailyTrades} Trades)</span>
                     </div>
@@ -2892,7 +2893,7 @@ function renderCompletedTable(data) {
 
                 rowsHtml += `
                 <tr class="completed-group-header">
-                    <td colspan="24" style="padding: 8px 15px; text-align: left;">
+                    <td colspan="25" style="padding: 8px 15px; text-align: left;">
                         <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
                             <span style="font-weight:bold; color:var(--link-color); font-size:1.05em;">
                                 📂 ${groupId} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${groupType})</span>
@@ -2923,6 +2924,14 @@ function renderCompletedTable(data) {
                     const metrics = calculateTradeMetrics(trade);
                     const isMaker = (trade.entryFeeType === 'maker');
                     
+                    // --- Calculations for Net % and Conditional RR ---
+                    const netPercent = (parseFloat(trade.net_result) / parseFloat(trade.size)) * 100;
+                    
+                    const rrTDisplay = !isMaker ? (trade.rr_taker || metrics.rr_taker) : '--';
+                    const rrMDisplay = isMaker ? (trade.rr_maker || metrics.rr_maker) : '--';
+                    const rrTStyle = !isMaker ? 'font-weight:bold;' : 'opacity: 0.1;';
+                    const rrMStyle = isMaker ? 'font-weight:bold;' : 'opacity: 0.1;';
+
                     const editAttr = STATE.isMasterUser ? 'contenteditable="true"' : '';
                     const editClass = STATE.isMasterUser ? 'editable-completed-cell' : '';
 
@@ -2945,11 +2954,18 @@ function renderCompletedTable(data) {
                         <td style="opacity: ${isMaker ? '0.6' : '0.1'};">${formatCurrency(metrics.expected_profit_maker)}</td>
                         <td style="opacity: ${!isMaker ? '0.6' : '0.1'};">${formatCurrency(metrics.expected_loss_taker)}</td>
                         <td style="opacity: ${isMaker ? '0.6' : '0.1'};">${formatCurrency(metrics.expected_loss_maker)}</td>
-                        <td>${metrics.rr_taker || '--'}</td>
-                        <td>${metrics.rr_maker || '--'}</td>
+                        
+                        <!-- Conditional RR Display -->
+                        <td style="${rrTStyle}">${rrTDisplay}</td>
+                        <td style="${rrMStyle}">${rrMDisplay}</td>
+                        
                         <td>${parseFloat(trade.exit_price).toFixed(4)}</td>
                         <td>${totalFees.toFixed(2)}</td>
                         <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
+                        
+                        <!-- Net % Column -->
+                        <td style="color:${resultColor};font-weight:bold;">${netPercent.toFixed(2)}%</td>
+
                         <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
                         <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
                         <td class="note-cell ${editClass}" data-id="${trade.dbId}" data-field="note" ${editAttr}>${trade.note || ''}</td>
