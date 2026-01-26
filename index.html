@@ -2815,7 +2815,7 @@ function renderCompletedTable(data) {
 
     // --- 3. RENDER LOOP ---
     if (visibleDates.length === 0) {
-        rowsHtml = '<tr><td colspan="24" style="text-align:center; padding:20px; color: var(--subtle-text);">No completed trades for this period.</td></tr>';
+        rowsHtml = '<tr><td colspan="24" style="text-align:center; padding:20px; color: var(--subtle-text);">No completed trades.</td></tr>';
     } else {
         visibleDates.forEach(dateStr => {
             const groupsInDate = tradesByDayAndGroup[dateStr];
@@ -2858,11 +2858,16 @@ function renderCompletedTable(data) {
                 let groupNet = 0;
                 let groupWins = 0, groupLosses = 0;
                 let groupVolume = 0;
+                let groupCoinQty = 0; // Accumulated coins (e.g. BTC)
                 let groupPnL100 = 0; 
 
                 groupTrades.forEach(t => {
                     groupNet += parseFloat(t.net_result || 0);
-                    groupVolume += parseFloat(t.size || 0);
+                    
+                    const size = parseFloat(t.size || 0);
+                    const entry = parseFloat(t.entry || 1);
+                    groupVolume += size;
+                    groupCoinQty += (size / entry); // Calculate individual trade quantity and add
                     
                     const metrics = calculateTradeMetrics(t);
                     groupPnL100 += parseFloat(metrics.pnl_per_100_move || 0);
@@ -2872,6 +2877,7 @@ function renderCompletedTable(data) {
 
                 const groupPnlClass = groupNet >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                 const groupType = groupTrades[0].type || 'Mixed'; 
+                const groupSymbol = groupTrades[0].symbol.split('/')[0]; // Get 'BTC' from 'BTC/USDT'
 
                 // D. Group Header HTML (The Blue Bar)
                 rowsHtml += `
@@ -2891,7 +2897,7 @@ function renderCompletedTable(data) {
                             </span>
                             <span style="color:var(--border-color);">|</span>
                             <span style="font-size:0.9em; color:var(--subtle-text);">
-                                Vol: $${groupVolume.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                Vol: $${groupVolume.toLocaleString(undefined, {maximumFractionDigits:0})} <span style="font-weight:bold; color:var(--text-color);">(${groupCoinQty.toFixed(4)} ${groupSymbol})</span>
                             </span>
                             <span style="color:var(--border-color);">|</span> 
                             <span style="font-size:0.9em; color:var(--text-color); font-weight:bold;">
@@ -2913,9 +2919,6 @@ function renderCompletedTable(data) {
                     const valLossTaker = !isMaker ? formatCurrency(metrics.expected_loss_taker) : '--';
                     const valLossMaker = isMaker ? formatCurrency(metrics.expected_loss_maker) : '--';
 
-                    const styleTaker = !isMaker ? "opacity: 0.6;" : "opacity: 0.1;";
-                    const styleMaker = isMaker ? "opacity: 0.6;" : "opacity: 0.1;";
-
                     const editAttr = STATE.isMasterUser ? 'contenteditable="true"' : '';
                     const editClass = STATE.isMasterUser ? 'editable-completed-cell' : '';
 
@@ -2935,10 +2938,10 @@ function renderCompletedTable(data) {
                         <td>${parseFloat(trade.target || 0).toFixed(4)}</td>
                         <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
                         
-                        <td style="${styleTaker}">${valProfitTaker}</td>
-                        <td style="${styleMaker}">${valProfitMaker}</td>
-                        <td style="${styleTaker}">${valLossTaker}</td>
-                        <td style="${styleMaker}">${valLossMaker}</td>
+                        <td style="opacity: ${!isMaker ? '0.6' : '0.1'};">${valProfitTaker}</td>
+                        <td style="opacity: ${isMaker ? '0.6' : '0.1'};">${valProfitMaker}</td>
+                        <td style="opacity: ${!isMaker ? '0.6' : '0.1'};">${valLossTaker}</td>
+                        <td style="opacity: ${isMaker ? '0.6' : '0.1'};">${valLossMaker}</td>
                         
                         <td>${metrics.rr_taker || '--'}</td>
                         <td>${metrics.rr_maker || '--'}</td>
