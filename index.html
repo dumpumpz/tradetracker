@@ -2758,7 +2758,7 @@ if (dayOfWeek === 2 || forceTest) {
         container.innerHTML = '';
     }
 }
-    function renderCompletedTable(data) {
+ function renderCompletedTable(data) {
     const trades = data || {};
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
@@ -2767,7 +2767,7 @@ if (dayOfWeek === 2 || forceTest) {
     const showAllButton = document.getElementById('toggle-all-completed-trades');
     const pageInfoSpan = document.getElementById('completed-trades-page-info');
 
-    // --- 1. ORGANIZE DATA ---
+    // --- 1. ORGANIZE DATA BY TRADING DAY AND GROUP ---
     const tradesByDayAndGroup = {};
     const uniqueTradingDates = [];
 
@@ -2793,7 +2793,7 @@ if (dayOfWeek === 2 || forceTest) {
 
     uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
 
-    // --- 2. PAGINATION ---
+    // --- 2. PAGINATION LOGIC ---
     let visibleDates = uniqueTradingDates;
     if (STATE.completedTradesShowAll) {
         const totalPages = uniqueTradingDates.length;
@@ -2815,12 +2815,12 @@ if (dayOfWeek === 2 || forceTest) {
 
     // --- 3. RENDER LOOP ---
     if (visibleDates.length === 0) {
-        rowsHtml = '<tr><td colspan="24" style="text-align:center; padding:20px;"></td></tr>';
+        rowsHtml = '<tr><td colspan="24" style="text-align:center; padding:20px; color: var(--subtle-text);">No completed trades for this period.</td></tr>';
     } else {
         visibleDates.forEach(dateStr => {
             const groupsInDate = tradesByDayAndGroup[dateStr];
             
-            // A. Daily Totals
+            // A. Daily Totals Calculation
             let dailyPnL = 0;
             let dailyWins = 0, dailyLosses = 0, totalDailyTrades = 0;
 
@@ -2833,9 +2833,9 @@ if (dayOfWeek === 2 || forceTest) {
             });
 
             const datePnlClass = dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-            const pnlSign = dailyPnL >= 0 ? '+' : '-';
+            const pnlSign = dailyPnL >= 0 ? '+' : '';
 
-            // B. Date Header
+            // B. Date Header HTML
             rowsHtml += `
             <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
                 <td colspan="24" style="text-align: left; padding: 10px 10px 10px 20px;">
@@ -2846,30 +2846,35 @@ if (dayOfWeek === 2 || forceTest) {
                         <span style="color: var(--green-text); font-weight: bold;">${dailyWins} Wins</span> / 
                         <span style="color: var(--red-text); font-weight: bold;">${dailyLosses} Losses</span>
                         <span style="margin: 0 10px; color: var(--border-color);">|</span>
-                        <span style="font-weight: bold; color: var(--text-color);">Daily PnL: <span style="color: ${datePnlClass};">${pnlSign}$${Math.abs(dailyPnL).toFixed(2)}</span></span>
+                        <span style="font-weight: bold; color: var(--text-color);">Daily PnL: <span style="color: ${datePnlClass};">${pnlSign}$${dailyPnL.toFixed(2)}</span></span>
                     </div>
                 </td>
             </tr>`;
 
-            // C. Groups
+            // C. Groups Calculation and Rendering
             Object.keys(groupsInDate).forEach(groupId => {
                 const groupTrades = groupsInDate[groupId];
                 
-                let groupNet = 0, groupFees = 0;
+                let groupNet = 0;
                 let groupWins = 0, groupLosses = 0;
                 let groupVolume = 0;
-                
+                let groupPnL100 = 0; // The per $100 move aggregator
+
                 groupTrades.forEach(t => {
                     groupNet += parseFloat(t.net_result || 0);
-                    groupFees += (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0));
                     groupVolume += parseFloat(t.size || 0);
+                    
+                    // Calculate PnL per $100 for this specific trade size
+                    const metrics = calculateTradeMetrics(t);
+                    groupPnL100 += parseFloat(metrics.pnl_per_100_move || 0);
+
                     if (parseFloat(t.net_result) >= 0) groupWins++; else groupLosses++;
                 });
 
                 const groupPnlClass = groupNet >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                 const groupType = groupTrades[0].type || 'Mixed'; 
 
-                // D. Group Header
+                // D. Group Header HTML (The Blue Bar)
                 rowsHtml += `
                 <tr class="completed-group-header">
                     <td colspan="24" style="padding: 8px 15px; text-align: left;">
@@ -2883,25 +2888,27 @@ if (dayOfWeek === 2 || forceTest) {
                             </span>
                             <span style="color:var(--border-color);">|</span>
                             <span style="font-size:0.95em; color:var(--text-color);">
-                                ${groupWins} Wins / ${groupLosses} Losses
+                                ${groupWins} W / ${groupLosses} L
                             </span>
                             <span style="color:var(--border-color);">|</span>
                             <span style="font-size:0.9em; color:var(--subtle-text);">
                                 Vol: $${groupVolume.toLocaleString(undefined, {maximumFractionDigits:0})}
                             </span>
+                            <span style="color:var(--border-color);">|</span> 
+                            <span style="font-size:0.9em; color:var(--text-color); font-weight:bold;">
+                                PnL/$100: <span style="font-family: 'Courier New'; color: var(--link-color);">$${groupPnL100.toFixed(2)}</span>
+                            </span>
                         </div>
                     </td>
                 </tr>`;
 
-                // E. Individual Trades
+                // E. Individual Trade Rows
                 groupTrades.forEach(trade => {
                     const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-                    const totalFees = (trade.entry_fee || 0) + (trade.exit_fee || 0);
+                    const totalFees = (parseFloat(trade.entry_fee || 0) + parseFloat(trade.exit_fee || 0));
                     const metrics = calculateTradeMetrics(trade);
                     
-                    // --- 1. CONDITIONAL FEE COLUMNS ---
                     const isMaker = (trade.entryFeeType === 'maker');
-                    
                     const valProfitTaker = !isMaker ? formatCurrency(metrics.expected_profit_taker) : '--';
                     const valProfitMaker = isMaker ? formatCurrency(metrics.expected_profit_maker) : '--';
                     const valLossTaker = !isMaker ? formatCurrency(metrics.expected_loss_taker) : '--';
@@ -2910,8 +2917,6 @@ if (dayOfWeek === 2 || forceTest) {
                     const styleTaker = !isMaker ? "opacity: 0.6;" : "opacity: 0.1;";
                     const styleMaker = isMaker ? "opacity: 0.6;" : "opacity: 0.1;";
 
-                    // --- 2. EDITABLE NOTES & REDUCED BUTTONS ---
-                    // Only show contenteditable if Master User
                     const editAttr = STATE.isMasterUser ? 'contenteditable="true"' : '';
                     const editClass = STATE.isMasterUser ? 'editable-completed-cell' : '';
 
@@ -2944,7 +2949,6 @@ if (dayOfWeek === 2 || forceTest) {
                         <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
                         <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
                         
-                        <!-- Editable Notes -->
                         <td class="note-cell ${editClass}" data-id="${trade.dbId}" data-field="note" ${editAttr}>${trade.note || ''}</td>
                         <td class="note-cell ${editClass}" data-id="${trade.dbId}" data-field="note2" ${editAttr}>${trade.note2 || ''}</td>
                         <td class="note-cell ${editClass}" data-id="${trade.dbId}" data-field="note3" ${editAttr}>${trade.note3 || ''}</td>
@@ -2959,8 +2963,11 @@ if (dayOfWeek === 2 || forceTest) {
 
     DOM.completedTradesTbody.innerHTML = rowsHtml;
     
+    // Adjust height for collapsible container
     setTimeout(() => {
-        adjustCollapsibleSize(DOM.completedTradesTbody);
+        if (typeof adjustCollapsibleSize === 'function') {
+            adjustCollapsibleSize(DOM.completedTradesTbody);
+        }
     }, 200);
 }
    function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
