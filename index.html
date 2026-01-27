@@ -2384,7 +2384,6 @@ function renderLiveTable(data) {
             const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
             
             // Determine Dominant Fee Type for Group Summary
-            // (Used just to pick a "primary" PnL to show in the summary row)
             const dominantProfit = (group.type === 'Short') ? group.profitMaker : group.profitTaker;
             const dominantLoss = (group.type === 'Short') ? group.lossMaker : group.lossTaker;
 
@@ -2405,7 +2404,7 @@ function renderLiveTable(data) {
                 <td>$${group.pnlPer100.toFixed(2)}</td>
                 <td>$${group.fees.toFixed(2)}</td>
                 
-                <!-- Group Summary PnL (Merged Columns) -->
+                <!-- Group Summary PnL -->
                 <td colspan="2" style="text-align:center; color: var(--green-text); opacity: 0.8;">
                     TP: $${dominantProfit.toFixed(2)}
                 </td>
@@ -2423,7 +2422,7 @@ function renderLiveTable(data) {
                 const breakevenPrice = calculateBreakevenPrice(trade);
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
                 
-                // CONDITIONAL DISPLAY: Only show values relevant to the entry fee type
+                // CONDITIONAL DISPLAY
                 const isMaker = (trade.entryFeeType === 'maker');
                 
                 const valProfitTaker = !isMaker ? parseFloat(metrics.expected_profit_taker).toFixed(2) : '--';
@@ -2431,7 +2430,6 @@ function renderLiveTable(data) {
                 const valLossTaker = !isMaker ? parseFloat(metrics.expected_loss_taker).toFixed(2) : '--';
                 const valLossMaker = isMaker ? parseFloat(metrics.expected_loss_maker).toFixed(2) : '--';
 
-                // Opacity style to highlight active numbers
                 const styleTaker = !isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
                 const styleMaker = isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
 
@@ -2478,9 +2476,18 @@ function renderLiveTable(data) {
 
         DOM.tradesTbody.innerHTML = tableHtml;
         
-        // Update Headers
-        const thead = DOM.tradesTbody.closest('table').querySelector('thead');
-        if(thead) thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th class="master-only">Actions</th></tr>`;
+        // --- FIX: Ensure Headers Exist ---
+        const table = DOM.tradesTbody.closest('table');
+        let thead = table.querySelector('thead');
+        
+        // Create thead if it doesn't exist
+        if (!thead) {
+            thead = document.createElement('thead');
+            table.insertBefore(thead, DOM.tradesTbody);
+        }
+        
+        // Inject Header Content
+        thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th class="master-only">Actions</th></tr>`;
 
         // Render Cards
         if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades);
@@ -2491,8 +2498,6 @@ function renderLiveTable(data) {
         console.error("Error rendering live table:", e);
     }
 }
-
-
 
         function handleLiveNoteUpdate(cell) {
     if (!STATE.isMasterUser) return;
