@@ -2966,7 +2966,7 @@ function renderCompletedTable(data) {
                         <td style="${rrTStyle}">${rrTDisplay}</td>
                         <td style="${rrMStyle}">${rrMDisplay}</td>
                         
-                        <td>${parseFloat(trade.exit_price).toFixed(4)}</td>
+                  <td class="editable-completed-cell" data-id="${trade.dbId}" data-field="exit_price" ${editAttr}>${parseFloat(trade.exit_price).toFixed(4)}</td>
                         <td>${totalFees.toFixed(2)}</td>
                         <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
                         
@@ -3877,22 +3877,62 @@ function handleAddTradeSubmit(e) {
     }).catch(error => alert(`Error: ${error.message}`));
 }
 
-
-        function handleCompletedTradeUpdate(cell) {
+function handleCompletedTradeUpdate(cell) {
     if (!STATE.isMasterUser) return;
 
     const tradeId = cell.dataset.id;
-    const field = cell.dataset.field; // note, note2, or note3
-    const newValue = cell.textContent.trim();
+    const field = cell.dataset.field;
+    let newValue = cell.textContent.trim();
 
-    // Update Firebase directly
+    // --- SCENARIO 1: Updating Exit Price (Requires Math Recalculation) ---
+    if (field === 'exit_price') {
+        const newPrice = parseFloat(newValue.replace(/[^0-9.-]/g, ''));
+
+        if (isNaN(newPrice)) {
+            alert("Invalid Price");
+            return;
+        }
+
+        // We must fetch the full trade object to recalculate fees/PnL correctly
+        dbRefs.completedTrades.child(tradeId).once('value', snapshot => {
+            const trade = snapshot.val();
+            if (!trade) {
+                alert("Trade not found");
+                return;
+            }
+
+            // Don't update if the value hasn't actually changed
+            if (parseFloat(trade.exit_price) === newPrice) return;
+
+            // Recalculate Financials using your existing helper function
+            // We default to 'taker' if exitFeeType is missing from old data
+            const result = calculateNetResult(trade, newPrice, trade.exitFeeType || 'taker');
+
+            const updates = {
+                exit_price: newPrice,
+                net_result: result.net_result,
+                entry_fee: result.entry_fee,
+                exit_fee: result.exit_fee,
+                // Add a note about the edit
+                note: (trade.note || '') + `\nExit Price adjusted to $${newPrice} on ${new Date().toLocaleString()}`
+            };
+
+            dbRefs.completedTrades.child(tradeId).update(updates).then(() => {
+                // Flash green on success
+                cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                setTimeout(() => cell.style.backgroundColor = '', 500);
+            }).catch(err => alert("Error updating trade: " + err.message));
+        });
+        return; 
+    }
+
+    // --- SCENARIO 2: Standard Text Fields (Notes, etc) ---
     dbRefs.completedTrades.child(tradeId).update({
         [field]: newValue
     }).then(() => {
-        // Optional: Visual feedback (e.g., flash green)
         cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
         setTimeout(() => cell.style.backgroundColor = '', 500);
-    }).catch(err => alert("Error saving note: " + err.message));
+    }).catch(err => alert("Error saving: " + err.message));
 }
 
 
