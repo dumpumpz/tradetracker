@@ -2618,29 +2618,27 @@ function renderLiveSummaryCards(groupedTrades) {
     summaryContainer.innerHTML = summaryHtml;
 }
 
-
-          function checkMarketAlerts() {
+function checkMarketAlerts() {
     const container = document.getElementById('tracker-alerts');
     if (!container) return;
 
     // --- CONFIGURATION ---
-    const forceTest = false; // Set TRUE to preview all alerts stacked together
+    const forceTest = false; // Set TRUE to see how they stack
     // ---------------------
 
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
     const dateOfMonth = today.getDate();
     
-    // Helper: Days in current month
     const lastDayCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    
-    // Calculation: LAST FRIDAY (Crypto Options Expiry)
     let offsetToLastFriday = (lastDayCurrentMonth.getDay() - 5 + 7) % 7;
     const lastFridayDate = lastDayCurrentMonth.getDate() - offsetToLastFriday;
 
     const messages = [];
 
-    // 1. MONDAY
+    // --- DAILY DEFINITIONS (Always show based on day) ---
+
+    // MONDAY
     if (dayOfWeek === 1 || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb;">
@@ -2651,7 +2649,7 @@ function renderLiveSummaryCards(groupedTrades) {
         `);
     }
 
-    // 2. TUESDAY
+    // TUESDAY
     if (dayOfWeek === 2 || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #d4edda; color: #155724; border-color: #c3e6cb;">
@@ -2662,7 +2660,7 @@ function renderLiveSummaryCards(groupedTrades) {
         `);
     }
 
-    // 3. WEDNESDAY
+    // WEDNESDAY
     if (dayOfWeek === 3 || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">
@@ -2673,38 +2671,18 @@ function renderLiveSummaryCards(groupedTrades) {
         `);
     }
 
-    // 4. THURSDAY (Pre-Expiry)
-    if ((dayOfWeek === 4 && dateOfMonth === (lastFridayDate - 1)) || forceTest) {
+    // THURSDAY (Added daily definition so it doesn't disappear)
+    if (dayOfWeek === 4 || forceTest) {
         messages.push(`
-            <div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;">
-                <strong>⚠️ Pre-Expiry Volatility:</strong> 
-               Tomorrow is Monthly Options Expiry. Expect positioning adjustments and potential volatility today.
+            <div class="alert-banner" style="background-color: #fcfcfc; border: 1px solid #ddd; color: #444;">
+                <strong>Thursday Distribution:</strong>
+                Often a day for trend continuation or profit-taking. Highs/Lows of the week are frequently 
+                established or tested during the NY session.
             </div>
         `);
     }
 
-    // 5. FRIDAY - NFP (First Friday)
-    if ((dayOfWeek === 5 && dateOfMonth <= 7) || forceTest) {
-        messages.push(`
-            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
-                <strong>🇺🇸 NFP Data Release:</strong> 
-                It is the 1st Friday of the month. Non-Farm Payrolls at 8:30 AM NY. 
-                Do not hold tight stops through the release.
-            </div>
-        `);
-    }
-
-    // 6. FRIDAY - Monthly Expiry (Last Friday)
-    if ((dayOfWeek === 5 && dateOfMonth === lastFridayDate) || forceTest) {
-        messages.push(`
-            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
-                <strong>⚠️ Monthly Crypto Expiry:</strong> 
-                Last Friday of the month. Deribit/CME expiry may cause "pinning" or volatility.
-            </div>
-        `);
-    }
-
-    // 7. FRIDAY - General Warning (Now stacks with NFP/Expiry)
+    // FRIDAY (Standard)
     if (dayOfWeek === 5 || forceTest) {
         messages.push(`
             <div class="alert-banner">
@@ -2714,7 +2692,7 @@ function renderLiveSummaryCards(groupedTrades) {
         `);
     }
 
-    // 8. SATURDAY
+    // SATURDAY
     if (dayOfWeek === 6 || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #e2e3e5; color: #383d41; border-color: #d6d8db;">
@@ -2725,7 +2703,7 @@ function renderLiveSummaryCards(groupedTrades) {
         `);
     }
 
-    // 9. SUNDAY
+    // SUNDAY
     if (dayOfWeek === 0 || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #e2e3f5; color: #2f2f5f; border-color: #d6d8ff;">
@@ -2736,12 +2714,42 @@ function renderLiveSummaryCards(groupedTrades) {
         `);
     }
 
-    // Render all applicable alerts
-    if (messages.length > 0) {
-        container.innerHTML = messages.join('');
-    } else {
-        container.innerHTML = '';
+
+    // --- SPECIAL EVENT DEFINITIONS (Stack on top of daily ones) ---
+
+    // THURSDAY: Pre-Expiry (Only shows on the Thursday before the last Friday)
+    if (dayOfWeek === 4 && dateOfMonth === (lastFridayDate - 1)) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;">
+                <strong>⚠️ Pre-Expiry Volatility:</strong> 
+               Tomorrow is Monthly Options Expiry. Expect positioning adjustments and potential volatility today.
+            </div>
+        `);
     }
+
+    // FRIDAY: NFP (1st Friday)
+    if (dayOfWeek === 5 && dateOfMonth <= 7) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
+                <strong>🇺🇸 NFP Data Release:</strong> 
+                It is the 1st Friday of the month. Non-Farm Payrolls at 8:30 AM NY. 
+                Do not hold tight stops through the release.
+            </div>
+        `);
+    }
+
+    // FRIDAY: Monthly Expiry (Last Friday)
+    if (dayOfWeek === 5 && dateOfMonth === lastFridayDate) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
+                <strong>⚠️ Monthly Crypto Expiry:</strong> 
+                Last Friday of the month. Deribit/CME expiry may cause "pinning" or volatility.
+            </div>
+        `);
+    }
+
+    // Render alerts
+    container.innerHTML = messages.length > 0 ? messages.join('') : '';
 }
 function renderCompletedTable(data) {
     const trades = data || {};
