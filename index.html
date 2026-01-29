@@ -2624,126 +2624,124 @@ function renderLiveSummaryCards(groupedTrades) {
     if (!container) return;
 
     // --- CONFIGURATION ---
-    const forceTest = false; // Set TRUE to see all alerts at once for styling
+    const forceTest = false; // Set TRUE to preview all alerts stacked together
     // ---------------------
 
     const today = new Date();
-    // Use Perth time for logic consistent with the rest of your app
-    const perthDate = new Date(today.toLocaleString("en-US", {timeZone: "Australia/Perth"}));
+    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const dateOfMonth = today.getDate();
     
-    const dayOfWeek = perthDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    const dateOfMonth = perthDate.getDate();
-    const month = perthDate.getMonth();
-    const year = perthDate.getFullYear();
-
-    // Helper: Find the last Friday of the current month
-    const lastDayOfMonth = new Date(year, month + 1, 0);
-    let lastFridayDate = lastDayOfMonth.getDate();
-    const lastDayDayOfWeek = lastDayOfMonth.getDay();
+    // Helper: Days in current month
+    const lastDayCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     
-    // Adjust to find the Friday
-    if (lastDayDayOfWeek < 5) {
-        lastFridayDate -= (lastDayDayOfWeek + 2);
-    } else {
-        lastFridayDate -= (lastDayDayOfWeek - 5);
-    }
+    // Calculation: LAST FRIDAY (Crypto Options Expiry)
+    let offsetToLastFriday = (lastDayCurrentMonth.getDay() - 5 + 7) % 7;
+    const lastFridayDate = lastDayCurrentMonth.getDate() - offsetToLastFriday;
 
     const messages = [];
 
-    // ======================================================
-    // 1. MONDAY: Fakeout / Range Construction
-    // ======================================================
+    // 1. MONDAY
     if (dayOfWeek === 1 || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb;">
                 <strong>Monday Range Construction:</strong> 
-                Initial highs/lows are often "traps." Watch for the range to be swept later in the week.
+                "Monday Highs/Lows" are often swept later in the week. 
+                Don't trust the initial trend immediately.
             </div>
         `);
     }
 
-    // ======================================================
-    // 2. TUESDAY / WEDNESDAY: Trend & Mid-Week Shift
-    // ======================================================
+    // 2. TUESDAY
     if (dayOfWeek === 2 || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #d4edda; color: #155724; border-color: #c3e6cb;">
-                <strong>Tuesday Direction:</strong> Tuesday often provides the "true" direction after Monday's fakeouts.
+                <strong>Tuesday Direction:</strong>
+                If Monday formed a range, Tuesday often delivers the true directional move.
+                Watch for expansion away from Monday highs or lows.
             </div>
         `);
     }
+
+    // 3. WEDNESDAY
     if (dayOfWeek === 3 || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">
-                <strong>Wednesday Midweek Shift:</strong> Watch for reversals or expansions of the weekly trend.
+                <strong>Midweek Volatility:</strong>
+                Wednesday often brings expansion or reversal from early-week price action.
+                Be alert for failed breakouts or continuation setups.
             </div>
         `);
     }
 
-    // ======================================================
-    // 3. THURSDAY: Normal Warning + Pre-Expiry
-    // ======================================================
-    if (dayOfWeek === 4 || forceTest) {
-        // Standard Thursday
+    // 4. THURSDAY (Pre-Expiry)
+    if ((dayOfWeek === 4 && dateOfMonth === (lastFridayDate - 1)) || forceTest) {
         messages.push(`
-            <div class="alert-banner" style="background-color: #fcfcfc; border: 1px solid #ddd;">
-                <strong>Thursday:</strong> Often a day for trend continuation or profit-taking before the weekend.
+            <div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;">
+                <strong>⚠️ Pre-Expiry Volatility:</strong> 
+               Tomorrow is Monthly Options Expiry. Expect positioning adjustments and potential volatility today.
             </div>
         `);
-
-        // SPECIAL: If tomorrow is the Last Friday of the month
-        if (dateOfMonth === (lastFridayDate - 1) || forceTest) {
-            messages.push(`
-                <div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;">
-                    <strong>⚠️ Pre-Expiry Volatility:</strong> Tomorrow is <strong>Monthly Options Expiry</strong>. Expect massive positioning shifts today.
-                </div>
-            `);
-        }
     }
 
-    // ======================================================
-    // 4. FRIDAY: Normal Warning + NFP + Monthly Expiry
-    // ======================================================
+    // 5. FRIDAY - NFP (First Friday)
+    if ((dayOfWeek === 5 && dateOfMonth <= 7) || forceTest) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
+                <strong>🇺🇸 NFP Data Release:</strong> 
+                It is the 1st Friday of the month. Non-Farm Payrolls at 8:30 AM NY. 
+                Do not hold tight stops through the release.
+            </div>
+        `);
+    }
+
+    // 6. FRIDAY - Monthly Expiry (Last Friday)
+    if ((dayOfWeek === 5 && dateOfMonth === lastFridayDate) || forceTest) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
+                <strong>⚠️ Monthly Crypto Expiry:</strong> 
+                Last Friday of the month. Deribit/CME expiry may cause "pinning" or volatility.
+            </div>
+        `);
+    }
+
+    // 7. FRIDAY - General Warning (Now stacks with NFP/Expiry)
     if (dayOfWeek === 5 || forceTest) {
-        // A. Monthly Expiry (Specific Friday)
-        if (dateOfMonth === lastFridayDate || forceTest) {
-            messages.push(`
-                <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
-                    <strong>🚨 Monthly Crypto Expiry:</strong> Today is the last Friday of the month. High volatility expected around 8:00 AM UTC.
-                </div>
-            `);
-        }
-
-        // B. NFP Warning (1st Friday of month)
-        if (dateOfMonth <= 7 || forceTest) {
-            messages.push(`
-                <div class="alert-banner" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">
-                    <strong>🇺🇸 NFP Data Release:</strong> First Friday of the month. Non-Farm Payrolls at 8:30 AM NY time. Avoid high leverage.
-                </div>
-            `);
-        }
-
-        // C. General Friday bearishness
         messages.push(`
             <div class="alert-banner">
-                <strong>Friday Warning:</strong> Beware of "Friday sell-offs" as traders de-risk before the weekend.
+                <strong>Friday Warning:</strong> 
+              Fridays often trend bearish as traders close out weekly positions, adding selling pressure.
             </div>
         `);
     }
 
-    // ======================================================
-    // 5. WEEKEND: Low Liquidity
-    // ======================================================
-    if (dayOfWeek === 0 || dayOfWeek === 6 || forceTest) {
+    // 8. SATURDAY
+    if (dayOfWeek === 6 || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #e2e3e5; color: #383d41; border-color: #d6d8db;">
-                <strong>Weekend Trading:</strong> Low volume. Algorithms often hunt stops in thin order books. Expect "Bart" patterns.
+                <strong>Weekend Trading:</strong> 
+              Liquidity is typically thinner, increasing volatility and stop-hunt risk.
+            Price may move sharply on low volume, resulting in choppy and inefficient price action.
             </div>
         `);
     }
 
-    // Render all collected messages
-    container.innerHTML = messages.join('');
+    // 9. SUNDAY
+    if (dayOfWeek === 0 || forceTest) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #e2e3f5; color: #2f2f5f; border-color: #d6d8ff;">
+                <strong>Weekly Open:</strong>
+                New weekly candle. Volatility may increase during the open,
+                and BTC often seeks inefficiencies from the Friday CME close.
+            </div>
+        `);
+    }
+
+    // Render all applicable alerts
+    if (messages.length > 0) {
+        container.innerHTML = messages.join('');
+    } else {
+        container.innerHTML = '';
+    }
 }
 function renderCompletedTable(data) {
     const trades = data || {};
