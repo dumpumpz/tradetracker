@@ -2827,7 +2827,8 @@ function renderCompletedTable(data) {
 
     // --- 4. RENDER LOOP ---
     if (visibleDates.length === 0) {
-        rowsHtml = '<tr><td colspan="26" style="text-align:center; padding:20px; color: var(--subtle-text);"></td></tr>';
+        // Colspan 25 covers the full width
+        rowsHtml = '<tr><td colspan="25" style="text-align:center; padding:20px; color: var(--subtle-text);"></td></tr>';
     } else {
         visibleDates.forEach(dateStr => {
             const groupsInDate = tradesByDayAndGroup[dateStr];
@@ -2853,11 +2854,11 @@ function renderCompletedTable(data) {
             const editClass = STATE.isMasterUser ? 'editable-daily-note' : '';
             const placeHolder = STATE.isMasterUser ? 'Click to add daily summary...' : '';
 
-            // --- DATE ROW (UPDATED STYLING HERE) ---
+            // --- DATE ROW (UPDATED COLSPANS) ---
             rowsHtml += `
             <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
-                <!-- LEFT SIDE: STATS (Colspan 16) -->
-                <td colspan="16" style="text-align: left; padding: 10px 10px 10px 20px; vertical-align: middle;">
+                <!-- LEFT SIDE: STATS (Colspan 20: Covers everything up to Closed Date) -->
+                <td colspan="20" style="text-align: left; padding: 10px 10px 10px 20px; vertical-align: middle;">
                     <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
                         Date: ${dateStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${totalDailyTrades} Trades)</span>
                     </div>
@@ -2869,8 +2870,8 @@ function renderCompletedTable(data) {
                     </div>
                 </td>
                 
-                <!-- RIGHT SIDE: EDITABLE NOTE (Colspan 10) - FIXED STYLE -->
-                <td colspan="10" 
+                <!-- RIGHT SIDE: EDITABLE NOTE (Colspan 5: Covers Notes + Pics + Actions) -->
+                <td colspan="5" 
                     class="${editClass}" 
                     data-date-key="${safeDateKey}" 
                     ${editAttr} 
@@ -2907,7 +2908,7 @@ function renderCompletedTable(data) {
 
                 rowsHtml += `
                 <tr class="completed-group-header">
-                    <td colspan="26" style="padding: 8px 15px; text-align: left;">
+                    <td colspan="25" style="padding: 8px 15px; text-align: left;">
                         <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
                             <span style="font-weight:bold; color:var(--link-color); font-size:1.05em;">
                                 📂 ${groupId} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${groupType})</span>
