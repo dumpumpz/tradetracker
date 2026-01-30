@@ -2847,14 +2847,13 @@ function renderCompletedTable(data) {
             const pnlSign = dailyPnL >= 0 ? '+' : '';
 
             // --- DAILY NOTE LOGIC ---
-            // Replace slashes/spaces to make a valid DB key (e.g., "2023/10/25" -> "2023-10-25")
             const safeDateKey = dateStr.replace(/[\/\s,]/g, '-'); 
             const dailyNote = STATE.dailyNotes[safeDateKey] || '';
             const editAttr = STATE.isMasterUser ? 'contenteditable="true"' : '';
             const editClass = STATE.isMasterUser ? 'editable-daily-note' : '';
-            const placeHolder = STATE.isMasterUser ? '' : '';
+            const placeHolder = STATE.isMasterUser ? 'Click to add daily summary...' : '';
 
-            // --- DATE ROW (SPLIT INTO 2 CELLS) ---
+            // --- DATE ROW (UPDATED STYLING HERE) ---
             rowsHtml += `
             <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
                 <!-- LEFT SIDE: STATS (Colspan 16) -->
@@ -2870,12 +2869,12 @@ function renderCompletedTable(data) {
                     </div>
                 </td>
                 
-                <!-- RIGHT SIDE: EDITABLE NOTE (Colspan 10) -->
+                <!-- RIGHT SIDE: EDITABLE NOTE (Colspan 10) - FIXED STYLE -->
                 <td colspan="10" 
                     class="${editClass}" 
                     data-date-key="${safeDateKey}" 
                     ${editAttr} 
-                    style="vertical-align: middle; font-style: italic; color: var(--link-color); cursor: text; background: rgba(255,255,255,0.3);"
+                    style="vertical-align: middle; font-size: 12px; line-height: 1.4; font-weight: normal; font-style: italic; color: var(--link-color); cursor: text; background: rgba(255,255,255,0.3); white-space: normal;"
                     title="Daily Summary Note"
                 >${dailyNote || `<span style='opacity:0.5; font-size:0.9em;'>${placeHolder}</span>`}</td>
             </tr>`;
