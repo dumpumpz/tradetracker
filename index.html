@@ -3421,7 +3421,7 @@ function completeTrade(tradeId, outcome) {
             renderNotes(STATE.generalNotes);
         }
 
-     function setupEventListeners() {
+ function setupEventListeners() {
     // --- 1. Theme Toggle ---
     DOM.themeToggle.addEventListener('change', (e) => {
         const theme = e.target.checked ? 'dark' : 'light';
@@ -3429,44 +3429,31 @@ function completeTrade(tradeId, outcome) {
         localStorage.setItem('theme', theme);
     });
 
-         // --- 5. EDITABLE CELL UPDATES (Blur Event) ---
-    if (DOM.tradesTbody) {
-        DOM.tradesTbody.addEventListener('blur', (e) => { 
-            // Existing check for numeric fields
-            if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
-            
-            // --- NEW: Check for Live Note ---
-            if (e.target.matches('.editable-live-note')) handleLiveNoteUpdate(e.target);
-        }, true);
-    }
-
     // --- 2. Tab Navigation ---
-// --- 2. Tab Navigation ---
-DOM.tabs.addEventListener('click', (e) => {
-    if (!e.target.matches('.tab-link')) return;
-    document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
-    e.target.classList.add('active');
-    const tabId = e.target.dataset.tab;
-    const newTabContent = document.getElementById(`${tabId}-tab`);
-    if (newTabContent) {
-        newTabContent.classList.add('active');
-        // Auto-open sections if first time visiting tab
-        if (!newTabContent.dataset.sectionsInitialized) { 
-            openDefaultSectionsInContainer(newTabContent); 
-            newTabContent.dataset.sectionsInitialized = 'true'; 
+    DOM.tabs.addEventListener('click', (e) => {
+        if (!e.target.matches('.tab-link')) return;
+        document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
+        e.target.classList.add('active');
+        const tabId = e.target.dataset.tab;
+        const newTabContent = document.getElementById(`${tabId}-tab`);
+        if (newTabContent) {
+            newTabContent.classList.add('active');
+            // Auto-open sections if first time visiting tab
+            if (!newTabContent.dataset.sectionsInitialized) { 
+                openDefaultSectionsInContainer(newTabContent); 
+                newTabContent.dataset.sectionsInitialized = 'true'; 
+            }
         }
-    }
 
-    // CHANGE THIS LINE BELOW:
-    // Only show the stats panel if the active tab is 'tracker'
-    DOM.statsPanelContainer.style.display = (tabId === 'tracker') ? 'block' : 'none';
-    
-    // Refresh Journal View if active
-    if (tabId === 'journal') { 
-        updateJournalView();
-        renderDateNavigation(); 
-    }
-});
+        // Only show the stats panel if the active tab is 'tracker'
+        DOM.statsPanelContainer.style.display = (tabId === 'tracker') ? 'block' : 'none';
+        
+        // Refresh Journal View if active
+        if (tabId === 'journal') { 
+            updateJournalView();
+            renderDateNavigation(); 
+        }
+    });
 
     // --- 3. Stats Panel Toggle ---
     DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
@@ -3477,72 +3464,59 @@ DOM.tabs.addEventListener('click', (e) => {
         }
     });
 
-    // --- 4. TABLE ACTION LISTENERS (Critical for Buttons) ---
-    // Remove existing first to safely prevent duplicate listeners if init runs twice
-    if (DOM.tradesTbody) DOM.tradesTbody.removeEventListener('click', handleTradeAction);
-    if (DOM.completedTradesTbody) DOM.completedTradesTbody.removeEventListener('click', handleTradeAction);
-    if (DOM.restingTradesTbody) DOM.restingTradesTbody.removeEventListener('click', handleTradeAction);
-window.addEventListener('resize', () => {
-        document.querySelectorAll('.collapsible-section.is-open').forEach(section => {
-            const content = section.querySelector('.collapsible-content');
-            if (content) {
-                // Recalculate height + buffer
-                content.style.maxHeight = (content.scrollHeight + 100) + 'px';
-            }
-        });
-    });
-    // Attach Clean Listeners
+    // --- 4. TABLE ACTION LISTENERS (Buttons) ---
     if (DOM.tradesTbody) DOM.tradesTbody.addEventListener('click', handleTradeAction);
     if (DOM.completedTradesTbody) DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
     if (DOM.restingTradesTbody) DOM.restingTradesTbody.addEventListener('click', handleTradeAction);
 
     // --- 5. EDITABLE CELL UPDATES (Blur Event) ---
+    
+    // A. Live Trades
     if (DOM.tradesTbody) {
         DOM.tradesTbody.addEventListener('blur', (e) => { 
+            // Numeric Edits
             if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
+            // Note Edits
+            if (e.target.matches('.editable-live-note')) handleLiveNoteUpdate(e.target);
         }, true);
-  // NEW: Handle Daily Notes
-        if (e.target.matches('.editable-daily-note')) {
-            if (!STATE.isMasterUser) return;
-            const dateKey = e.target.dataset.dateKey;
-            const text = e.target.innerText.trim();
+    }
 
-            // Save to Firebase
-            dbRefs.dailyNotes.child(dateKey).set(text).then(() => {
-                // Flash green feedback
-                e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
-                setTimeout(() => {
-                     e.target.style.backgroundColor = 'rgba(255,255,255,0.3)';
-                }, 500);
-            });
-        }
-    }, true);
-}
+    // B. Resting Orders
     if (DOM.restingTradesTbody) {
         DOM.restingTradesTbody.addEventListener('blur', (e) => { 
             if (e.target.matches('.editable-cell')) handleRestingTradeUpdate(e.target); 
         }, true);
     }
 
-    // --- 6. ADD TRADE FORM ---
-    if (DOM.addTradeForm) {
-        DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
-    }
- // --- 5. EDITABLE CELL UPDATES (Blur Event) ---
-    if (DOM.tradesTbody) {
-        DOM.tradesTbody.addEventListener('blur', (e) => { 
-            if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
-        }, true);
-    }
-    
-    // --- NEW: COMPLETED TRADES EDIT LISTENER ---
+    // C. Completed Trades (Includes Daily Notes)
     if (DOM.completedTradesTbody) {
         DOM.completedTradesTbody.addEventListener('blur', (e) => { 
-            // Check for the specific class we will add in the next step
+            // 1. Standard Completed Trade Edits
             if (e.target.matches('.editable-completed-cell')) {
                 handleCompletedTradeUpdate(e.target); 
             }
+            
+            // 2. Daily Summary Notes (The New Feature)
+            if (e.target.matches('.editable-daily-note')) {
+                if (!STATE.isMasterUser) return;
+                const dateKey = e.target.dataset.dateKey;
+                const text = e.target.innerText.trim();
+
+                // Save to Firebase
+                dbRefs.dailyNotes.child(dateKey).set(text).then(() => {
+                    // Flash green feedback
+                    e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+                    setTimeout(() => {
+                         e.target.style.backgroundColor = 'rgba(255,255,255,0.3)';
+                    }, 500);
+                });
+            }
         }, true);
+    }
+
+    // --- 6. ADD TRADE FORM ---
+    if (DOM.addTradeForm) {
+        DOM.addTradeForm.addEventListener('submit', handleAddTradeSubmit);
     }
 
     // --- 7. GLOBAL BODY CLICKS (Collapsibles & Pagination) ---
@@ -3559,7 +3533,6 @@ window.addEventListener('resize', () => {
             
             if (section.classList.contains('is-open')) {
                 content.style.maxHeight = content.scrollHeight + 'px';
-                // Double check height after transition to ensure full content visible
                 setTimeout(() => { 
                     if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; 
                 }, 150);
@@ -3737,10 +3710,6 @@ window.addEventListener('resize', () => {
         DOM.journalTab.classList.remove('drag-over'); 
         if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); 
     });
-
-
-
-
 }
         function setupSpinbox(inputElement) {
             const handleAdjustment = (multiplier) => {
