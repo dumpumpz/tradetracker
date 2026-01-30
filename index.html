@@ -2827,7 +2827,6 @@ function renderCompletedTable(data) {
 
     // --- 4. RENDER LOOP ---
     if (visibleDates.length === 0) {
-        // Colspan 25 covers the full width
         rowsHtml = '<tr><td colspan="25" style="text-align:center; padding:20px; color: var(--subtle-text);"></td></tr>';
     } else {
         visibleDates.forEach(dateStr => {
@@ -2852,12 +2851,12 @@ function renderCompletedTable(data) {
             const dailyNote = STATE.dailyNotes[safeDateKey] || '';
             const editAttr = STATE.isMasterUser ? 'contenteditable="true"' : '';
             const editClass = STATE.isMasterUser ? 'editable-daily-note' : '';
-            const placeHolder = STATE.isMasterUser ? 'Click to add daily summary...' : '';
+            const placeHolder = STATE.isMasterUser ? 'Daily Note...' : '';
 
             // --- DATE ROW (UPDATED COLSPANS) ---
             rowsHtml += `
             <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
-                <!-- LEFT SIDE: STATS (Colspan 20: Covers everything up to Closed Date) -->
+                <!-- LEFT SIDE: STATS (Colspan 20) -->
                 <td colspan="20" style="text-align: left; padding: 10px 10px 10px 20px; vertical-align: middle;">
                     <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
                         Date: ${dateStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${totalDailyTrades} Trades)</span>
@@ -2870,14 +2869,17 @@ function renderCompletedTable(data) {
                     </div>
                 </td>
                 
-                <!-- RIGHT SIDE: EDITABLE NOTE (Colspan 5: Covers Notes + Pics + Actions) -->
-                <td colspan="5" 
+                <!-- MIDDLE: EDITABLE NOTE (Colspan 1) -->
+                <td colspan="1" 
                     class="${editClass}" 
                     data-date-key="${safeDateKey}" 
                     ${editAttr} 
                     style="vertical-align: middle; font-size: 12px; line-height: 1.4; font-weight: normal; font-style: italic; color: var(--link-color); cursor: text; background: rgba(255,255,255,0.3); white-space: normal;"
                     title="Daily Summary Note"
                 >${dailyNote || `<span style='opacity:0.5; font-size:0.9em;'>${placeHolder}</span>`}</td>
+
+                <!-- RIGHT FILLER (Colspan 4: Covers Note2, Note3, Pics, Actions) -->
+                <td colspan="4"></td>
             </tr>`;
 
             Object.keys(groupsInDate).forEach(groupId => {
