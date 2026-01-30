@@ -2760,7 +2760,7 @@ function renderCompletedTable(data) {
     const showAllButton = document.getElementById('toggle-all-completed-trades');
     const pageInfoSpan = document.getElementById('completed-trades-page-info');
 
-    // --- 1. HEADERS (Updated Colspan to 25 and added % Net) ---
+    // --- 1. HEADERS (Updated Colspan to 26 and added Raw PnL) ---
     const table = DOM.completedTradesTbody.closest('table');
     let thead = table.querySelector('thead');
     if (!thead) {
@@ -2771,7 +2771,9 @@ function renderCompletedTable(data) {
         <tr>
             <th>Sym</th><th>Type</th><th>Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th>
             <th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th>
-            <th>RR(T)</th><th>RR(M)</th><th>Exit</th><th>Fees</th><th>Net PnL</th>
+            <th>RR(T)</th><th>RR(M)</th><th>Exit</th>
+            <th>Raw PnL</th> <!-- NEW COLUMN -->
+            <th>Fees</th><th>Net PnL</th>
             <th>% (Net)</th>
             <th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th>
         </tr>
@@ -2825,7 +2827,8 @@ function renderCompletedTable(data) {
 
     // --- 4. RENDER LOOP ---
     if (visibleDates.length === 0) {
-        rowsHtml = '<tr><td colspan="25" style="text-align:center; padding:20px; color: var(--subtle-text);"></td></tr>';
+        // Updated colspan to 26
+        rowsHtml = '<tr><td colspan="26" style="text-align:center; padding:20px; color: var(--subtle-text);"></td></tr>';
     } else {
         visibleDates.forEach(dateStr => {
             const groupsInDate = tradesByDayAndGroup[dateStr];
@@ -2844,9 +2847,10 @@ function renderCompletedTable(data) {
             const datePnlClass = dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
             const pnlSign = dailyPnL >= 0 ? '+' : '';
 
+            // Updated colspan to 26
             rowsHtml += `
             <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
-                <td colspan="25" style="text-align: left; padding: 10px 10px 10px 20px;">
+                <td colspan="26" style="text-align: left; padding: 10px 10px 10px 20px;">
                     <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
                         Date: ${dateStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${totalDailyTrades} Trades)</span>
                     </div>
@@ -2884,12 +2888,12 @@ function renderCompletedTable(data) {
                 const groupType = groupTrades[0].type || 'Mixed'; 
                 const groupSymbol = groupTrades[0].symbol.split('/')[0];
                 
-                // Calculate Idea Total %
                 const groupPercent = groupVolume > 0 ? (groupNet / groupVolume) * 100 : 0;
 
+                // Updated colspan to 26
                 rowsHtml += `
                 <tr class="completed-group-header">
-                    <td colspan="25" style="padding: 8px 15px; text-align: left;">
+                    <td colspan="26" style="padding: 8px 15px; text-align: left;">
                         <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
                             <span style="font-weight:bold; color:var(--link-color); font-size:1.05em;">
                                 📂 ${groupId} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${groupType})</span>
@@ -2917,11 +2921,16 @@ function renderCompletedTable(data) {
 
                 groupTrades.forEach(trade => {
                     const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                    
+                    // --- CALCULATION START ---
                     const totalFees = (parseFloat(trade.entry_fee || 0) + parseFloat(trade.exit_fee || 0));
+                    const rawPnL = parseFloat(trade.net_result) + totalFees; // Gross PnL
+                    const rawColor = rawPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                    // --- CALCULATION END ---
+
                     const metrics = calculateTradeMetrics(trade);
                     const isMaker = (trade.entryFeeType === 'maker');
                     
-                    // Logic for individual trade % and RR hiding
                     const tradePercent = (parseFloat(trade.net_result) / parseFloat(trade.size)) * 100;
                     const rrTDisplay = !isMaker ? (trade.rr_taker || metrics.rr_taker) : '--';
                     const rrMDisplay = isMaker ? (trade.rr_maker || metrics.rr_maker) : '--';
@@ -2954,7 +2963,11 @@ function renderCompletedTable(data) {
                         <td style="${rrTStyle}">${rrTDisplay}</td>
                         <td style="${rrMStyle}">${rrMDisplay}</td>
                         
-                  <td class="editable-completed-cell" data-id="${trade.dbId}" data-field="exit_price" ${editAttr}>${parseFloat(trade.exit_price).toFixed(4)}</td>
+                        <td class="editable-completed-cell" data-id="${trade.dbId}" data-field="exit_price" ${editAttr}>${parseFloat(trade.exit_price).toFixed(4)}</td>
+                        
+                        <!-- NEW RAW PNL COLUMN -->
+                        <td style="color:${rawColor}; font-weight:bold; opacity:0.8;">${rawPnL.toFixed(2)}</td>
+                        
                         <td>${totalFees.toFixed(2)}</td>
                         <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
                         
