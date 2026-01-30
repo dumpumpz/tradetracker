@@ -1715,7 +1715,7 @@ body.is-master th.master-only {
                 messagingSenderId: "1038636626553",
                 appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
             },
-            DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades', BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', GENERAL_NOTES: 'general_notes', RESTING_ORDERS: 'resting_orders' },
+            DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades',    DAILY_NOTES: 'daily_notes' , BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', GENERAL_NOTES: 'general_notes', RESTING_ORDERS: 'resting_orders' },
             TRADE_SETTINGS: {
                 MAKER_FEE_RATE: 0.0000, // 0% for Maker
                 TAKER_FEE_RATE: 0.00075, // Standard Taker fee
@@ -1796,7 +1796,7 @@ body.is-master th.master-only {
             isMasterUser: false,  isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {}, favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null },
             allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,
             allSetupsImages: {}, setupsImagesShowAll: false, setupsImagesCurrentPage: 1, setupsImagesItemsPerPage: 50,
-            chartInstances: {},
+            chartInstances: {}, dailyNotes: {}, 
             calendarViewDate: new Date() // State for PnL Calendar
         };
 
@@ -1804,7 +1804,7 @@ body.is-master th.master-only {
         firebase.initializeApp(CONFIG.FIREBASE);
         const database = firebase.database();
         const storage = firebase.storage();
-        const dbRefs = { trades: database.ref(CONFIG.DB_PATHS.TRADES), completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), bank: database.ref(CONFIG.DB_PATHS.BANK), journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES), restingOrders: database.ref(CONFIG.DB_PATHS.RESTING_ORDERS) };
+        const dbRefs = { trades: database.ref(CONFIG.DB_PATHS.TRADES), dailyNotes: database.ref(CONFIG.DB_PATHS.DAILY_NOTES) ,completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), bank: database.ref(CONFIG.DB_PATHS.BANK), journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES), restingOrders: database.ref(CONFIG.DB_PATHS.RESTING_ORDERS) };
 
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
@@ -2760,7 +2760,7 @@ function renderCompletedTable(data) {
     const showAllButton = document.getElementById('toggle-all-completed-trades');
     const pageInfoSpan = document.getElementById('completed-trades-page-info');
 
-    // --- 1. HEADERS (Updated Colspan to 26 and added Raw PnL) ---
+    // --- 1. HEADERS ---
     const table = DOM.completedTradesTbody.closest('table');
     let thead = table.querySelector('thead');
     if (!thead) {
@@ -2772,14 +2772,14 @@ function renderCompletedTable(data) {
             <th>Sym</th><th>Type</th><th>Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th>
             <th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th>
             <th>RR(T)</th><th>RR(M)</th><th>Exit</th>
-            <th>Raw PnL</th> <!-- NEW COLUMN -->
+            <th>Raw PnL</th>
             <th>Fees</th><th>Net PnL</th>
             <th>% (Net)</th>
             <th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th>
         </tr>
     `;
 
-    // --- 2. ORGANIZE DATA BY TRADING DAY AND GROUP ---
+    // --- 2. ORGANIZE DATA ---
     const tradesByDayAndGroup = {};
     const uniqueTradingDates = [];
 
@@ -2805,7 +2805,7 @@ function renderCompletedTable(data) {
 
     uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
 
-    // --- 3. PAGINATION LOGIC ---
+    // --- 3. PAGINATION ---
     let visibleDates = uniqueTradingDates;
     if (STATE.completedTradesShowAll) {
         const totalPages = uniqueTradingDates.length;
@@ -2827,7 +2827,6 @@ function renderCompletedTable(data) {
 
     // --- 4. RENDER LOOP ---
     if (visibleDates.length === 0) {
-        // Updated colspan to 26
         rowsHtml = '<tr><td colspan="26" style="text-align:center; padding:20px; color: var(--subtle-text);"></td></tr>';
     } else {
         visibleDates.forEach(dateStr => {
@@ -2847,10 +2846,19 @@ function renderCompletedTable(data) {
             const datePnlClass = dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
             const pnlSign = dailyPnL >= 0 ? '+' : '';
 
-            // Updated colspan to 26
+            // --- DAILY NOTE LOGIC ---
+            // Replace slashes/spaces to make a valid DB key (e.g., "2023/10/25" -> "2023-10-25")
+            const safeDateKey = dateStr.replace(/[\/\s,]/g, '-'); 
+            const dailyNote = STATE.dailyNotes[safeDateKey] || '';
+            const editAttr = STATE.isMasterUser ? 'contenteditable="true"' : '';
+            const editClass = STATE.isMasterUser ? 'editable-daily-note' : '';
+            const placeHolder = STATE.isMasterUser ? 'Click to add daily summary...' : '';
+
+            // --- DATE ROW (SPLIT INTO 2 CELLS) ---
             rowsHtml += `
             <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
-                <td colspan="26" style="text-align: left; padding: 10px 10px 10px 20px;">
+                <!-- LEFT SIDE: STATS (Colspan 16) -->
+                <td colspan="16" style="text-align: left; padding: 10px 10px 10px 20px; vertical-align: middle;">
                     <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
                         Date: ${dateStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${totalDailyTrades} Trades)</span>
                     </div>
@@ -2861,6 +2869,15 @@ function renderCompletedTable(data) {
                         <span style="font-weight: bold; color: var(--text-color);">Daily PnL: <span style="color: ${datePnlClass};">${pnlSign}$${dailyPnL.toFixed(2)}</span></span>
                     </div>
                 </td>
+                
+                <!-- RIGHT SIDE: EDITABLE NOTE (Colspan 10) -->
+                <td colspan="10" 
+                    class="${editClass}" 
+                    data-date-key="${safeDateKey}" 
+                    ${editAttr} 
+                    style="vertical-align: middle; font-style: italic; color: var(--link-color); cursor: text; background: rgba(255,255,255,0.3);"
+                    title="Daily Summary Note"
+                >${dailyNote || `<span style='opacity:0.5; font-size:0.9em;'>${placeHolder}</span>`}</td>
             </tr>`;
 
             Object.keys(groupsInDate).forEach(groupId => {
@@ -2887,10 +2904,8 @@ function renderCompletedTable(data) {
                 const groupPnlClass = groupNet >= 0 ? 'var(--green-text)' : 'var(--red-text)';
                 const groupType = groupTrades[0].type || 'Mixed'; 
                 const groupSymbol = groupTrades[0].symbol.split('/')[0];
-                
                 const groupPercent = groupVolume > 0 ? (groupNet / groupVolume) * 100 : 0;
 
-                // Updated colspan to 26
                 rowsHtml += `
                 <tr class="completed-group-header">
                     <td colspan="26" style="padding: 8px 15px; text-align: left;">
@@ -2921,12 +2936,9 @@ function renderCompletedTable(data) {
 
                 groupTrades.forEach(trade => {
                     const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-                    
-                    // --- CALCULATION START ---
                     const totalFees = (parseFloat(trade.entry_fee || 0) + parseFloat(trade.exit_fee || 0));
-                    const rawPnL = parseFloat(trade.net_result) + totalFees; // Gross PnL
+                    const rawPnL = parseFloat(trade.net_result) + totalFees;
                     const rawColor = rawPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-                    // --- CALCULATION END ---
 
                     const metrics = calculateTradeMetrics(trade);
                     const isMaker = (trade.entryFeeType === 'maker');
@@ -2964,10 +2976,7 @@ function renderCompletedTable(data) {
                         <td style="${rrMStyle}">${rrMDisplay}</td>
                         
                         <td class="editable-completed-cell" data-id="${trade.dbId}" data-field="exit_price" ${editAttr}>${parseFloat(trade.exit_price).toFixed(4)}</td>
-                        
-                        <!-- NEW RAW PNL COLUMN -->
                         <td style="color:${rawColor}; font-weight:bold; opacity:0.8;">${rawPnL.toFixed(2)}</td>
-                        
                         <td>${totalFees.toFixed(2)}</td>
                         <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
                         
@@ -3492,7 +3501,23 @@ window.addEventListener('resize', () => {
         DOM.tradesTbody.addEventListener('blur', (e) => { 
             if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
         }, true);
-    }
+  // NEW: Handle Daily Notes
+        if (e.target.matches('.editable-daily-note')) {
+            if (!STATE.isMasterUser) return;
+            const dateKey = e.target.dataset.dateKey;
+            const text = e.target.innerText.trim();
+
+            // Save to Firebase
+            dbRefs.dailyNotes.child(dateKey).set(text).then(() => {
+                // Flash green feedback
+                e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+                setTimeout(() => {
+                     e.target.style.backgroundColor = 'rgba(255,255,255,0.3)';
+                }, 500);
+            });
+        }
+    }, true);
+}
     if (DOM.restingTradesTbody) {
         DOM.restingTradesTbody.addEventListener('blur', (e) => { 
             if (e.target.matches('.editable-cell')) handleRestingTradeUpdate(e.target); 
@@ -4520,6 +4545,13 @@ function handleTradeAction(e) {
                 const orders = s.val() || {};
                 renderRestingTable(orders);
             });
+dbRefs.dailyNotes.on('value', (s) => {
+        STATE.dailyNotes = s.val() || {};
+        // Re-render table if data changes (optional, but good for sync)
+        if (Object.keys(STATE.allCompletedTrades).length > 0) {
+            renderCompletedTable(STATE.allCompletedTrades);
+        }
+    });
 
             // Completed Trades Listener
             dbRefs.completedTrades.on('value', s => {
