@@ -2827,7 +2827,7 @@ function renderCompletedTable(data) {
 
     // --- 4. RENDER LOOP ---
     if (visibleDates.length === 0) {
-        rowsHtml = '<tr><td colspan="25" style="text-align:center; padding:20px; color: var(--subtle-text);"></td></tr>';
+        rowsHtml = '<tr><td colspan="25" style="text-align:center; padding:20px; color: var(--subtle-text);">No completed trades for this period.</td></tr>';
     } else {
         visibleDates.forEach(dateStr => {
             const groupsInDate = tradesByDayAndGroup[dateStr];
@@ -2889,6 +2889,8 @@ function renderCompletedTable(data) {
                 let groupVolume = 0;
                 let groupCoinQty = 0; 
                 let groupPnL100 = 0; 
+                let totalEntryValue = 0; // For weighted average entry
+                let totalTradeCount = groupTrades.length; // Number of positions in the group
 
                 groupTrades.forEach(t => {
                     groupNet += parseFloat(t.net_result || 0);
@@ -2896,7 +2898,8 @@ function renderCompletedTable(data) {
                     const entry = parseFloat(t.entry || 1);
                     groupVolume += size;
                     groupCoinQty += (size / entry);
-                    
+                    totalEntryValue += entry * (size / entry); // Sum (entry price * quantity)
+
                     const metrics = calculateTradeMetrics(t);
                     groupPnL100 += parseFloat(metrics.pnl_per_100_move || 0);
 
@@ -2907,6 +2910,7 @@ function renderCompletedTable(data) {
                 const groupType = groupTrades[0].type || 'Mixed'; 
                 const groupSymbol = groupTrades[0].symbol.split('/')[0];
                 const groupPercent = groupVolume > 0 ? (groupNet / groupVolume) * 100 : 0;
+                const groupAverageEntry = groupCoinQty > 0 ? (totalEntryValue / groupCoinQty) : 0; // Weighted average entry
 
                 rowsHtml += `
                 <tr class="completed-group-header">
@@ -2931,6 +2935,14 @@ function renderCompletedTable(data) {
                             <span style="color:var(--border-color);">|</span> 
                             <span style="font-size:0.9em; color:var(--text-color); font-weight:bold;">
                                 PnL/$100: <span style="font-family: 'Courier New'; color: var(--link-color);">$${groupPnL100.toFixed(2)}</span>
+                            </span>
+                            <span style="color:var(--border-color);">|</span> 
+                            <span style="font-size:0.9em; color:var(--text-color);">
+                                Avg Entry: <span style="font-weight:bold; color:var(--link-color);">${groupAverageEntry.toFixed(4)}</span>
+                            </span>
+                            <span style="color:var(--border-color);">|</span> 
+                            <span style="font-size:0.9em; color:var(--text-color);">
+                                Positions: <span style="font-weight:bold; color:var(--link-color);">${totalTradeCount}</span>
                             </span>
                         </div>
                     </td>
