@@ -2763,8 +2763,7 @@ function checkMarketAlerts() {
 
     // Render alerts
     container.innerHTML = messages.length > 0 ? messages.join('') : '';
-}
-function renderCompletedTable(data) {
+}function renderCompletedTable(data) {
     const trades = data || {};
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
@@ -2866,10 +2865,9 @@ function renderCompletedTable(data) {
             const editClass = STATE.isMasterUser ? 'editable-daily-note' : '';
             const placeHolder = STATE.isMasterUser ? 'Daily Note...' : '';
 
-            // --- DATE ROW (UPDATED COLSPANS) ---
+            // --- DATE ROW ---
             rowsHtml += `
             <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
-                <!-- LEFT SIDE: STATS (Colspan 20) -->
                 <td colspan="20" style="text-align: left; padding: 10px 10px 10px 20px; vertical-align: middle;">
                     <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
                         Date: ${dateStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${totalDailyTrades} Trades)</span>
@@ -2882,7 +2880,6 @@ function renderCompletedTable(data) {
                     </div>
                 </td>
                 
-                <!-- MIDDLE: EDITABLE NOTE (Colspan 1) -->
                 <td colspan="1" 
                     class="${editClass}" 
                     data-date-key="${safeDateKey}" 
@@ -2891,7 +2888,6 @@ function renderCompletedTable(data) {
                     title="Daily Summary Note"
                 >${dailyNote || `<span style=' font-size:0.9em;'>${placeHolder}</span>`}</td>
 
-                <!-- RIGHT FILLER (Colspan 4: Covers Note2, Note3, Pics, Actions) -->
                 <td colspan="4"></td>
             </tr>`;
 
@@ -2903,15 +2899,20 @@ function renderCompletedTable(data) {
                 let groupCoinQty = 0; 
                 let groupPnL100 = 0; 
                 let totalEntryValue = 0; // For weighted average entry
-                let totalTradeCount = groupTrades.length; // Number of positions in the group
+                let totalExitValue = 0;  // For weighted average exit
+                let totalTradeCount = groupTrades.length; 
 
                 groupTrades.forEach(t => {
                     groupNet += parseFloat(t.net_result || 0);
                     const size = parseFloat(t.size || 0);
                     const entry = parseFloat(t.entry || 1);
+                    const exit = parseFloat(t.exit_price || 0);
+
                     groupVolume += size;
-                    groupCoinQty += (size / entry);
-                    totalEntryValue += entry * (size / entry); // Sum (entry price * quantity)
+                    const qty = (size / entry);
+                    groupCoinQty += qty;
+                    totalEntryValue += entry * qty; 
+                    totalExitValue += exit * qty;
 
                     const metrics = calculateTradeMetrics(t);
                     groupPnL100 += parseFloat(metrics.pnl_per_100_move || 0);
@@ -2923,7 +2924,24 @@ function renderCompletedTable(data) {
                 const groupType = groupTrades[0].type || 'Mixed'; 
                 const groupSymbol = groupTrades[0].symbol.split('/')[0];
                 const groupPercent = groupVolume > 0 ? (groupNet / groupVolume) * 100 : 0;
-                const groupAverageEntry = groupCoinQty > 0 ? (totalEntryValue / groupCoinQty) : 0; // Weighted average entry
+                
+                // Average Calculations
+                const groupAverageEntry = groupCoinQty > 0 ? (totalEntryValue / groupCoinQty) : 0; 
+                const groupAverageExit = groupCoinQty > 0 ? (totalExitValue / groupCoinQty) : 0;
+
+                // Difference Calculation (Exit - Entry)
+                const priceDiff = groupAverageExit - groupAverageEntry;
+                const diffSign = priceDiff >= 0 ? '+' : '';
+                
+                // Color logic for the difference display
+                // For a Long: Exit > Entry (Positive Diff) is Green
+                // For a Short: Exit < Entry (Negative Diff) is Green
+                let diffColor = 'var(--subtle-text)';
+                if (groupType === 'Long') {
+                    diffColor = priceDiff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                } else if (groupType === 'Short') {
+                    diffColor = priceDiff <= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                }
 
                 rowsHtml += `
                 <tr class="completed-group-header">
@@ -2950,9 +2968,18 @@ function renderCompletedTable(data) {
                                 PnL/$100: <span style="font-family: 'Courier New'; color: var(--link-color);">$${groupPnL100.toFixed(2)}</span>
                             </span>
                             <span style="color:var(--border-color);">|</span> 
+                            
+                            <!-- UPDATED AVERAGE ENTRY / EXIT SECTION -->
                             <span style="font-size:0.9em; color:var(--text-color);">
                                 Avg Entry: <span style="font-weight:bold; color:var(--link-color);">${groupAverageEntry.toFixed(4)}</span>
+                                <span style="margin: 0 4px; color:var(--subtle-text);">➜</span>
+                                Avg Exit: <span style="font-weight:bold; color:var(--link-color);">${groupAverageExit.toFixed(4)}</span>
+                                <span style="font-weight:bold; font-family:'Courier New'; font-size:0.95em; color:${diffColor}; margin-left:5px;">
+                                    (${diffSign}${priceDiff.toFixed(2)})
+                                </span>
                             </span>
+                            <!-- END UPDATED SECTION -->
+
                             <span style="color:var(--border-color);">|</span> 
                             <span style="font-size:0.9em; color:var(--text-color);">
                                 Positions: <span style="font-weight:bold; color:var(--link-color);">${totalTradeCount}</span>
