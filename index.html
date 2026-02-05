@@ -4318,6 +4318,16 @@ const formatDisplayDate = (dateString) => {
 
 // --- MISSING FUNCTION: Renders the Setups / Setup Image Library ---
 // --- UPDATED RENDERER: Uses Trading Day Logic for Setups ---
+// --- HELPER: Format Date for Headers ---
+const formatDisplayDate = (dateString) => {
+    if (!dateString) return '';
+    // Create date relative to UTC to ensure the string "2023-01-01" renders as Jan 1st
+    const date = new Date(dateString + 'T12:00:00Z'); 
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    return date.toLocaleDateString('en-AU', options);
+};
+
+// --- UPDATED RENDERER: Uses Trading Day Logic for Setups ---
 function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     const images = imagesData || {};
     if (!containerElement) return;
@@ -4357,7 +4367,6 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             allImageIds.forEach(id => {
                 const ts = images[id].timestamp;
                 if(ts) {
-                    // This links the image to the correct "Trade Day"
                     uniqueDatesSet.add(getTradingDayString(ts, ts));
                 }
             });
@@ -4417,7 +4426,30 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             
             let hasHistorical = false;
             
-            images
+            imagesHtml = allImageIds.map(id => {
+                const imgData = images[id];
+                // Calculate the trading day for this image
+                const imgDateKey = imgData.timestamp ? getTradingDayString(imgData.timestamp, imgData.timestamp) : '';
+                
+                // Compare with today's trading day
+                const isHistorical = imgDateKey !== todayTradingDay;
+                if (isHistorical) hasHistorical = true;
+
+                return createImageHtml(id, isHistorical ? 'historical-entry' : '', isHistorical ? 'style="display: none;"' : '');
+            }).join('');
+
+            if (paginationControls) paginationControls.style.display = 'none';
+            if (showAllButton) showAllButton.style.display = hasHistorical ? 'block' : 'none';
+        }
+    } else {
+        // Standard Library (not setups) - Just show all
+        imagesHtml = allImageIds.map(id => createImageHtml(id)).join('');
+    }
+
+    containerElement.innerHTML = imagesHtml;
+    // Resize container
+    if (typeof adjustCollapsibleSize === 'function') adjustCollapsibleSize(containerElement);
+}
 
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); if (attachBtn) { handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type); return true; }
