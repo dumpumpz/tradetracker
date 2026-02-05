@@ -2730,6 +2730,18 @@ function checkMarketAlerts() {
 
     // --- SPECIAL EVENT DEFINITIONS (Stack on top of daily ones) ---
 
+// THURSDAY: Pre-NFP (Thursday before the 1st Friday)
+    if (dayOfWeek === 4 && dateOfMonth <= 6) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;">
+                <strong>⚠️ Pre-NFP Volatility:</strong> 
+                Tomorrow is NFP (Non-Farm Payrolls). Expect positioning adjustments and volatility today.
+            </div>
+        `);
+    }
+
+
+    
     // THURSDAY: Pre-Expiry (Only shows on the Thursday before the last Friday)
     if (dayOfWeek === 4 && dateOfMonth === (lastFridayDate - 1)) {
         messages.push(`
