@@ -4179,15 +4179,15 @@ function handleCompletedTradeUpdate(cell) {
             }
         }
 // Add this to your STATE object if not already there (at top of script)
+// STATE.lastClickTime = 0; // Add this to your STATE object if not already there
 // STATE.lastClickTime = 0; 
 
 function handleTradeAction(e) {
     if (!STATE.isMasterUser) return;
 
-    // 1. Find the button
     const button = e.target.closest('button');
     
-    // If we are in Merge Mode, handle row clicks (ignore buttons for a moment)
+    // If in Merge Mode, handle row clicks
     if (STATE.isMerging && !button) {
         const targetRow = e.target.closest('tr');
         if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody') {
@@ -4199,21 +4199,16 @@ function handleTradeAction(e) {
 
     if (!button) return;
 
-    // 2. STOP PROPAGATION (Fixes "Double Prompt" if listeners are nested)
     e.stopPropagation();
     e.preventDefault();
 
-    // 3. COOLDOWN (Prevents rapid double-clicks)
     const now = Date.now();
     if (now - (STATE.lastClickTime || 0) < 500) return; 
     STATE.lastClickTime = now;
 
-    // 4. PROCESSING LOCK
     if (STATE.isProcessing) return;
 
     const { id } = button.dataset;
-
-    // --- BUTTON ROUTING ---
 
     // A. Close Group Idea
     if (button.matches('.close-group-btn')) {
@@ -4248,18 +4243,10 @@ function handleTradeAction(e) {
     const isCompleted = button.closest('tbody').id === 'completed-trades-tbody';
     const tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
 
-    if (button.matches('.win-btn')) {
-        completeTrade(id, 'win');
-    } 
-    else if (button.matches('.loss-btn')) {
-        completeTrade(id, 'loss');
-    } 
-    else if (button.matches('.add-to-position-btn')) {
-        handleAddStaggeredEntry(id);
-    } 
-    else if (button.matches('.merge-btn-completed')) {
-        initiateMerge(id);
-    } 
+    if (button.matches('.win-btn')) completeTrade(id, 'win');
+    else if (button.matches('.loss-btn')) completeTrade(id, 'loss');
+    else if (button.matches('.add-to-position-btn')) handleAddStaggeredEntry(id);
+    else if (button.matches('.merge-btn-completed')) initiateMerge(id);
     else if (button.matches('.delete-btn, .delete-btn-completed')) {
         if (confirm('Delete this trade?')) {
             if (isCompleted) resetMergeState();
@@ -4286,38 +4273,6 @@ function handleTradeAction(e) {
     }
 }
 
-// Ensure STATE is defined globally or accessible here if getPerthDateString needs it.
-// For example, if STATE is defined elsewhere like:
-// const STATE = { isMasterUser: false, setupsImagesCurrentPage: 1, setupsImagesShowAll: false };
-// Or ensure STATE is passed correctly to any function that needs it.
-
-// Helper: Calculate 6am-6am Trading Day String
-// Perth is UTC+8. Day break is 06:00 Perth.
-// 06:00 Perth = 22:00 UTC (Previous Day).
-// Logic: If we add 2 hours to UTC time, the DATE component aligns exactly with the 6am-6am trading day.
-// Example: Jan 20, 06:00 Perth -> Jan 19, 22:00 UTC. Add 2hr -> Jan 20, 00:00 UTC. Date = Jan 20.
-// Example: Jan 20, 05:59 Perth -> Jan 19, 21:59 UTC. Add 2hr -> Jan 19, 23:59 UTC. Date = Jan 19.
-const getTradingDayKey = (ts) => {
-    if (!ts) return "Unknown";
-    // 2 hours in milliseconds = 7200000
-    return new Date(ts + 7200000).toISOString().split('T')[0];
-};
-
-// New Helper: Format Date for Display
-// This function does not need STATE, it just formats a date string.
-const formatDisplayDate = (dateString) => {
-    // dateString is in 'YYYY-MM-DD' format
-    // Use an arbitrary time like 'T12:00:00' for consistency and to avoid local timezone issues
-    // with date interpretation, especially around daylight saving transitions.
-    // Specifying a timezone 'Z' (UTC) is generally safest for consistent interpretation from YYYY-MM-DD.
-    const date = new Date(dateString + 'T00:00:00Z');
-    const options = { weekday: 'long', day: 'numeric', month: 'long' };
-    return date.toLocaleDateString('en-AU', options); // Or 'en-US' or your preferred locale
-};
-
-
-// --- MISSING FUNCTION: Renders the Setups / Setup Image Library ---
-// --- UPDATED RENDERER: Uses Trading Day Logic for Setups ---
 // --- HELPER: Format Date for Headers ---
 const formatDisplayDate = (dateString) => {
     if (!dateString) return '';
@@ -4450,7 +4405,6 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     // Resize container
     if (typeof adjustCollapsibleSize === 'function') adjustCollapsibleSize(containerElement);
 }
-
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); if (attachBtn) { handleAttachAttachmentClick(attachBtn.dataset.id, attachBtn.dataset.type); return true; }
             const delImgBtn = e.target.closest('.delete-trade-image'); if (delImgBtn) { const { entryId, entryType, imageId, filename } = delImgBtn.dataset; handleDeleteAttachmentImage(entryId, entryType, imageId, filename); return true; }
