@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -532,7 +533,7 @@ body.is-master th.master-only {
         }
 
 
-        #image-library-container, #setups-image-container {
+        #image-library-container, #setups-image-container, #strategy-image-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 15px;
@@ -1466,6 +1467,7 @@ body.is-master th.master-only {
         <div class="tabs">
             <button class="tab-link active" data-tab="tracker">Trade Tracker</button>
             <button class="tab-link" data-tab="journal">Journal & Setups</button>
+            <button class="tab-link" data-tab="strategy">Setups</button>
             <button class="tab-link" data-tab="notes">Notes</button>
         </div>
 
@@ -1669,6 +1671,33 @@ body.is-master th.master-only {
             <div id="journal-images-container"></div>
         </div>
 
+        <!-- Tab: Strategy / Setups (NEW) -->
+        <div id="strategy-tab" class="tab-content">
+            <div class="collapsible-section is-open">
+                <div class="collapsible-header">
+                    <h2>Strategy & Setups</h2>
+                    <button class="collapsible-toggle-btn">−</button>
+                </div>
+                <div class="collapsible-content" style="max-height: 2000px;">
+                    <div class="collapsible-content-inner">
+                        <!-- 1. The Single Text Box -->
+                        <textarea id="strategy-notes-entry" class="setups-notes-area" placeholder="Write your permanent setup rules, strategies, and definitions here..."></textarea>
+                        <p id="strategy-save-status" style="font-style:italic; color:var(--subtle-text); height:1em; margin-top:5px;"></p>
+
+                        <!-- 2. Image Upload (Master Only) -->
+                        <div id="strategy-upload-section" class="master-only" style="margin-top: 20px; border-top: 1px dashed var(--border-color); padding-top: 20px;">
+                            <label for="strategy-image-upload" class="image-upload-label">Add Setup Example</label>
+                            <input type="file" id="strategy-image-upload" accept="image/*" multiple style="display:none;">
+                            <div id="strategy-upload-progress" style="margin-top:5px; font-style:italic; color:var(--link-color);"></div>
+                        </div>
+
+                        <!-- 3. Image Gallery -->
+                        <div id="strategy-image-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Tab 3: Notes -->
         <div id="notes-tab" class="tab-content">
             <div class="collapsible-section">
@@ -1728,7 +1757,24 @@ body.is-master th.master-only {
                 messagingSenderId: "1038636626553",
                 appId: "1:1038636626553:web:7a91c321e39c146bdc9aa8"
             },
-            DB_PATHS: { TRADES: 'trades', COMPLETED_TRADES: 'completed_trades',    DAILY_NOTES: 'daily_notes' , BANK: 'bank', JOURNAL_TEXT: 'journal_text', JOURNAL_IMAGES: 'journal_images', IMAGE_LIBRARY: 'image_library', SETUPS_IMAGES: 'setups_images', CHART_LIBRARY_2: 'chart_library_2', JOURNAL_FAVOURITES: 'journal_favourites', SETUPS_1: 'current_setups_1', SETUPS_2: 'current_setups_2', GENERAL_NOTES: 'general_notes', RESTING_ORDERS: 'resting_orders' },
+            DB_PATHS: { 
+                TRADES: 'trades', 
+                COMPLETED_TRADES: 'completed_trades',    
+                DAILY_NOTES: 'daily_notes', 
+                BANK: 'bank', 
+                JOURNAL_TEXT: 'journal_text', 
+                JOURNAL_IMAGES: 'journal_images', 
+                IMAGE_LIBRARY: 'image_library', 
+                SETUPS_IMAGES: 'setups_images', 
+                CHART_LIBRARY_2: 'chart_library_2', 
+                JOURNAL_FAVOURITES: 'journal_favourites', 
+                SETUPS_1: 'current_setups_1', 
+                SETUPS_2: 'current_setups_2', 
+                GENERAL_NOTES: 'general_notes', 
+                RESTING_ORDERS: 'resting_orders',
+                STRATEGY_NOTES: 'strategy_notes',
+                STRATEGY_IMAGES: 'strategy_images'
+            },
             TRADE_SETTINGS: {
                 MAKER_FEE_RATE: 0.0000, // 0% for Maker
                 TAKER_FEE_RATE: 0.00075, // Standard Taker fee
@@ -1802,6 +1848,13 @@ body.is-master th.master-only {
             calPrevBtn: document.getElementById('cal-prev-btn'),
             calNextBtn: document.getElementById('cal-next-btn'),
             pnlCalendarGrid: document.getElementById('pnl-calendar-grid'),
+            // Strategy/Setups Tab Elements
+            strategyTab: document.getElementById('strategy-tab'),
+            strategyNotesEntry: document.getElementById('strategy-notes-entry'),
+            strategySaveStatus: document.getElementById('strategy-save-status'),
+            strategyImageUpload: document.getElementById('strategy-image-upload'),
+            strategyUploadProgress: document.getElementById('strategy-upload-progress'),
+            strategyImageContainer: document.getElementById('strategy-image-container'),
         };
 
         // --- APPLICATION STATE ---
@@ -1810,14 +1863,32 @@ body.is-master th.master-only {
             allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,
             allSetupsImages: {}, setupsImagesShowAll: false, setupsImagesCurrentPage: 1, setupsImagesItemsPerPage: 50,
             chartInstances: {}, dailyNotes: {}, 
-            calendarViewDate: new Date() // State for PnL Calendar
+            calendarViewDate: new Date(),
+            strategyImages: {}, strategySaveTimer: null 
         };
 
         // --- INITIALIZE FIREBASE ---
         firebase.initializeApp(CONFIG.FIREBASE);
         const database = firebase.database();
         const storage = firebase.storage();
-        const dbRefs = { trades: database.ref(CONFIG.DB_PATHS.TRADES), dailyNotes: database.ref(CONFIG.DB_PATHS.DAILY_NOTES) ,completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), bank: database.ref(CONFIG.DB_PATHS.BANK), journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES), restingOrders: database.ref(CONFIG.DB_PATHS.RESTING_ORDERS) };
+        const dbRefs = { 
+            trades: database.ref(CONFIG.DB_PATHS.TRADES), 
+            dailyNotes: database.ref(CONFIG.DB_PATHS.DAILY_NOTES),
+            completedTrades: database.ref(CONFIG.DB_PATHS.COMPLETED_TRADES), 
+            bank: database.ref(CONFIG.DB_PATHS.BANK), 
+            journalText: database.ref(CONFIG.DB_PATHS.JOURNAL_TEXT), 
+            journalImages: database.ref(CONFIG.DB_PATHS.JOURNAL_IMAGES), 
+            imageLibrary: database.ref(CONFIG.DB_PATHS.IMAGE_LIBRARY), 
+            setupsImages: database.ref(CONFIG.DB_PATHS.SETUPS_IMAGES), 
+            chartLibrary2: database.ref(CONFIG.DB_PATHS.CHART_LIBRARY_2), 
+            favourites: database.ref(CONFIG.DB_PATHS.JOURNAL_FAVOURITES), 
+            setups1: database.ref(CONFIG.DB_PATHS.SETUPS_1), 
+            setups2: database.ref(CONFIG.DB_PATHS.SETUPS_2), 
+            generalNotes: database.ref(CONFIG.DB_PATHS.GENERAL_NOTES), 
+            restingOrders: database.ref(CONFIG.DB_PATHS.RESTING_ORDERS),
+            strategyNotes: database.ref(CONFIG.DB_PATHS.STRATEGY_NOTES),
+            strategyImages: database.ref(CONFIG.DB_PATHS.STRATEGY_IMAGES)
+        };
 
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
@@ -2968,7 +3039,7 @@ function checkMarketAlerts() {
                                 <span style="font-size:0.85em; margin-left:5px; color:${groupPnlClass};">(${groupPercent.toFixed(2)}%)</span>
                             </span>
                             <span style="color:var(--border-color);">|</span>
-                            <span style="font-size:0.95em; color:var(--text-color);">
+                            <span style="font-size:0.9em; color:var(--text-color);">
                                 ${groupWins} Wins / ${groupLosses} Losses
                             </span>
                             <span style="color:var(--border-color);">|</span>
@@ -3610,9 +3681,9 @@ function completeTrade(tradeId, outcome) {
         // B. Handle Image Actions (Delete/Click)
         if (handleAttachmentActions(e)) return;
 
-        // C. Generic Library Interaction (Setups/Images)
-        if (e.target.closest('#setups-image-container, #image-library-container')) {
-            handleGenericImageLibraryClick(e);
+        // C. Generic Library Interaction (Setups/Images/Strategy)
+        if (e.target.closest('#setups-image-container, #image-library-container, #strategy-image-container')) {
+             handleGenericImageLibraryClick(e);
         } 
         // D. Completed Trades Pagination
         else if (e.target.id === 'toggle-all-completed-trades') {
@@ -3729,6 +3800,7 @@ function completeTrade(tradeId, outcome) {
     DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
     DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
     DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
+    DOM.strategyImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'strategy_images', DOM.strategyUploadProgress, dbRefs.strategyImages));
 
     // --- 12. IMAGE MODAL ---
     DOM.modalClose.addEventListener('click', closeModal);
@@ -3756,6 +3828,23 @@ function completeTrade(tradeId, outcome) {
 
     DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveJournalEntry(); });
     DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
+    
+    // Strategy Notes Input
+    DOM.strategyNotesEntry.addEventListener('input', (e) => {
+        autoResizeTextarea(e.target);
+        // Debounce save
+        clearTimeout(STATE.strategySaveTimer);
+        STATE.strategySaveTimer = setTimeout(() => {
+            if (!STATE.isMasterUser) return;
+            DOM.strategySaveStatus.textContent = "Saving...";
+            dbRefs.strategyNotes.set(e.target.value)
+                .then(() => {
+                    DOM.strategySaveStatus.textContent = "Saved.";
+                    setTimeout(() => DOM.strategySaveStatus.textContent = "", 2000);
+                })
+                .catch(err => DOM.strategySaveStatus.textContent = "Error");
+        }, 1000);
+    });
 
     // Journal Image Clicks & Drag-Drop
     DOM.journalTab.addEventListener('click', (e) => {
@@ -4135,11 +4224,12 @@ function handleCompletedTradeUpdate(cell) {
         function handleGenericImageLibraryClick(e) {
             const clickedImg = e.target.closest('img');
             if (clickedImg?.dataset.fullSrc) {
-                const galleryContainer = clickedImg.closest('#setups-image-container, .trade-image-thumbnails');
+                const galleryContainer = clickedImg.closest('#setups-image-container, .trade-image-thumbnails, #strategy-image-container');
                 if (galleryContainer) { const allImageElements = galleryContainer.querySelectorAll('img'); const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })); const clickedIndex = Array.from(allImageElements).indexOf(clickedImg); if (clickedIndex > -1) openImageModal(imageArray, clickedIndex); }
                 return;
             }
             if (e.target.closest('#setups-image-container')) handleLibraryActions(e, 'setups_images', dbRefs.setupsImages);
+            else if (e.target.closest('#strategy-image-container')) handleLibraryActions(e, 'strategy_images', dbRefs.strategyImages);
         }
 
         function handleLibraryActions(e, libraryType, dbRef) {
@@ -4582,13 +4672,13 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
                 const orders = s.val() || {};
                 renderRestingTable(orders);
             });
-dbRefs.dailyNotes.on('value', (s) => {
-        STATE.dailyNotes = s.val() || {};
-        // Re-render table if data changes (optional, but good for sync)
-        if (Object.keys(STATE.allCompletedTrades).length > 0) {
-            renderCompletedTable(STATE.allCompletedTrades);
-        }
-    });
+            dbRefs.dailyNotes.on('value', (s) => {
+                STATE.dailyNotes = s.val() || {};
+                // Re-render table if data changes (optional, but good for sync)
+                if (Object.keys(STATE.allCompletedTrades).length > 0) {
+                    renderCompletedTable(STATE.allCompletedTrades);
+                }
+            });
 
             // Completed Trades Listener
             dbRefs.completedTrades.on('value', s => {
@@ -4682,6 +4772,22 @@ dbRefs.journalImages.on('value', (s) => {
             dbRefs.setups1.on('value', (s) => { STATE.setupsData1 = s.val() || {}; renderSetupsTable(null, STATE.setupsData1, 'primary-setups-notes'); });
             dbRefs.setups2.on('value', (s) => { STATE.setupsData2 = s.val() || {}; renderSetupsTable(null, STATE.setupsData2, 'secondary-setups-notes'); });
             dbRefs.generalNotes.on('value', (s) => { STATE.generalNotes = s.val() || {}; if (DOM.noteEditModal.style.display === 'none') { renderNotes(STATE.generalNotes); } });
+
+            // Strategy Notes Listener
+            dbRefs.strategyNotes.on('value', (s) => {
+                const text = s.val() || "";
+                // Only update if user is not currently typing
+                if (document.activeElement !== DOM.strategyNotesEntry) {
+                    DOM.strategyNotesEntry.value = text;
+                    autoResizeTextarea(DOM.strategyNotesEntry);
+                }
+            });
+
+            // Strategy Images Listener
+            dbRefs.strategyImages.on('value', (s) => {
+                STATE.strategyImages = s.val() || {};
+                renderGenericImageLibrary(STATE.strategyImages, DOM.strategyImageContainer, 'strategy_images');
+            });
         }
 
         function openCollapsibleSection(sectionElement) {
@@ -4700,7 +4806,7 @@ dbRefs.journalImages.on('value', (s) => {
 
         function openDefaultSectionsInContainer(containerElement) {
             if (!containerElement) return;
-            const sectionsToOpen = ['Live Trades', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'EMA Snapshot', 'PnL Calendar'];
+            const sectionsToOpen = ['Live Trades', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'EMA Snapshot', 'PnL Calendar', 'Strategy & Setups'];
             containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 const title = h2.textContent.trim();
                 if (sectionsToOpen.includes(title)) {
@@ -4730,6 +4836,7 @@ dbRefs.journalImages.on('value', (s) => {
                 .forEach(cell => cell.setAttribute('contenteditable', 'true'));
             DOM.primarySetupsNotes.readOnly = false; 
             DOM.secondarySetupsNotes.readOnly = false;
+            DOM.strategyNotesEntry.readOnly = false;
         }
     }
     
@@ -4738,6 +4845,7 @@ dbRefs.journalImages.on('value', (s) => {
         DOM.journalEntryEl.readOnly = true;
         DOM.primarySetupsNotes.readOnly = true; 
         DOM.secondarySetupsNotes.readOnly = true;
+        DOM.strategyNotesEntry.readOnly = true;
     }
 }
 // 1. Helper to open a specific section
@@ -4771,7 +4879,8 @@ function openDefaultSectionsInContainer(containerElement) {
         'Completed Trades', 
         'Trading Setups', 
         'Setups',
-        'My Notes'
+        'My Notes',
+        'Strategy & Setups'
     ];
     
     containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
@@ -4822,5 +4931,7 @@ async function initializeApp() {
         initializeApp();
     }); // This closes the DOMContentLoaded listener
 </script>
+
+
     </body>
     </html>
