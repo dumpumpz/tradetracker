@@ -780,6 +780,14 @@ body.is-master th.master-only {
             overflow: hidden;
             transition: max-height 0.4s ease-in-out;
         }
+
+            .collapsible-content {
+    max-height: 0;
+    overflow: hidden;
+    /* Add 'will-change' to help mobile performance */
+    will-change: max-height; 
+    transition: max-height 0.3s ease-out; /* Changed from ease-in-out for snappier feel */
+}
         .collapsible-content-inner {
             padding: 20px;
             border-top: 1px solid var(--border-color);
@@ -1678,8 +1686,7 @@ body.is-master th.master-only {
                     <h2>Strategy & Setups</h2>
                     <button class="collapsible-toggle-btn">−</button>
                 </div>
-                <div class="collapsible-content" style="max-height: 2000px;">
-                    <div class="collapsible-content-inner">
+<div class="collapsible-content">                    <div class="collapsible-content-inner">
                         <!-- 1. The Single Text Box -->
                         <textarea id="strategy-notes-entry" class="setups-notes-area" placeholder="Write your permanent setup rules, strategies, and definitions here..."></textarea>
                         <p id="strategy-save-status" style="font-style:italic; color:var(--subtle-text); height:1em; margin-top:5px;"></p>
@@ -1917,20 +1924,15 @@ function calculateBreakevenPrice(trade) {
         return entry * (1 - entryFeeRate) / (1 + exitFeeRate);
     }
 }
-    // FIND THIS FUNCTION
 function autoResizeTextarea(textarea) { 
     if (!textarea || textarea.tagName !== 'TEXTAREA') return; 
     
-    // START FIX: Save the current scroll position
-    const currentScrollPos = window.scrollY;
-    
+    // Reset height to allow shrinking
     textarea.style.height = 'auto'; 
-    textarea.style.height = `${textarea.scrollHeight}px`; 
     
-    // END FIX: Restore the scroll position immediately
-    window.scrollTo(window.scrollX, currentScrollPos);
-}  
-        
+    // Set new height based on content
+    textarea.style.height = (textarea.scrollHeight + 2) + 'px'; 
+}
 function resizeParentCollapsible(elementInside) {
     const section = elementInside.closest('.collapsible-section');
     if (section && section.classList.contains('is-open')) {
@@ -3576,6 +3578,20 @@ function completeTrade(tradeId, outcome) {
         if (newTabContent) {
             newTabContent.classList.add('active');
             // Auto-open sections if first time visiting tab
+
+                // --- INSERT THIS NEW BLOCK HERE ---
+            // Fix: Recalculate heights for all open sections in this tab
+            // because they were hidden previously (height = 0)
+            const openSections = newTabContent.querySelectorAll('.collapsible-section.is-open');
+            openSections.forEach(section => {
+                const content = section.querySelector('.collapsible-content');
+                if(content) {
+                    content.style.maxHeight = 'none'; // Reset restriction
+                    // Add buffer to ensure images fit
+                    content.style.maxHeight = (content.scrollHeight + 100) + 'px'; 
+                }
+            });
+            // ----------------------------------
             if (!newTabContent.dataset.sectionsInitialized) { 
                 openDefaultSectionsInContainer(newTabContent); 
                 newTabContent.dataset.sectionsInitialized = 'true'; 
