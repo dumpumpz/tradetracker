@@ -3605,29 +3605,54 @@ function completeTrade(tradeId, outcome) {
     });
 
     // --- 2. Tab Navigation ---
+// --- 2. Tab Navigation ---
     DOM.tabs.addEventListener('click', (e) => {
         if (!e.target.matches('.tab-link')) return;
+        
+        // 1. Handle Active Classes
         document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
         e.target.classList.add('active');
+        
         const tabId = e.target.dataset.tab;
         const newTabContent = document.getElementById(`${tabId}-tab`);
+        
         if (newTabContent) {
             newTabContent.classList.add('active');
-            // Auto-open sections if first time visiting tab
 
-                // --- INSERT THIS NEW BLOCK HERE ---
-            // Fix: Recalculate heights for all open sections in this tab
-            // because they were hidden previously (height = 0)
-            const openSections = newTabContent.querySelectorAll('.collapsible-section.is-open');
-            openSections.forEach(section => {
-                const content = section.querySelector('.collapsible-content');
-                if(content) {
-                    content.style.maxHeight = 'none'; // Reset restriction
-                    // Add buffer to ensure images fit
-                    content.style.maxHeight = (content.scrollHeight + 100) + 'px'; 
+            // --- CRITICAL FIX: FORCE RESIZE ON TAB SWITCH ---
+            // Wait 100ms for CSS transition/rendering to finish, then calculate height
+            setTimeout(() => {
+                // A. Specific fix for Strategy Text Box
+                if (tabId === 'strategy') {
+                    const stratNote = document.getElementById('strategy-notes-entry');
+                    if (stratNote) {
+                        // Reset to auto to get shrinkage if needed
+                        stratNote.style.height = 'auto'; 
+                        // Set actual height based on text content
+                        stratNote.style.height = (stratNote.scrollHeight + 10) + 'px';
+                        // Force the container to expand to fit the text box
+                        resizeParentCollapsible(stratNote);
+                    }
                 }
-            });
-            // ----------------------------------
+
+                // B. General fix for any other text areas in the new tab
+                newTabContent.querySelectorAll('textarea').forEach(ta => {
+                    if(ta.value.length > 0) autoResizeTextarea(ta);
+                });
+
+                // C. Recalculate container heights for all open sections
+                const openSections = newTabContent.querySelectorAll('.collapsible-section.is-open');
+                openSections.forEach(section => {
+                    const content = section.querySelector('.collapsible-content');
+                    if(content) {
+                        content.style.maxHeight = 'none'; // Release constraint
+                        content.style.maxHeight = (content.scrollHeight + 50) + 'px'; // Reapply with buffer
+                    }
+                });
+            }, 100); 
+            // ------------------------------------------------
+
+            // Auto-open sections if first time visiting tab
             if (!newTabContent.dataset.sectionsInitialized) { 
                 openDefaultSectionsInContainer(newTabContent); 
                 newTabContent.dataset.sectionsInitialized = 'true'; 
