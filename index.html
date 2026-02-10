@@ -1927,29 +1927,65 @@ function calculateBreakevenPrice(trade) {
 function autoResizeTextarea(textarea) { 
     if (!textarea || textarea.tagName !== 'TEXTAREA') return; 
     
+    // SPEED FIX: If the tab is hidden, don't calculate (prevents lag on load)
+    if (textarea.offsetParent === null) return;
+
     // Reset height to allow shrinking
     textarea.style.height = 'auto'; 
     
     // Set new height based on content
-    textarea.style.height = (textarea.scrollHeight + 2) + 'px'; 
+    textarea.style.height = (textarea.scrollHeight + 5) + 'px'; 
+    
+    // LAYOUT FIX: Force the parent container to expand with the text box
+    resizeParentCollapsible(textarea);
 }
+
 function resizeParentCollapsible(elementInside) {
     const section = elementInside.closest('.collapsible-section');
     if (section && section.classList.contains('is-open')) {
         const content = section.querySelector('.collapsible-content');
         if (content) {
-            // FIX: Add +100px buffer to ensure buttons/pagination are never cut off
-            const newHeight = content.scrollHeight + 100;
-            content.style.maxHeight = newHeight + 'px';
+            // FIX: We temporarily remove the limit to get the real size
+            content.style.maxHeight = 'none';
+            // Then set it to the scrollHeight + buffer
+            content.style.maxHeight = (content.scrollHeight + 50) + 'px';
         }
     }
-}        const debouncedResizeParent = debounce(resizeParentCollapsible, 250);
-        const formatCurrency = (num, symbol = '$') => { if (typeof num !== 'number' || isNaN(num)) { return '--'; } const maximumFractionDigits = num > 100 ? 2 : (num > 1 ? 4 : 8); return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`; };
-        function adjustCollapsibleSize(elementInside) { if (!elementInside) return; if (elementInside.tagName === 'TEXTAREA') { autoResizeTextarea(elementInside); } resizeParentCollapsible(elementInside); }
-        const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
-        const getPerthDateString = (date = new Date()) => { try { const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Perth', year: 'numeric', month: '2-digit', day: '2-digit' }); return formatter.format(date); } catch (e) { console.error("Timezone formatting failed, using fallback.", e); const perthTime = new Date(date.getTime() + (8 * 60 * 60 * 1000)); return perthTime.toISOString().split('T')[0]; } };
-        const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
-        // --- MISSING HELPER: TRADING DAY LOGIC ---
+}
+
+const debouncedResizeParent = debounce(resizeParentCollapsible, 250);
+
+const formatCurrency = (num, symbol = '$') => { 
+    if (typeof num !== 'number' || isNaN(num)) { return '--'; } 
+    const maximumFractionDigits = num > 100 ? 2 : (num > 1 ? 4 : 8); 
+    return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits })}`; 
+};
+
+function adjustCollapsibleSize(elementInside) { 
+    if (!elementInside) return; 
+    if (elementInside.tagName === 'TEXTAREA') { 
+        autoResizeTextarea(elementInside); 
+    } else {
+        resizeParentCollapsible(elementInside); 
+    }
+}
+
+const getYYYYMMDD = (date) => date.toISOString().split('T')[0];
+
+const getPerthDateString = (date = new Date()) => { 
+    try { 
+        const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Perth', year: 'numeric', month: '2-digit', day: '2-digit' }); 
+        return formatter.format(date); 
+    } catch (e) { 
+        console.error("Timezone formatting failed, using fallback.", e); 
+        const perthTime = new Date(date.getTime() + (8 * 60 * 60 * 1000)); 
+        return perthTime.toISOString().split('T')[0]; 
+    } 
+};
+
+const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
+
+// --- MISSING HELPER: TRADING DAY LOGIC ---
 const getTradingDayString = (closedTS, openedTS) => {
     if (!closedTS) return 'Unknown';
     
