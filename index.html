@@ -2882,6 +2882,28 @@ function checkMarketAlerts() {
         `);
     }
 
+    // --- QUARTERLY EARNINGS SEASON ---
+    // Occurs: Jan, April, July, October (Starts approx the 15th)
+    // Also spills into first week of: Feb, May, Aug, Nov
+    const monthIndex = today.getMonth(); // 0=Jan, 1=Feb, etc.
+    
+    // Logic: If it is Jan(0), Apr(3), Jul(6), Oct(9) AND date is > 12th
+    // OR if it is Feb(1), May(4), Aug(7), Nov(10) AND date is < 7th
+    const isBigTechEarnings = 
+        ([0, 3, 6, 9].includes(monthIndex) && dateOfMonth >= 12) || 
+        ([1, 4, 7, 10].includes(monthIndex) && dateOfMonth <= 7);
+
+    if (isBigTechEarnings || forceTest) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #d1c4e9; color: #4527a0; border-color: #b39ddb;">
+                <strong>📊 Earnings Season Active:</strong> 
+                Markets are currently in peak quarterly earnings. 
+                Expect heavy volatility in indices (NAS100/SPX) around market open/close 
+                due to Big Tech reports (AAPL, AMZN, GOOGL, META, MSFT).
+            </div>
+        `);
+    }
+
     // Render alerts
     container.innerHTML = messages.length > 0 ? messages.join('') : '';
 }function renderCompletedTable(data) {
