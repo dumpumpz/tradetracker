@@ -4382,7 +4382,7 @@ function handleTradeAction(e) {
 
     const button = e.target.closest('button');
     
-    // If in Merge Mode, handle row clicks
+    // If in Merge Mode, handle row clicks (Keep existing logic)
     if (STATE.isMerging && !button) {
         const targetRow = e.target.closest('tr');
         if (targetRow && targetRow.parentElement.id === 'completed-trades-tbody') {
@@ -4404,6 +4404,13 @@ function handleTradeAction(e) {
     if (STATE.isProcessing) return;
 
     const { id } = button.dataset;
+
+    // --- NEW: Handle Image Attachment Button ---
+    if (button.matches('.attach-image-btn')) {
+        handleAttachAttachmentClick(id, button.dataset.type);
+        return;
+    }
+    // -------------------------------------------
 
     // A. Close Group Idea
     if (button.matches('.close-group-btn')) {
@@ -4463,10 +4470,7 @@ function handleTradeAction(e) {
     else if (button.matches('.note3-btn-completed')) {
         tradeRef.child('note3').once('value', snapshot => {
             const newNote3 = prompt("Enter Note 3:", snapshot.val() || "");
-            if (newNote3 !== null) tradeRef.update({ note3: newNote3 });
-        });
-    }
-}
+            if (newNote3 !== null) tradeRef
 
 // --- HELPER: Format Date for Headers ---
 const formatDisplayDate = (dateString) => {
