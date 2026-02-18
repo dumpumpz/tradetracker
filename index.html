@@ -2535,6 +2535,8 @@ function renderLiveTable(data) {
                 </td>
                 
                 <td colspan="4" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(4)}</td>
+                <!-- Empty cells for Pics and Actions in the parent row -->
+                <td></td> 
                 <td class="master-only">${masterGroupBtn}</td>
             </tr>`;
 
@@ -2555,8 +2557,10 @@ function renderLiveTable(data) {
                 const styleTaker = !isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
                 const styleMaker = isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
 
+                // --- 1. CHANGED: Added Pic Button here ---
                 const masterButtons = STATE.isMasterUser ? 
                     `<div style="display:flex; gap:2px; justify-content:flex-end;">
+                        <button class="attach-image-btn" data-id="${trade.dbId}" data-type="live" style="padding:2px 5px; font-size:10px; background:#17a2b8;">Pic</button>
                         <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#28a745;">W</button>
                         <button class="loss-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#dc3545;">L</button>
                         <button class="add-to-position-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#17a2b8;">+</button>
@@ -2591,6 +2595,10 @@ function renderLiveTable(data) {
                     <td style="${styleMaker}">${valLossMaker}</td>
 
                     <td colspan="4" class="note-cell editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}">${trade.note || ''}</td>
+                    
+                    <!-- 2. CHANGED: Added Thumbnails Column -->
+                    ${renderAttachmentThumbnails(trade, trade.dbId, 'live')}
+
                     <td class="master-only">${masterButtons}</td>
                 </tr>`;
             });
@@ -2598,18 +2606,17 @@ function renderLiveTable(data) {
 
         DOM.tradesTbody.innerHTML = tableHtml;
         
-        // --- FIX: Ensure Headers Exist ---
+        // --- FIX: Ensure Headers Exist and Update Them ---
         const table = DOM.tradesTbody.closest('table');
         let thead = table.querySelector('thead');
         
-        // Create thead if it doesn't exist
         if (!thead) {
             thead = document.createElement('thead');
             table.insertBefore(thead, DOM.tradesTbody);
         }
         
-        // Inject Header Content
-        thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th class="master-only">Actions</th></tr>`;
+        // 3. CHANGED: Added "Pics" to the header
+        thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
 
         // Render Cards
         if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades);
@@ -2620,7 +2627,6 @@ function renderLiveTable(data) {
         console.error("Error rendering live table:", e);
     }
 }
-
         function handleLiveNoteUpdate(cell) {
     if (!STATE.isMasterUser) return;
 
