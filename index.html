@@ -4376,7 +4376,6 @@ function handleCompletedTradeUpdate(cell) {
 // Add this to your STATE object if not already there (at top of script)
 // STATE.lastClickTime = 0; // Add this to your STATE object if not already there
 // STATE.lastClickTime = 0; 
-
 function handleTradeAction(e) {
     if (!STATE.isMasterUser) return;
 
@@ -4470,7 +4469,10 @@ function handleTradeAction(e) {
     else if (button.matches('.note3-btn-completed')) {
         tradeRef.child('note3').once('value', snapshot => {
             const newNote3 = prompt("Enter Note 3:", snapshot.val() || "");
-            if (newNote3 !== null) tradeRef
+            if (newNote3 !== null) tradeRef.update({ note3: newNote3 });
+        });
+    }
+}
 
 // --- HELPER: Format Date for Headers ---
 const formatDisplayDate = (dateString) => {
@@ -4480,7 +4482,6 @@ const formatDisplayDate = (dateString) => {
     const options = { weekday: 'long', day: 'numeric', month: 'long' };
     return date.toLocaleDateString('en-AU', options);
 };
-
 // --- UPDATED RENDERER: Uses Trading Day Logic for Setups ---
 function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     const images = imagesData || {};
