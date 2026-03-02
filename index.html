@@ -5203,7 +5203,7 @@ dbRefs.tsSetupsImages.on('value', (s) => {
             });
         }
 
-    function checkMasterMode() {
+  function checkMasterMode() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('master') === 'true') {
                 const password = prompt("Please enter master password:");
@@ -5247,53 +5247,60 @@ dbRefs.tsSetupsImages.on('value', (s) => {
         }
 
         async function initializeApp() {
+            // 1. Security & Master Mode
             checkMasterMode(); 
+            
+            // 2. External Data
             getViewerId();
             await fetchLiveConversionRate();
 
+            // 3. Theme Loading
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) { 
                 document.documentElement.setAttribute('data-theme', savedTheme); 
                 DOM.themeToggle.checked = savedTheme === 'dark'; 
             }
             
+            // 4. Date Setup
             const today = new Date(); 
             today.setUTCHours(0, 0, 0, 0);
             STATE.selectedDate = new Date(today); 
             STATE.centerDate = new Date(today);
             
+            // 5. Initialize Handlers
             setupEventListeners(); 
             subscribeToData();
             renderDateNavigation(); 
             checkMarketAlerts(); 
 
-            // Show stats panel on load (for Topstep tab)
+            // 6. UI Specifics
             DOM.statsPanelContainer.style.display = 'block';
 
-          // --- Inside initializeApp() ---
+            // 7. Auto-Expand Sections on Load
+            setTimeout(() => {
+                const activeTabContent = document.querySelector('.tab-content.active');
+                if (activeTabContent) {
+                    // Open default collapsibles
+                    openDefaultSectionsInContainer(activeTabContent);
+                    activeTabContent.dataset.sectionsInitialized = 'true';
 
-setTimeout(() => {
-    const activeTabContent = document.querySelector('.tab-content.active');
-    if (activeTabContent) {
-        openDefaultSectionsInContainer(activeTabContent);
-        activeTabContent.dataset.sectionsInitialized = 'true';
+                    // Specifically target Topstep textareas on load to size them
+                    const tsPrimary = document.getElementById('ts-primary-setups-notes');
+                    const tsSecondary = document.getElementById('ts-secondary-setups-notes');
+                    
+                    if (tsPrimary && tsPrimary.value) autoResizeTextarea(tsPrimary);
+                    if (tsSecondary && tsSecondary.value) autoResizeTextarea(tsSecondary);
+                    
+                    // Force the parent drawers to accommodate the resized text
+                    activeTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
+                        const content = section.querySelector('.collapsible-content');
+                        if (content) content.style.maxHeight = content.scrollHeight + 'px';
+                    });
+                }
+            }, 700); 
+        } // <--- FIXED: Added missing closing brace for initializeApp
 
-        // ADD THIS: Specifically target Topstep textareas on load
-        const tsPrimary = document.getElementById('ts-primary-setups-notes');
-        const tsSecondary = document.getElementById('ts-secondary-setups-notes');
-        
-        if (tsPrimary && tsPrimary.value) autoResizeTextarea(tsPrimary);
-        if (tsSecondary && tsSecondary.value) autoResizeTextarea(tsSecondary);
-        
-        // Ensure the drawers accommodate the resized text
-        activeTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
-            const content = section.querySelector('.collapsible-content');
-            if (content) content.style.maxHeight = content.scrollHeight + 'px';
-        });
-    }
-}, 600); // Slightly longer delay to ensure Firebase data has arrived
-
-        // Start the App
+        // 8. Actually RUN the app
         initializeApp();
     }); // This closes the DOMContentLoaded listener from the very top
 </script>
