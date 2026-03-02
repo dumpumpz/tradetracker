@@ -3978,9 +3978,10 @@ if (tsSetupsUpload) {
 
                 if (handleAttachmentActions(e)) return;
 
-                if (e.target.closest('#setups-image-container, #image-library-container, #strategy-image-container')) {
-                     handleGenericImageLibraryClick(e);
-                } 
+                // This tells the script: "If someone clicks inside ANY of these boxes, run the image logic"
+if (e.target.closest('#setups-image-container, #ts-setups-image-container, #image-library-container, #strategy-image-container')) {
+    handleGenericImageLibraryClick(e);
+}
                 else if (e.target.id === 'toggle-all-completed-trades') {
                     STATE.completedTradesShowAll = true;
                     STATE.completedTradesCurrentPage = 1;
@@ -4551,10 +4552,10 @@ function handleAddTradeSubmit(e, isTopstep = false) {
             });
         }
 
-  function handleGenericImageLibraryClick(e) {
+function handleGenericImageLibraryClick(e) {
     const clickedImg = e.target.closest('img');
     
-    // 1. Handle Opening the Modal (Zooming)
+    // 1. Handle Opening the Modal (Zoom/View)
     if (clickedImg?.dataset.fullSrc) {
         const galleryContainer = clickedImg.closest('#setups-image-container, #ts-setups-image-container, .trade-image-thumbnails, #strategy-image-container');
         if (galleryContainer) { 
@@ -4566,53 +4567,62 @@ function handleAddTradeSubmit(e, isTopstep = false) {
         return;
     }
 
-    // 2. Handle Actions (Delete/Edit) based on which container was clicked
-    if (e.target.closest('#setups-image-container')) {
+    // 2. Handle the "Bin" (Delete) or "Edit" buttons
+    // We check which container the click happened in and assign the correct DB path
+    const setupsContainer = e.target.closest('#setups-image-container');
+    const tsSetupsContainer = e.target.closest('#ts-setups-image-container');
+    const strategyContainer = e.target.closest('#strategy-image-container');
+
+    if (setupsContainer) {
         handleLibraryActions(e, 'setups_images', dbRefs.setupsImages);
     } 
-    else if (e.target.closest('#ts-setups-image-container')) {
+    else if (tsSetupsContainer) {
         handleLibraryActions(e, 'ts_setups_images', dbRefs.tsSetupsImages);
     } 
-    else if (e.target.closest('#strategy-image-container')) {
+    else if (strategyContainer) {
         handleLibraryActions(e, 'strategy_images', dbRefs.strategyImages);
     }
 }
-        function handleLibraryActions(e, libraryType, dbRef) {
-            const deleteBtn = e.target.closest('.delete-library-image');
-            const editBtn = e.target.closest('.edit-caption-btn');
+      function handleLibraryActions(e, libraryType, dbRef) {
+    const deleteBtn = e.target.closest('.delete-library-image');
+    const editBtn = e.target.closest('.edit-caption-btn');
 
-            if (deleteBtn && STATE.isMasterUser) {
-                const { id, filename } = deleteBtn.dataset;
-                if (!filename || filename === 'undefined') {
-                    alert("Cannot delete image: Filename is missing. Please fix manually in Firebase console.");
-                    console.error("Attempted to delete image with missing filename.", { imageId: id, libraryType });
-                    return;
-                }
-                if (confirm(`Delete this image?\n\n${filename}`)) {
-                    const storagePath = `${libraryType}/${filename}`;
-                    storage.ref(storagePath).delete().then(() => {
-                        dbRef.child(id).remove();
-                    }).catch((err) => {
-                        if (err.code === 'storage/object-not-found') {
-                            console.warn("Storage object not found, deleting DB record anyway for:", filename);
-                            dbRef.child(id).remove();
-                        } else {
-                            console.error("Firebase Storage deletion failed:", err);
-                            alert('Error deleting image. Check console for details.');
-                        }
-                    });
-                }
-            } else if (editBtn && STATE.isMasterUser) {
-                const { id } = editBtn.dataset;
-                const imageRef = dbRef.child(id);
-                imageRef.child('caption').once('value', snapshot => {
-                    const newCaption = prompt('Enter image caption:', snapshot.val() || "");
-                    if (newCaption !== null) {
-                        imageRef.update({ caption: newCaption.trim() });
-                    }
-                });
-            }
+    if (deleteBtn && STATE.isMasterUser) {
+        const { id, filename } = deleteBtn.dataset;
+        
+        if (!filename || filename === 'undefined') {
+            alert("Error: Filename missing. Cannot delete from storage.");
+            return;
         }
+
+        if (confirm(`Delete this image from ${libraryType}?\n\n${filename}`)) {
+            // This builds the path: e.g., "ts_setups_images/uuid-123.png"
+            const storagePath = `${libraryType}/${filename}`;
+            
+            storage.ref(storagePath).delete().then(() => {
+                // Once deleted from storage, remove from database
+                dbRef.child(id).remove();
+            }).catch((err) => {
+                if (err.code === 'storage/object-not-found') {
+                    // If file is already gone from storage, just clean up the database
+                    dbRef.child(id).remove();
+                } else {
+                    console.error("Firebase Deletion Error:", err);
+                    alert('Error deleting image: ' + err.message);
+                }
+            });
+        }
+    } else if (editBtn && STATE.isMasterUser) {
+        const { id } = editBtn.dataset;
+        const imageRef = dbRef.child(id);
+        imageRef.child('caption').once('value', snapshot => {
+            const newCaption = prompt('Enter image caption:', snapshot.val() || "");
+            if (newCaption !== null) {
+                imageRef.update({ caption: newCaption.trim() });
+            }
+        });
+    }
+}
 
         function handleTradeAction(e) {
             if (!STATE.isMasterUser) return;
