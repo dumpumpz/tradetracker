@@ -5263,60 +5263,46 @@ dbRefs.tsSetupsImages.on('value', (s) => {
             });
         }
 
-     function checkMasterMode() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('master') === 'true') {
-        const password = prompt("Please enter master password:");
-        if (password) {
-            STATE.isMasterUser = true;
-            STATE.masterPassword = password;
-            
-            document.body.classList.add('is-master');
-            
-            // Unlock Journal
-            DOM.journalEntryEl.readOnly = false;
-            
-            // Unlock Strategy Tab
-            DOM.strategyNotesEntry.readOnly = false;
+    function checkMasterMode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('master') === 'true') {
+                const password = prompt("Please enter master password:");
+                if (password) {
+                    STATE.isMasterUser = true;
+                    STATE.masterPassword = password;
+                    
+                    document.body.classList.add('is-master');
+                    
+                    // Unlock all text areas
+                    if (DOM.journalEntryEl) DOM.journalEntryEl.readOnly = false;
+                    if (DOM.strategyNotesEntry) DOM.strategyNotesEntry.readOnly = false;
+                    if (DOM.primarySetupsNotes) DOM.primarySetupsNotes.readOnly = false; 
+                    if (DOM.secondarySetupsNotes) DOM.secondarySetupsNotes.readOnly = false;
 
-            // Unlock Trade Tracker Setups
-            DOM.primarySetupsNotes.readOnly = false; 
-            DOM.secondarySetupsNotes.readOnly = false;
-
-            // --- ADDED THESE TWO LINES FOR TOPSTEP ---
-            const tsPrimary = document.getElementById('ts-primary-setups-notes');
-            const tsSecondary = document.getElementById('ts-secondary-setups-notes');
-            if (tsPrimary) tsPrimary.readOnly = false;
-            if (tsSecondary) tsSecondary.readOnly = false;
+                    // Unlock Topstep Specific Setups
+                    const tsPrimary = document.getElementById('ts-primary-setups-notes');
+                    const tsSecondary = document.getElementById('ts-secondary-setups-notes');
+                    if (tsPrimary) tsPrimary.readOnly = false;
+                    if (tsSecondary) tsSecondary.readOnly = false;
+                    
+                    // Unlock Setup Tables if they exist
+                    document.querySelectorAll('.setups-table .editable-setup-cell')
+                        .forEach(cell => cell.setAttribute('contenteditable', 'true'));
+                }
+            }
             
-            // Unlock Setup Tables if they exist
-            document.querySelectorAll('.setups-table .editable-setup-cell')
-                .forEach(cell => cell.setAttribute('contenteditable', 'true'));
-        }
-    }
-    
-    // Safety check: if NOT master, ensure they are locked
-    if (!STATE.isMasterUser) {
-        document.body.classList.remove('is-master');
-        DOM.journalEntryEl.readOnly = true;
-        DOM.primarySetupsNotes.readOnly = true; 
-        DOM.secondarySetupsNotes.readOnly = true;
-        DOM.strategyNotesEntry.readOnly = true;
-        
-        // --- ADDED THESE TWO LINES FOR TOPSTEP ---
-        const tsPrimary = document.getElementById('ts-primary-setups-notes');
-        const tsSecondary = document.getElementById('ts-secondary-setups-notes');
-        if (tsPrimary) tsPrimary.readOnly = true;
-        if (tsSecondary) tsSecondary.readOnly = true;
-    }
-}
-            
+            // If NOT master, ensure everything is locked (Safety check)
             if (!STATE.isMasterUser) {
                 document.body.classList.remove('is-master');
-                DOM.journalEntryEl.readOnly = true;
-                DOM.primarySetupsNotes.readOnly = true; 
-                DOM.secondarySetupsNotes.readOnly = true;
-                DOM.strategyNotesEntry.readOnly = true;
+                if (DOM.journalEntryEl) DOM.journalEntryEl.readOnly = true;
+                if (DOM.primarySetupsNotes) DOM.primarySetupsNotes.readOnly = true; 
+                if (DOM.secondarySetupsNotes) DOM.secondarySetupsNotes.readOnly = true;
+                if (DOM.strategyNotesEntry) DOM.strategyNotesEntry.readOnly = true;
+                
+                const tsPrimary = document.getElementById('ts-primary-setups-notes');
+                const tsSecondary = document.getElementById('ts-secondary-setups-notes');
+                if (tsPrimary) tsPrimary.readOnly = true;
+                if (tsSecondary) tsSecondary.readOnly = true;
             }
         }
 
@@ -5340,7 +5326,9 @@ dbRefs.tsSetupsImages.on('value', (s) => {
             subscribeToData();
             renderDateNavigation(); 
             checkMarketAlerts(); 
-    DOM.statsPanelContainer.style.display = 'block';
+
+            // Show stats panel on load (for Topstep tab)
+            DOM.statsPanelContainer.style.display = 'block';
 
             setTimeout(() => {
                 const activeTabContent = document.querySelector('.tab-content.active');
@@ -5351,8 +5339,9 @@ dbRefs.tsSetupsImages.on('value', (s) => {
             }, 500);
         }
 
+        // Start the App
         initializeApp();
-    }); 
+    }); // This closes the DOMContentLoaded listener from the very top
 </script>
 </body>
 </html>
