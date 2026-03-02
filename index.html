@@ -1795,6 +1795,39 @@ body.is-master th.master-only {
                 </div>
             </div>
 
+
+<!-- Independent Topstep Trading Setups -->
+<div class="collapsible-section">
+    <div class="collapsible-header">
+        <h2>Topstep Trading Setups</h2>
+        <button class="collapsible-toggle-btn">+</button>
+    </div>
+    <div class="collapsible-content">
+        <div class="collapsible-content-inner">
+            <textarea id="ts-primary-setups-notes" class="setups-notes-area" placeholder="MNQ Specific Rules..."></textarea>
+            <textarea id="ts-secondary-setups-notes" class="setups-notes-area" placeholder="MNQ Secondary Setups..."></textarea>
+        </div>
+    </div>
+</div>
+
+<!-- Independent Topstep Setups Library -->
+<div class="collapsible-section">
+    <div class="collapsible-header">
+        <h2>Topstep Setup Gallery</h2>
+        <button class="collapsible-toggle-btn">+</button>
+    </div>
+    <div class="collapsible-content">
+        <div class="collapsible-content-inner">
+            <div id="ts-setups-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
+                <label for="ts-setups-image-upload" class="image-upload-label">Add MNQ Setup Image</label>
+                <input type="file" id="ts-setups-image-upload" accept="image/*" multiple style="display:none;">
+                <div id="ts-setups-upload-progress"></div>
+            </div>
+            <div id="ts-setups-image-container"></div>
+        </div>
+    </div>
+</div>
+            
             <!-- Completed Trades -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -1929,7 +1962,7 @@ body.is-master th.master-only {
     document.addEventListener('DOMContentLoaded', () => {
 
         // --- CONFIGURATION ---
-        const CONFIG = {
+  const CONFIG = {
             FIREBASE: {
                 apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
                 authDomain: "journal-a003f.firebaseapp.com",
@@ -1958,7 +1991,11 @@ body.is-master th.master-only {
                 STRATEGY_IMAGES: 'strategy_images',
                 TS_TRADES: 'ts_trades',
                 TS_COMPLETED_TRADES: 'ts_completed_trades',
-                TS_RESTING_ORDERS: 'ts_resting_orders'
+                TS_RESTING_ORDERS: 'ts_resting_orders',
+                // New Independent Topstep Setup Paths
+                TS_SETUPS_1: 'ts_setups_1',
+                TS_SETUPS_2: 'ts_setups_2',
+                TS_SETUPS_IMAGES: 'ts_setups_images'
             },
             TRADE_SETTINGS: {
                 MAKER_FEE_RATE: 0.0000, // 0% for Maker
@@ -2079,7 +2116,11 @@ body.is-master th.master-only {
             strategyImages: database.ref(CONFIG.DB_PATHS.STRATEGY_IMAGES),
             tsTrades: database.ref(CONFIG.DB_PATHS.TS_TRADES),
             tsCompletedTrades: database.ref(CONFIG.DB_PATHS.TS_COMPLETED_TRADES),
-            tsRestingOrders: database.ref(CONFIG.DB_PATHS.TS_RESTING_ORDERS)
+            tsRestingOrders: database.ref(CONFIG.DB_PATHS.TS_RESTING_ORDERS),
+            // New Independent Topstep Setup References
+            tsSetups1: database.ref(CONFIG.DB_PATHS.TS_SETUPS_1),
+            tsSetups2: database.ref(CONFIG.DB_PATHS.TS_SETUPS_2),
+            tsSetupsImages: database.ref(CONFIG.DB_PATHS.TS_SETUPS_IMAGES)
         };
 
         // --- HELPER FUNCTIONS ---
@@ -3758,7 +3799,30 @@ function getFeeRates(exchangeName) {
                 document.documentElement.setAttribute('data-theme', theme);
                 localStorage.setItem('theme', theme);
             });
+// Save Topstep Primary Notes
+document.getElementById('ts-primary-setups-notes').addEventListener('input', debounce((e) => {
+    if (!STATE.isMasterUser) return;
+    dbRefs.tsSetups1.set(e.target.value);
+}, 1000));
 
+// Save Topstep Secondary Notes
+document.getElementById('ts-secondary-setups-notes').addEventListener('input', debounce((e) => {
+    if (!STATE.isMasterUser) return;
+    dbRefs.tsSetups2.set(e.target.value);
+}, 1000));
+
+// Handle Topstep Image Upload
+const tsSetupsUpload = document.getElementById('ts-setups-image-upload');
+if (tsSetupsUpload) {
+    tsSetupsUpload.addEventListener('change', (e) => {
+        handleGenericLibraryUpload(
+            e.target.files, 
+            'ts_setups_images', // Separate folder in Storage
+            document.getElementById('ts-setups-upload-progress'), 
+            dbRefs.tsSetupsImages // Separate path in Database
+        );
+    });
+}
             DOM.tabs.addEventListener('click', (e) => {
                 if (!e.target.matches('.tab-link')) return;
                 
@@ -4998,6 +5062,28 @@ function handleAddTradeSubmit(e, isTopstep = false) {
                     renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true);
                 }
             });
+
+            // Listen for Topstep Text Setups
+dbRefs.tsSetups1.on('value', (s) => { 
+    const val = s.val() || "";
+    const el = document.getElementById('ts-primary-setups-notes');
+    if (el && document.activeElement !== el) el.value = val;
+});
+
+dbRefs.tsSetups2.on('value', (s) => { 
+    const val = s.val() || "";
+    const el = document.getElementById('ts-secondary-setups-notes');
+    if (el && document.activeElement !== el) el.value = val;
+});
+
+// Listen for Topstep Image Setups
+dbRefs.tsSetupsImages.on('value', (s) => {
+    const images = s.val() || {};
+    const container = document.getElementById('ts-setups-image-container');
+    if (container) {
+        renderGenericImageLibrary(images, container, 'ts_setups_images');
+    }
+});
 
             dbRefs.completedTrades.on('value', s => {
                 STATE.allCompletedTrades = s.val() || {};
