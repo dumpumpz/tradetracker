@@ -1805,8 +1805,8 @@ body.is-master th.master-only {
     </div>
     <div class="collapsible-content">
         <div class="collapsible-content-inner">
-            <textarea id="ts-primary-setups-notes" class="setups-notes-area" placeholder="MNQ Specific Rules..."></textarea>
-            <textarea id="ts-secondary-setups-notes" class="setups-notes-area" placeholder="MNQ Secondary Setups..."></textarea>
+            <textarea id="ts-primary-setups-notes" class="setups-notes-area" placeholder="" readonly></textarea>
+            <textarea id="ts-secondary-setups-notes" class="setups-notes-area" placeholder="" readonly></textarea>
         </div>
     </div>
 </div>
@@ -5263,24 +5263,53 @@ dbRefs.tsSetupsImages.on('value', (s) => {
             });
         }
 
-        function checkMasterMode() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('master') === 'true') {
-                const password = prompt("Please enter master password:");
-                if (password) {
-                    STATE.isMasterUser = true;
-                    STATE.masterPassword = password;
-                    
-                    document.body.classList.add('is-master');
-                    
-                    DOM.journalEntryEl.readOnly = false;
-                    document.querySelectorAll('.setups-table .editable-setup-cell')
-                        .forEach(cell => cell.setAttribute('contenteditable', 'true'));
-                    DOM.primarySetupsNotes.readOnly = false; 
-                    DOM.secondarySetupsNotes.readOnly = false;
-                    DOM.strategyNotesEntry.readOnly = false;
-                }
-            }
+     function checkMasterMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('master') === 'true') {
+        const password = prompt("Please enter master password:");
+        if (password) {
+            STATE.isMasterUser = true;
+            STATE.masterPassword = password;
+            
+            document.body.classList.add('is-master');
+            
+            // Unlock Journal
+            DOM.journalEntryEl.readOnly = false;
+            
+            // Unlock Strategy Tab
+            DOM.strategyNotesEntry.readOnly = false;
+
+            // Unlock Trade Tracker Setups
+            DOM.primarySetupsNotes.readOnly = false; 
+            DOM.secondarySetupsNotes.readOnly = false;
+
+            // --- ADDED THESE TWO LINES FOR TOPSTEP ---
+            const tsPrimary = document.getElementById('ts-primary-setups-notes');
+            const tsSecondary = document.getElementById('ts-secondary-setups-notes');
+            if (tsPrimary) tsPrimary.readOnly = false;
+            if (tsSecondary) tsSecondary.readOnly = false;
+            
+            // Unlock Setup Tables if they exist
+            document.querySelectorAll('.setups-table .editable-setup-cell')
+                .forEach(cell => cell.setAttribute('contenteditable', 'true'));
+        }
+    }
+    
+    // Safety check: if NOT master, ensure they are locked
+    if (!STATE.isMasterUser) {
+        document.body.classList.remove('is-master');
+        DOM.journalEntryEl.readOnly = true;
+        DOM.primarySetupsNotes.readOnly = true; 
+        DOM.secondarySetupsNotes.readOnly = true;
+        DOM.strategyNotesEntry.readOnly = true;
+        
+        // --- ADDED THESE TWO LINES FOR TOPSTEP ---
+        const tsPrimary = document.getElementById('ts-primary-setups-notes');
+        const tsSecondary = document.getElementById('ts-secondary-setups-notes');
+        if (tsPrimary) tsPrimary.readOnly = true;
+        if (tsSecondary) tsSecondary.readOnly = true;
+    }
+}
             
             if (!STATE.isMasterUser) {
                 document.body.classList.remove('is-master');
