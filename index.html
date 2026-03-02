@@ -3794,36 +3794,56 @@ function getFeeRates(exchangeName) {
             renderNotes(STATE.generalNotes);
         }
 
-        function setupEventListeners() {
+      function setupEventListeners() {
+            // Theme Toggle
             DOM.themeToggle.addEventListener('change', (e) => {
                 const theme = e.target.checked ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
                 localStorage.setItem('theme', theme);
             });
-// Save Topstep Primary Notes
-document.getElementById('ts-primary-setups-notes').addEventListener('input', debounce((e) => {
-    if (!STATE.isMasterUser) return;
-    dbRefs.tsSetups1.set(e.target.value);
-}, 1000));
 
-// Save Topstep Secondary Notes
-document.getElementById('ts-secondary-setups-notes').addEventListener('input', debounce((e) => {
-    if (!STATE.isMasterUser) return;
-    dbRefs.tsSetups2.set(e.target.value);
-}, 1000));
+            // --- INDEPENDENT TOPSTEP TRADING SETUPS (Text) ---
+            const tsPrimary = document.getElementById('ts-primary-setups-notes');
+            const tsSecondary = document.getElementById('ts-secondary-setups-notes');
 
-// Handle Topstep Image Upload
-const tsSetupsUpload = document.getElementById('ts-setups-image-upload');
-if (tsSetupsUpload) {
-    tsSetupsUpload.addEventListener('change', (e) => {
-        handleGenericLibraryUpload(
-            e.target.files, 
-            'ts_setups_images', // Separate folder in Storage
-            document.getElementById('ts-setups-upload-progress'), 
-            dbRefs.tsSetupsImages // Separate path in Database
-        );
-    });
-}
+            if (tsPrimary) {
+                tsPrimary.addEventListener('input', (e) => {
+                    autoResizeTextarea(e.target);      // Grow box
+                    resizeParentCollapsible(e.target); // Grow drawer
+                    if (!STATE.isMasterUser) return;
+                    clearTimeout(STATE.tsSetups1Timer);
+                    STATE.tsSetups1Timer = setTimeout(() => {
+                        dbRefs.tsSetups1.set(e.target.value);
+                    }, 1000);
+                });
+            }
+
+            if (tsSecondary) {
+                tsSecondary.addEventListener('input', (e) => {
+                    autoResizeTextarea(e.target);      // Grow box
+                    resizeParentCollapsible(e.target); // Grow drawer
+                    if (!STATE.isMasterUser) return;
+                    clearTimeout(STATE.tsSetups2Timer);
+                    STATE.tsSetups2Timer = setTimeout(() => {
+                        dbRefs.tsSetups2.set(e.target.value);
+                    }, 1000);
+                });
+            }
+
+            // --- INDEPENDENT TOPSTEP IMAGE UPLOAD ---
+            const tsSetupsUpload = document.getElementById('ts-setups-image-upload');
+            if (tsSetupsUpload) {
+                tsSetupsUpload.addEventListener('change', (e) => {
+                    handleGenericLibraryUpload(
+                        e.target.files, 
+                        'ts_setups_images', 
+                        document.getElementById('ts-setups-upload-progress'), 
+                        dbRefs.tsSetupsImages 
+                    );
+                });
+            }
+
+            // Tab Navigation Logic
             DOM.tabs.addEventListener('click', (e) => {
                 if (!e.target.matches('.tab-link')) return;
                 
@@ -3835,28 +3855,22 @@ if (tsSetupsUpload) {
                 
                 if (newTabContent) {
                     newTabContent.classList.add('active');
-
                     setTimeout(() => {
+                        // Special handling for Strategy expansion
                         if (tabId === 'strategy') {
                             const stratNote = document.getElementById('strategy-notes-entry');
                             if (stratNote) {
-                                stratNote.style.height = 'auto'; 
-                                stratNote.style.height = (stratNote.scrollHeight + 10) + 'px';
+                                autoResizeTextarea(stratNote);
                                 resizeParentCollapsible(stratNote);
                             }
                         }
+                        // Resize all textareas in active tab
+                        newTabContent.querySelectorAll('textarea').forEach(ta => autoResizeTextarea(ta));
 
-                        newTabContent.querySelectorAll('textarea').forEach(ta => {
-                            if(ta.value.length > 0) autoResizeTextarea(ta);
-                        });
-
-                        const openSections = newTabContent.querySelectorAll('.collapsible-section.is-open');
-                        openSections.forEach(section => {
+                        // Ensure open drawers are sized correctly
+                        newTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
                             const content = section.querySelector('.collapsible-content');
-                            if(content) {
-                                content.style.maxHeight = 'none'; 
-                                content.style.maxHeight = (content.scrollHeight + 50) + 'px'; 
-                            }
+                            if(content) content.style.maxHeight = content.scrollHeight + 'px'; 
                         });
                     }, 100); 
 
@@ -3865,15 +3879,12 @@ if (tsSetupsUpload) {
                         newTabContent.dataset.sectionsInitialized = 'true'; 
                     }
                 }
-
+                // Show/Hide Performance Stats Panel
                 DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'topstep') ? 'block' : 'none';
-                
-                if (tabId === 'journal') { 
-                    updateJournalView();
-                    renderDateNavigation(); 
-                }
+                if (tabId === 'journal') { updateJournalView(); renderDateNavigation(); }
             });
 
+            // Stats FAB Logic
             DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
             DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
             document.addEventListener('click', (e) => {
@@ -3882,81 +3893,38 @@ if (tsSetupsUpload) {
                 }
             });
 
-            // Tracking actions
+            // --- TABLE ACTION LISTENERS (WINS, LOSSES, MERGE, DELETE) ---
             if (DOM.tradesTbody) DOM.tradesTbody.addEventListener('click', handleTradeAction);
             if (DOM.completedTradesTbody) DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
             if (DOM.restingTradesTbody) DOM.restingTradesTbody.addEventListener('click', handleTradeAction);
-
             if (DOM.tsTradesTbody) DOM.tsTradesTbody.addEventListener('click', handleTradeAction);
             if (DOM.tsCompletedTradesTbody) DOM.tsCompletedTradesTbody.addEventListener('click', handleTradeAction);
             if (DOM.tsRestingTradesTbody) DOM.tsRestingTradesTbody.addEventListener('click', handleTradeAction);
 
-            // Blurs Tracker
-            if (DOM.tradesTbody) {
-                DOM.tradesTbody.addEventListener('blur', (e) => { 
-                    if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
-                    if (e.target.matches('.editable-live-note')) handleLiveNoteUpdate(e.target);
-                }, true);
-            }
-            if (DOM.restingTradesTbody) {
-                DOM.restingTradesTbody.addEventListener('blur', (e) => { 
-                    if (e.target.matches('.editable-cell')) handleRestingTradeUpdate(e.target); 
-                }, true);
-            }
-            if (DOM.completedTradesTbody) {
-                DOM.completedTradesTbody.addEventListener('blur', (e) => { 
-                    if (e.target.matches('.editable-completed-cell')) {
-                        handleCompletedTradeUpdate(e.target); 
-                    }
-                    if (e.target.matches('.editable-daily-note')) {
-                        if (!STATE.isMasterUser) return;
-                        const dateKey = e.target.dataset.dateKey;
-                        const text = e.target.innerText.trim();
-                        dbRefs.dailyNotes.child(dateKey).set(text).then(() => {
-                            e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
-                            setTimeout(() => {
-                                e.target.style.backgroundColor = 'rgba(255,255,255,0.3)';
-                            }, 500);
-                        });
-                    }
-                }, true);
-            }
+            // --- INLINE EDITING (BLUR LISTENERS) ---
+            document.body.addEventListener('blur', (e) => {
+                if (e.target.matches('.editable-cell')) {
+                    if (e.target.closest('#resting-trades-tbody, #ts-resting-trades-tbody')) handleRestingTradeUpdate(e.target);
+                    else handleLiveTradeUpdate(e.target);
+                }
+                if (e.target.matches('.editable-live-note')) handleLiveNoteUpdate(e.target);
+                if (e.target.matches('.editable-completed-cell')) handleCompletedTradeUpdate(e.target);
+                if (e.target.matches('.editable-daily-note')) {
+                    if (!STATE.isMasterUser) return;
+                    dbRefs.dailyNotes.child(e.target.dataset.dateKey).set(e.target.innerText.trim()).then(() => {
+                        e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                        setTimeout(() => e.target.style.backgroundColor = '', 500);
+                    });
+                }
+            }, true);
 
-            // Blurs Topstep
-            if (DOM.tsTradesTbody) {
-                DOM.tsTradesTbody.addEventListener('blur', (e) => { 
-                    if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target); 
-                    if (e.target.matches('.editable-live-note')) handleLiveNoteUpdate(e.target);
-                }, true);
-            }
-            if (DOM.tsRestingTradesTbody) {
-                DOM.tsRestingTradesTbody.addEventListener('blur', (e) => { 
-                    if (e.target.matches('.editable-cell')) handleRestingTradeUpdate(e.target); 
-                }, true);
-            }
-            if (DOM.tsCompletedTradesTbody) {
-                DOM.tsCompletedTradesTbody.addEventListener('blur', (e) => { 
-                    if (e.target.matches('.editable-completed-cell')) handleCompletedTradeUpdate(e.target); 
-                    if (e.target.matches('.editable-daily-note')) {
-                        if (!STATE.isMasterUser) return;
-                        const dateKey = e.target.dataset.dateKey;
-                        const text = e.target.innerText.trim();
-                        dbRefs.dailyNotes.child(dateKey).set(text).then(() => {
-                            e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
-                            setTimeout(() => e.target.style.backgroundColor = 'rgba(255,255,255,0.3)', 500);
-                        });
-                    }
-                }, true);
-            }
+            // --- FORM SUBMITS ---
+            if (DOM.addTradeForm) DOM.addTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, false));
+            if (DOM.tsAddTradeForm) DOM.tsAddTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, true));
 
-            if (DOM.addTradeForm) {
-                DOM.addTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, false));
-            }
-            if (DOM.tsAddTradeForm) {
-                DOM.tsAddTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, true));
-            }
-
+            // --- GLOBAL CLICK HANDLER (COLLAPSIBLES & PAGINATION) ---
             document.body.addEventListener('click', (e) => {
+                // Collapsible Logic
                 const header = e.target.closest('.collapsible-header');
                 if (header) {
                     const section = header.parentElement;
@@ -3964,24 +3932,19 @@ if (tsSetupsUpload) {
                     const toggleBtn = section.querySelector('.collapsible-toggle-btn');
                     section.classList.toggle('is-open');
                     toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
-                    toggleBtn.style.transform = section.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
-                    
                     if (section.classList.contains('is-open')) {
                         content.style.maxHeight = content.scrollHeight + 'px';
-                        setTimeout(() => { 
-                            if (section.classList.contains('is-open')) content.style.maxHeight = content.scrollHeight + 'px'; 
-                        }, 150);
-                    } else { 
-                        content.style.maxHeight = '0px'; 
-                    }
+                    } else { content.style.maxHeight = '0px'; }
                 }
 
                 if (handleAttachmentActions(e)) return;
 
-                // This tells the script: "If someone clicks inside ANY of these boxes, run the image logic"
-if (e.target.closest('#setups-image-container, #ts-setups-image-container, #image-library-container, #strategy-image-container')) {
-    handleGenericImageLibraryClick(e);
-}
+                // Image Library Dispatcher
+                if (e.target.closest('#setups-image-container, #ts-setups-image-container, #image-library-container, #strategy-image-container')) {
+                    handleGenericImageLibraryClick(e);
+                }
+
+                // Completed Trades Pagination (Tracker)
                 else if (e.target.id === 'toggle-all-completed-trades') {
                     STATE.completedTradesShowAll = true;
                     STATE.completedTradesCurrentPage = 1;
@@ -3998,7 +3961,8 @@ if (e.target.closest('#setups-image-container, #ts-setups-image-container, #imag
                         renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);  
                     }
                 } 
-                // TS Pagination
+
+                // Completed Trades Pagination (Topstep)
                 else if (e.target.id === 'ts-toggle-all-completed-trades') {
                     STATE.tsCompletedTradesShowAll = true;
                     STATE.tsCompletedTradesCurrentPage = 1;
@@ -4009,54 +3973,45 @@ if (e.target.closest('#setups-image-container, #ts-setups-image-container, #imag
                         renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true);
                     }
                 } else if (e.target.id === 'ts-completed-trades-next-page') {
-                    const uniqueTradingDates = new Set();
-                    Object.values(STATE.allTsCompletedTrades).forEach(t => uniqueTradingDates.add(getTradingDayString(t.closed_date, t.date)));
-                    const totalPages = uniqueTradingDates.size;
+                    const totalPages = Math.ceil(Object.keys(STATE.allTsCompletedTrades).length / (STATE.completedTradesItemsPerPage || 5));
                     if (STATE.tsCompletedTradesCurrentPage < totalPages) { 
                         STATE.tsCompletedTradesCurrentPage++; 
                         renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true);
                     }
                 }
+
+                // --- SYNCED GALLERY PAGINATION (Crypto & Topstep) ---
                 else if (e.target.id === 'toggle-all-setups-images') {
                     STATE.setupsImagesShowAll = true;
                     STATE.setupsImagesCurrentPage = 1;
                     renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+                    const tsC = document.getElementById('ts-setups-image-container');
+                    if (tsC) renderGenericImageLibrary(STATE.allTsSetupsImages || {}, tsC, 'ts_setups_images');
                 } else if (e.target.id === 'setups-images-prev-page') {
                     if (STATE.setupsImagesCurrentPage > 1) { 
                         STATE.setupsImagesCurrentPage--; 
                         renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+                        const tsC = document.getElementById('ts-setups-image-container');
+                        if (tsC) renderGenericImageLibrary(STATE.allTsSetupsImages || {}, tsC, 'ts_setups_images');
                     }
                 } else if (e.target.id === 'setups-images-next-page') {
-                    const totalPages = Math.ceil(Object.keys(STATE.allSetupsImages).length / STATE.setupsImagesItemsPerPage);
+                    const maxItems = Math.max(Object.keys(STATE.allSetupsImages).length, Object.keys(STATE.allTsSetupsImages || {}).length);
+                    const totalPages = Math.ceil(maxItems / STATE.setupsImagesItemsPerPage);
                     if (STATE.setupsImagesCurrentPage < totalPages) { 
                         STATE.setupsImagesCurrentPage++;
                         renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+                        const tsC = document.getElementById('ts-setups-image-container');
+                        if (tsC) renderGenericImageLibrary(STATE.allTsSetupsImages || {}, tsC, 'ts_setups_images');
                     }
                 }
             });
 
-            if (DOM.calPrevBtn && DOM.calNextBtn) {
-                DOM.calPrevBtn.addEventListener('click', () => {
-                    STATE.calendarViewDate.setMonth(STATE.calendarViewDate.getMonth() - 1);
-                    if (typeof renderPnlCalendar === 'function') renderPnlCalendar();
-                });
-                DOM.calNextBtn.addEventListener('click', () => {
-                    STATE.calendarViewDate.setMonth(STATE.calendarViewDate.getMonth() + 1);
-                    if (typeof renderPnlCalendar === 'function') renderPnlCalendar();
-                });
-            }
-
+            // --- GENERAL MODALS & NOTES ---
             if (DOM.createNewNoteBtn) {
                 DOM.createNewNoteBtn.addEventListener('click', () => {
                     if (!STATE.isMasterUser) return;
                     const title = prompt("Enter a title for the new note:");
-                    if (title && title.trim()) { 
-                        dbRefs.generalNotes.push({ 
-                            title: title.trim(), 
-                            content: '', 
-                            timestamp: firebase.database.ServerValue.TIMESTAMP 
-                        }); 
-                    }
+                    if (title?.trim()) dbRefs.generalNotes.push({ title: title.trim(), content: '', timestamp: firebase.database.ServerValue.TIMESTAMP });
                 });
             }
 
@@ -4064,19 +4019,12 @@ if (e.target.closest('#setups-image-container, #ts-setups-image-container, #imag
                 DOM.notesContainer.addEventListener('click', (e) => {
                     const header = e.target.closest('.note-item-header');
                     const deleteBtn = e.target.closest('.note-delete-btn');
-                    
                     if (deleteBtn && STATE.isMasterUser) { 
                         e.stopPropagation(); 
-                        const noteId = deleteBtn.dataset.noteId; 
-                        if (confirm(`Are you sure you want to delete this note?`)) { 
-                            dbRefs.generalNotes.child(noteId).remove(); 
-                        } 
+                        if (confirm(`Delete note?`)) dbRefs.generalNotes.child(deleteBtn.dataset.noteId).remove(); 
                         return; 
                     }
-                    if (header) { 
-                        const noteId = header.dataset.noteId; 
-                        openNoteForEditing(noteId); 
-                    }
+                    if (header) openNoteForEditing(header.dataset.noteId); 
                 });
             }
 
@@ -4085,28 +4033,13 @@ if (e.target.closest('#setups-image-container, #ts-setups-image-container, #imag
             DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
             DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
 
-            document.body.addEventListener('blur', (e) => {
-                if (e.target.matches('.setups-table .editable-setup-cell')) {
-                    const table = e.target.closest('.setups-table');
-                    const row = e.target.closest('tr');
-                    applyHighlightingToSetupsTable(table);
-                    if (row) calculateAndDisplayPercentages(row);
-                    if (table.id === 'primary-setups-table') saveSetupsTable(DOM.setupsTable1, dbRefs.setups1, DOM.setupsSaveStatus1, 'primary-setups-notes'); 
-                    else saveSetupsTable(DOM.setupsTable2, dbRefs.setups2, DOM.setupsSaveStatus2, 'secondary-setups-notes');
-                }
-            }, true);
-
-            DOM.primarySetupsNotes.addEventListener('input', (e) => {
-                autoResizeTextarea(e.target);
-                debouncedResizeParent(e.target);
-            });
-            DOM.secondarySetupsNotes.addEventListener('input', (e) => {
-                autoResizeTextarea(e.target);
-                debouncedResizeParent(e.target);
-            });
+            // Setups Notes (Original Tracker Only)
+            DOM.primarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); });
+            DOM.secondarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); });
             DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
             DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
 
+            // Generic Uploads & Modals
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
             DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
             DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
@@ -4117,59 +4050,50 @@ if (e.target.closest('#setups-image-container, #ts-setups-image-container, #imag
             DOM.modalPrevBtn.addEventListener('click', () => { if (STATE.modalImageIndex > 0) { STATE.modalImageIndex--; displayModalImage(); } });
             DOM.modalNextBtn.addEventListener('click', () => { if (STATE.modalImageIndex < STATE.modalImageGallery.length - 1) { STATE.modalImageIndex++; displayModalImage(); } });
 
-            [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => {
-                updateJournalView(false); 
-                renderDateNavigation(); 
-            }));
-            
+            // Journal Logic
+            [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => { updateJournalView(false); renderDateNavigation(); }));
             DOM.dateButtonsContainer.addEventListener('click', (e) => { 
                 if (e.target.matches('.date-nav-btn')) { 
                     const parts = e.target.dataset.date.split('-'); 
                     STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); 
                     STATE.centerDate = new Date(STATE.selectedDate); 
-                    updateJournalView();
-                    renderDateNavigation(); 
+                    updateJournalView(); renderDateNavigation(); 
                 } 
             });
             DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
             DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
-
-            DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); debouncedResizeParent(e.target); saveJournalEntry(); });
+            DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); saveJournalEntry(); });
             DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
             
+            // Strategy Logic
             DOM.strategyNotesEntry.addEventListener('input', (e) => {
                 autoResizeTextarea(e.target);
                 clearTimeout(STATE.strategySaveTimer);
                 STATE.strategySaveTimer = setTimeout(() => {
                     if (!STATE.isMasterUser) return;
                     DOM.strategySaveStatus.textContent = "Saving...";
-                    dbRefs.strategyNotes.set(e.target.value)
-                        .then(() => {
-                            DOM.strategySaveStatus.textContent = "Saved.";
-                            setTimeout(() => DOM.strategySaveStatus.textContent = "", 2000);
-                        })
-                        .catch(err => DOM.strategySaveStatus.textContent = "Error");
+                    dbRefs.strategyNotes.set(e.target.value).then(() => {
+                        DOM.strategySaveStatus.textContent = "Saved.";
+                        setTimeout(() => DOM.strategySaveStatus.textContent = "", 2000);
+                    });
                 }, 1000);
             });
 
+            // Tab-Specific Image Click Handler
             DOM.journalTab.addEventListener('click', (e) => {
                 if (e.target.closest('.delete-journal-image')) { handleImageDelete(e); return; }
                 const img = e.target.closest('#journal-images-container img');
                 if(img) { 
-                    const allImageElements = DOM.journalImagesContainer.querySelectorAll('img'); 
-                    const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })); 
-                    const clickedIndex = Array.from(allImageElements).indexOf(img); 
-                    openImageModal(imageArray, clickedIndex); 
+                    const allImg = DOM.journalImagesContainer.querySelectorAll('img'); 
+                    openImageModal(Array.from(allImg).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })), Array.from(allImg).indexOf(img)); 
                 }
             });
 
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { DOM.journalTab.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }); });
-            ['dragenter', 'dragover'].forEach(eventName => { DOM.journalTab.addEventListener(eventName, () => { if (STATE.isMasterUser) DOM.journalTab.classList.add('drag-over'); }); });
+            // Journal Drag & Drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => { DOM.journalTab.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }); });
+            ['dragenter', 'dragover'].forEach(ev => { DOM.journalTab.addEventListener(ev, () => { if (STATE.isMasterUser) DOM.journalTab.classList.add('drag-over'); }); });
             DOM.journalTab.addEventListener('dragleave', () => DOM.journalTab.classList.remove('drag-over'));
-            DOM.journalTab.addEventListener('drop', (e) => { 
-                DOM.journalTab.classList.remove('drag-over'); 
-                if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); 
-            });
+            DOM.journalTab.addEventListener('drop', (e) => { DOM.journalTab.classList.remove('drag-over'); if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); });
         }
 
         function setupSpinbox(inputElement) {
@@ -5090,16 +5014,32 @@ function handleGenericImageLibraryClick(e) {
             });
 
             // Listen for Topstep Text Setups
+// --- Inside subscribeToData() ---
+
 dbRefs.tsSetups1.on('value', (s) => { 
     const val = s.val() || "";
     const el = document.getElementById('ts-primary-setups-notes');
-    if (el && document.activeElement !== el) el.value = val;
+    if (el && document.activeElement !== el) {
+        el.value = val;
+        // Trigger expansion after data loads
+        setTimeout(() => {
+            autoResizeTextarea(el);
+            resizeParentCollapsible(el);
+        }, 100);
+    }
 });
 
 dbRefs.tsSetups2.on('value', (s) => { 
     const val = s.val() || "";
     const el = document.getElementById('ts-secondary-setups-notes');
-    if (el && document.activeElement !== el) el.value = val;
+    if (el && document.activeElement !== el) {
+        el.value = val;
+        // Trigger expansion after data loads
+        setTimeout(() => {
+            autoResizeTextarea(el);
+            resizeParentCollapsible(el);
+        }, 100);
+    }
 });
 
 // Listen for Topstep Image Setups
@@ -5330,14 +5270,28 @@ dbRefs.tsSetupsImages.on('value', (s) => {
             // Show stats panel on load (for Topstep tab)
             DOM.statsPanelContainer.style.display = 'block';
 
-            setTimeout(() => {
-                const activeTabContent = document.querySelector('.tab-content.active');
-                if (activeTabContent) {
-                    openDefaultSectionsInContainer(activeTabContent);
-                    activeTabContent.dataset.sectionsInitialized = 'true';
-                }
-            }, 500);
-        }
+          // --- Inside initializeApp() ---
+
+setTimeout(() => {
+    const activeTabContent = document.querySelector('.tab-content.active');
+    if (activeTabContent) {
+        openDefaultSectionsInContainer(activeTabContent);
+        activeTabContent.dataset.sectionsInitialized = 'true';
+
+        // ADD THIS: Specifically target Topstep textareas on load
+        const tsPrimary = document.getElementById('ts-primary-setups-notes');
+        const tsSecondary = document.getElementById('ts-secondary-setups-notes');
+        
+        if (tsPrimary && tsPrimary.value) autoResizeTextarea(tsPrimary);
+        if (tsSecondary && tsSecondary.value) autoResizeTextarea(tsSecondary);
+        
+        // Ensure the drawers accommodate the resized text
+        activeTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
+            const content = section.querySelector('.collapsible-content');
+            if (content) content.style.maxHeight = content.scrollHeight + 'px';
+        });
+    }
+}, 600); // Slightly longer delay to ensure Firebase data has arrived
 
         // Start the App
         initializeApp();
