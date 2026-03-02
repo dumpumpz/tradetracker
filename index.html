@@ -2697,39 +2697,25 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
             
             if (!groupedTrades[gid]) {
                 groupedTrades[gid] = {
-                    id: gid,
-                    symbol: trade.symbol,
-                    type: trade.type,
-                    trades: [],
-                    totalSize: 0,   // For MNQ, this will be total contracts
-                    totalQty: 0,
-                    wEntry: 0,
-                    wOrigStop: 0,
-                    wTarget: 0,
-                    profitTaker: 0, profitMaker: 0,
-                    lossTaker: 0, lossMaker: 0,
-                    fees: 0,
-                    pnlPer100: 0
+                    id: gid, symbol: trade.symbol, type: trade.type, trades: [],
+                    totalSize: 0, totalQty: 0, wEntry: 0, wOrigStop: 0, wTarget: 0,
+                    profitTaker: 0, profitMaker: 0, lossTaker: 0, lossMaker: 0,
+                    fees: 0, pnlPer100: 0
                 };
             }
 
             groupedTrades[gid].trades.push({ ...trade, dbId: id });
 
-            // Detect sizing: MNQ uses contracts, Crypto uses $ value
             const size = isTopstep ? (parseFloat(trade.contracts) || parseFloat(trade.size) || 0) : (parseFloat(trade.size) || 0);
             const entry = parseFloat(trade.entry) || 0;
             const origStop = parseFloat(trade.original_stoploss) || parseFloat(trade.stoploss) || 0;
             const target = parseFloat(trade.target) || 0;
-            
-            // MNQ Qty is just contracts, Crypto Qty is size/entry
             const qty = isTopstep ? size : ((entry > 0) ? size / entry : 0);
             
-            // USE CORRECT METRIC CALCULATOR
             const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
 
             groupedTrades[gid].totalSize += size;
             groupedTrades[gid].totalQty += qty;
-            
             groupedTrades[gid].wEntry += (entry * qty);
             groupedTrades[gid].wOrigStop += (origStop * qty);
             groupedTrades[gid].wTarget += (target * qty);
@@ -2754,46 +2740,37 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
             const group = groupedTrades[gid];
             const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
             
-            // Futures has fixed profit; Crypto uses dominant fee logic
             const dominantProfit = isTopstep ? group.profitTaker : ((group.type === 'Short') ? group.profitMaker : group.profitTaker);
             const dominantLoss = isTopstep ? group.lossTaker : ((group.type === 'Short') ? group.lossMaker : group.lossTaker);
 
-            const masterGroupBtn = STATE.isMasterUser ? 
-                `<button class="close-group-btn" data-group-id="${gid}">Close Idea</button>` : '';
+            const masterGroupBtn = STATE.isMasterUser ? `<button class="close-group-btn" data-group-id="${gid}">Close Idea</button>` : '';
 
-            // --- PARENT ROW (Summary) ---
+            // --- PARENT ROW ---
             tableHtml += `
             <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color); font-weight: bold;">
                 <td style="border-left: 4px solid var(--link-color);">${group.symbol}</td>
                 <td style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${group.type}</td>
                 <td colspan="3" style="color: var(--text-color); font-size: 0.95em;">📂 ${gid}</td>
-                
                 <td>--</td> <td>--</td> <td>--</td> <td>--</td> <td>--</td> 
-                
                 <td style="font-size: 1.05em;">${isTopstep ? group.totalSize + ' Contr' : '$' + group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
                 <td style="font-family: 'Courier New';">${isTopstep ? '--' : group.totalQty.toFixed(4)}</td>
                 <td>$${group.pnlPer100.toFixed(2)}</td>
                 <td>$${group.fees.toFixed(2)}</td>
+                <td colspan="2" style="text-align:center; color: var(--green-text); opacity: 0.8;">TP: $${dominantProfit.toFixed(2)}</td>
+                <td colspan="2" style="text-align:center; color: var(--red-text); opacity: 0.8;">SL: $${dominantLoss.toFixed(2)}</td>
                 
-                <td colspan="2" style="text-align:center; color: var(--green-text); opacity: 0.8;">
-                    TP: $${dominantProfit.toFixed(2)}
-                </td>
-                <td colspan="2" style="text-align:center; color: var(--red-text); opacity: 0.8;">
-                    SL: $${dominantLoss.toFixed(2)}
-                </td>
-                
-                <td colspan="4" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(4)}</td>
-                <td></td> 
-                <td class="master-only">${masterGroupBtn}</td>
+                <!-- AVG ENTRY CHANGED TO TOFIXED(2) -->
+                <td colspan="4" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(2)}</td>
+                <td></td> <td class="master-only">${masterGroupBtn}</td>
             </tr>`;
 
             // --- CHILD ROWS ---
             group.trades.forEach(trade => {
                 const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
                 const breakevenPrice = calculateBreakevenPrice(trade);
-                const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
+                // Map entry prices to 2 decimals
+                const entriesList = (trade.entry_prices || [trade.entry]).map(p => parseFloat(p).toFixed(2)).join(', ');
                 
-                // Column visibility logic for MNQ
                 const showMaker = !isTopstep; 
                 const isMaker = (trade.entryFeeType === 'maker');
                 
@@ -2819,43 +2796,35 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                     <td></td> <td></td> 
                     <td style="text-align:right;">↳ ${isTopstep ? 'MNQ Position' : 'Trade ('+trade.entryFeeType+')'}:</td>
                     
-                    <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(4)}</td>
-                    <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>
+                    <!-- PRICES CHANGED TO TOFIXED(2) -->
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
+                    <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : '--'}</td>
                     <td class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
-                    
-                    <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(4)}</td>
-                    <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(4)}</td>
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(2)}</td>
                     
                     <td>${metrics.rr_taker}</td>
                     <td style="display: ${showMaker ? 'table-cell' : 'none'};">${metrics.rr_maker}</td>
-
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}">${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
                     <td>${isTopstep ? '--' : (parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
                     <td style="display: ${showMaker ? 'table-cell' : 'none'};">--</td>
-                    
                     <td>${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
-                    
                     <td style="${styleTaker}">${valProfitTaker}</td>
                     <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valProfitMaker}</td>
                     <td style="${styleTaker}">${valLossTaker}</td>
                     <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valLossMaker}</td>
-
                     <td colspan="4" class="note-cell editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}">${trade.note || ''}</td>
-                    
                     ${renderAttachmentThumbnails(trade, trade.dbId, 'live', isTopstep)}
-
                     <td class="master-only">${masterButtons}</td>
                 </tr>`;
             });
         });
 
         tbodyElement.innerHTML = tableHtml;
-        
         const table = tbodyElement.closest('table');
         let thead = table.querySelector('thead');
         if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
         
-        // Define dynamic headers based on tab
         if (isTopstep) {
             thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR</th><th>Contracts</th><th>--</th><th>Fees</th><th>Pr ($)</th><th>Ls ($)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
         } else {
@@ -2863,9 +2832,7 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
         }
 
         if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades, summaryId);
-        
         setTimeout(() => adjustCollapsibleSize(tbodyElement), 10);
-
     } catch (e) {
         console.error("Error rendering live table:", e);
     }
