@@ -532,12 +532,13 @@ body.is-master th.master-only {
         }
 
 
-        #image-library-container, #setups-image-container, #strategy-image-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 10px;
-        }
+      /* Update this line to include the new Topstep container ID */
+#image-library-container, #setups-image-container, #strategy-image-container, #ts-setups-image-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
         .library-image-wrapper {
             position: relative;
             border: 1px solid var(--border-color);
@@ -4550,17 +4551,32 @@ function handleAddTradeSubmit(e, isTopstep = false) {
             });
         }
 
-        function handleGenericImageLibraryClick(e) {
-            const clickedImg = e.target.closest('img');
-            if (clickedImg?.dataset.fullSrc) {
-                const galleryContainer = clickedImg.closest('#setups-image-container, .trade-image-thumbnails, #strategy-image-container');
-                if (galleryContainer) { const allImageElements = galleryContainer.querySelectorAll('img'); const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })); const clickedIndex = Array.from(allImageElements).indexOf(clickedImg); if (clickedIndex > -1) openImageModal(imageArray, clickedIndex); }
-                return;
-            }
-            if (e.target.closest('#setups-image-container')) handleLibraryActions(e, 'setups_images', dbRefs.setupsImages);
-            else if (e.target.closest('#strategy-image-container')) handleLibraryActions(e, 'strategy_images', dbRefs.strategyImages);
+  function handleGenericImageLibraryClick(e) {
+    const clickedImg = e.target.closest('img');
+    
+    // 1. Handle Opening the Modal (Zooming)
+    if (clickedImg?.dataset.fullSrc) {
+        const galleryContainer = clickedImg.closest('#setups-image-container, #ts-setups-image-container, .trade-image-thumbnails, #strategy-image-container');
+        if (galleryContainer) { 
+            const allImageElements = galleryContainer.querySelectorAll('img'); 
+            const imageArray = Array.from(allImageElements).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })); 
+            const clickedIndex = Array.from(allImageElements).indexOf(clickedImg); 
+            if (clickedIndex > -1) openImageModal(imageArray, clickedIndex); 
         }
+        return;
+    }
 
+    // 2. Handle Actions (Delete/Edit) based on which container was clicked
+    if (e.target.closest('#setups-image-container')) {
+        handleLibraryActions(e, 'setups_images', dbRefs.setupsImages);
+    } 
+    else if (e.target.closest('#ts-setups-image-container')) {
+        handleLibraryActions(e, 'ts_setups_images', dbRefs.tsSetupsImages);
+    } 
+    else if (e.target.closest('#strategy-image-container')) {
+        handleLibraryActions(e, 'strategy_images', dbRefs.strategyImages);
+    }
+}
         function handleLibraryActions(e, libraryType, dbRef) {
             const deleteBtn = e.target.closest('.delete-library-image');
             const editBtn = e.target.closest('.edit-caption-btn');
