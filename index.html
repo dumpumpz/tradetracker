@@ -1458,6 +1458,16 @@ body.is-master th.master-only {
     content: " ($/100pt)";
     font-size: 0.8em;
 }
+
+
+            /* Hide redundant Futures columns in Topstep Tab */
+#topstep-tab th:nth-child(9), #topstep-tab td:nth-child(9),  /* RR(M) */
+#topstep-tab th:nth-child(15), #topstep-tab td:nth-child(15), /* Pr(M) */
+#topstep-tab th:nth-child(17), #topstep-tab td:nth-child(17), /* Ls(M) */
+#topstep-tab th:nth-child(13), #topstep-tab td:nth-child(13)  /* /100 (Unused for futures) */
+{
+    display: none !important;
+}
     </style>
 <body>
     <div class="container">
@@ -2691,12 +2701,11 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                     symbol: trade.symbol,
                     type: trade.type,
                     trades: [],
-                    totalSize: 0,
+                    totalSize: 0,   // For MNQ, this will be total contracts
                     totalQty: 0,
                     wEntry: 0,
                     wOrigStop: 0,
                     wTarget: 0,
-                    // Financial Aggregates
                     profitTaker: 0, profitMaker: 0,
                     lossTaker: 0, lossMaker: 0,
                     fees: 0,
@@ -2706,12 +2715,17 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
 
             groupedTrades[gid].trades.push({ ...trade, dbId: id });
 
-            const size = parseFloat(trade.size) || 0;
+            // Detect sizing: MNQ uses contracts, Crypto uses $ value
+            const size = isTopstep ? (parseFloat(trade.contracts) || parseFloat(trade.size) || 0) : (parseFloat(trade.size) || 0);
             const entry = parseFloat(trade.entry) || 0;
             const origStop = parseFloat(trade.original_stoploss) || parseFloat(trade.stoploss) || 0;
             const target = parseFloat(trade.target) || 0;
-            const qty = (entry > 0) ? size / entry : 0;
-            const metrics = calculateTradeMetrics(trade);
+            
+            // MNQ Qty is just contracts, Crypto Qty is size/entry
+            const qty = isTopstep ? size : ((entry > 0) ? size / entry : 0);
+            
+            // USE CORRECT METRIC CALCULATOR
+            const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
 
             groupedTrades[gid].totalSize += size;
             groupedTrades[gid].totalQty += qty;
@@ -2740,9 +2754,9 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
             const group = groupedTrades[gid];
             const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
             
-            // Determine Dominant Fee Type for Group Summary
-            const dominantProfit = (group.type === 'Short') ? group.profitMaker : group.profitTaker;
-            const dominantLoss = (group.type === 'Short') ? group.lossMaker : group.lossTaker;
+            // Futures has fixed profit; Crypto uses dominant fee logic
+            const dominantProfit = isTopstep ? group.profitTaker : ((group.type === 'Short') ? group.profitMaker : group.profitTaker);
+            const dominantLoss = isTopstep ? group.lossTaker : ((group.type === 'Short') ? group.lossMaker : group.lossTaker);
 
             const masterGroupBtn = STATE.isMasterUser ? 
                 `<button class="close-group-btn" data-group-id="${gid}">Close Idea</button>` : '';
@@ -2756,12 +2770,11 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                 
                 <td>--</td> <td>--</td> <td>--</td> <td>--</td> <td>--</td> 
                 
-                <td style="font-size: 1.05em;">$${group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-                <td style="font-family: 'Courier New';">${group.totalQty.toFixed(4)}</td>
+                <td style="font-size: 1.05em;">${isTopstep ? group.totalSize + ' Contr' : '$' + group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                <td style="font-family: 'Courier New';">${isTopstep ? '--' : group.totalQty.toFixed(4)}</td>
                 <td>$${group.pnlPer100.toFixed(2)}</td>
                 <td>$${group.fees.toFixed(2)}</td>
                 
-                <!-- Group Summary PnL -->
                 <td colspan="2" style="text-align:center; color: var(--green-text); opacity: 0.8;">
                     TP: $${dominantProfit.toFixed(2)}
                 </td>
@@ -2770,29 +2783,28 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                 </td>
                 
                 <td colspan="4" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(4)}</td>
-                <!-- Empty cells for Pics and Actions in the parent row -->
                 <td></td> 
                 <td class="master-only">${masterGroupBtn}</td>
             </tr>`;
 
-            // --- CHILD ROWS (Individual Trades) ---
+            // --- CHILD ROWS ---
             group.trades.forEach(trade => {
-                const metrics = calculateTradeMetrics(trade);
+                const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
                 const breakevenPrice = calculateBreakevenPrice(trade);
                 const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
                 
-                // CONDITIONAL DISPLAY
+                // Column visibility logic for MNQ
+                const showMaker = !isTopstep; 
                 const isMaker = (trade.entryFeeType === 'maker');
                 
-                const valProfitTaker = !isMaker ? parseFloat(metrics.expected_profit_taker).toFixed(2) : '--';
-                const valProfitMaker = isMaker ? parseFloat(metrics.expected_profit_maker).toFixed(2) : '--';
-                const valLossTaker = !isMaker ? parseFloat(metrics.expected_loss_taker).toFixed(2) : '--';
-                const valLossMaker = isMaker ? parseFloat(metrics.expected_loss_maker).toFixed(2) : '--';
+                const valProfitTaker = parseFloat(metrics.expected_profit_taker).toFixed(2);
+                const valProfitMaker = isTopstep ? '--' : parseFloat(metrics.expected_profit_maker).toFixed(2);
+                const valLossTaker = parseFloat(metrics.expected_loss_taker).toFixed(2);
+                const valLossMaker = isTopstep ? '--' : parseFloat(metrics.expected_loss_maker).toFixed(2);
 
-                const styleTaker = !isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
-                const styleMaker = isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
+                const styleTaker = (isTopstep || !isMaker) ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
+                const styleMaker = isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.1;";
 
-                // --- 1. CHANGED: Added Pic Button here ---
                 const masterButtons = STATE.isMasterUser ? 
                     `<div style="display:flex; gap:2px; justify-content:flex-end;">
                         <button class="attach-image-btn" data-id="${trade.dbId}" data-type="live" style="padding:2px 5px; font-size:10px; background:#17a2b8;">Pic</button>
@@ -2805,7 +2817,7 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                 tableHtml += `
                 <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
                     <td></td> <td></td> 
-                    <td style="text-align:right;">↳ Trade (${trade.entryFeeType}):</td>
+                    <td style="text-align:right;">↳ ${isTopstep ? 'MNQ Position' : 'Trade ('+trade.entryFeeType+')'}:</td>
                     
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(4)}</td>
                     <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(4) : '--'}</td>
@@ -2815,23 +2827,21 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(4)}</td>
                     
                     <td>${metrics.rr_taker}</td>
-                    <td>${metrics.rr_maker}</td>
+                    <td style="display: ${showMaker ? 'table-cell' : 'none'};">${metrics.rr_maker}</td>
 
-                    <td class="editable-cell" data-id="${trade.dbId}" data-field="size" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.size).toFixed(2)}</td>
-                    <td>${(parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
-                    <td>--</td>
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}">${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
+                    <td>${isTopstep ? '--' : (parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
+                    <td style="display: ${showMaker ? 'table-cell' : 'none'};">--</td>
                     
                     <td>${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
                     
-                    <!-- Conditional PnL Columns -->
                     <td style="${styleTaker}">${valProfitTaker}</td>
-                    <td style="${styleMaker}">${valProfitMaker}</td>
+                    <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valProfitMaker}</td>
                     <td style="${styleTaker}">${valLossTaker}</td>
-                    <td style="${styleMaker}">${valLossMaker}</td>
+                    <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valLossMaker}</td>
 
                     <td colspan="4" class="note-cell editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}">${trade.note || ''}</td>
                     
-                    <!-- 2. CHANGED: Added Thumbnails Column -->
                     ${renderAttachmentThumbnails(trade, trade.dbId, 'live', isTopstep)}
 
                     <td class="master-only">${masterButtons}</td>
@@ -2841,19 +2851,17 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
 
         tbodyElement.innerHTML = tableHtml;
         
-        // --- FIX: Ensure Headers Exist and Update Them ---
         const table = tbodyElement.closest('table');
         let thead = table.querySelector('thead');
+        if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
         
-        if (!thead) {
-            thead = document.createElement('thead');
-            table.insertBefore(thead, tbodyElement);
+        // Define dynamic headers based on tab
+        if (isTopstep) {
+            thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR</th><th>Contracts</th><th>--</th><th>Fees</th><th>Pr ($)</th><th>Ls ($)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
+        } else {
+            thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
         }
-        
-        // 3. CHANGED: Added "Pics" to the header
-        thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
 
-        // Render Cards
         if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades, summaryId);
         
         setTimeout(() => adjustCollapsibleSize(tbodyElement), 10);
@@ -3150,7 +3158,10 @@ function checkMarketAlerts() {
 
     // Render alerts
     container.innerHTML = messages.length > 0 ? messages.join('') : '';
-}function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
+}
+        
+        
+        function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
 
@@ -3158,6 +3169,7 @@ function checkMarketAlerts() {
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
     let rowsHtml = '';
+    const MNQ_MULT = 2; // Multiplier for MNQ
     
     const paginationControlsId = isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls';
     const showAllButtonId = isTopstep ? 'ts-toggle-all-completed-trades' : 'toggle-all-completed-trades';
@@ -3169,26 +3181,34 @@ function checkMarketAlerts() {
 
     let showAll = isTopstep ? STATE.tsCompletedTradesShowAll : STATE.completedTradesShowAll;
     let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
-    const itemsPerPage = STATE.completedTradesItemsPerPage || 5;
 
-    // --- 1. HEADERS ---
+    // --- 1. HEADERS (Dynamic based on Topstep vs Crypto) ---
     const table = tbodyElement.closest('table');
     let thead = table.querySelector('thead');
     if (!thead) {
         thead = document.createElement('thead');
         table.insertBefore(thead, tbodyElement);
     }
-    thead.innerHTML = `
-        <tr>
-            <th>Sym</th><th>Type</th><th>Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th>
-            <th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th>
-            <th>RR(T)</th><th>RR(M)</th><th>Exit</th>
-            <th>Raw PnL</th>
-            <th>Fees</th><th>Net PnL</th>
-            <th>% (Net)</th>
-            <th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th>
-        </tr>
-    `;
+
+    if (isTopstep) {
+        thead.innerHTML = `
+            <tr>
+                <th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Contr.</th>
+                <th>Proj Pr</th><th style="display:none"></th><th>Proj Ls</th><th style="display:none"></th>
+                <th>RR</th><th style="display:none"></th><th>Exit</th>
+                <th>Raw PnL</th><th>Comms</th><th>Net PnL</th>
+                <th>Move %</th><th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th>
+            </tr>`;
+    } else {
+        thead.innerHTML = `
+            <tr>
+                <th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th>
+                <th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th>
+                <th>RR(T)</th><th>RR(M)</th><th>Exit</th>
+                <th>Raw PnL</th><th>Fees</th><th>Net PnL</th>
+                <th>% (Net)</th><th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th>
+            </tr>`;
+    }
 
     // --- 2. ORGANIZE DATA ---
     const tradesByDayAndGroup = {};
@@ -3196,264 +3216,144 @@ function checkMarketAlerts() {
 
     tradeIds.forEach(id => {
         const t = trades[id];
-        const tradingDayStr = (typeof getTradingDayString === 'function') 
-            ? getTradingDayString(t.closed_date, t.date) 
-            : new Date(t.closed_date).toLocaleDateString();
-        
-        const groupId = t.groupId || 'Ungrouped / Single';
+        const tradingDayStr = getTradingDayString(t.closed_date, t.date);
+        const groupId = t.groupId || 'Ungrouped';
 
         if (!tradesByDayAndGroup[tradingDayStr]) {
             tradesByDayAndGroup[tradingDayStr] = {}; 
             uniqueTradingDates.push(tradingDayStr); 
         }
-        
         if (!tradesByDayAndGroup[tradingDayStr][groupId]) {
             tradesByDayAndGroup[tradingDayStr][groupId] = [];
         }
-
         tradesByDayAndGroup[tradingDayStr][groupId].push({ ...t, dbId: id });
     });
 
     uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
 
-    // --- 3. PAGINATION ---
+    // Pagination Logic
     let visibleDates = uniqueTradingDates;
     if (showAll) {
         const totalPages = uniqueTradingDates.length;
-        if (currentPage > totalPages) {
-            currentPage = totalPages;
-            if(isTopstep) STATE.tsCompletedTradesCurrentPage = currentPage;
-            else STATE.completedTradesCurrentPage = currentPage;
-        }
         const start = currentPage - 1;
         visibleDates = uniqueTradingDates.slice(start, start + 1); 
         if (pageInfoSpan) pageInfoSpan.textContent = `Page ${currentPage} of ${totalPages}`;
         if (showAllButton) showAllButton.style.display = 'none';
         if (paginationControls) paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
     } else {
-        const currentLogicalTradingDay = (typeof getTradingDayString === 'function') 
-            ? getTradingDayString(Date.now(), Date.now()) 
-            : new Date().toLocaleDateString();
+        const currentLogicalTradingDay = getTradingDayString(Date.now(), Date.now());
         visibleDates = uniqueTradingDates.filter(d => d === currentLogicalTradingDay);
         const hasHistory = uniqueTradingDates.length > 1 || (uniqueTradingDates.length === 1 && uniqueTradingDates[0] !== currentLogicalTradingDay);
         if (showAllButton) showAllButton.style.display = hasHistory ? 'block' : 'none';
         if (paginationControls) paginationControls.style.display = 'none';
     }
 
-    // --- 4. RENDER LOOP ---
-    if (visibleDates.length === 0) {
-        rowsHtml = '<tr><td colspan="25" style="text-align:center; padding:20px; color: var(--subtle-text);"></td></tr>';
-    } else {
-        visibleDates.forEach(dateStr => {
-            const groupsInDate = tradesByDayAndGroup[dateStr];
-            
-            let dailyPnL = 0;
-            let dailyWins = 0, dailyLosses = 0, totalDailyTrades = 0;
+    // --- 3. RENDER LOOP ---
+    visibleDates.forEach(dateStr => {
+        const groupsInDate = tradesByDayAndGroup[dateStr];
+        let dailyPnL = 0;
+        let dailyWins = 0, dailyLosses = 0;
 
-            Object.values(groupsInDate).forEach(groupTrades => {
-                groupTrades.forEach(t => {
-                    dailyPnL += parseFloat(t.net_result || 0);
-                    if (parseFloat(t.net_result) >= 0) dailyWins++; else dailyLosses++;
-                    totalDailyTrades++;
-                });
+        // Date Row Logic (Summary of the day)
+        Object.values(groupsInDate).forEach(groupTrades => {
+            groupTrades.forEach(t => dailyPnL += parseFloat(t.net_result || 0));
+        });
+
+        const safeDateKey = isTopstep ? `ts-${dateStr.replace(/[\/\s,]/g, '-')}` : dateStr.replace(/[\/\s,]/g, '-'); 
+        const dailyNote = STATE.dailyNotes[safeDateKey] || '';
+
+        rowsHtml += `
+        <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
+            <td colspan="14" style="text-align: left; padding: 10px 20px;">
+                <strong>Date: ${dateStr}</strong> | Daily PnL: <span style="color: ${dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dailyPnL.toFixed(2)}</span>
+            </td>
+            <td colspan="6" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style: italic; font-size: 12px;">${dailyNote || (STATE.isMasterUser ? 'Add daily note...' : '')}</td>
+            <td colspan="5"></td>
+        </tr>`;
+
+        Object.keys(groupsInDate).forEach(groupId => {
+            const groupTrades = groupsInDate[groupId];
+            let groupNet = 0, groupVolume = 0, groupQty = 0;
+
+            groupTrades.forEach(t => {
+                groupNet += parseFloat(t.net_result || 0);
+                groupVolume += isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
+                groupQty += isTopstep ? (parseFloat(t.contracts) || 1) : (parseFloat(t.size) / parseFloat(t.entry));
             });
 
-            const datePnlClass = dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-            const pnlSign = dailyPnL >= 0 ? '+' : '';
-
-            // --- DAILY NOTE LOGIC ---
-            const safeDateKey = isTopstep ? `ts-${dateStr.replace(/[\/\s,]/g, '-')}` : dateStr.replace(/[\/\s,]/g, '-'); 
-            const dailyNote = STATE.dailyNotes[safeDateKey] || '';
-            const editAttr = STATE.isMasterUser ? 'contenteditable="true"' : '';
-            const editClass = STATE.isMasterUser ? 'editable-daily-note' : '';
-            const placeHolder = STATE.isMasterUser ? 'Daily Note...' : '';
-
-            // --- DATE ROW ---
+            // Group Sub-Header
             rowsHtml += `
-            <tr style="background-color: var(--header-bg); border-bottom: 2px solid var(--border-color); border-top: 4px solid var(--border-color);">
-                <td colspan="20" style="text-align: left; padding: 10px 10px 10px 20px; vertical-align: middle;">
-                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color);">
-                        Date: ${dateStr} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${totalDailyTrades} Trades)</span>
-                    </div>
-                    <div style="font-size: 0.95em;">
-                        <span style="color: var(--green-text); font-weight: bold;">${dailyWins} Wins</span> / 
-                        <span style="color: var(--red-text); font-weight: bold;">${dailyLosses} Losses</span>
-                        <span style="margin: 0 10px; color: var(--border-color);">|</span>
-                        <span style="font-weight: bold; color: var(--text-color);">Daily PnL: <span style="color: ${datePnlClass};">${pnlSign}$${dailyPnL.toFixed(2)}</span></span>
-                    </div>
+            <tr class="completed-group-header">
+                <td colspan="25" style="padding: 8px 15px; background: rgba(0,0,0,0.03);">
+                    📂 <strong>${groupId}</strong> | Net: <span style="color: ${groupNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${groupNet.toFixed(2)}</span> | 
+                    Size: ${isTopstep ? groupVolume + ' MNQ Contracts' : '$' + groupVolume.toLocaleString()}
                 </td>
-                
-      <td colspan="1" 
-                    class="${editClass}" 
-                    data-date-key="${safeDateKey}" 
-                    ${editAttr} 
-                    style="vertical-align: middle; font-size: 12px; line-height: 1.4; font-weight: normal; font-style: italic; color: white; cursor: text;  white-space: normal;"
-                    title="Daily Summary Note"
-                >${dailyNote || `<span style=' font-size:0.9em;'>${placeHolder}</span>`}</td>
-
-                <td colspan="4"></td>
             </tr>`;
 
-            Object.keys(groupsInDate).forEach(groupId => {
-                const groupTrades = groupsInDate[groupId];
-                let groupNet = 0;
-                let groupWins = 0, groupLosses = 0;
-                let groupVolume = 0;
-                let groupCoinQty = 0; 
-                let groupPnL100 = 0; 
-                let totalEntryValue = 0; // For weighted average entry
-                let totalExitValue = 0;  // For weighted average exit
-                let totalTradeCount = groupTrades.length; 
-
-                groupTrades.forEach(t => {
-                    groupNet += parseFloat(t.net_result || 0);
-                    const size = parseFloat(t.size || 0);
-                    const entry = parseFloat(t.entry || 1);
-                    const exit = parseFloat(t.exit_price || 0);
-
-                    groupVolume += size;
-                    const qty = (size / entry);
-                    groupCoinQty += qty;
-                    totalEntryValue += entry * qty; 
-                    totalExitValue += exit * qty;
-
-                    const metrics = calculateTradeMetrics(t);
-                    groupPnL100 += parseFloat(metrics.pnl_per_100_move || 0);
-
-                    if (parseFloat(t.net_result) >= 0) groupWins++; else groupLosses++;
-                });
-
-                const groupPnlClass = groupNet >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-                const groupType = groupTrades[0].type || 'Mixed'; 
-                const groupSymbol = groupTrades[0].symbol.split('/')[0];
-                const groupPercent = groupVolume > 0 ? (groupNet / groupVolume) * 100 : 0;
+            groupTrades.forEach(trade => {
+                // Correct Math for MNQ vs Crypto
+                const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
+                const isMaker = (trade.entryFeeType === 'maker');
+                const totalFees = isTopstep ? (parseFloat(trade.commissions) || 1.24) : (parseFloat(trade.entry_fee || 0) + parseFloat(trade.exit_fee || 0));
+                const netPnL = parseFloat(trade.net_result);
+                const rawPnL = netPnL + totalFees;
                 
-                // Average Calculations
-                const groupAverageEntry = groupCoinQty > 0 ? (totalEntryValue / groupCoinQty) : 0; 
-                const groupAverageExit = groupCoinQty > 0 ? (totalExitValue / groupCoinQty) : 0;
-
-                // Difference Calculation (Exit - Entry)
-                const priceDiff = groupAverageExit - groupAverageEntry;
-                const diffSign = priceDiff >= 0 ? '+' : '';
-                
-                // Color logic for the difference display
-                let diffColor = 'var(--subtle-text)';
-                if (groupType === 'Long') {
-                    diffColor = priceDiff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-                } else if (groupType === 'Short') {
-                    diffColor = priceDiff <= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                let tradePercent;
+                if (isTopstep) {
+                    tradePercent = ((parseFloat(trade.exit_price) - parseFloat(trade.entry)) / parseFloat(trade.entry)) * 100;
+                    if (trade.type === 'Short') tradePercent *= -1;
+                } else {
+                    tradePercent = (netPnL / parseFloat(trade.size)) * 100;
                 }
 
-                rowsHtml += `
-                <tr class="completed-group-header">
-                    <td colspan="25" style="padding: 8px 15px; text-align: left;">
-                        <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
-                            <span style="font-weight:bold; color:var(--link-color); font-size:1.05em;">
-                                📂 ${groupId} <span style="font-weight:normal; font-size:0.9em; color:var(--subtle-text);">(${groupType})</span>
-                            </span>
-                            <span style="color:var(--border-color);">|</span>
-                            <span style="font-weight:bold; font-size:1.05em; color:var(--text-color);">
-                                Net: <span style="color:${groupPnlClass};">$${groupNet.toFixed(2)}</span>
-                                <span style="font-size:0.85em; margin-left:5px; color:${groupPnlClass};">(${groupPercent.toFixed(2)}%)</span>
-                            </span>
-                            <span style="color:var(--border-color);">|</span>
-                            <span style="font-size:0.9em; color:var(--text-color);">
-                                ${groupWins} Wins / ${groupLosses} Losses
-                            </span>
-                            <span style="color:var(--border-color);">|</span>
-                            <span style="font-size:0.9em; color:var(--subtle-text);">
-                                Vol: $${groupVolume.toLocaleString(undefined, {maximumFractionDigits:0})} <span style="font-weight:bold; color:var(--text-color);">(${groupCoinQty.toFixed(4)} ${groupSymbol})</span>
-                            </span>
-                            <span style="color:var(--border-color);">|</span> 
-                            <span style="font-size:0.9em; color:var(--text-color); font-weight:bold;">
-                                PnL/$100: <span style="font-family: 'Courier New'; color: var(--link-color);">$${groupPnL100.toFixed(2)}</span>
-                            </span>
-                            <span style="color:var(--border-color);">|</span> 
-                            
-                            <!-- UPDATED AVERAGE ENTRY / EXIT SECTION -->
-                            <span style="font-size:0.9em; color:var(--text-color);">
-                                Avg Entry: <span style="font-weight:bold; color:var(--link-color);">${groupAverageEntry.toFixed(4)}</span>
-                                <span style="margin: 0 4px; color:var(--subtle-text);">➜</span>
-                                Avg Exit: <span style="font-weight:bold; color:var(--link-color);">${groupAverageExit.toFixed(4)}</span>
-                                <span style="font-weight:bold; font-family:'Courier New'; font-size:0.95em; color:${diffColor}; margin-left:5px;">
-                                    (${diffSign}${priceDiff.toFixed(2)})
-                                </span>
-                            </span>
-                            <!-- END UPDATED SECTION -->
+                const resultColor = netPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
 
-                            <span style="color:var(--border-color);">|</span> 
-                            <span style="font-size:0.9em; color:var(--text-color);">
-                                Positions: <span style="font-weight:bold; color:var(--link-color);">${totalTradeCount}</span>
-                            </span>
-                        </div>
+                rowsHtml += `
+                <tr style="font-size: 0.9em;">
+                    <td>${trade.symbol}</td>
+                    <td style="color: ${trade.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${trade.type}</td>
+                    <td>${parseFloat(trade.entry).toFixed(4)}</td>
+                    <td class="note-cell">${(trade.entry_prices || [trade.entry]).join(', ')}</td>
+                    <td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td>
+                    <td>${parseFloat(trade.target || 0).toFixed(4)}</td>
+                    <td>${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
+                    
+                    <!-- PnL Projections -->
+                    <td style="font-weight:bold; color:var(--green-text); opacity:0.6;">${parseFloat(metrics.expected_profit_taker).toFixed(2)}</td>
+                    <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.2;">${isTopstep ? '--' : parseFloat(metrics.expected_profit_maker).toFixed(2)}</td>
+                    <td style="font-weight:bold; color:var(--red-text); opacity:0.6;">${parseFloat(metrics.expected_loss_taker).toFixed(2)}</td>
+                    <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.2;">${isTopstep ? '--' : parseFloat(metrics.expected_loss_maker).toFixed(2)}</td>
+                    
+                    <!-- RR -->
+                    <td style="font-weight:bold;">${metrics.rr_taker}</td>
+                    <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.2;">${isTopstep ? '--' : metrics.rr_maker}</td>
+                    
+                    <td class="editable-completed-cell" data-id="${trade.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.exit_price).toFixed(4)}</td>
+                    <td style="opacity:0.7;">${rawPnL.toFixed(2)}</td>
+                    <td>${totalFees.toFixed(2)}</td>
+                    <td style="color:${resultColor}; font-weight:bold;">${netPnL.toFixed(2)}</td>
+                    <td style="color:${resultColor};">${tradePercent.toFixed(2)}%</td>
+
+                    <td>${new Date(trade.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                    <td>${new Date(trade.closed_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                    
+                    <td class="note-cell" data-id="${trade.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}">${trade.note || ''}</td>
+                    <td class="note-cell" data-id="${trade.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${trade.note2 || ''}</td>
+                    <td class="note-cell" data-id="${trade.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${trade.note3 || ''}</td>
+                    
+                    ${renderAttachmentThumbnails(trade, trade.dbId, 'completed', isTopstep)}
+                    <td class="action-buttons">
+                        <button class="attach-image-btn" data-id="${trade.dbId}" data-type="completed">Pic</button>
+                        <button class="delete-btn-completed" data-id="${trade.dbId}">Del</button>
                     </td>
                 </tr>`;
-
-                groupTrades.forEach(trade => {
-                    const resultColor = trade.net_result >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-                    const totalFees = (parseFloat(trade.entry_fee || 0) + parseFloat(trade.exit_fee || 0));
-                    const rawPnL = parseFloat(trade.net_result) + totalFees;
-                    const rawColor = rawPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-
-                    const metrics = calculateTradeMetrics(trade);
-                    const isMaker = (trade.entryFeeType === 'maker');
-                    
-                    const tradePercent = (parseFloat(trade.net_result) / parseFloat(trade.size)) * 100;
-                    const rrTDisplay = !isMaker ? (trade.rr_taker || metrics.rr_taker) : '--';
-                    const rrMDisplay = isMaker ? (trade.rr_maker || metrics.rr_maker) : '--';
-                    const rrTStyle = !isMaker ? 'font-weight:bold;' : 'opacity: 0.1;';
-                    const rrMStyle = isMaker ? 'font-weight:bold;' : 'opacity: 0.1;';
-
-                    const editAttr = STATE.isMasterUser ? 'contenteditable="true"' : '';
-                    const editClass = STATE.isMasterUser ? 'editable-completed-cell' : '';
-
-                    const masterButtons = STATE.isMasterUser ? `<td class="action-buttons">
-                        <button class="attach-image-btn" data-id="${trade.dbId}" data-type="completed">Pic</button>
-                        <button class="merge-btn-completed" data-id="${trade.dbId}">Merge</button>
-                        <button class="delete-btn-completed" data-id="${trade.dbId}">Del</button>
-                    </td>` : '';
-
-                    rowsHtml += `
-                    <tr class="completed-child-row" style="font-size: 0.95em;">
-                        <td>${trade.symbol}</td>
-                        <td>${trade.type}</td>
-                        <td>${parseFloat(trade.entry).toFixed(4)}</td>
-                        <td class="note-cell">${(trade.entry_prices || [trade.entry]).join(', ')}</td>
-                        <td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td>
-                        <td>${parseFloat(trade.target || 0).toFixed(4)}</td>
-                        <td>${parseFloat(trade.size || 0).toFixed(2)}</td>
-                        <td style="opacity: ${!isMaker ? '0.6' : '0.1'};">${formatCurrency(metrics.expected_profit_taker)}</td>
-                        <td style="opacity: ${isMaker ? '0.6' : '0.1'};">${formatCurrency(metrics.expected_profit_maker)}</td>
-                        <td style="opacity: ${!isMaker ? '0.6' : '0.1'};">${formatCurrency(metrics.expected_loss_taker)}</td>
-                        <td style="opacity: ${isMaker ? '0.6' : '0.1'};">${formatCurrency(metrics.expected_loss_maker)}</td>
-                        
-                        <td style="${rrTStyle}">${rrTDisplay}</td>
-                        <td style="${rrMStyle}">${rrMDisplay}</td>
-                        
-                        <td class="editable-completed-cell" data-id="${trade.dbId}" data-field="exit_price" ${editAttr}>${parseFloat(trade.exit_price).toFixed(4)}</td>
-                        <td style="color:${rawColor}; font-weight:bold; opacity:0.8;">${rawPnL.toFixed(2)}</td>
-                        <td>${totalFees.toFixed(2)}</td>
-                        <td style="color:${resultColor};font-weight:bold;">${parseFloat(trade.net_result).toFixed(2)}</td>
-                        
-                        <td style="color:${resultColor};font-weight:bold;">${tradePercent.toFixed(2)}%</td>
-
-                        <td>${trade.date ? new Date(trade.date).toLocaleString() : '--'}</td>
-                        <td>${trade.closed_date ? new Date(trade.closed_date).toLocaleString() : '--'}</td>
-                        <td class="note-cell ${editClass}" data-id="${trade.dbId}" data-field="note" ${editAttr}>${trade.note || ''}</td>
-                        <td class="note-cell ${editClass}" data-id="${trade.dbId}" data-field="note2" ${editAttr}>${trade.note2 || ''}</td>
-                        <td class="note-cell ${editClass}" data-id="${trade.dbId}" data-field="note3" ${editAttr}>${trade.note3 || ''}</td>
-                        ${renderAttachmentThumbnails(trade, trade.dbId, 'completed', isTopstep)}
-                        ${masterButtons}
-                    </tr>`;
-                });
             });
         });
-    }
+    });
 
-    tbodyElement.innerHTML = rowsHtml;
-    setTimeout(() => { if (typeof adjustCollapsibleSize === 'function') adjustCollapsibleSize(tbodyElement); }, 200);
+    tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center;">No completed trades found.</td></tr>';
+    setTimeout(() => adjustCollapsibleSize(tbodyElement), 100);
 }
-
         function renderDateNavigation() {
             const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
             const timeframe = DOM.journalTimeframeEl.value;
@@ -3712,84 +3612,124 @@ function getFeeRates(exchangeName) {
             };
         }
 
-        function completeTrade(tradeId, outcome, isTopstep = false) {
-            if (STATE.isProcessing) return;
-            STATE.isProcessing = true;
+     function completeTrade(tradeId, outcome, isTopstep = false) {
+    if (STATE.isProcessing) return;
+    STATE.isProcessing = true;
 
-            const liveRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
-            const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
+    // 1. Determine which Database path to use
+    const liveRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
+    const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
 
-            liveRef.child(tradeId).once('value', snapshot => {
-                const trade = snapshot.val(); 
-                if (!trade) {
-                    STATE.isProcessing = false;
-                    return;
-                }
-                
-                const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
-                const exitPriceStr = prompt(`Closing Trade (${trade.groupId || trade.symbol})\n\nEnter exact exit price:`, defaultExit);
-                
-                if (exitPriceStr === null) {
-                    STATE.isProcessing = false;
-                    return;
-                }
-
-                const currentSize = parseFloat(trade.size);
-                const closeSizeStr = prompt(`How much Value ($) are you closing?\n(Current Total: $${currentSize.toFixed(2)})`, currentSize);
-                
-                if (closeSizeStr === null) {
-                    STATE.isProcessing = false;
-                    return;
-                }
-                
-                let exitFeeType = prompt("Enter exit fee type (maker/taker):", "taker");
-                if (exitFeeType === null) {
-                    STATE.isProcessing = false;
-                    return;
-                }
-                exitFeeType = exitFeeType.toLowerCase().trim();
-
-                const exitPrice = parseFloat(exitPriceStr);
-                const closingSize = parseFloat(closeSizeStr);
-
-                if (isNaN(exitPrice) || isNaN(closingSize) || closingSize <= 0 || closingSize > currentSize) {
-                    alert("Invalid input values.");
-                    STATE.isProcessing = false;
-                    return;
-                }
-
-                const tradePortion = { ...trade, size: closingSize };
-                const result = calculateNetResult(tradePortion, exitPrice, exitFeeType);
-
-                const completedTrade = {
-                    ...trade,
-                    size: closingSize,
-                    ...result,
-                    closed_date: firebase.database.ServerValue.TIMESTAMP,
-                    exit_price: exitPrice,
-                    exitFeeType: exitFeeType,
-                    note: (trade.note || '') + `\nClosed $${closingSize.toFixed(2)} @ $${exitPrice}`
-                };
-
-                if (Math.abs(currentSize - closingSize) < 1) {
-                    compRef.push(completedTrade)
-                        .then(() => liveRef.child(tradeId).remove())
-                        .finally(() => { STATE.isProcessing = false; }); 
-                } else {
-                    const remainingSize = currentSize - closingSize;
-                    const updatedLiveTrade = {
-                        size: remainingSize,
-                        note: (trade.note || '') + `\nPartial close: -$${closingSize.toFixed(2)} on ${new Date().toLocaleDateString()}`
-                    };
-                    const recalcMetrics = calculateTradeMetrics({ ...trade, size: remainingSize });
-                    Object.assign(updatedLiveTrade, recalcMetrics);
-
-                    compRef.push(completedTrade);
-                    liveRef.child(tradeId).update(updatedLiveTrade)
-                        .finally(() => { STATE.isProcessing = false; }); 
-                }
-            });
+    liveRef.child(tradeId).once('value', snapshot => {
+        const trade = snapshot.val(); 
+        if (!trade) {
+            STATE.isProcessing = false;
+            return;
         }
+        
+        // 2. Determine default exit based on Win/Loss button clicked
+        const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
+        const exitPriceStr = prompt(`Closing ${trade.symbol} (${trade.type})\nEnter exact exit price:`, defaultExit);
+        
+        if (exitPriceStr === null) {
+            STATE.isProcessing = false;
+            return;
+        }
+
+        const exitPrice = parseFloat(exitPriceStr);
+        if (isNaN(exitPrice)) {
+            alert("Invalid exit price.");
+            STATE.isProcessing = false;
+            return;
+        }
+
+        let completedTradeData;
+
+        if (isTopstep) {
+            /* --- TOPSTEP / MNQ LOGIC (Simplified) --- */
+            const MNQ_MULT = 2; // $2 per point
+            const contracts = parseFloat(trade.contracts || trade.size);
+            const totalFees = parseFloat(trade.commissions || 1.24);
+            
+            // Calculate Points based on Long/Short
+            const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
+            const netResult = (points * MNQ_MULT * contracts) - totalFees;
+
+            completedTradeData = {
+                ...trade,
+                exit_price: exitPrice,
+                net_result: netResult,
+                entry_fee: totalFees / 2,
+                exit_fee: totalFees / 2,
+                exitFeeType: 'fixed',
+                closed_date: firebase.database.ServerValue.TIMESTAMP,
+                note: (trade.note || '') + `\nClosed @ $${exitPrice} (Full)`
+            };
+
+            // Process Database: Move to completed, delete from live
+            compRef.push(completedTradeData)
+                .then(() => liveRef.child(tradeId).remove())
+                .finally(() => { STATE.isProcessing = false; });
+
+        } else {
+            /* --- STANDARD CRYPTO LOGIC (Detailed Prompts) --- */
+            const currentSize = parseFloat(trade.size);
+            const closeSizeStr = prompt(`Closing Value ($)?\n(Total: $${currentSize.toFixed(2)})`, currentSize);
+            
+            if (closeSizeStr === null) {
+                STATE.isProcessing = false;
+                return;
+            }
+            
+            let exitFeeType = prompt("Enter exit fee type (maker/taker):", "taker");
+            if (exitFeeType === null) {
+                STATE.isProcessing = false;
+                return;
+            }
+            exitFeeType = exitFeeType.toLowerCase().trim();
+
+            const closingSize = parseFloat(closeSizeStr);
+            if (isNaN(closingSize) || closingSize <= 0 || closingSize > currentSize) {
+                alert("Invalid size input.");
+                STATE.isProcessing = false;
+                return;
+            }
+
+            // Calculate results using the crypto helper
+            const tradePortion = { ...trade, size: closingSize };
+            const result = calculateNetResult(tradePortion, exitPrice, exitFeeType);
+
+            completedTradeData = {
+                ...trade,
+                size: closingSize,
+                ...result,
+                closed_date: firebase.database.ServerValue.TIMESTAMP,
+                exit_price: exitPrice,
+                exitFeeType: exitFeeType,
+                note: (trade.note || '') + `\nClosed $${closingSize.toFixed(2)} @ $${exitPrice}`
+            };
+
+            // Handle Full vs Partial close for Crypto
+            if (Math.abs(currentSize - closingSize) < 1) {
+                compRef.push(completedTradeData)
+                    .then(() => liveRef.child(tradeId).remove())
+                    .finally(() => { STATE.isProcessing = false; }); 
+            } else {
+                const remainingSize = currentSize - closingSize;
+                const updatedLiveTrade = {
+                    size: remainingSize,
+                    note: (trade.note || '') + `\nPartial close: -$${closingSize.toFixed(2)}`
+                };
+                const recalcMetrics = calculateTradeMetrics({ ...trade, size: remainingSize });
+                Object.assign(updatedLiveTrade, recalcMetrics);
+
+                compRef.push(completedTradeData);
+                liveRef.child(tradeId).update(updatedLiveTrade)
+                    .finally(() => { STATE.isProcessing = false; }); 
+            }
+        }
+    });
+}
 
         function openImageModal(imageArray, clickedIndex) {
             STATE.modalImageGallery = imageArray;
