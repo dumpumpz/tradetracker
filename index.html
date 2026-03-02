@@ -5012,61 +5012,70 @@ function handleAddTradeSubmit(e, isTopstep = false) {
             });
         }
 
-        function calculateTopstepStats(tsCompletedData) {
-            const STARTING_BALANCE = 49130;
-            const MAX_LOSS_ALLOWANCE = 2000;
+      function calculateTopstepStats(tsCompletedData) {
+    const STARTING_BALANCE = 50000;
+    const MAX_DRAWDOWN = 2000;
+    const INITIAL_MIN_BALANCE = STARTING_BALANCE - MAX_DRAWDOWN; // $48,000
 
-            const tradesByDay = {};
-            Object.values(tsCompletedData).forEach(t => {
-                if (!t.closed_date) return;
-                const dayStr = getTradingDayString(t.closed_date, t.date);
-                if (!tradesByDay[dayStr]) tradesByDay[dayStr] = 0;
-                tradesByDay[dayStr] += parseFloat(t.net_result || 0);
-            });
+    // 1. Group PnL by Trading Day
+    const tradesByDay = {};
+    Object.values(tsCompletedData).forEach(t => {
+        if (!t.closed_date) return;
+        const dayStr = getTradingDayString(t.closed_date, t.date);
+        if (!tradesByDay[dayStr]) tradesByDay[dayStr] = 0;
+        tradesByDay[dayStr] += parseFloat(t.net_result || 0);
+    });
 
-            const sortedDays = Object.keys(tradesByDay).sort((a,b) => new Date(a) - new Date(b));
+    const sortedDays = Object.keys(tradesByDay).sort((a,b) => new Date(a) - new Date(b));
+    
+    let currentBalance = STARTING_BALANCE;
+    let eodHwm = STARTING_BALANCE;
+    let maxLossLimit = INITIAL_MIN_BALANCE; // Starts at $48,000
+
+    // 2. Iterate through days to trail the MLL
+    sortedDays.forEach(day => {
+        currentBalance += tradesByDay[day];
+
+        // If today's closing balance is higher than previous HWM, move the MLL
+        if (currentBalance > eodHwm) {
+            eodHwm = currentBalance;
             
-            let currentBalance = STARTING_BALANCE;
-            let eodHwm = STARTING_BALANCE;
-            
-            sortedDays.forEach(day => {
-                currentBalance += tradesByDay[day];
-                if (currentBalance > eodHwm) {
-                    eodHwm = currentBalance;
-                }
-            });
+            // Calculate where the limit would trail to
+            let trailingLimit = eodHwm - MAX_DRAWDOWN;
 
-            let maxLossLimit = eodHwm - MAX_LOSS_ALLOWANCE;
-            if (maxLossLimit > STARTING_BALANCE) {
-                maxLossLimit = STARTING_BALANCE;
-            }
-
-            const totalPL = currentBalance - STARTING_BALANCE;
-            const bufferLeft = currentBalance - maxLossLimit;
-
-            const balEl = document.getElementById('ts-balance');
-            const hwmEl = document.getElementById('ts-hwm');
-            const minBalEl = document.getElementById('ts-min-bal');
-            const bufEl = document.getElementById('ts-buffer');
-            const plEl = document.getElementById('ts-total-pl');
-
-            if(balEl) balEl.textContent = formatCurrency(currentBalance);
-            if(hwmEl) hwmEl.textContent = formatCurrency(eodHwm);
-            if(minBalEl) minBalEl.textContent = formatCurrency(maxLossLimit);
-            if(bufEl) bufEl.textContent = formatCurrency(bufferLeft);
-            if(plEl) plEl.textContent = formatCurrency(totalPL);
-
-            if(bufEl) {
-                if (bufferLeft <= 0) bufEl.style.color = 'var(--red-text)';
-                else if (bufferLeft <= 500) bufEl.style.color = 'orange';
-                else bufEl.style.color = 'var(--green-text)';
-            }
-
-            if(plEl) {
-                plEl.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+            // Rule: MLL only moves UP, and stops once it hits $50,000
+            if (trailingLimit > maxLossLimit) {
+                // If trailingLimit is > 50k, it stays at 50k
+                maxLossLimit = Math.min(trailingLimit, STARTING_BALANCE);
             }
         }
+    });
 
+    // 3. Final metrics
+    const totalPL = currentBalance - STARTING_BALANCE;
+    const bufferLeft = currentBalance - maxLossLimit;
+
+    // 4. Update UI
+    const balEl = document.getElementById('ts-balance');
+    const hwmEl = document.getElementById('ts-hwm');
+    const minBalEl = document.getElementById('ts-min-bal');
+    const bufEl = document.getElementById('ts-buffer');
+    const plEl = document.getElementById('ts-total-pl');
+
+    if(balEl) balEl.textContent = formatCurrency(currentBalance);
+    if(hwmEl) hwmEl.textContent = formatCurrency(eodHwm);
+    if(minBalEl) minBalEl.textContent = formatCurrency(maxLossLimit);
+    if(bufEl) bufEl.textContent = formatCurrency(bufferLeft);
+    if(plEl) plEl.textContent = formatCurrency(totalPL);
+
+    // Color indicators
+    if(bufEl) {
+        if (bufferLeft <= 0) bufEl.style.color = 'var(--red-text)';
+        else if (bufferLeft <= 500) bufEl.style.color = 'orange'; // Warning zone
+        else bufEl.style.color = 'var(--green-text)';
+    }
+    if(plEl) plEl.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+}
         function subscribeToData() {
             dbRefs.trades.on('value', s => { 
                 const trades = s.val() || {}; 
