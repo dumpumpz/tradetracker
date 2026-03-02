@@ -3161,7 +3161,7 @@ function checkMarketAlerts() {
 }
         
         
-        function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
+  function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
 
@@ -3169,7 +3169,7 @@ function checkMarketAlerts() {
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
     let rowsHtml = '';
-    const MNQ_MULT = 2; // Multiplier for MNQ
+    const MNQ_MULT = 2; 
     
     const paginationControlsId = isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls';
     const showAllButtonId = isTopstep ? 'ts-toggle-all-completed-trades' : 'toggle-all-completed-trades';
@@ -3182,7 +3182,6 @@ function checkMarketAlerts() {
     let showAll = isTopstep ? STATE.tsCompletedTradesShowAll : STATE.completedTradesShowAll;
     let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
 
-    // --- 1. HEADERS (Dynamic based on Topstep vs Crypto) ---
     const table = tbodyElement.closest('table');
     let thead = table.querySelector('thead');
     if (!thead) {
@@ -3210,7 +3209,6 @@ function checkMarketAlerts() {
             </tr>`;
     }
 
-    // --- 2. ORGANIZE DATA ---
     const tradesByDayAndGroup = {};
     const uniqueTradingDates = [];
 
@@ -3231,7 +3229,6 @@ function checkMarketAlerts() {
 
     uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
 
-    // Pagination Logic
     let visibleDates = uniqueTradingDates;
     if (showAll) {
         const totalPages = uniqueTradingDates.length;
@@ -3248,13 +3245,10 @@ function checkMarketAlerts() {
         if (paginationControls) paginationControls.style.display = 'none';
     }
 
-    // --- 3. RENDER LOOP ---
     visibleDates.forEach(dateStr => {
         const groupsInDate = tradesByDayAndGroup[dateStr];
         let dailyPnL = 0;
-        let dailyWins = 0, dailyLosses = 0;
 
-        // Date Row Logic (Summary of the day)
         Object.values(groupsInDate).forEach(groupTrades => {
             groupTrades.forEach(t => dailyPnL += parseFloat(t.net_result || 0));
         });
@@ -3273,15 +3267,13 @@ function checkMarketAlerts() {
 
         Object.keys(groupsInDate).forEach(groupId => {
             const groupTrades = groupsInDate[groupId];
-            let groupNet = 0, groupVolume = 0, groupQty = 0;
+            let groupNet = 0, groupVolume = 0;
 
             groupTrades.forEach(t => {
                 groupNet += parseFloat(t.net_result || 0);
                 groupVolume += isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
-                groupQty += isTopstep ? (parseFloat(t.contracts) || 1) : (parseFloat(t.size) / parseFloat(t.entry));
             });
 
-            // Group Sub-Header
             rowsHtml += `
             <tr class="completed-group-header">
                 <td colspan="25" style="padding: 8px 15px; background: rgba(0,0,0,0.03);">
@@ -3291,10 +3283,9 @@ function checkMarketAlerts() {
             </tr>`;
 
             groupTrades.forEach(trade => {
-                // Correct Math for MNQ vs Crypto
                 const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
                 const isMaker = (trade.entryFeeType === 'maker');
-                const totalFees = isTopstep ? (parseFloat(trade.commissions) || 0.74) : (parseFloat(trade.entry_fee || 0) + parseFloat(trade.exit_fee || 0));
+                const totalFees = isTopstep ? (parseFloat(trade.commissions) || 1.24) : (parseFloat(trade.entry_fee || 0) + parseFloat(trade.exit_fee || 0));
                 const netPnL = parseFloat(trade.net_result);
                 const rawPnL = netPnL + totalFees;
                 
@@ -3312,23 +3303,26 @@ function checkMarketAlerts() {
                 <tr style="font-size: 0.9em;">
                     <td>${trade.symbol}</td>
                     <td style="color: ${trade.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${trade.type}</td>
-                    <td>${parseFloat(trade.entry).toFixed(4)}</td>
-                    <td class="note-cell">${(trade.entry_prices || [trade.entry]).join(', ')}</td>
-                    <td>${parseFloat(trade.stoploss || 0).toFixed(4)}</td>
-                    <td>${parseFloat(trade.target || 0).toFixed(4)}</td>
+                    
+                    <!-- PRICES CHANGED TO TOFIXED(2) -->
+                    <td>${parseFloat(trade.entry).toFixed(2)}</td>
+                    <td class="note-cell">${(trade.entry_prices || [trade.entry]).map(p => parseFloat(p).toFixed(2)).join(', ')}</td>
+                    <td>${parseFloat(trade.stoploss || 0).toFixed(2)}</td>
+                    <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
+                    
                     <td>${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
                     
-                    <!-- PnL Projections -->
                     <td style="font-weight:bold; color:var(--green-text); opacity:0.6;">${parseFloat(metrics.expected_profit_taker).toFixed(2)}</td>
                     <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.2;">${isTopstep ? '--' : parseFloat(metrics.expected_profit_maker).toFixed(2)}</td>
                     <td style="font-weight:bold; color:var(--red-text); opacity:0.6;">${parseFloat(metrics.expected_loss_taker).toFixed(2)}</td>
                     <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.2;">${isTopstep ? '--' : parseFloat(metrics.expected_loss_maker).toFixed(2)}</td>
                     
-                    <!-- RR -->
                     <td style="font-weight:bold;">${metrics.rr_taker}</td>
                     <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.2;">${isTopstep ? '--' : metrics.rr_maker}</td>
                     
-                    <td class="editable-completed-cell" data-id="${trade.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.exit_price).toFixed(4)}</td>
+                    <!-- EXIT PRICE CHANGED TO TOFIXED(2) -->
+                    <td class="editable-completed-cell" data-id="${trade.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.exit_price).toFixed(2)}</td>
+                    
                     <td style="opacity:0.7;">${rawPnL.toFixed(2)}</td>
                     <td>${totalFees.toFixed(2)}</td>
                     <td style="color:${resultColor}; font-weight:bold;">${netPnL.toFixed(2)}</td>
