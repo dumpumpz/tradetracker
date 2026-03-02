@@ -1736,7 +1736,7 @@ body.is-master th.master-only {
 </div>
 <div>
     <label for="ts-commissions">Round Trip Fee ($):</label>
-    <input type="number" id="ts-commissions" value="1.24" step="0.01">
+    <input type="number" id="ts-commissions" value="0.74" step="0.01">
 </div>
                             <div><button type="submit">Add Topstep Trade</button></div>
                         </form>
@@ -2633,7 +2633,7 @@ function calculateFuturesMetrics(tradeData) {
     const target = parseFloat(tradeData.target);
     const contracts = parseFloat(tradeData.contracts || tradeData.size); // repurposing size as contracts
     const type = tradeData.type;
-    const commissions = parseFloat(tradeData.commissions || 1.24);
+    const commissions = parseFloat(tradeData.commissions || 0.74);
 
     if ([entry, stoploss, target, contracts].some(v => isNaN(v) || v <= 0)) return {};
 
@@ -2661,7 +2661,7 @@ function calculateFuturesNetResult(trade, exitPrice) {
     const entry = parseFloat(trade.entry);
     const contracts = parseFloat(trade.contracts || trade.size);
     const exit = parseFloat(exitPrice);
-    const fees = parseFloat(trade.commissions || 1.24);
+    const fees = parseFloat(trade.commissions || 0.74);
 
     const points = trade.type === "Long" ? (exit - entry) : (entry - exit);
     const grossResult = points * MNQ_MULTIPLIER * contracts;
@@ -4310,7 +4310,7 @@ function getFeeRates(exchangeName) {
     const target = parseFloat(tradeData.target); 
     const contracts = parseFloat(tradeData.contracts); 
     const type = tradeData.type;
-    const commissions = parseFloat(tradeData.commissions || 1.24);
+    const commissions = parseFloat(tradeData.commissions || 0.74);
 
     const pointsProfit = type === 'Long' ? (target - entry) : (entry - target);
     const pointsLoss = type === 'Long' ? (entry - stoploss) : (stoploss - entry);
