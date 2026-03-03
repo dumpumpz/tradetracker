@@ -3188,14 +3188,14 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const showAllButton = document.getElementById(isTopstep ? 'ts-toggle-all-completed-trades' : 'toggle-all-completed-trades');
     const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
 
-    // --- 1. HEADERS (Standardized Layout) ---
+    // --- 1. HEADERS (Added "Entered" column) ---
     const table = tbodyElement.closest('table');
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
 
     const headers = isTopstep 
-        ? `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Contr.</th><th>Proj Pr</th><th>Proj Ls</th><th>RR</th><th>Exit Price</th><th>Raw PnL</th><th>Comms</th><th>Net PnL</th><th>% (Net)</th><th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`
-        : `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th><th>RR(M)</th><th>Exit Price</th><th>Raw PnL</th><th>Fees</th><th>Net PnL</th><th>% (Net)</th><th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
+        ? `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Contr.</th><th>Proj Pr</th><th>Proj Ls</th><th>RR</th><th>Exit Price</th><th>Raw PnL</th><th>Comms</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`
+        : `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th><th>RR(M)</th><th>Exit Price</th><th>Raw PnL</th><th>Fees</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
     thead.innerHTML = headers;
 
     // --- 2. ORGANIZE DATA ---
@@ -3277,7 +3277,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             if (gType === 'Long') diffColor = diff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
             else if (gType === 'Short') diffColor = diff <= 0 ? 'var(--green-text)' : 'var(--red-text)';
 
-            // RICH GROUP HEADER
             rowsHtml += `
             <tr class="completed-group-header">
                 <td colspan="25" style="padding: 8px 15px; font-size: 0.95em;">
@@ -3302,6 +3301,10 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 const rawPnL = net + fees;
                 const tPct = isTopstep ? (((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)) : (net / parseFloat(t.size) * 100);
 
+                // --- Format Entry & Closed Times ---
+                const entryTime = t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                const closedTime = t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
+
                 rowsHtml += `<tr style="font-size: 0.9em;">
                     <td>${t.symbol}</td>
                     <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${t.type}</td>
@@ -3322,7 +3325,10 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                     <td>${fees.toFixed(2)}</td>
                     <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${net.toFixed(2)}</td>
                     <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">${tPct.toFixed(2)}%</td>
-                    <td style="font-size:10px;">${new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                    
+                    <td style="font-size:11px; font-weight:bold; color:var(--link-color);">${entryTime}</td> <!-- ENTRY TIME -->
+                    <td style="font-size:11px;">${closedTime}</td> <!-- CLOSED TIME -->
+                    
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}">${t.note || ''}</td>
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${t.note2 || ''}</td>
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${t.note3 || ''}</td>
@@ -3335,14 +3341,10 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px;">No records.</td></tr>';
 
-    // --- FIX FOR LOADING HEIGHT ---
-    // Remove the height cap so the drawer grows naturally as the table builds
     const section = tbodyElement.closest('.collapsible-section');
     if (section && section.classList.contains('is-open')) {
         const content = section.querySelector('.collapsible-content');
-        if (content) {
-            content.style.maxHeight = 'none';
-        }
+        if (content) { content.style.maxHeight = 'none'; }
     }
 }
         function renderDateNavigation() {
