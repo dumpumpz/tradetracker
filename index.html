@@ -3012,144 +3012,133 @@ function checkMarketAlerts() {
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
     const dateOfMonth = today.getDate();
+    const monthIndex = today.getMonth(); // 0=Jan, 11=Dec
     
     const lastDayCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const lastDayDateOfMonth = lastDayCurrentMonth.getDate();
+    const isLastDay = (dateOfMonth === lastDayDateOfMonth);
+    const isSecondToLastDay = (dateOfMonth === lastDayDateOfMonth - 1);
+    
     let offsetToLastFriday = (lastDayCurrentMonth.getDay() - 5 + 7) % 7;
     const lastFridayDate = lastDayCurrentMonth.getDate() - offsetToLastFriday;
 
     const messages = [];
 
-    // --- DAILY DEFINITIONS (Always show based on day) ---
+    // --- 1. MACRO DATA WINDOWS (CPI / PPI / FOMC) ---
 
-    // MONDAY
-    if (dayOfWeek === 1 || forceTest) {
-        messages.push(`
-            <div class="alert-banner" style="background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb;">
-                <strong>Monday Range Construction:</strong> 
-                "Monday Highs/Lows" are often swept later in the week. 
-                Don't trust the initial trend immediately.
-            </div>
-        `);
-    }
-
-    // TUESDAY
-    if (dayOfWeek === 2 || forceTest) {
-        messages.push(`
-            <div class="alert-banner" style="background-color: #d4edda; color: #155724; border-color: #c3e6cb;">
-                <strong>Tuesday Direction:</strong>
-                If Monday formed a range, Tuesday often delivers the true directional move.
-                Watch for expansion away from Monday highs or lows.
-            </div>
-        `);
-    }
-
-    // WEDNESDAY
-    if (dayOfWeek === 3 || forceTest) {
+    // FOMC (Usually 3rd Wednesday)
+    // T-1 Alert (Tuesday)
+    if (dayOfWeek === 2 && dateOfMonth >= 14 && dateOfMonth <= 20) {
         messages.push(`
             <div class="alert-banner" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">
-                <strong>Midweek Volatility:</strong>
-                Wednesday often brings expansion or reversal from early-week price action.
-                Be alert for failed breakouts or continuation setups.
+                <strong>⚠️ TOMORROW: FOMC DECISION:</strong> High impact volatility tomorrow at 2PM NY. Expect institutional "squaring of positions" today. 
+            </div>
+        `);
+    }
+    // Day Of Alert (Wednesday)
+    if (dayOfWeek === 3 && dateOfMonth >= 15 && dateOfMonth <= 21) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
+                <strong>🏦 FOMC DAY (2:00 PM NY):</strong> Interest rate decision today. Extreme volatility expected. 
+                NQ is extremely sensitive to the Press Conference at 2:30 PM.
             </div>
         `);
     }
 
-    // THURSDAY (Added daily definition so it doesn't disappear)
+    // Inflation (CPI / PPI) - Typically 10th-15th
+    // T-1 Alert
+    if (dateOfMonth >= 9 && dateOfMonth <= 14 && dayOfWeek !== 5 && dayOfWeek !== 6 && dayOfWeek !== 0) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">
+                <strong>📊 TOMORROW: INFLATION DATA (CPI/PPI):</strong> High impact macro at 8:30 AM NY tomorrow. 
+                Expect "pre-data" ranging or manipulation today.
+            </div>
+        `);
+    }
+    // Day Of Alert
+    if (dateOfMonth >= 10 && dateOfMonth <= 15 && dayOfWeek !== 6 && dayOfWeek !== 0) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
+                <strong>🚨 INFLATION DATA RELEASE (8:30 AM NY):</strong> CPI/PPI is active today. 
+                Watch for massive expansion or stop-hunts in indices.
+            </div>
+        `);
+    }
+
+    // --- 2. BANK HOLIDAYS ---
+    // T-1 Alert (Sunday)
+    if (dayOfWeek === 0 && dateOfMonth <= 21 && [0, 1, 4, 8].includes(monthIndex)) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #e2e3e5; color: #383d41;">
+                <strong>📅 TOMORROW: US BANK HOLIDAY:</strong> Markets will be closed or on "Short Session" tomorrow. 
+                Expect low liquidity tonight.
+            </div>
+        `);
+    }
+    // Day Of Alert (Monday)
+    if (dayOfWeek === 1 && dateOfMonth <= 21 && [0, 1, 4, 8].includes(monthIndex)) {
+        messages.push(`
+            <div class="alert-banner" style="background-color: #e2e3e5; color: #383d41;">
+                <strong>🇺🇸 US BANK HOLIDAY TODAY:</strong> Low volume expected. High risk of algorithmic "chop."
+            </div>
+        `);
+    }
+
+    // --- 3. CANDLE CLOSES (Monthly / Quarterly) ---
+    if (isLastDay || isSecondToLastDay) {
+        const isQuarterly = [2, 5, 8, 11].includes(monthIndex); 
+        const title = isQuarterly ? "QUARTERLY CLOSE" : "MONTHLY CLOSE";
+        messages.push(`
+            <div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border: 1px solid #d6d8db;">
+                <strong>🔚 ${title}:</strong> Institutional rebalancing window. 
+                Expect erratic action during the "Market on Close" (MOC) imbalance at 3:50 PM NY.
+            </div>
+        `);
+    }
+
+    // --- 4. DAILY ROUTINE DEFINITIONS (Your Originals) ---
+    if (dayOfWeek === 1 || forceTest) {
+        messages.push(`<div class="alert-banner" style="background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb;"><strong>Monday Range Construction:</strong> "Monday Highs/Lows" are often swept later in the week. Don't trust the initial trend immediately.</div>`);
+    }
+    if (dayOfWeek === 2 || forceTest) {
+        messages.push(`<div class="alert-banner" style="background-color: #d4edda; color: #155724; border-color: #c3e6cb;"><strong>Tuesday Direction:</strong> If Monday formed a range, Tuesday often delivers the true directional move. Watch expansion away from Monday extremes.</div>`);
+    }
+    if (dayOfWeek === 3 || forceTest) {
+        messages.push(`<div class="alert-banner" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;"><strong>Midweek Volatility:</strong> Wednesday often brings expansion or reversal from early-week price action. Be alert for failed breakouts.</div>`);
+    }
     if (dayOfWeek === 4 || forceTest) {
-        messages.push(`
-            <div class="alert-banner" style="background-color: #fcfcfc; border: 1px solid #ddd; color: #444;">
-                <strong>Thursday Distribution:</strong>
-                Often a day for trend continuation or profit-taking. Highs/Lows of the week are frequently 
-                established or tested during the NY session.
-            </div>
-        `);
+        messages.push(`<div class="alert-banner" style="background-color: #fcfcfc; border: 1px solid #ddd; color: #444;"><strong>Thursday Distribution:</strong> Often a day for trend continuation or profit-taking. Weekly Highs/Lows frequently established in NY session.</div>`);
     }
-
-    // FRIDAY (Standard)
     if (dayOfWeek === 5 || forceTest) {
-        messages.push(`
-            <div class="alert-banner">
-                <strong>Friday Warning:</strong> 
-              Fridays often trend bearish as traders close out weekly positions, adding selling pressure.
-            </div>
-        `);
+        messages.push(`<div class="alert-banner"><strong>Friday Warning:</strong> Fridays often trend bearish as traders close weekly positions. High risk of late-day "profit taking" selloffs.</div>`);
     }
-
-    // SATURDAY
     if (dayOfWeek === 6 || forceTest) {
-        messages.push(`
-            <div class="alert-banner" style="background-color: #e2e3e5; color: #383d41; border-color: #d6d8db;">
-                <strong>Weekend Trading:</strong> 
-              Liquidity is typically thinner, increasing volatility and stop-hunt risk.
-            Price may move sharply on low volume, resulting in choppy and inefficient price action.
-            </div>
-        `);
+        messages.push(`<div class="alert-banner" style="background-color: #e2e3e5; color: #383d41; border-color: #d6d8db;"><strong>Weekend Trading:</strong> Liquidity is thin. Increased risk of stop-hunts and sharp moves on low volume.</div>`);
     }
-
-    // SUNDAY
     if (dayOfWeek === 0 || forceTest) {
-        messages.push(`
-            <div class="alert-banner" style="background-color: #e2e3f5; color: #2f2f5f; border-color: #d6d8ff;">
-                <strong>Weekly Open:</strong>
-                New weekly candle. Volatility may increase during the open,
-                and BTC often seeks inefficiencies from the Friday CME close.
-            </div>
-        `);
+        messages.push(`<div class="alert-banner" style="background-color: #e2e3f5; color: #2f2f5f; border-color: #d6d8ff;"><strong>Weekly Open:</strong> New weekly candle. Volatility may increase. BTC often seeks inefficiencies from the CME gap.</div>`);
     }
 
+    // --- 5. SPECIAL EVENTS (Your Originals) ---
 
-    // --- SPECIAL EVENT DEFINITIONS (Stack on top of daily ones) ---
-
-// THURSDAY: Pre-NFP (Thursday before the 1st Friday)
+    // NFP (1st Friday) - T-1 Alert (Thursday)
     if (dayOfWeek === 4 && dateOfMonth <= 6) {
-        messages.push(`
-            <div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;">
-                <strong>⚠️ Pre-NFP Volatility:</strong> 
-                Tomorrow is NFP Data Release at 8:30 AM NY (12:30 / 13:30 UTC). 
-                Expect positioning adjustments and potential volatility today.
-            </div>
-        `);
+        messages.push(`<div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;"><strong>⚠️ TOMORROW: NFP RELEASE:</strong> Non-Farm Payrolls tomorrow at 8:30 AM NY. Expect positioning adjustments today.</div>`);
     }
-
-    
-    // THURSDAY: Pre-Expiry (Only shows on the Thursday before the last Friday)
-    if (dayOfWeek === 4 && dateOfMonth === (lastFridayDate - 1)) {
-        messages.push(`
-            <div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;">
-                <strong>⚠️ Pre-Expiry Volatility:</strong> 
-               Tomorrow is Monthly Options Expiry. Expect positioning adjustments and potential volatility today.
-            </div>
-        `);
-    }
-
-    // FRIDAY: NFP (1st Friday)
+    // NFP Day Of (Friday)
     if (dayOfWeek === 5 && dateOfMonth <= 7) {
-        messages.push(`
-            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
-                <strong>🇺🇸 NFP Data Release:</strong> 
-                It is the 1st Friday of the month. Non-Farm Payrolls at 8:30 AM NY. 
-                Do not hold tight stops through the release.
-            </div>
-        `);
+        messages.push(`<div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;"><strong>🇺🇸 NFP DATA RELEASE:</strong> Non-Farm Payrolls at 8:30 AM NY. Do not hold tight stops through the release.</div>`);
     }
-
-    // FRIDAY: Monthly Expiry (Last Friday)
-    if (dayOfWeek === 5 && dateOfMonth === lastFridayDate) {
-        messages.push(`
-            <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
-                <strong>⚠️ Monthly Crypto Expiry:</strong> 
-                Last Friday of the month. Deribit/CME expiry may cause "pinning" or volatility.
-            </div>
-        `);
-    }
-
-    // --- QUARTERLY EARNINGS SEASON ---
-    // Occurs: Jan, April, July, October (Starts approx the 15th)
-    // Also spills into first week of: Feb, May, Aug, Nov
-    const monthIndex = today.getMonth(); // 0=Jan, 1=Feb, etc.
     
-    // Logic: If it is Jan(0), Apr(3), Jul(6), Oct(9) AND date is > 12th
-    // OR if it is Feb(1), May(4), Aug(7), Nov(10) AND date is < 7th
+    // Monthly Options Expiry
+    if (dayOfWeek === 4 && dateOfMonth === (lastFridayDate - 1)) {
+        messages.push(`<div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d;"><strong>⚠️ Pre-Expiry Volatility:</strong> Tomorrow is Monthly Options Expiry. Expect positioning adjustments today.</div>`);
+    }
+    if (dayOfWeek === 5 && dateOfMonth === lastFridayDate) {
+        messages.push(`<div class="alert-banner" style="background-color: #f8d7da; color: #721c24;"><strong>⚠️ Monthly Crypto Expiry:</strong> Last Friday of the month. Deribit/CME expiry may cause "pinning" or high volatility.</div>`);
+    }
+
+    // Earnings Season
     const isBigTechEarnings = 
         ([0, 3, 6, 9].includes(monthIndex) && dateOfMonth >= 12) || 
         ([1, 4, 7, 10].includes(monthIndex) && dateOfMonth <= 7);
@@ -3157,31 +3146,25 @@ function checkMarketAlerts() {
     if (isBigTechEarnings || forceTest) {
         messages.push(`
             <div class="alert-banner" style="background-color: #d1c4e9; color: #4527a0; border-color: #b39ddb;">
-                <strong>📊 Earnings Season Active:</strong> 
-                Markets are currently in peak quarterly earnings. 
-                Expect heavy volatility in indices (NAS100/SPX) around market open/close 
-                due to Big Tech reports (AAPL, AMZN, GOOGL, META, MSFT).
+                <strong>📊 Earnings Season Active:</strong> Expect heavy volatility in indices (NAS100) around market open/close due to Big Tech reports.
             </div>
         `);
     }
 
-    // Render alerts
+    // Final Render
     container.innerHTML = messages.length > 0 ? messages.join('') : '';
 }
-        
         
 function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
 
     const trades = data || {};
-    // Sort trades: Most recent close date first
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
     let rowsHtml = '';
     const MNQ_MULT = 2; 
 
-    // --- 1. RESOLVE PAGINATION ELEMENTS ---
     const paginationControlsId = isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls';
     const showAllButtonId = isTopstep ? 'ts-toggle-all-completed-trades' : 'toggle-all-completed-trades';
     const pageInfoSpanId = isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info';
@@ -3193,7 +3176,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     let showAll = isTopstep ? STATE.tsCompletedTradesShowAll : STATE.completedTradesShowAll;
     let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
 
-    // --- 2. DYNAMIC HEADERS ---
     const table = tbodyElement.closest('table');
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
@@ -3204,7 +3186,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th><th>RR(M)</th><th>Exit</th><th>Raw PnL</th><th>Fees</th><th>Net PnL</th><th>% (Net)</th><th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
     }
 
-    // --- 3. ORGANIZE DATA BY TRADING DAY & GROUP ---
     const tradesByDayAndGroup = {};
     const uniqueTradingDates = [];
 
@@ -3212,20 +3193,12 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         const t = trades[id];
         const tradingDayStr = getTradingDayString(t.closed_date, t.date);
         const groupId = t.groupId || 'Ungrouped';
-
-        if (!tradesByDayAndGroup[tradingDayStr]) { 
-            tradesByDayAndGroup[tradingDayStr] = {}; 
-            uniqueTradingDates.push(tradingDayStr); 
-        }
-        if (!tradesByDayAndGroup[tradingDayStr][groupId]) {
-            tradesByDayAndGroup[tradingDayStr][groupId] = [];
-        }
+        if (!tradesByDayAndGroup[tradingDayStr]) { tradesByDayAndGroup[tradingDayStr] = {}; uniqueTradingDates.push(tradingDayStr); }
+        if (!tradesByDayAndGroup[tradingDayStr][groupId]) { tradesByDayAndGroup[tradingDayStr][groupId] = []; }
         tradesByDayAndGroup[tradingDayStr][groupId].push({ ...t, dbId: id });
     });
-
     uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
 
-    // --- 4. PAGINATION & "SHOW ALL" BUTTON LOGIC ---
     let visibleDates = uniqueTradingDates;
     const currentLogicalTradingDay = getTradingDayString(Date.now(), Date.now());
 
@@ -3234,15 +3207,11 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         if (currentPage > totalPages) currentPage = totalPages;
         const start = currentPage - 1;
         visibleDates = uniqueTradingDates.slice(start, start + 1); 
-        
         if (pageInfoSpan) pageInfoSpan.textContent = `Page ${currentPage} of ${totalPages}`;
         if (showAllButton) showAllButton.style.display = 'none';
         if (paginationControls) paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
     } else {
-        // Only show "Today"
         visibleDates = uniqueTradingDates.filter(d => d === currentLogicalTradingDay);
-        
-        // Show button if any date exists in the database that is NOT today
         const hasHistory = uniqueTradingDates.some(d => d !== currentLogicalTradingDay);
         if (showAllButton) {
             showAllButton.style.display = hasHistory ? 'block' : 'none';
@@ -3251,32 +3220,26 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         if (paginationControls) paginationControls.style.display = 'none';
     }
 
-    // --- 5. RENDER LOOP ---
     visibleDates.forEach(dateStr => {
         const groupsInDate = tradesByDayAndGroup[dateStr];
         let dailyPnL = 0, dailyWins = 0, dailyLosses = 0;
-
-        // Pre-calculate daily stats for the Date Header
-        Object.values(groupsInDate).forEach(gTrades => {
-            gTrades.forEach(t => { 
-                const net = parseFloat(t.net_result || 0);
-                dailyPnL += net;
-                if (net >= 0) dailyWins++; else dailyLosses++;
-            });
-        });
+        Object.values(groupsInDate).forEach(g => g.forEach(t => { 
+            dailyPnL += parseFloat(t.net_result || 0);
+            if (parseFloat(t.net_result) >= 0) dailyWins++; else dailyLosses++;
+        }));
 
         const safeDateKey = isTopstep ? `ts-${dateStr.replace(/[\/\s,]/g, '-')}` : dateStr.replace(/[\/\s,]/g, '-'); 
         const dailyNote = STATE.dailyNotes[safeDateKey] || '';
 
-        // --- DATE SUMMARY ROW ---
+        // DATE SUMMARY ROW (Updated to full Wins/Losses wording)
         rowsHtml += `
         <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
             <td colspan="12" style="text-align: left; padding: 10px 20px;">
                 <strong>Date: ${dateStr}</strong> | 
-                <span style="color:var(--green-text)">${dailyWins}W</span> / <span style="color:var(--red-text)">${dailyLosses}L</span> | 
+                <span style="color:var(--green-text)">${dailyWins} Wins</span> / <span style="color:var(--red-text)">${dailyLosses} Losses</span> | 
                 Daily PnL: <span style="color: ${dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${dailyPnL.toFixed(2)}</span>
             </td>
-            <td colspan="8" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style: italic; font-size: 12px; color:var(--subtle-text);">${dailyNote || 'Add daily summary...'}</td>
+            <td colspan="8" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style: italic; font-size: 12px; color:var(--subtle-text);">${dailyNote || 'Daily note...'}</td>
             <td colspan="5"></td>
         </tr>`;
 
@@ -3311,7 +3274,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             if (gType === 'Long') diffColor = priceDiff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
             else if (gType === 'Short') diffColor = priceDiff <= 0 ? 'var(--green-text)' : 'var(--red-text)';
 
-            // --- DETAILED GROUP HEADER ---
+            // RICH GROUP HEADER (Updated to full Wins/Losses wording)
             rowsHtml += `
             <tr class="completed-group-header">
                 <td colspan="25" style="padding: 8px 15px; border-bottom:1px solid var(--border-color);">
@@ -3320,7 +3283,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                         <span style="color:var(--border-color);">|</span>
                         <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)} (${gPct.toFixed(2)}%)</span></span>
                         <span style="color:var(--border-color);">|</span>
-                        <span>${gWins}W / ${gLosses}L</span>
+                        <span>${gWins} Wins / ${gLosses} Losses</span>
                         <span style="color:var(--border-color);">|</span>
                         <span style="color:var(--subtle-text);">Vol: ${isTopstep ? gVol+' Contr' : '$'+gVol.toLocaleString()} (${gQty.toFixed(isTopstep ? 0 : 4)} ${gSymbol})</span>
                         <span style="color:var(--border-color);">|</span>
@@ -3332,7 +3295,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 </td>
             </tr>`;
 
-            // --- INDIVIDUAL TRADE ROWS ---
             groupTrades.forEach(trade => {
                 const m = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
                 const fees = isTopstep ? (parseFloat(trade.commissions) || 1.24) : (parseFloat(trade.entry_fee || 0) + parseFloat(trade.exit_fee || 0));
@@ -3365,16 +3327,13 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                     <td class="note-cell" data-id="${trade.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${trade.note2 || ''}</td>
                     <td class="note-cell" data-id="${trade.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${trade.note3 || ''}</td>
                     ${renderAttachmentThumbnails(trade, trade.dbId, 'completed', isTopstep)}
-                    <td class="action-buttons">
-                        <button class="attach-image-btn" data-id="${trade.dbId}" data-type="completed">Pic</button>
-                        <button class="delete-btn-completed" data-id="${trade.dbId}">Del</button>
-                    </td>
+                    <td class="action-buttons"><button class="attach-image-btn" data-id="${trade.dbId}" data-type="completed">Pic</button><button class="delete-btn-completed" data-id="${trade.dbId}">Del</button></td>
                 </tr>`;
             });
         });
     });
 
-    tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px;"></td></tr>';
+    tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px;">No records for today.</td></tr>';
     setTimeout(() => adjustCollapsibleSize(tbodyElement), 50);
 }
         function renderDateNavigation() {
