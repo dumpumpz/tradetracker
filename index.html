@@ -2183,18 +2183,20 @@ function autoResizeTextarea(textarea) {
 }
 
 function resizeParentCollapsible(elementInside) {
+    if (!elementInside) return;
     const section = elementInside.closest('.collapsible-section');
     if (section && section.classList.contains('is-open')) {
         const content = section.querySelector('.collapsible-content');
         if (content) {
-            // FIX: We temporarily remove the limit to get the real size
+            // Force the container to be large enough to show everything
+            // Setting it to 'none' ensures that as images load, the box grows naturally
             content.style.maxHeight = 'none';
-            // Then set it to the scrollHeight + buffer
-            content.style.maxHeight = (content.scrollHeight + 50) + 'px';
+            
+            // Optional: If you still want the sliding animation capability for the NEXT toggle:
+            // content.style.maxHeight = (content.scrollHeight + 100) + 'px';
         }
     }
 }
-
 const debouncedResizeParent = debounce(resizeParentCollapsible, 250);
 
 const formatCurrency = (num, symbol = '$') => { 
@@ -3919,18 +3921,35 @@ function getFeeRates(exchangeName) {
             // --- GLOBAL CLICK HANDLER (COLLAPSIBLES & PAGINATION) ---
             document.body.addEventListener('click', (e) => {
                 // Collapsible Logic
-                const header = e.target.closest('.collapsible-header');
-                if (header) {
-                    const section = header.parentElement;
-                    const content = section.querySelector('.collapsible-content');
-                    const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-                    section.classList.toggle('is-open');
-                    toggleBtn.textContent = section.classList.contains('is-open') ? '−' : '+';
-                    if (section.classList.contains('is-open')) {
-                        content.style.maxHeight = content.scrollHeight + 'px';
-                    } else { content.style.maxHeight = '0px'; }
-                }
-
+               // Inside the global click handler...
+const header = e.target.closest('.collapsible-header');
+if (header) {
+    const section = header.parentElement;
+    const content = section.querySelector('.collapsible-content');
+    const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+    
+    section.classList.toggle('is-open');
+    const isOpen = section.classList.contains('is-open');
+    toggleBtn.textContent = isOpen ? '−' : '+';
+    
+    if (isOpen) {
+        // Start animation
+        content.style.maxHeight = content.scrollHeight + "px";
+        
+        // --- ADD THIS: After the 0.4s CSS transition, remove the cap ---
+        setTimeout(() => {
+            if (section.classList.contains('is-open')) {
+                content.style.maxHeight = "none";
+            }
+        }, 450);
+    } else { 
+        // To close it, we must set it back to a pixel value first, then 0
+        content.style.maxHeight = content.scrollHeight + "px";
+        setTimeout(() => {
+            content.style.maxHeight = '0px';
+        }, 10);
+    }
+}
                 if (handleAttachmentActions(e)) return;
 
                 // Image Library Dispatcher
@@ -4746,7 +4765,16 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
         imagesHtml = allImageIds.map(id => createImageHtml(id)).join('');
     }
 
-    containerElement.innerHTML = imagesHtml || '<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 20px;">No images found.</div>';
+   containerElement.innerHTML = imagesHtml || '<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 20px;">No images found.</div>';
+
+    // --- FIX FOR EXPANSION ---
+    // We run it once immediately
+    resizeParentCollapsible(containerElement);
+
+    // And once again after a short delay to account for image rendering
+    setTimeout(() => {
+        resizeParentCollapsible(containerElement);
+    }, 300); 
 }
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); 
