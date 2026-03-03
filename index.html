@@ -3170,17 +3170,18 @@ function checkMarketAlerts() {
 }
         
         
- function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
+function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
 
     const trades = data || {};
+    // Sort trades: Most recent close date first
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
     let rowsHtml = '';
     const MNQ_MULT = 2; 
 
-    // Pagination Selectors
+    // --- 1. RESOLVE PAGINATION ELEMENTS ---
     const paginationControlsId = isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls';
     const showAllButtonId = isTopstep ? 'ts-toggle-all-completed-trades' : 'toggle-all-completed-trades';
     const pageInfoSpanId = isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info';
@@ -3192,7 +3193,7 @@ function checkMarketAlerts() {
     let showAll = isTopstep ? STATE.tsCompletedTradesShowAll : STATE.completedTradesShowAll;
     let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
 
-    // --- 1. HEADERS ---
+    // --- 2. DYNAMIC HEADERS ---
     const table = tbodyElement.closest('table');
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
@@ -3203,7 +3204,7 @@ function checkMarketAlerts() {
         thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th><th>RR(M)</th><th>Exit</th><th>Raw PnL</th><th>Fees</th><th>Net PnL</th><th>% (Net)</th><th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
     }
 
-    // --- 2. ORGANIZE DATA ---
+    // --- 3. ORGANIZE DATA BY TRADING DAY & GROUP ---
     const tradesByDayAndGroup = {};
     const uniqueTradingDates = [];
 
@@ -3211,42 +3212,73 @@ function checkMarketAlerts() {
         const t = trades[id];
         const tradingDayStr = getTradingDayString(t.closed_date, t.date);
         const groupId = t.groupId || 'Ungrouped';
-        if (!tradesByDayAndGroup[tradingDayStr]) { tradesByDayAndGroup[tradingDayStr] = {}; uniqueTradingDates.push(tradingDayStr); }
-        if (!tradesByDayAndGroup[tradingDayStr][groupId]) { tradesByDayAndGroup[tradingDayStr][groupId] = []; }
+
+        if (!tradesByDayAndGroup[tradingDayStr]) { 
+            tradesByDayAndGroup[tradingDayStr] = {}; 
+            uniqueTradingDates.push(tradingDayStr); 
+        }
+        if (!tradesByDayAndGroup[tradingDayStr][groupId]) {
+            tradesByDayAndGroup[tradingDayStr][groupId] = [];
+        }
         tradesByDayAndGroup[tradingDayStr][groupId].push({ ...t, dbId: id });
     });
+
     uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
 
-    // Pagination Logic
+    // --- 4. PAGINATION & "SHOW ALL" BUTTON LOGIC ---
     let visibleDates = uniqueTradingDates;
+    const currentLogicalTradingDay = getTradingDayString(Date.now(), Date.now());
+
     if (showAll) {
         const totalPages = uniqueTradingDates.length;
+        if (currentPage > totalPages) currentPage = totalPages;
         const start = currentPage - 1;
         visibleDates = uniqueTradingDates.slice(start, start + 1); 
+        
         if (pageInfoSpan) pageInfoSpan.textContent = `Page ${currentPage} of ${totalPages}`;
         if (showAllButton) showAllButton.style.display = 'none';
         if (paginationControls) paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
     } else {
-        const currentLogicalTradingDay = getTradingDayString(Date.now(), Date.now());
+        // Only show "Today"
         visibleDates = uniqueTradingDates.filter(d => d === currentLogicalTradingDay);
-        if (showAllButton) showAllButton.style.display = uniqueTradingDates.length > 1 ? 'block' : 'none';
+        
+        // Show button if any date exists in the database that is NOT today
+        const hasHistory = uniqueTradingDates.some(d => d !== currentLogicalTradingDay);
+        if (showAllButton) {
+            showAllButton.style.display = hasHistory ? 'block' : 'none';
+            showAllButton.textContent = "Show All History";
+        }
         if (paginationControls) paginationControls.style.display = 'none';
     }
 
-    // --- 3. RENDER LOOP ---
+    // --- 5. RENDER LOOP ---
     visibleDates.forEach(dateStr => {
         const groupsInDate = tradesByDayAndGroup[dateStr];
         let dailyPnL = 0, dailyWins = 0, dailyLosses = 0;
-        Object.values(groupsInDate).forEach(g => g.forEach(t => { 
-            dailyPnL += parseFloat(t.net_result || 0);
-            if (parseFloat(t.net_result) >= 0) dailyWins++; else dailyLosses++;
-        }));
+
+        // Pre-calculate daily stats for the Date Header
+        Object.values(groupsInDate).forEach(gTrades => {
+            gTrades.forEach(t => { 
+                const net = parseFloat(t.net_result || 0);
+                dailyPnL += net;
+                if (net >= 0) dailyWins++; else dailyLosses++;
+            });
+        });
 
         const safeDateKey = isTopstep ? `ts-${dateStr.replace(/[\/\s,]/g, '-')}` : dateStr.replace(/[\/\s,]/g, '-'); 
         const dailyNote = STATE.dailyNotes[safeDateKey] || '';
 
-        // DATE SUMMARY ROW
-        rowsHtml += `<tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);"><td colspan="12" style="text-align: left; padding: 10px 20px;"><strong>Date: ${dateStr}</strong> | <span style="color:var(--green-text)">${dailyWins}W</span> / <span style="color:var(--red-text)">${dailyLosses}L</span> | Daily PnL: <span style="color: ${dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${dailyPnL.toFixed(2)}</span></td><td colspan="8" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style: italic; font-size: 12px; color:var(--subtle-text);">${dailyNote || 'Daily note...'}</td><td colspan="5"></td></tr>`;
+        // --- DATE SUMMARY ROW ---
+        rowsHtml += `
+        <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
+            <td colspan="12" style="text-align: left; padding: 10px 20px;">
+                <strong>Date: ${dateStr}</strong> | 
+                <span style="color:var(--green-text)">${dailyWins}W</span> / <span style="color:var(--red-text)">${dailyLosses}L</span> | 
+                Daily PnL: <span style="color: ${dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${dailyPnL.toFixed(2)}</span>
+            </td>
+            <td colspan="8" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style: italic; font-size: 12px; color:var(--subtle-text);">${dailyNote || 'Add daily summary...'}</td>
+            <td colspan="5"></td>
+        </tr>`;
 
         Object.keys(groupsInDate).forEach(groupId => {
             const groupTrades = groupsInDate[groupId];
@@ -3279,7 +3311,7 @@ function checkMarketAlerts() {
             if (gType === 'Long') diffColor = priceDiff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
             else if (gType === 'Short') diffColor = priceDiff <= 0 ? 'var(--green-text)' : 'var(--red-text)';
 
-            // RICH GROUP HEADER
+            // --- DETAILED GROUP HEADER ---
             rowsHtml += `
             <tr class="completed-group-header">
                 <td colspan="25" style="padding: 8px 15px; border-bottom:1px solid var(--border-color);">
@@ -3300,7 +3332,7 @@ function checkMarketAlerts() {
                 </td>
             </tr>`;
 
-            // CHILD ROWS
+            // --- INDIVIDUAL TRADE ROWS ---
             groupTrades.forEach(trade => {
                 const m = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
                 const fees = isTopstep ? (parseFloat(trade.commissions) || 1.24) : (parseFloat(trade.entry_fee || 0) + parseFloat(trade.exit_fee || 0));
@@ -3333,13 +3365,16 @@ function checkMarketAlerts() {
                     <td class="note-cell" data-id="${trade.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${trade.note2 || ''}</td>
                     <td class="note-cell" data-id="${trade.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${trade.note3 || ''}</td>
                     ${renderAttachmentThumbnails(trade, trade.dbId, 'completed', isTopstep)}
-                    <td class="action-buttons"><button class="attach-image-btn" data-id="${trade.dbId}" data-type="completed">Pic</button><button class="delete-btn-completed" data-id="${trade.dbId}">Del</button></td>
+                    <td class="action-buttons">
+                        <button class="attach-image-btn" data-id="${trade.dbId}" data-type="completed">Pic</button>
+                        <button class="delete-btn-completed" data-id="${trade.dbId}">Del</button>
+                    </td>
                 </tr>`;
             });
         });
     });
 
-    tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px;">No records.</td></tr>';
+    tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px;">No trades for today. Click "Show All History" to view older records.</td></tr>';
     setTimeout(() => adjustCollapsibleSize(tbodyElement), 50);
 }
         function renderDateNavigation() {
