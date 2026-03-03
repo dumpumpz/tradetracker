@@ -3771,22 +3771,22 @@ function getFeeRates(exchangeName) {
             renderNotes(STATE.generalNotes);
         }
 
-      function setupEventListeners() {
-            // Theme Toggle
+    function setupEventListeners() {
+            // 1. Theme Toggle
             DOM.themeToggle.addEventListener('change', (e) => {
                 const theme = e.target.checked ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
                 localStorage.setItem('theme', theme);
             });
 
-            // --- INDEPENDENT TOPSTEP TRADING SETUPS (Text) ---
+            // 2. Independent Topstep Trading Setups (Text Areas)
             const tsPrimary = document.getElementById('ts-primary-setups-notes');
             const tsSecondary = document.getElementById('ts-secondary-setups-notes');
 
             if (tsPrimary) {
                 tsPrimary.addEventListener('input', (e) => {
-                    autoResizeTextarea(e.target);      // Grow box
-                    resizeParentCollapsible(e.target); // Grow drawer
+                    autoResizeTextarea(e.target);
+                    resizeParentCollapsible(e.target);
                     if (!STATE.isMasterUser) return;
                     clearTimeout(STATE.tsSetups1Timer);
                     STATE.tsSetups1Timer = setTimeout(() => {
@@ -3797,8 +3797,8 @@ function getFeeRates(exchangeName) {
 
             if (tsSecondary) {
                 tsSecondary.addEventListener('input', (e) => {
-                    autoResizeTextarea(e.target);      // Grow box
-                    resizeParentCollapsible(e.target); // Grow drawer
+                    autoResizeTextarea(e.target);
+                    resizeParentCollapsible(e.target);
                     if (!STATE.isMasterUser) return;
                     clearTimeout(STATE.tsSetups2Timer);
                     STATE.tsSetups2Timer = setTimeout(() => {
@@ -3807,7 +3807,7 @@ function getFeeRates(exchangeName) {
                 });
             }
 
-            // --- INDEPENDENT TOPSTEP IMAGE UPLOAD ---
+            // 3. Independent Topstep Image Upload
             const tsSetupsUpload = document.getElementById('ts-setups-image-upload');
             if (tsSetupsUpload) {
                 tsSetupsUpload.addEventListener('change', (e) => {
@@ -3820,31 +3820,22 @@ function getFeeRates(exchangeName) {
                 });
             }
 
-            // Tab Navigation Logic
+            // 4. Tab Navigation Logic
             DOM.tabs.addEventListener('click', (e) => {
                 if (!e.target.matches('.tab-link')) return;
-                
                 document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
                 e.target.classList.add('active');
-                
                 const tabId = e.target.dataset.tab;
                 const newTabContent = document.getElementById(`${tabId}-tab`);
                 
                 if (newTabContent) {
                     newTabContent.classList.add('active');
                     setTimeout(() => {
-                        // Special handling for Strategy expansion
                         if (tabId === 'strategy') {
                             const stratNote = document.getElementById('strategy-notes-entry');
-                            if (stratNote) {
-                                autoResizeTextarea(stratNote);
-                                resizeParentCollapsible(stratNote);
-                            }
+                            if (stratNote) { autoResizeTextarea(stratNote); resizeParentCollapsible(stratNote); }
                         }
-                        // Resize all textareas in active tab
                         newTabContent.querySelectorAll('textarea').forEach(ta => autoResizeTextarea(ta));
-
-                        // Ensure open drawers are sized correctly
                         newTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
                             const content = section.querySelector('.collapsible-content');
                             if(content) content.style.maxHeight = content.scrollHeight + 'px'; 
@@ -3856,12 +3847,11 @@ function getFeeRates(exchangeName) {
                         newTabContent.dataset.sectionsInitialized = 'true'; 
                     }
                 }
-                // Show/Hide Performance Stats Panel
                 DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'topstep') ? 'block' : 'none';
                 if (tabId === 'journal') { updateJournalView(); renderDateNavigation(); }
             });
 
-            // Stats FAB Logic
+            // 5. Performance Stats Toggle
             DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
             DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
             document.addEventListener('click', (e) => {
@@ -3870,7 +3860,7 @@ function getFeeRates(exchangeName) {
                 }
             });
 
-            // --- TABLE ACTION LISTENERS (WINS, LOSSES, MERGE, DELETE) ---
+            // 6. Main Table Actions (Win/Loss/Del/Attach)
             if (DOM.tradesTbody) DOM.tradesTbody.addEventListener('click', handleTradeAction);
             if (DOM.completedTradesTbody) DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
             if (DOM.restingTradesTbody) DOM.restingTradesTbody.addEventListener('click', handleTradeAction);
@@ -3878,14 +3868,22 @@ function getFeeRates(exchangeName) {
             if (DOM.tsCompletedTradesTbody) DOM.tsCompletedTradesTbody.addEventListener('click', handleTradeAction);
             if (DOM.tsRestingTradesTbody) DOM.tsRestingTradesTbody.addEventListener('click', handleTradeAction);
 
-            // --- INLINE EDITING (BLUR LISTENERS) ---
+            // 7. --- INLINE EDITING (Saves Notes/Prices on Blur) ---
             document.body.addEventListener('blur', (e) => {
+                // Handle Entry/Stop/Target/Size edits
                 if (e.target.matches('.editable-cell')) {
                     if (e.target.closest('#resting-trades-tbody, #ts-resting-trades-tbody')) handleRestingTradeUpdate(e.target);
                     else handleLiveTradeUpdate(e.target);
                 }
+                // Handle Live Notes
                 if (e.target.matches('.editable-live-note')) handleLiveNoteUpdate(e.target);
-                if (e.target.matches('.editable-completed-cell')) handleCompletedTradeUpdate(e.target);
+                
+                // --- CRITICAL: Handle Completed Trades Notes & Prices ---
+                if (e.target.matches('.editable-completed-cell')) {
+                    handleCompletedTradeUpdate(e.target);
+                }
+
+                // Handle Daily Summary Notes
                 if (e.target.matches('.editable-daily-note')) {
                     if (!STATE.isMasterUser) return;
                     dbRefs.dailyNotes.child(e.target.dataset.dateKey).set(e.target.innerText.trim()).then(() => {
@@ -3895,208 +3893,150 @@ function getFeeRates(exchangeName) {
                 }
             }, true);
 
-            // --- FORM SUBMITS ---
+            // 8. Form Submit Handlers
             if (DOM.addTradeForm) DOM.addTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, false));
             if (DOM.tsAddTradeForm) DOM.tsAddTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, true));
 
-            // --- GLOBAL CLICK HANDLER (COLLAPSIBLES & PAGINATION) ---
+            // 9. Global Click Handler (Collapsibles, Pagination, Image Dispatcher)
             document.body.addEventListener('click', (e) => {
-                // Collapsible Logic
-               // Inside the global click handler...
-const header = e.target.closest('.collapsible-header');
-if (header) {
-    const section = header.parentElement;
-    const content = section.querySelector('.collapsible-content');
-    const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-    
-    section.classList.toggle('is-open');
-    const isOpen = section.classList.contains('is-open');
-    toggleBtn.textContent = isOpen ? '−' : '+';
-    
-    if (isOpen) {
-        // Start animation
-        content.style.maxHeight = content.scrollHeight + "px";
-        
-        // --- ADD THIS: After the 0.4s CSS transition, remove the cap ---
-        setTimeout(() => {
-            if (section.classList.contains('is-open')) {
-                content.style.maxHeight = "none";
-            }
-        }, 450);
-    } else { 
-        // To close it, we must set it back to a pixel value first, then 0
-        content.style.maxHeight = content.scrollHeight + "px";
-        setTimeout(() => {
-            content.style.maxHeight = '0px';
-        }, 10);
-    }
-}
+                const header = e.target.closest('.collapsible-header');
+                if (header) {
+                    const section = header.parentElement;
+                    const content = section.querySelector('.collapsible-content');
+                    const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+                    section.classList.toggle('is-open');
+                    const isOpen = section.classList.contains('is-open');
+                    toggleBtn.textContent = isOpen ? '−' : '+';
+                    if (isOpen) {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = "none"; }, 450);
+                    } else { 
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        setTimeout(() => { content.style.maxHeight = '0px'; }, 10);
+                    }
+                }
+
                 if (handleAttachmentActions(e)) return;
 
-                // Image Library Dispatcher
                 if (e.target.closest('#setups-image-container, #ts-setups-image-container, #image-library-container, #strategy-image-container')) {
                     handleGenericImageLibraryClick(e);
                 }
 
-                // Completed Trades Pagination (Tracker)
+                // Pagination: Crypto Completed
                 else if (e.target.id === 'toggle-all-completed-trades') {
-                    STATE.completedTradesShowAll = true;
-                    STATE.completedTradesCurrentPage = 1;
+                    STATE.completedTradesShowAll = true; STATE.completedTradesCurrentPage = 1;
                     renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
                 } else if (e.target.id === 'completed-trades-prev-page') {
-                    if (STATE.completedTradesCurrentPage > 1) { 
-                        STATE.completedTradesCurrentPage--; 
-                        renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);  
-                    }
+                    if (STATE.completedTradesCurrentPage > 1) { STATE.completedTradesCurrentPage--; renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); }
                 } else if (e.target.id === 'completed-trades-next-page') {
-                    const totalPages = Math.ceil(Object.keys(STATE.allCompletedTrades).length / STATE.completedTradesItemsPerPage);
-                    if (STATE.completedTradesCurrentPage < totalPages) { 
-                        STATE.completedTradesCurrentPage++; 
-                        renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);  
-                    }
+                    const tPages = Math.ceil(Object.keys(STATE.allCompletedTrades).length / STATE.completedTradesItemsPerPage);
+                    if (STATE.completedTradesCurrentPage < tPages) { STATE.completedTradesCurrentPage++; renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); }
                 } 
 
-                // Completed Trades Pagination (Topstep)
+                // Pagination: Topstep Completed
                 else if (e.target.id === 'ts-toggle-all-completed-trades') {
-                    STATE.tsCompletedTradesShowAll = true;
-                    STATE.tsCompletedTradesCurrentPage = 1;
+                    STATE.tsCompletedTradesShowAll = true; STATE.tsCompletedTradesCurrentPage = 1;
                     renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true);
                 } else if (e.target.id === 'ts-completed-trades-prev-page') {
-                    if (STATE.tsCompletedTradesCurrentPage > 1) { 
-                        STATE.tsCompletedTradesCurrentPage--; 
-                        renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true);
-                    }
+                    if (STATE.tsCompletedTradesCurrentPage > 1) { STATE.tsCompletedTradesCurrentPage--; renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true); }
                 } else if (e.target.id === 'ts-completed-trades-next-page') {
-                    const totalPages = Math.ceil(Object.keys(STATE.allTsCompletedTrades).length / (STATE.completedTradesItemsPerPage || 5));
-                    if (STATE.tsCompletedTradesCurrentPage < totalPages) { 
-                        STATE.tsCompletedTradesCurrentPage++; 
-                        renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true);
-                    }
+                    const tPagesTS = Math.ceil(Object.keys(STATE.allTsCompletedTrades).length / 5);
+                    if (STATE.tsCompletedTradesCurrentPage < tPagesTS) { STATE.tsCompletedTradesCurrentPage++; renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true); }
                 }
 
-                // --- SYNCED GALLERY PAGINATION (Crypto & Topstep) ---
-// Inside your global click listener document.body.addEventListener('click', (e) => { ... })
-
-// --- Inside your global click listener ---
-
-// 1. CRYPTO BUTTONS (Independent)
-else if (e.target.id === 'toggle-all-setups-images') {
-    STATE.setupsImagesShowAll = true;
-    STATE.setupsImagesCurrentPage = 1;
-    renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-} 
-else if (e.target.id === 'setups-images-prev-page') {
-    if (STATE.setupsImagesCurrentPage > 1) { 
-        STATE.setupsImagesCurrentPage--; 
-        renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-    }
-} 
-else if (e.target.id === 'setups-images-next-page') {
-    const totalDays = new Set(Object.values(STATE.allSetupsImages).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
-    if (STATE.setupsImagesCurrentPage < totalDays) { 
-        STATE.setupsImagesCurrentPage++;
-        renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-    }
-}
-
-// 2. TOPSTEP BUTTONS (Independent)
-else if (e.target.id === 'ts-toggle-all-setups-images') {
-    STATE.tsSetupsImagesShowAll = true;
-    STATE.tsSetupsImagesCurrentPage = 1;
-    const tsC = document.getElementById('ts-setups-image-container');
-    renderGenericImageLibrary(STATE.allTsSetupsImages, tsC, 'ts_setups_images');
-} 
-else if (e.target.id === 'ts-setups-images-prev-page') {
-    if (STATE.tsSetupsImagesCurrentPage > 1) { 
-        STATE.tsSetupsImagesCurrentPage--; 
-        const tsC = document.getElementById('ts-setups-image-container');
-        renderGenericImageLibrary(STATE.allTsSetupsImages, tsC, 'ts_setups_images');
-    }
-} 
-else if (e.target.id === 'ts-setups-images-next-page') {
-    const totalDaysTS = new Set(Object.values(STATE.allTsSetupsImages).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
-    if (STATE.tsSetupsImagesCurrentPage < totalDaysTS) { 
-        STATE.tsSetupsImagesCurrentPage++;
-        const tsC = document.getElementById('ts-setups-image-container');
-        renderGenericImageLibrary(STATE.allTsSetupsImages, tsC, 'ts_setups_images');
-    }
-}
+                // --- INDEPENDENT GALLERY PAGINATION ---
+                // Crypto Buttons
+                else if (e.target.id === 'toggle-all-setups-images') {
+                    STATE.setupsImagesShowAll = true; STATE.setupsImagesCurrentPage = 1;
+                    renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+                } else if (e.target.id === 'setups-images-prev-page') {
+                    if (STATE.setupsImagesCurrentPage > 1) { STATE.setupsImagesCurrentPage--; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
+                } else if (e.target.id === 'setups-images-next-page') {
+                    const totalDays = new Set(Object.values(STATE.allSetupsImages).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
+                    if (STATE.setupsImagesCurrentPage < totalDays) { STATE.setupsImagesCurrentPage++; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
+                }
+                // Topstep Buttons
+                else if (e.target.id === 'ts-toggle-all-setups-images') {
+                    STATE.tsSetupsImagesShowAll = true; STATE.tsSetupsImagesCurrentPage = 1;
+                    renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
+                } else if (e.target.id === 'ts-setups-images-prev-page') {
+                    if (STATE.tsSetupsImagesCurrentPage > 1) { STATE.tsSetupsImagesCurrentPage--; renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images'); }
+                } else if (e.target.id === 'ts-setups-images-next-page') {
+                    const totalDaysTS = new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
+                    if (STATE.tsSetupsImagesCurrentPage < totalDaysTS) { STATE.tsSetupsImagesCurrentPage++; renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images'); }
+                }
             });
 
-            // --- GENERAL MODALS & NOTES ---
+            // 10. General Note Modals
             if (DOM.createNewNoteBtn) {
                 DOM.createNewNoteBtn.addEventListener('click', () => {
                     if (!STATE.isMasterUser) return;
-                    const title = prompt("Enter a title for the new note:");
+                    const title = prompt("New note title:");
                     if (title?.trim()) dbRefs.generalNotes.push({ title: title.trim(), content: '', timestamp: firebase.database.ServerValue.TIMESTAMP });
                 });
             }
-
             if (DOM.notesContainer) {
                 DOM.notesContainer.addEventListener('click', (e) => {
                     const header = e.target.closest('.note-item-header');
-                    const deleteBtn = e.target.closest('.note-delete-btn');
-                    if (deleteBtn && STATE.isMasterUser) { 
-                        e.stopPropagation(); 
-                        if (confirm(`Delete note?`)) dbRefs.generalNotes.child(deleteBtn.dataset.noteId).remove(); 
-                        return; 
-                    }
+                    const del = e.target.closest('.note-delete-btn');
+                    if (del && STATE.isMasterUser) { e.stopPropagation(); if (confirm(`Delete?`)) dbRefs.generalNotes.child(del.dataset.noteId).remove(); return; }
                     if (header) openNoteForEditing(header.dataset.noteId); 
                 });
             }
-
             DOM.noteModalClose.addEventListener('click', closeNoteModal);
-            DOM.noteEditModal.addEventListener('click', e => { if (e.target.id === 'note-edit-modal') closeNoteModal(); });
             DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
             DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
 
-            // Setups Notes (Original Tracker Only)
+            // 11. Tracker Playbook Notes
             DOM.primarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); });
             DOM.secondarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); });
             DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
             DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
 
-            // Generic Uploads & Modals
+            // 12. Uploads & Modals
             DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
             DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
             DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
             DOM.strategyImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'strategy_images', DOM.strategyUploadProgress, dbRefs.strategyImages));
-
             DOM.modalClose.addEventListener('click', closeModal);
-            DOM.imageModal.addEventListener('click', (e) => { if (e.target.id === 'image-modal') closeModal(); });
             DOM.modalPrevBtn.addEventListener('click', () => { if (STATE.modalImageIndex > 0) { STATE.modalImageIndex--; displayModalImage(); } });
             DOM.modalNextBtn.addEventListener('click', () => { if (STATE.modalImageIndex < STATE.modalImageGallery.length - 1) { STATE.modalImageIndex++; displayModalImage(); } });
 
-            // Journal Logic
+            // 13. Journal Specific
             [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => { updateJournalView(false); renderDateNavigation(); }));
             DOM.dateButtonsContainer.addEventListener('click', (e) => { 
                 if (e.target.matches('.date-nav-btn')) { 
                     const parts = e.target.dataset.date.split('-'); 
                     STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); 
-                    STATE.centerDate = new Date(STATE.selectedDate); 
-                    updateJournalView(); renderDateNavigation(); 
+                    STATE.centerDate = new Date(STATE.selectedDate); updateJournalView(); renderDateNavigation(); 
                 } 
             });
-            DOM.datePrevBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() - 5); renderDateNavigation(); });
-            DOM.dateNextBtn.addEventListener('click', () => { STATE.centerDate.setUTCDate(STATE.centerDate.getUTCDate() + 5); renderDateNavigation(); });
             DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); saveJournalEntry(); });
             DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
             
-            // Strategy Logic
+            // 14. Strategy Notes
             DOM.strategyNotesEntry.addEventListener('input', (e) => {
-                autoResizeTextarea(e.target);
+                autoResizeTextarea(e.target); resizeParentCollapsible(e.target);
                 clearTimeout(STATE.strategySaveTimer);
-                STATE.strategySaveTimer = setTimeout(() => {
-                    if (!STATE.isMasterUser) return;
-                    DOM.strategySaveStatus.textContent = "Saving...";
-                    dbRefs.strategyNotes.set(e.target.value).then(() => {
-                        DOM.strategySaveStatus.textContent = "Saved.";
-                        setTimeout(() => DOM.strategySaveStatus.textContent = "", 2000);
-                    });
-                }, 1000);
+                STATE.strategySaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.strategyNotes.set(e.target.value); }, 1000);
             });
 
-            // Tab-Specific Image Click Handler
+            // 15. --- TOPSTEP TAB SPECIFIC (For zooms/bins) ---
+            const tsTabEl = document.getElementById('topstep-tab');
+            if (tsTabEl) {
+                tsTabEl.addEventListener('click', (e) => {
+                    if (e.target.closest('.delete-library-image')) { handleLibraryActions(e, 'ts_setups_images', dbRefs.tsSetupsImages); return; }
+                    if (e.target.closest('.edit-caption-btn')) { handleLibraryActions(e, 'ts_setups_images', dbRefs.tsSetupsImages); return; }
+                    const img = e.target.closest('#ts-setups-image-container img');
+                    if (img) {
+                        const container = document.getElementById('ts-setups-image-container');
+                        const allImg = container.querySelectorAll('img');
+                        openImageModal(Array.from(allImg).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })), Array.from(allImg).indexOf(img));
+                    }
+                });
+            }
+
+            // 16. Journal Tab Dispatcher
             DOM.journalTab.addEventListener('click', (e) => {
                 if (e.target.closest('.delete-journal-image')) { handleImageDelete(e); return; }
                 const img = e.target.closest('#journal-images-container img');
@@ -4106,13 +4046,12 @@ else if (e.target.id === 'ts-setups-images-next-page') {
                 }
             });
 
-            // Journal Drag & Drop
+            // 17. Drag and Drop
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => { DOM.journalTab.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }); });
             ['dragenter', 'dragover'].forEach(ev => { DOM.journalTab.addEventListener(ev, () => { if (STATE.isMasterUser) DOM.journalTab.classList.add('drag-over'); }); });
             DOM.journalTab.addEventListener('dragleave', () => DOM.journalTab.classList.remove('drag-over'));
             DOM.journalTab.addEventListener('drop', (e) => { DOM.journalTab.classList.remove('drag-over'); if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); });
         }
-
         function setupSpinbox(inputElement) {
             const handleAdjustment = (multiplier) => {
                 let currentValue = parseFloat(inputElement.value) || 0;
@@ -4320,19 +4259,22 @@ function handleAddTradeSubmit(e, isTopstep = false) {
     }).catch(error => alert(`Error adding trade: ${error.message}`));
 }
 
-     function handleCompletedTradeUpdate(cell) {
+   function handleCompletedTradeUpdate(cell) {
     if (!STATE.isMasterUser) return;
+
+    // 1. Identify which tab we are in to use the correct Database Reference
     const isTopstep = cell.closest('#topstep-tab') !== null;
     const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
 
     const tradeId = cell.dataset.id;
-    const field = cell.dataset.field;
-    let newValue = cell.textContent.trim();
+    const field = cell.dataset.field; // This will be 'exit_price', 'note', 'note2', or 'note3'
+    let newValue = cell.innerText.trim(); // Use innerText to get clean text from contenteditable
 
-    // If we are editing the Exit Price, we must recalculate the Net PnL
+    if (!tradeId || !field) return;
+
+    // --- CASE A: Editing Exit Price (Requires Math Recalculation) ---
     if (field === 'exit_price') {
         const newPrice = parseFloat(newValue.replace(/[^0-9.-]/g, ''));
-
         if (isNaN(newPrice)) {
             alert("Invalid Price");
             return;
@@ -4344,46 +4286,41 @@ function handleAddTradeSubmit(e, isTopstep = false) {
 
             let result;
             if (isTopstep) {
-                /* --- MNQ FUTURES RE-CALCULATION --- */
+                /* MNQ Futures Math */
                 const MNQ_MULT = 2;
                 const contracts = parseFloat(trade.contracts || trade.size || 1);
                 const totalFees = parseFloat(trade.commissions || 1.24);
                 const points = trade.type === "Long" ? (newPrice - trade.entry) : (trade.entry - newPrice);
                 const netResult = (points * MNQ_MULT * contracts) - totalFees;
-
-                result = {
-                    exit_price: newPrice,
-                    net_result: netResult,
-                    // Keeping fees consistent
-                    entry_fee: totalFees / 2,
-                    exit_fee: totalFees / 2
-                };
+                result = { exit_price: newPrice, net_result: netResult };
             } else {
-                /* --- CRYPTO RE-CALCULATION --- */
+                /* Crypto Math */
                 const res = calculateNetResult(trade, newPrice, trade.exitFeeType || 'taker');
                 result = { ...res, exit_price: newPrice };
             }
 
-            const updates = {
-                ...result,
-                note: (trade.note || '') + `\nExit adjusted to ${newPrice} on ${new Date().toLocaleTimeString()}`
-            };
-
-            compRef.child(tradeId).update(updates).then(() => {
+            compRef.child(tradeId).update(result).then(() => {
                 cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
                 setTimeout(() => cell.style.backgroundColor = '', 500);
-            }).catch(err => alert("Error updating: " + err.message));
+            });
         });
-        return; 
+    } 
+    // --- CASE B: Editing Notes (Direct Overwrite) ---
+    else {
+        // This block handles 'note', 'note2', and 'note3'
+        const updateObj = {};
+        updateObj[field] = newValue;
+
+        compRef.child(tradeId).update(updateObj).then(() => {
+            // Visual confirmation that it saved
+            cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+            setTimeout(() => cell.style.backgroundColor = '', 500);
+        }).catch(err => {
+            console.error("Save failed:", err);
+            alert("Error saving note: " + err.message);
+        });
     }
-
-    // Handle standard note updates
-    compRef.child(tradeId).update({ [field]: newValue }).then(() => {
-        cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
-        setTimeout(() => cell.style.backgroundColor = '', 500);
-    });
 }
-
         function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
             
