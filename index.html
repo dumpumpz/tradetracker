@@ -4214,7 +4214,7 @@ function handleAddTradeSubmit(e, isTopstep = false) {
     }).catch(error => alert(`Error adding trade: ${error.message}`));
 }
 
-  function handleCompletedTradeUpdate(cell) {
+function handleCompletedTradeUpdate(cell) {
     if (!STATE.isMasterUser) return;
 
     const isTopstep = cell.closest('#topstep-tab') !== null;
@@ -4222,14 +4222,19 @@ function handleAddTradeSubmit(e, isTopstep = false) {
 
     const tradeId = cell.dataset.id;
     const field = cell.dataset.field; 
+    // Use innerText to avoid capturing hidden HTML tags from contenteditable
     let newValue = cell.innerText.trim(); 
 
     if (!tradeId || !field) return;
 
-    // --- CASE A: Exit Price Math Update ---
+    // --- CASE A: Exit Price (Recalculate Math) ---
     if (field === 'exit_price') {
         const newPrice = parseFloat(newValue.replace(/[^0-9.-]/g, ''));
-        if (isNaN(newPrice)) { alert("Invalid Price"); return; }
+        if (isNaN(newPrice)) {
+            // Revert on error
+            compRef.child(tradeId).child('exit_price').once('value', s => cell.innerText = s.val());
+            return;
+        }
 
         compRef.child(tradeId).once('value', snapshot => {
             const trade = snapshot.val();
@@ -4237,16 +4242,13 @@ function handleAddTradeSubmit(e, isTopstep = false) {
 
             let updates;
             if (isTopstep) {
-                // MNQ Futures Math: ($2 * points * contracts) - fees
                 const MNQ_MULT = 2;
                 const contracts = parseFloat(trade.contracts || trade.size || 1);
                 const fees = parseFloat(trade.commissions || 0.74);
                 const points = trade.type === "Long" ? (newPrice - trade.entry) : (trade.entry - newPrice);
                 const netResult = (points * MNQ_MULT * contracts) - fees;
-                
                 updates = { exit_price: newPrice, net_result: netResult };
             } else {
-                // Crypto Math
                 const res = calculateNetResult(trade, newPrice, trade.exitFeeType || 'taker');
                 updates = { ...res, exit_price: newPrice };
             }
@@ -4257,13 +4259,18 @@ function handleAddTradeSubmit(e, isTopstep = false) {
             });
         });
     } 
-    // --- CASE B: Note Updates ---
+    // --- CASE B: Notes (Overwrite existing) ---
     else {
+        // Create an object with the dynamic key (note, note2, or note3)
         const updateObj = {};
         updateObj[field] = newValue;
+
+        // .update() will only change the specific field provided and leave the rest alone
         compRef.child(tradeId).update(updateObj).then(() => {
             cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
             setTimeout(() => cell.style.backgroundColor = '', 500);
+        }).catch(err => {
+            console.error("Firebase Save Error:", err);
         });
     }
 }
