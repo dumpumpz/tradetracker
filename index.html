@@ -3188,7 +3188,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const showAllButton = document.getElementById(isTopstep ? 'ts-toggle-all-completed-trades' : 'toggle-all-completed-trades');
     const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
 
-    // --- 1. HEADERS (Added "Entered" column) ---
+    // --- 1. HEADERS (Now includes both Entered and Closed columns) ---
     const table = tbodyElement.closest('table');
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
@@ -3277,6 +3277,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             if (gType === 'Long') diffColor = diff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
             else if (gType === 'Short') diffColor = diff <= 0 ? 'var(--green-text)' : 'var(--red-text)';
 
+            // RICH GROUP HEADER
             rowsHtml += `
             <tr class="completed-group-header">
                 <td colspan="25" style="padding: 8px 15px; font-size: 0.95em;">
@@ -3326,8 +3327,8 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                     <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${net.toFixed(2)}</td>
                     <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">${tPct.toFixed(2)}%</td>
                     
-                    <td style="font-size:11px; font-weight:bold; color:var(--link-color);">${entryTime}</td> <!-- ENTRY TIME -->
-                    <td style="font-size:11px;">${closedTime}</td> <!-- CLOSED TIME -->
+                    <td style="font-size:11px; font-weight:bold; color:var(--link-color);">${entryTime}</td> 
+                    <td style="font-size:11px;">${closedTime}</td> 
                     
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}">${t.note || ''}</td>
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${t.note2 || ''}</td>
@@ -3341,6 +3342,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px;">No records.</td></tr>';
 
+    // --- NATURAL EXPANSION FIX ---
     const section = tbodyElement.closest('.collapsible-section');
     if (section && section.classList.contains('is-open')) {
         const content = section.querySelector('.collapsible-content');
