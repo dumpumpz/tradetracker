@@ -3170,7 +3170,7 @@ function checkMarketAlerts() {
 }
         
         
-  function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
+ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
 
@@ -3179,7 +3179,8 @@ function checkMarketAlerts() {
     
     let rowsHtml = '';
     const MNQ_MULT = 2; 
-    
+
+    // Pagination Selectors
     const paginationControlsId = isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls';
     const showAllButtonId = isTopstep ? 'ts-toggle-all-completed-trades' : 'toggle-all-completed-trades';
     const pageInfoSpanId = isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info';
@@ -3191,33 +3192,18 @@ function checkMarketAlerts() {
     let showAll = isTopstep ? STATE.tsCompletedTradesShowAll : STATE.completedTradesShowAll;
     let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
 
+    // --- 1. HEADERS ---
     const table = tbodyElement.closest('table');
     let thead = table.querySelector('thead');
-    if (!thead) {
-        thead = document.createElement('thead');
-        table.insertBefore(thead, tbodyElement);
-    }
+    if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
 
     if (isTopstep) {
-        thead.innerHTML = `
-            <tr>
-                <th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Contr.</th>
-                <th>Proj Pr</th><th style="display:none"></th><th>Proj Ls</th><th style="display:none"></th>
-                <th>RR</th><th style="display:none"></th><th>Exit</th>
-                <th>Raw PnL</th><th>Comms</th><th>Net PnL</th>
-                <th>Move %</th><th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th>
-            </tr>`;
+        thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Contr.</th><th>Proj Pr</th><th style="display:none"></th><th>Proj Ls</th><th style="display:none"></th><th>RR</th><th style="display:none"></th><th>Exit</th><th>Raw PnL</th><th>Comms</th><th>Net PnL</th><th>Move %</th><th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
     } else {
-        thead.innerHTML = `
-            <tr>
-                <th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th>
-                <th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th>
-                <th>RR(T)</th><th>RR(M)</th><th>Exit</th>
-                <th>Raw PnL</th><th>Fees</th><th>Net PnL</th>
-                <th>% (Net)</th><th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th>
-            </tr>`;
+        thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th><th>RR(M)</th><th>Exit</th><th>Raw PnL</th><th>Fees</th><th>Net PnL</th><th>% (Net)</th><th>Open</th><th>Closed</th><th colspan="3">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
     }
 
+    // --- 2. ORGANIZE DATA ---
     const tradesByDayAndGroup = {};
     const uniqueTradingDates = [];
 
@@ -3225,19 +3211,13 @@ function checkMarketAlerts() {
         const t = trades[id];
         const tradingDayStr = getTradingDayString(t.closed_date, t.date);
         const groupId = t.groupId || 'Ungrouped';
-
-        if (!tradesByDayAndGroup[tradingDayStr]) {
-            tradesByDayAndGroup[tradingDayStr] = {}; 
-            uniqueTradingDates.push(tradingDayStr); 
-        }
-        if (!tradesByDayAndGroup[tradingDayStr][groupId]) {
-            tradesByDayAndGroup[tradingDayStr][groupId] = [];
-        }
+        if (!tradesByDayAndGroup[tradingDayStr]) { tradesByDayAndGroup[tradingDayStr] = {}; uniqueTradingDates.push(tradingDayStr); }
+        if (!tradesByDayAndGroup[tradingDayStr][groupId]) { tradesByDayAndGroup[tradingDayStr][groupId] = []; }
         tradesByDayAndGroup[tradingDayStr][groupId].push({ ...t, dbId: id });
     });
-
     uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
 
+    // Pagination Logic
     let visibleDates = uniqueTradingDates;
     if (showAll) {
         const totalPages = uniqueTradingDates.length;
@@ -3249,113 +3229,118 @@ function checkMarketAlerts() {
     } else {
         const currentLogicalTradingDay = getTradingDayString(Date.now(), Date.now());
         visibleDates = uniqueTradingDates.filter(d => d === currentLogicalTradingDay);
-        const hasHistory = uniqueTradingDates.length > 1 || (uniqueTradingDates.length === 1 && uniqueTradingDates[0] !== currentLogicalTradingDay);
-        if (showAllButton) showAllButton.style.display = hasHistory ? 'block' : 'none';
+        if (showAllButton) showAllButton.style.display = uniqueTradingDates.length > 1 ? 'block' : 'none';
         if (paginationControls) paginationControls.style.display = 'none';
     }
 
+    // --- 3. RENDER LOOP ---
     visibleDates.forEach(dateStr => {
         const groupsInDate = tradesByDayAndGroup[dateStr];
-        let dailyPnL = 0;
-
-        Object.values(groupsInDate).forEach(groupTrades => {
-            groupTrades.forEach(t => dailyPnL += parseFloat(t.net_result || 0));
-        });
+        let dailyPnL = 0, dailyWins = 0, dailyLosses = 0;
+        Object.values(groupsInDate).forEach(g => g.forEach(t => { 
+            dailyPnL += parseFloat(t.net_result || 0);
+            if (parseFloat(t.net_result) >= 0) dailyWins++; else dailyLosses++;
+        }));
 
         const safeDateKey = isTopstep ? `ts-${dateStr.replace(/[\/\s,]/g, '-')}` : dateStr.replace(/[\/\s,]/g, '-'); 
         const dailyNote = STATE.dailyNotes[safeDateKey] || '';
 
-        rowsHtml += `
-        <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
-            <td colspan="14" style="text-align: left; padding: 10px 20px;">
-                <strong>Date: ${dateStr}</strong> | Daily PnL: <span style="color: ${dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dailyPnL.toFixed(2)}</span>
-            </td>
-            <td colspan="6" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style: italic; font-size: 12px;">${dailyNote || (STATE.isMasterUser ? 'Add daily note...' : '')}</td>
-            <td colspan="5"></td>
-        </tr>`;
+        // DATE SUMMARY ROW
+        rowsHtml += `<tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);"><td colspan="12" style="text-align: left; padding: 10px 20px;"><strong>Date: ${dateStr}</strong> | <span style="color:var(--green-text)">${dailyWins}W</span> / <span style="color:var(--red-text)">${dailyLosses}L</span> | Daily PnL: <span style="color: ${dailyPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${dailyPnL.toFixed(2)}</span></td><td colspan="8" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style: italic; font-size: 12px; color:var(--subtle-text);">${dailyNote || 'Daily note...'}</td><td colspan="5"></td></tr>`;
 
         Object.keys(groupsInDate).forEach(groupId => {
             const groupTrades = groupsInDate[groupId];
-            let groupNet = 0, groupVolume = 0;
+            let gNet = 0, gVol = 0, gQty = 0, gEntryWeighted = 0, gExitWeighted = 0, gPnL100 = 0;
+            let gWins = 0, gLosses = 0;
 
             groupTrades.forEach(t => {
-                groupNet += parseFloat(t.net_result || 0);
-                groupVolume += isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
+                const net = parseFloat(t.net_result || 0);
+                const size = isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
+                const entry = parseFloat(t.entry || 1);
+                const exit = parseFloat(t.exit_price || 0);
+                const qty = isTopstep ? size : (size / entry);
+                
+                gNet += net; gVol += size; gQty += qty;
+                gEntryWeighted += (entry * qty); gExitWeighted += (exit * qty);
+                if (net >= 0) gWins++; else gLosses++;
+
+                const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
+                gPnL100 += parseFloat(m.pnl_per_100_move || 0);
             });
 
+            const avgEntry = gQty > 0 ? (gEntryWeighted / gQty) : 0;
+            const avgExit = gQty > 0 ? (gExitWeighted / gQty) : 0;
+            const priceDiff = avgExit - avgEntry;
+            const gType = groupTrades[0].type || 'Mixed';
+            const gSymbol = groupTrades[0].symbol.split('/')[0];
+            const gPct = isTopstep ? ((priceDiff / avgEntry) * 100 * (gType === 'Short' ? -1 : 1)) : (gNet / gVol * 100);
+
+            let diffColor = 'var(--subtle-text)';
+            if (gType === 'Long') diffColor = priceDiff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+            else if (gType === 'Short') diffColor = priceDiff <= 0 ? 'var(--green-text)' : 'var(--red-text)';
+
+            // RICH GROUP HEADER
             rowsHtml += `
             <tr class="completed-group-header">
-                <td colspan="25" style="padding: 8px 15px; background: rgba(0,0,0,0.03);">
-                    📂 <strong>${groupId}</strong> | Net: <span style="color: ${groupNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${groupNet.toFixed(2)}</span> | 
-                    Size: ${isTopstep ? groupVolume + ' MNQ Contracts' : '$' + groupVolume.toLocaleString()}
+                <td colspan="25" style="padding: 8px 15px; border-bottom:1px solid var(--border-color);">
+                    <div style="display:flex; flex-wrap:wrap; gap: 12px; align-items:center; font-size:0.92em;">
+                        <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)} (${gPct.toFixed(2)}%)</span></span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span>${gWins}W / ${gLosses}L</span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span style="color:var(--subtle-text);">Vol: ${isTopstep ? gVol+' Contr' : '$'+gVol.toLocaleString()} (${gQty.toFixed(isTopstep ? 0 : 4)} ${gSymbol})</span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span>Avg: <span style="color:var(--link-color)">${avgEntry.toFixed(2)}</span> ➔ <span style="color:var(--link-color)">${avgExit.toFixed(2)}</span> 
+                        <span style="color:${diffColor}; font-weight:bold; font-family:monospace;"> (${priceDiff >= 0 ? '+' : ''}${priceDiff.toFixed(2)})</span></span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span title="PnL per 100 point/percent move">$/100: <span style="font-family:monospace; color:var(--link-color)">$${gPnL100.toFixed(2)}</span></span>
+                    </div>
                 </td>
             </tr>`;
 
+            // CHILD ROWS
             groupTrades.forEach(trade => {
-                const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
-                const isMaker = (trade.entryFeeType === 'maker');
-                const totalFees = isTopstep ? (parseFloat(trade.commissions) || 1.24) : (parseFloat(trade.entry_fee || 0) + parseFloat(trade.exit_fee || 0));
-                const netPnL = parseFloat(trade.net_result);
-                const rawPnL = netPnL + totalFees;
-                
-                let tradePercent;
-                if (isTopstep) {
-                    tradePercent = ((parseFloat(trade.exit_price) - parseFloat(trade.entry)) / parseFloat(trade.entry)) * 100;
-                    if (trade.type === 'Short') tradePercent *= -1;
-                } else {
-                    tradePercent = (netPnL / parseFloat(trade.size)) * 100;
-                }
-
-                const resultColor = netPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+                const m = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
+                const fees = isTopstep ? (parseFloat(trade.commissions) || 1.24) : (parseFloat(trade.entry_fee || 0) + parseFloat(trade.exit_fee || 0));
+                const net = parseFloat(trade.net_result);
+                const tPct = isTopstep ? (((parseFloat(trade.exit_price) - parseFloat(trade.entry)) / parseFloat(trade.entry)) * 100 * (trade.type === 'Short' ? -1 : 1)) : (net / parseFloat(trade.size) * 100);
 
                 rowsHtml += `
-                <tr style="font-size: 0.9em;">
+                <tr style="font-size: 0.88em; opacity: 0.95;">
                     <td>${trade.symbol}</td>
                     <td style="color: ${trade.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${trade.type}</td>
-                    
-                    <!-- PRICES CHANGED TO TOFIXED(2) -->
                     <td>${parseFloat(trade.entry).toFixed(2)}</td>
-                    <td class="note-cell">${(trade.entry_prices || [trade.entry]).map(p => parseFloat(p).toFixed(2)).join(', ')}</td>
+                    <td class="note-cell" style="font-size:10px;">${(trade.entry_prices || [trade.entry]).map(p => parseFloat(p).toFixed(2)).join(', ')}</td>
                     <td>${parseFloat(trade.stoploss || 0).toFixed(2)}</td>
                     <td>${parseFloat(trade.target || 0).toFixed(2)}</td>
-                    
                     <td>${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
-                    
-                    <td style="font-weight:bold; color:var(--green-text); opacity:0.6;">${parseFloat(metrics.expected_profit_taker).toFixed(2)}</td>
-                    <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.2;">${isTopstep ? '--' : parseFloat(metrics.expected_profit_maker).toFixed(2)}</td>
-                    <td style="font-weight:bold; color:var(--red-text); opacity:0.6;">${parseFloat(metrics.expected_loss_taker).toFixed(2)}</td>
-                    <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.2;">${isTopstep ? '--' : parseFloat(metrics.expected_loss_maker).toFixed(2)}</td>
-                    
-                    <td style="font-weight:bold;">${metrics.rr_taker}</td>
-                    <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.2;">${isTopstep ? '--' : metrics.rr_maker}</td>
-                    
-                    <!-- EXIT PRICE CHANGED TO TOFIXED(2) -->
+                    <td style="color:var(--green-text); opacity:0.7;">${parseFloat(m.expected_profit_taker).toFixed(2)}</td>
+                    <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.3;">${isTopstep ? '--' : parseFloat(m.expected_profit_maker).toFixed(2)}</td>
+                    <td style="color:var(--red-text); opacity:0.7;">${parseFloat(m.expected_loss_taker).toFixed(2)}</td>
+                    <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.3;">${isTopstep ? '--' : parseFloat(m.expected_loss_maker).toFixed(2)}</td>
+                    <td style="font-weight:bold;">${m.rr_taker}</td>
+                    <td style="display: ${isTopstep ? 'none' : 'table-cell'}; opacity:0.3;">${isTopstep ? '--' : m.rr_maker}</td>
                     <td class="editable-completed-cell" data-id="${trade.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.exit_price).toFixed(2)}</td>
-                    
-                    <td style="opacity:0.7;">${rawPnL.toFixed(2)}</td>
-                    <td>${totalFees.toFixed(2)}</td>
-                    <td style="color:${resultColor}; font-weight:bold;">${netPnL.toFixed(2)}</td>
-                    <td style="color:${resultColor};">${tradePercent.toFixed(2)}%</td>
-
-                    <td>${new Date(trade.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                    <td>${new Date(trade.closed_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                    
+                    <td style="color:var(--subtle-text)">${(net + fees).toFixed(2)}</td>
+                    <td>${fees.toFixed(2)}</td>
+                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${net.toFixed(2)}</td>
+                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">${tPct.toFixed(2)}%</td>
+                    <td style="font-size:10px;">${new Date(trade.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                    <td style="font-size:10px;">${new Date(trade.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
                     <td class="note-cell" data-id="${trade.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}">${trade.note || ''}</td>
                     <td class="note-cell" data-id="${trade.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${trade.note2 || ''}</td>
                     <td class="note-cell" data-id="${trade.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${trade.note3 || ''}</td>
-                    
                     ${renderAttachmentThumbnails(trade, trade.dbId, 'completed', isTopstep)}
-                    <td class="action-buttons">
-                        <button class="attach-image-btn" data-id="${trade.dbId}" data-type="completed">Pic</button>
-                        <button class="delete-btn-completed" data-id="${trade.dbId}">Del</button>
-                    </td>
+                    <td class="action-buttons"><button class="attach-image-btn" data-id="${trade.dbId}" data-type="completed">Pic</button><button class="delete-btn-completed" data-id="${trade.dbId}">Del</button></td>
                 </tr>`;
             });
         });
     });
 
-    tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center;">No completed trades found.</td></tr>';
-    setTimeout(() => adjustCollapsibleSize(tbodyElement), 100);
+    tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px;">No records.</td></tr>';
+    setTimeout(() => adjustCollapsibleSize(tbodyElement), 50);
 }
         function renderDateNavigation() {
             const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
