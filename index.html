@@ -1,3 +1,10 @@
+To achieve this, we can convert the "Topstep" tab into a generic **"Funded Accounts"** tab. We will add a dropdown selector at the top. 
+
+By default, any of your older trades will automatically be categorized as "Topstep", keeping their history intact. When you switch the dropdown to "Lucid", it will filter the tables and reset the 50k evaluation math specifically for your new Lucid trades.
+
+Here is the complete updated code. You can copy and paste this to replace your entire file.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1515,7 +1522,7 @@ body.is-master th.master-only {
         <!-- Navigation Tabs -->
         <div class="tabs">
             <button class="tab-link" data-tab="tracker">Trade Tracker</button>
-            <button class="tab-link active" data-tab="topstep">Topstep</button>
+            <button class="tab-link active" data-tab="topstep">Funded Accounts</button>
             <button class="tab-link" data-tab="journal">Journal & Setups</button>
             <button class="tab-link" data-tab="strategy">Setups</button>
             <button class="tab-link" data-tab="notes">Notes</button>
@@ -1686,12 +1693,22 @@ body.is-master th.master-only {
             </div>
         </div>
 
-        <!-- Tab 1.5: Topstep -->
+        <!-- Tab 1.5: Funded Accounts -->
         <div id="topstep-tab" class="tab-content active">
             
+            <div style="margin-bottom: 20px; text-align: center; background-color: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <label for="eval-account-selector" style="font-weight: bold; margin-right: 10px; font-size: 16px;">Active Account:</label>
+                <select id="eval-account-selector" style="width: auto; display: inline-block; font-size: 16px; font-weight: bold; color: var(--link-color);">
+                    <option value="Lucid">Lucid $50K</option>
+                    <option value="Topstep">Topstep $50K</option>
+                    <option value="MFF">MFF $50K</option>
+                    <option value="Alpha">Alpha Futures $50K</option>
+                </select>
+            </div>
+
             <div class="topstep-eval-banner summary-split-container" style="margin-bottom: 20px;">
                 <div class="summary-card" style="border-top: 3px solid var(--link-color); background-color: rgba(0,123,255,0.05);">
-                    <h5>Topstep $50K Evaluation</h5>
+                    <h5 id="eval-banner-title">Lucid $50K Evaluation</h5>
                     <div class="summary-grid-row">
                         <div><span class="sum-label">Current Balance</span><span class="sum-val" id="ts-balance">$50,000.00</span></div>
                         <div><span class="sum-label">HWM (EOD)</span><span class="sum-val" id="ts-hwm">$50,000.00</span></div>
@@ -1705,7 +1722,7 @@ body.is-master th.master-only {
             <!-- Add Trade (Master Only) -->
             <div class="collapsible-section master-only">
                 <div class="collapsible-header">
-                    <h2>Add New Topstep Trade</h2>
+                    <h2 id="eval-add-trade-title">Add New Lucid Trade</h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
@@ -1749,7 +1766,7 @@ body.is-master th.master-only {
     <label for="ts-commissions">Round Trip Fee ($):</label>
     <input type="number" id="ts-commissions" value="0.74" step="0.01">
 </div>
-                            <div><button type="submit">Add Topstep Trade</button></div>
+                            <div><button type="submit" id="eval-add-btn">Add Lucid Trade</button></div>
                         </form>
                     </div>
                 </div>
@@ -1797,10 +1814,10 @@ body.is-master th.master-only {
             </div>
 
 
-<!-- Independent Topstep Trading Setups -->
+<!-- Independent Evaluation Trading Setups -->
 <div class="collapsible-section">
     <div class="collapsible-header">
-        <h2>Topstep Notes</h2>
+        <h2>Funded Notes</h2>
         <button class="collapsible-toggle-btn">+</button>
     </div>
     <div class="collapsible-content">
@@ -1811,10 +1828,10 @@ body.is-master th.master-only {
     </div>
 </div>
 
-<!-- Independent Topstep Setups Library -->
+<!-- Independent Evaluation Setups Library -->
 <div class="collapsible-section">
     <div class="collapsible-header">
-        <h2>Topstep Setups</h2>
+        <h2>Funded Setups</h2>
         <button class="collapsible-toggle-btn">+</button>
     </div>
     <div class="collapsible-content">
@@ -2002,14 +2019,13 @@ body.is-master th.master-only {
                 TS_TRADES: 'ts_trades',
                 TS_COMPLETED_TRADES: 'ts_completed_trades',
                 TS_RESTING_ORDERS: 'ts_resting_orders',
-                // New Independent Topstep Setup Paths
                 TS_SETUPS_1: 'ts_setups_1',
                 TS_SETUPS_2: 'ts_setups_2',
                 TS_SETUPS_IMAGES: 'ts_setups_images'
             },
             TRADE_SETTINGS: {
-                MAKER_FEE_RATE: 0.0000, // 0% for Maker
-                TAKER_FEE_RATE: 0.00075, // Standard Taker fee
+                MAKER_FEE_RATE: 0.0000, 
+                TAKER_FEE_RATE: 0.00075, 
                 STARTING_BALANCE: 5137,
                 STATS_RESET_DATE: '2025-10-20',
             }
@@ -2080,10 +2096,6 @@ body.is-master th.master-only {
             noteModalTitle: document.getElementById('note-modal-title'),
             noteModalContent: document.getElementById('note-modal-content'),
             noteModalClose: document.getElementById('note-modal-close'),
-            calMonthYear: document.getElementById('cal-month-year'),
-            calPrevBtn: document.getElementById('cal-prev-btn'),
-            calNextBtn: document.getElementById('cal-next-btn'),
-            pnlCalendarGrid: document.getElementById('pnl-calendar-grid'),
             strategyTab: document.getElementById('strategy-tab'),
             strategyNotesEntry: document.getElementById('strategy-notes-entry'),
             strategySaveStatus: document.getElementById('strategy-save-status'),
@@ -2096,19 +2108,23 @@ body.is-master th.master-only {
   const STATE = {
             isMasterUser: false, isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {}, favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null, isTopstep: false },
             allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,
-            allTsCompletedTrades: {}, tsCompletedTradesShowAll: false, tsCompletedTradesCurrentPage: 1,
+            
+            // Evaluated Account Global Variables
+            selectedEvalAccount: 'Lucid',
+            allTsTrades: {}, allTsRestingOrders: {}, allTsCompletedTrades: {}, 
+            tsCompletedTradesShowAll: false, tsCompletedTradesCurrentPage: 1,
             
             // Crypto Gallery State
             allSetupsImages: {}, setupsImagesShowAll: false, setupsImagesCurrentPage: 1, setupsImagesItemsPerPage: 1, 
             
-            // --- TOPSTEP GALLERY STATE (ADDED THESE) ---
+            // Topstep Gallery State
             allTsSetupsImages: {}, tsSetupsImagesShowAll: false, tsSetupsImagesCurrentPage: 1,
-            // --------------------------------------------
 
             chartInstances: {}, dailyNotes: {}, 
             calendarViewDate: new Date(),
             strategyImages: {}, strategySaveTimer: null 
         };
+
         // --- INITIALIZE FIREBASE ---
         firebase.initializeApp(CONFIG.FIREBASE);
         const database = firebase.database();
@@ -2133,7 +2149,6 @@ body.is-master th.master-only {
             tsTrades: database.ref(CONFIG.DB_PATHS.TS_TRADES),
             tsCompletedTrades: database.ref(CONFIG.DB_PATHS.TS_COMPLETED_TRADES),
             tsRestingOrders: database.ref(CONFIG.DB_PATHS.TS_RESTING_ORDERS),
-            // New Independent Topstep Setup References
             tsSetups1: database.ref(CONFIG.DB_PATHS.TS_SETUPS_1),
             tsSetups2: database.ref(CONFIG.DB_PATHS.TS_SETUPS_2),
             tsSetupsImages: database.ref(CONFIG.DB_PATHS.TS_SETUPS_IMAGES)
@@ -2148,17 +2163,13 @@ function calculateBreakevenPrice(trade) {
         return 0;
     }
 
-    // Determine fees based on trade exchange
     const rates = getFeeRates(trade.exchange);
-
-    // If entry is Maker, return just the entry price as requested
     if (trade.entryFeeType === 'maker') {
         return entry;
     }
 
-    // Otherwise calculate Breakeven for Taker
     const entryFeeRate = rates.TAKER; 
-    const exitFeeRate = rates.TAKER; // Assume worst-case Taker exit
+    const exitFeeRate = rates.TAKER;
 
     if (trade.type === "Long") {
         return entry * (1 + entryFeeRate) / (1 - exitFeeRate);
@@ -2168,17 +2179,9 @@ function calculateBreakevenPrice(trade) {
 }
 function autoResizeTextarea(textarea) { 
     if (!textarea || textarea.tagName !== 'TEXTAREA') return; 
-    
-    // SPEED FIX: If the tab is hidden, don't calculate (prevents lag on load)
     if (textarea.offsetParent === null) return;
-
-    // Reset height to allow shrinking
     textarea.style.height = 'auto'; 
-    
-    // Set new height based on content
     textarea.style.height = (textarea.scrollHeight + 5) + 'px'; 
-    
-    // LAYOUT FIX: Force the parent container to expand with the text box
     resizeParentCollapsible(textarea);
 }
 
@@ -2188,12 +2191,7 @@ function resizeParentCollapsible(elementInside) {
     if (section && section.classList.contains('is-open')) {
         const content = section.querySelector('.collapsible-content');
         if (content) {
-            // Force the container to be large enough to show everything
-            // Setting it to 'none' ensures that as images load, the box grows naturally
             content.style.maxHeight = 'none';
-            
-            // Optional: If you still want the sliding animation capability for the NEXT toggle:
-            // content.style.maxHeight = (content.scrollHeight + 100) + 'px';
         }
     }
 }
@@ -2221,7 +2219,6 @@ const getPerthDateString = (date = new Date()) => {
         const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Perth', year: 'numeric', month: '2-digit', day: '2-digit' }); 
         return formatter.format(date); 
     } catch (e) { 
-        console.error("Timezone formatting failed, using fallback.", e); 
         const perthTime = new Date(date.getTime() + (8 * 60 * 60 * 1000)); 
         return perthTime.toISOString().split('T')[0]; 
     } 
@@ -2229,14 +2226,11 @@ const getPerthDateString = (date = new Date()) => {
 
 const getSafeSymbol = (symbol) => symbol.replace(/\//g, '-');
 
-// --- MISSING HELPER: TRADING DAY LOGIC ---
 const getTradingDayString = (closedTS, openedTS) => {
     if (!closedTS) return 'Unknown';
-    
     const closedDate = new Date(closedTS);
     const openedDate = openedTS ? new Date(openedTS) : closedDate;
 
-    // Get hours in Perth time (or fallback to local)
     const getPerthHour = (d) => {
         try {
             return parseInt(new Intl.DateTimeFormat('en-AU', {
@@ -2249,17 +2243,13 @@ const getTradingDayString = (closedTS, openedTS) => {
 
     const closedHour = getPerthHour(closedDate);
     const openedHour = getPerthHour(openedDate);
-    
     const closedCalDay = getPerthDateString(closedDate);
     const openedCalDay = getPerthDateString(openedDate);
 
-    // RULE: If closed before 6am
     if (closedHour < 6) {
-        // EXCEPTION: Unless opened after 5am today
         if (openedCalDay === closedCalDay && openedHour >= 5) {
             return closedCalDay;
         } else {
-            // Roll back to previous day
             const prevDay = new Date(closedDate);
             prevDay.setDate(prevDay.getDate() - 1);
             return getPerthDateString(prevDay);
@@ -2269,8 +2259,33 @@ const getTradingDayString = (closedTS, openedTS) => {
 };
         function getViewerId() { if (STATE.viewerId) return STATE.viewerId; let id = localStorage.getItem('viewerId'); if (!id) { id = `viewer_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`; localStorage.setItem('viewerId', id); } STATE.viewerId = id; return id; }
 
-        // --- DATA FETCHING ---
         async function fetchLiveConversionRate() { try { const response = await fetch('https://open.er-api.com/v6/latest/USD'); if (!response.ok) return; const data = await response.json(); if (data?.result === "success" && data?.rates?.AUD) { STATE.usdToAudRate = data.rates.AUD; } } catch (error) { console.error("Could not fetch conversion rate.", error); } }
+
+        // --- FILTER HELPERS FOR FUNDED TAB ---
+        function filterByEvalAccount(data) {
+            if (!data) return {};
+            const filtered = {};
+            Object.keys(data).forEach(key => {
+                // Any older/legacy trades lacking this field default to Topstep to keep them separated
+                const acc = data[key].evalAccount || 'Topstep'; 
+                if (acc === STATE.selectedEvalAccount) {
+                    filtered[key] = data[key];
+                }
+            });
+            return filtered;
+        }
+
+        function renderFilteredEvalData() {
+            const liveFiltered = filterByEvalAccount(STATE.allTsTrades);
+            renderLiveTable(liveFiltered, 'ts-trades-tbody', 'ts-live-trades-summary-container');
+            
+            const restingFiltered = filterByEvalAccount(STATE.allTsRestingOrders);
+            renderRestingTable(restingFiltered, 'ts-resting-trades-tbody', 'ts-resting-trades-summary-container');
+            
+            const completedFiltered = filterByEvalAccount(STATE.allTsCompletedTrades);
+            renderCompletedTable(completedFiltered, 'ts-completed-trades-tbody', true);
+            calculateTopstepStats(completedFiltered);
+        }
 
         // --- RENDERING FUNCTIONS ---
         function toggleHistoricalRows(tbodyId, button) {
@@ -2309,6 +2324,7 @@ const getTradingDayString = (closedTS, openedTS) => {
             }).join('');
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
+
 function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 'resting-trades-summary-container') {
     try {
         const tbodyElement = document.getElementById(tbodyId);
@@ -2317,27 +2333,15 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
         const trades = data || {};
         const groupedTrades = {};
 
-        // --- 1. Group & Aggregate ---
         Object.keys(trades).forEach(id => {
             const trade = trades[id];
             const gid = trade.groupId || `${trade.symbol}_${trade.type}_Legacy`;
 
             if (!groupedTrades[gid]) {
                 groupedTrades[gid] = {
-                    id: gid,
-                    symbol: trade.symbol,
-                    type: trade.type,
-                    trades: [],
-                    totalSize: 0,
-                    totalQty: 0,
-                    wEntry: 0,
-                    wStop: 0,
-                    wTarget: 0,
-                    // Financials
-                    profitTaker: 0, profitMaker: 0,
-                    lossTaker: 0, lossMaker: 0,
-                    fees: 0,
-                    pnlPer100: 0
+                    id: gid, symbol: trade.symbol, type: trade.type, trades: [],
+                    totalSize: 0, totalQty: 0, wEntry: 0, wStop: 0, wTarget: 0,
+                    profitTaker: 0, profitMaker: 0, lossTaker: 0, lossMaker: 0, fees: 0, pnlPer100: 0
                 };
             }
 
@@ -2353,11 +2357,9 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
 
             groupedTrades[gid].totalSize += size;
             groupedTrades[gid].totalQty += qty;
-            
             groupedTrades[gid].wEntry += (entry * qty);
             groupedTrades[gid].wStop += (stop * qty);
             groupedTrades[gid].wTarget += (target * qty);
-
             groupedTrades[gid].profitTaker += parseFloat(metrics.expected_profit_taker || 0);
             groupedTrades[gid].profitMaker += parseFloat(metrics.expected_profit_maker || 0);
             groupedTrades[gid].lossTaker += parseFloat(metrics.expected_loss_taker || 0);
@@ -2366,10 +2368,7 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
             groupedTrades[gid].pnlPer100 += parseFloat(metrics.pnl_per_100_move || 0);
         });
 
-        // --- 2. Generate HTML ---
         let tableHtml = '';
-        
-        // Sort by most recent added
         const sortedGroupKeys = Object.keys(groupedTrades).sort((a, b) => {
             const getLatestDate = (group) => Math.max(...group.trades.map(t => t.date || 0));
             return getLatestDate(groupedTrades[b]) - getLatestDate(groupedTrades[a]);
@@ -2378,42 +2377,27 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
         sortedGroupKeys.forEach(gid => {
             const group = groupedTrades[gid];
             const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
-            
-            // Dominant PnL for Summary Row
             const dominantProfit = (group.type === 'Short') ? group.profitMaker : group.profitTaker;
             const dominantLoss = (group.type === 'Short') ? group.lossMaker : group.lossTaker;
 
-            // --- PARENT ROW (Summary) ---
             tableHtml += `
             <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color); font-weight: bold;">
                 <td style="border-left: 4px solid var(--subtle-text);">${group.symbol}</td>
                 <td style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${group.type}</td>
                 <td colspan="3" style="color: var(--text-color); font-size: 0.95em;">📂 ${gid}</td>
-                
                 <td>--</td> <td>--</td> <td>--</td> <td>--</td> <td>--</td> 
-                
-                <!-- Totals -->
                 <td style="font-size: 1.05em;">$${group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
                 <td style="font-family: 'Courier New';">${group.totalQty.toFixed(4)}</td>
                 <td>$${group.pnlPer100.toFixed(2)}</td>
                 <td>$${group.fees.toFixed(2)}</td>
-                
-                <td colspan="2" style="text-align:center; color: var(--green-text); opacity: 0.8;">
-                    TP: $${dominantProfit.toFixed(2)}
-                </td>
-                <td colspan="2" style="text-align:center; color: var(--red-text); opacity: 0.8;">
-                    SL: $${dominantLoss.toFixed(2)}
-                </td>
-                
+                <td colspan="2" style="text-align:center; color: var(--green-text); opacity: 0.8;">TP: $${dominantProfit.toFixed(2)}</td>
+                <td colspan="2" style="text-align:center; color: var(--red-text); opacity: 0.8;">SL: $${dominantLoss.toFixed(2)}</td>
                 <td colspan="3" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(4)}</td>
-                <td class="master-only"></td> <!-- Placeholder for future Group Action -->
+                <td class="master-only"></td>
             </tr>`;
 
-            // --- CHILD ROWS ---
             group.trades.forEach(trade => {
                 const metrics = calculateTradeMetrics(trade);
-                
-                // Conditional PnL Columns
                 const isMaker = (trade.entryFeeType === 'maker');
                 const valProfitTaker = !isMaker ? parseFloat(metrics.expected_profit_taker).toFixed(2) : '--';
                 const valProfitMaker = isMaker ? parseFloat(metrics.expected_profit_maker).toFixed(2) : '--';
@@ -2422,8 +2406,6 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
 
                 const styleTaker = !isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
                 const styleMaker = isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
-
-                // Note: 'setupType' is editable for legacy reasons or quick categorization
                 const setupCat = trade.setupType || 'Major';
 
                 const masterButtons = STATE.isMasterUser ? 
@@ -2436,28 +2418,20 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
                 <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
                     <td></td> <td></td> 
                     <td style="text-align:right;">↳ Order:</td>
-                    
-                    ${/* Editable Setup Type */ ''}
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="setupType" contenteditable="${STATE.isMasterUser}">${setupCat}</td>
-
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(4)}</td>
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(4)}</td>
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(4)}</td>
-                    
                     <td>${metrics.rr_taker}</td>
                     <td>${metrics.rr_maker}</td>
-
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="size" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.size).toFixed(2)}</td>
                     <td>${(parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
                     <td>--</td>
-                    
                     <td>${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
-                    
                     <td style="${styleTaker}">${valProfitTaker}</td>
                     <td style="${styleMaker}">${valProfitMaker}</td>
                     <td style="${styleTaker}">${valLossTaker}</td>
                     <td style="${styleMaker}">${valLossMaker}</td>
-
                     <td colspan="3" class="note-cell" title="${trade.note || ''}">${trade.note || ''}</td>
                     <td class="master-only">${masterButtons}</td>
                 </tr>`;
@@ -2465,14 +2439,10 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
         });
 
         tbodyElement.innerHTML = tableHtml;
-        
-        // Update Headers to match Live Table + 'Setup' column
         const thead = tbodyElement.closest('table').querySelector('thead');
         if(thead) thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Setup</th><th>Entry</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="3">Notes / Date</th><th class="master-only">Actions</th></tr>`;
 
-        // Render Summaries
         renderRestingSummaryCards(groupedTrades, summaryId);
-        
         setTimeout(() => adjustCollapsibleSize(tbodyElement), 10);
 
     } catch (e) {
@@ -2496,8 +2466,6 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
 
     groupKeys.forEach(key => {
         const g = groupedTrades[key];
-        
-        // Averages
         const avgEntry = g.totalQty > 0 ? (g.wEntry / g.totalQty) : 0;
         const avgStop = g.totalQty > 0 ? (g.wStop / g.totalQty) : 0;
         const avgTarget = g.totalQty > 0 ? (g.wTarget / g.totalQty) : 0;
@@ -2510,12 +2478,10 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
             t1 = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(4);
             t2 = (avgEntry + (riskDistance * 2 * directionMult)).toFixed(4);
             t4 = (avgEntry + (riskDistance * 4 * directionMult)).toFixed(4);
-            
             const rewardDistance = Math.abs(avgTarget - avgEntry);
             actualRR = (rewardDistance / riskDistance).toFixed(2);
         }
 
-        // Dominant Fee Logic
         let makerSize = 0, takerSize = 0;
         g.trades.forEach(t => {
             const s = parseFloat(t.size) || 0;
@@ -2524,26 +2490,21 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
         });
         const isMakerDominant = makerSize > takerSize;
         const feeLabel = isMakerDominant ? 'Maker' : 'Taker';
-
         let expProfit = isMakerDominant ? g.profitMaker : g.profitTaker;
         let expLoss = isMakerDominant ? g.lossMaker : g.lossTaker;
-
         const cardClass = g.type === 'Long' ? 'long-card' : 'short-card';
 
         summaryHtml += `
         <div class="summary-card ${cardClass}">
             <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id} (${g.type})</h5>
-            
             <div class="summary-grid-row">
                 <div><span class="sum-label">Total Size</span><span class="sum-val">$${g.totalSize.toLocaleString(undefined, {minimumFractionDigits:0})}</span></div>
                 <div><span class="sum-label">PnL per $100</span><span class="sum-val" style="font-weight:900;">$${g.pnlPer100.toFixed(2)}</span></div>
             </div>
-            
             <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 8px;">
                 <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
                 <div><span class="sum-label">Target RR</span><span class="sum-val" style="color: #d39e00;">${actualRR}:1</span></div>
             </div>
-
             <div class="summary-grid-row">
                 <div><span class="sum-label">Avg Stop</span><span class="sum-val val-red">${avgStop.toFixed(4)}</span></div>
                 <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
@@ -2552,7 +2513,6 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
                 <div><span class="sum-label">1:2 Target</span><span class="sum-val" style="color:var(--green-text)">${t2}</span></div>
                 <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
             </div>
-
             <div class="summary-grid-row financials">
                 <div>
                     <span class="sum-label">Proj Profit (${feeLabel})</span>
@@ -2582,7 +2542,6 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
                 if (!trade) { alert('Error: Trade not found.'); return; }
                 
                 const updates = {};
-                
                 let newValue = parseFloat(cell.textContent.replace(/[^0-9.-]/g, ''));
                 const precision = ['entry', 'stoploss', 'target'].includes(fieldToUpdate) ? 4 : 2;
 
@@ -2592,7 +2551,6 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
                     return; 
                 }
 
-                // If value hasn't changed, do nothing
                 if (parseFloat(trade[fieldToUpdate]).toFixed(precision) === newValue.toFixed(precision)) { 
                     cell.textContent = newValue.toFixed(precision); 
                     return; 
@@ -2600,12 +2558,10 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
 
                 updates[fieldToUpdate] = newValue;
 
-                // Recalculate PnL/RR/Fees based on new value
                 const tempTradeForCalc = { ...trade, ...updates };
                 const newMetrics = calculateTradeMetrics(tempTradeForCalc);
                 Object.assign(updates, newMetrics);
 
-                // Update Note
                 updates.note = (trade.note || '') + `\n${fieldToUpdate} updated to ${newValue.toFixed(precision)} on ${new Date().toLocaleString()}`;
 
                 tradeRef.update(updates).catch(error => { 
@@ -2617,7 +2573,6 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
         function handleCloseGroup(groupId, isTopstep) {
     if (STATE.isProcessing) return;
     
-    // 1. Confirm with user
     if (!confirm(`Are you sure you want to close ALL trades in group: ${groupId}?`)) return;
 
     const liveRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
@@ -2627,7 +2582,6 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
         const allTrades = snapshot.val();
         if (!allTrades) return;
 
-        // 2. Find all trades belonging to this groupId
         const groupEntries = Object.entries(allTrades).filter(([id, t]) => t.groupId === groupId);
         
         if (groupEntries.length === 0) {
@@ -2635,10 +2589,9 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
             return;
         }
 
-        // 3. Prompt for closing details (applying to the whole group)
         const defaultExit = groupEntries[0][1].target;
         const exitPriceStr = prompt(`Closing Group: ${groupId}\nEnter exit price for ALL positions:`, defaultExit);
-        if (exitPriceStr === null) return; // User cancelled
+        if (exitPriceStr === null) return; 
 
         let exitFeeType = prompt("Enter exit fee type (maker/taker):", "maker");
         if (exitFeeType === null) return;
@@ -2650,13 +2603,11 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
             return;
         }
 
-        // 4. Start processing
         STATE.isProcessing = true;
         const updates = {};
         const completedPromises = [];
 
         groupEntries.forEach(([id, trade]) => {
-            // Calculate results for this specific trade portion
             const result = calculateNetResult(trade, exitPrice, exitFeeType);
 
             const completedTrade = {
@@ -2668,13 +2619,10 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
                 note: (trade.note || '') + `\nGroup closed @ $${exitPrice}`
             };
 
-            // Add to Completed Trades
             completedPromises.push(compRef.push(completedTrade));
-            // Queue for removal from Live Trades
             updates[id] = null; 
         });
 
-        // 5. Execute all updates
         Promise.all(completedPromises)
             .then(() => {
                 return liveRef.update(updates);
@@ -2692,15 +2640,13 @@ function renderRestingTable(data, tbodyId = 'resting-trades-tbody', summaryId = 
 }
 
 
-        // Add this constant for MNQ math
 const MNQ_MULTIPLIER = 2; 
 
-// 1. Updated calculation for Futures Metrics
 function calculateFuturesMetrics(tradeData) {
     const entry = parseFloat(tradeData.entry);
     const stoploss = parseFloat(tradeData.stoploss);
     const target = parseFloat(tradeData.target);
-    const contracts = parseFloat(tradeData.contracts || tradeData.size); // repurposing size as contracts
+    const contracts = parseFloat(tradeData.contracts || tradeData.size); 
     const type = tradeData.type;
     const commissions = parseFloat(tradeData.commissions || 0.74);
 
@@ -2714,18 +2660,17 @@ function calculateFuturesMetrics(tradeData) {
     const rr = (expected_loss > 0) ? (expected_profit / expected_loss).toFixed(2) : 0;
 
     return {
-        rr_taker: rr, // Keep keys same to avoid breaking table render
+        rr_taker: rr, 
         rr_maker: rr,
         estimated_total_fee: commissions,
         expected_profit_taker: expected_profit,
         expected_profit_maker: expected_profit,
         expected_loss_taker: expected_loss,
         expected_loss_maker: expected_loss,
-        pnl_per_100_move: (100 * MNQ_MULTIPLIER * contracts) // PnL for 100 point move
+        pnl_per_100_move: (100 * MNQ_MULTIPLIER * contracts)
     };
 }
 
-// 2. Updated Net Result for Closing MNQ Trades
 function calculateFuturesNetResult(trade, exitPrice) {
     const entry = parseFloat(trade.entry);
     const contracts = parseFloat(trade.contracts || trade.size);
@@ -2741,6 +2686,7 @@ function calculateFuturesNetResult(trade, exitPrice) {
         exit_fee: fees / 2
     };
 }
+
 function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
     try {
         const tbodyElement = document.getElementById(tbodyId);
@@ -2749,7 +2695,6 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
         const trades = data || {};
         const groupedTrades = {};
 
-        // --- 1. Group Data & Aggregate ---
         Object.keys(trades).forEach(id => {
             const trade = trades[id];
             const gid = trade.groupId || `${trade.symbol}_${trade.type}_Legacy`; 
@@ -2787,9 +2732,7 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
             groupedTrades[gid].pnlPer100 += parseFloat(metrics.pnl_per_100_move || 0);
         });
 
-        // --- 2. Generate HTML ---
         let tableHtml = '';
-        
         const sortedGroupKeys = Object.keys(groupedTrades).sort((a, b) => {
             const getLatestDate = (group) => Math.max(...group.trades.map(t => t.date || 0));
             return getLatestDate(groupedTrades[b]) - getLatestDate(groupedTrades[a]);
@@ -2804,7 +2747,6 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
 
             const masterGroupBtn = STATE.isMasterUser ? `<button class="close-group-btn" data-group-id="${gid}">Close Idea</button>` : '';
 
-            // --- PARENT ROW ---
             tableHtml += `
             <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color); font-weight: bold;">
                 <td style="border-left: 4px solid var(--link-color);">${group.symbol}</td>
@@ -2817,17 +2759,13 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                 <td>$${group.fees.toFixed(2)}</td>
                 <td colspan="2" style="text-align:center; color: var(--green-text); opacity: 0.8;">TP: $${dominantProfit.toFixed(2)}</td>
                 <td colspan="2" style="text-align:center; color: var(--red-text); opacity: 0.8;">SL: $${dominantLoss.toFixed(2)}</td>
-                
-                <!-- AVG ENTRY CHANGED TO TOFIXED(2) -->
                 <td colspan="4" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(2)}</td>
                 <td></td> <td class="master-only">${masterGroupBtn}</td>
             </tr>`;
 
-            // --- CHILD ROWS ---
             group.trades.forEach(trade => {
                 const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
                 const breakevenPrice = calculateBreakevenPrice(trade);
-                // Map entry prices to 2 decimals
                 const entriesList = (trade.entry_prices || [trade.entry]).map(p => parseFloat(p).toFixed(2)).join(', ');
                 
                 const showMaker = !isTopstep; 
@@ -2854,14 +2792,11 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                 <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
                     <td></td> <td></td> 
                     <td style="text-align:right;">↳ ${isTopstep ? 'MNQ Position' : 'Trade ('+trade.entryFeeType+')'}:</td>
-                    
-                    <!-- PRICES CHANGED TO TOFIXED(2) -->
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
                     <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : '--'}</td>
                     <td class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(2)}</td>
-                    
                     <td>${metrics.rr_taker}</td>
                     <td style="display: ${showMaker ? 'table-cell' : 'none'};">${metrics.rr_maker}</td>
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}">${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
@@ -2908,12 +2843,11 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
     tradeRef.child(tradeId).update({
         note: newNote
     }).then(() => {
-        // Optional: Flash background green to confirm save
         cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
         setTimeout(() => cell.style.backgroundColor = '', 500);
     }).catch(err => alert("Error saving note: " + err.message));
 }
-// Helper for Summary Cards (Separated for clarity)
+
 function renderLiveSummaryCards(groupedTrades, summaryId) {
     const summaryContainer = document.getElementById(summaryId);
     if (!summaryContainer) return;
@@ -2930,16 +2864,13 @@ function renderLiveSummaryCards(groupedTrades, summaryId) {
     groupKeys.forEach(key => {
         const g = groupedTrades[key];
         
-        // 1. Calculate Averages
         const avgEntry = g.totalQty > 0 ? (g.wEntry / g.totalQty) : 0;
         const avgOrigStop = g.totalQty > 0 ? (g.wOrigStop / g.totalQty) : 0;
         const avgTarget = g.totalQty > 0 ? (g.wTarget / g.totalQty) : 0;
         
-        // 2. Risk Calculations based on ORIGINAL STOP
         const riskDistance = Math.abs(avgEntry - avgOrigStop);
         const directionMult = (g.type === 'Long') ? 1 : -1;
         
-        // 3. Target Levels (1:1, 1:2, 1:4)
         let t1 = "--", t2 = "--", t4 = "--", actualRR = "0.00";
         if (avgEntry > 0 && avgOrigStop > 0 && riskDistance > 0) {
             t1 = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(4);
@@ -2950,8 +2881,6 @@ function renderLiveSummaryCards(groupedTrades, summaryId) {
             actualRR = (rewardDistance / riskDistance).toFixed(2);
         }
 
-        // 4. DETERMINE DOMINANT FEE TYPE
-        // We sum up the size of maker trades vs taker trades to see which is dominant
         let makerSize = 0;
         let takerSize = 0;
         
@@ -2964,7 +2893,6 @@ function renderLiveSummaryCards(groupedTrades, summaryId) {
         const isMakerDominant = makerSize > takerSize;
         const feeLabel = isMakerDominant ? 'Maker' : 'Taker';
 
-        // 5. Select Financials based on the detected dominant fee type
         let expProfit = 0, expLoss = 0;
         
         if (isMakerDominant) {
@@ -2977,21 +2905,17 @@ function renderLiveSummaryCards(groupedTrades, summaryId) {
 
         const cardClass = g.type === 'Long' ? 'long-card' : 'short-card';
 
-        // 6. Build HTML
         summaryHtml += `
         <div class="summary-card ${cardClass}">
             <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id} (${g.type})</h5>
-            
             <div class="summary-grid-row">
                 <div><span class="sum-label">Total Size</span><span class="sum-val">$${g.totalSize.toLocaleString(undefined, {minimumFractionDigits:0})}</span></div>
                 <div><span class="sum-label">PnL per $100</span><span class="sum-val" style="font-weight:900;">$${g.pnlPer100.toFixed(2)}</span></div>
             </div>
-            
             <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 8px;">
                 <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
                 <div><span class="sum-label">Avg Target RR</span><span class="sum-val" style="color: #d39e00;">${actualRR}:1</span></div>
             </div>
-
             <div class="summary-grid-row">
                 <div><span class="sum-label">Avg Orig Stop</span><span class="sum-val val-red">${avgOrigStop.toFixed(4)}</span></div>
                 <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
@@ -3000,7 +2924,6 @@ function renderLiveSummaryCards(groupedTrades, summaryId) {
                 <div><span class="sum-label">1:2 Target</span><span class="sum-val" style="color:var(--green-text)">${t2}</span></div>
                 <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
             </div>
-
             <div class="summary-grid-row financials">
                 <div>
                     <span class="sum-label">Exp Profit (${feeLabel})</span>
@@ -3022,14 +2945,12 @@ function checkMarketAlerts() {
     const container = document.getElementById('tracker-alerts');
     if (!container) return;
 
-    // --- CONFIGURATION ---
-    const forceTest = false; // Set TRUE to see how they stack
-    // ---------------------
+    const forceTest = false; 
 
     const today = new Date();
-    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const dayOfWeek = today.getDay(); 
     const dateOfMonth = today.getDate();
-    const monthIndex = today.getMonth(); // 0=Jan, 11=Dec
+    const monthIndex = today.getMonth(); 
     
     const lastDayCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     const lastDayDateOfMonth = lastDayCurrentMonth.getDate();
@@ -3041,10 +2962,6 @@ function checkMarketAlerts() {
 
     const messages = [];
 
-    // --- 1. MACRO DATA WINDOWS (CPI / PPI / FOMC) ---
-
-    // FOMC (Usually 3rd Wednesday)
-    // T-1 Alert (Tuesday)
     if (dayOfWeek === 2 && dateOfMonth >= 14 && dateOfMonth <= 20) {
         messages.push(`
             <div class="alert-banner" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">
@@ -3052,7 +2969,6 @@ function checkMarketAlerts() {
             </div>
         `);
     }
-    // Day Of Alert (Wednesday)
     if (dayOfWeek === 3 && dateOfMonth >= 15 && dateOfMonth <= 21) {
         messages.push(`
             <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
@@ -3062,8 +2978,6 @@ function checkMarketAlerts() {
         `);
     }
 
-    // Inflation (CPI / PPI) - Typically 10th-15th
-    // T-1 Alert
     if (dateOfMonth >= 9 && dateOfMonth <= 14 && dayOfWeek !== 5 && dayOfWeek !== 6 && dayOfWeek !== 0) {
         messages.push(`
             <div class="alert-banner" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">
@@ -3072,7 +2986,6 @@ function checkMarketAlerts() {
             </div>
         `);
     }
-    // Day Of Alert
     if (dateOfMonth >= 10 && dateOfMonth <= 15 && dayOfWeek !== 6 && dayOfWeek !== 0) {
         messages.push(`
             <div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">
@@ -3082,8 +2995,6 @@ function checkMarketAlerts() {
         `);
     }
 
-    // --- 2. BANK HOLIDAYS ---
-    // T-1 Alert (Sunday)
     if (dayOfWeek === 0 && dateOfMonth <= 21 && [0, 1, 4, 8].includes(monthIndex)) {
         messages.push(`
             <div class="alert-banner" style="background-color: #e2e3e5; color: #383d41;">
@@ -3092,7 +3003,6 @@ function checkMarketAlerts() {
             </div>
         `);
     }
-    // Day Of Alert (Monday)
     if (dayOfWeek === 1 && dateOfMonth <= 21 && [0, 1, 4, 8].includes(monthIndex)) {
         messages.push(`
             <div class="alert-banner" style="background-color: #e2e3e5; color: #383d41;">
@@ -3101,7 +3011,6 @@ function checkMarketAlerts() {
         `);
     }
 
-    // --- 3. CANDLE CLOSES (Monthly / Quarterly) ---
     if (isLastDay || isSecondToLastDay) {
         const isQuarterly = [2, 5, 8, 11].includes(monthIndex); 
         const title = isQuarterly ? "QUARTERLY CLOSE" : "MONTHLY CLOSE";
@@ -3113,7 +3022,6 @@ function checkMarketAlerts() {
         `);
     }
 
-    // --- 4. DAILY ROUTINE DEFINITIONS (Your Originals) ---
     if (dayOfWeek === 1 || forceTest) {
         messages.push(`<div class="alert-banner" style="background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb;"><strong>Monday Range Construction:</strong> "Monday Highs/Lows" are often swept later in the week. Don't trust the initial trend immediately.</div>`);
     }
@@ -3136,18 +3044,13 @@ function checkMarketAlerts() {
         messages.push(`<div class="alert-banner" style="background-color: #e2e3f5; color: #2f2f5f; border-color: #d6d8ff;"><strong>Weekly Open:</strong> New weekly candle. Volatility may increase. BTC often seeks inefficiencies from the CME gap.</div>`);
     }
 
-    // --- 5. SPECIAL EVENTS (Your Originals) ---
-
-    // NFP (1st Friday) - T-1 Alert (Thursday)
     if (dayOfWeek === 4 && dateOfMonth <= 6) {
         messages.push(`<div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d; border-color: #d6d8db;"><strong>⚠️ TOMORROW: NFP RELEASE:</strong> Non-Farm Payrolls tomorrow at 8:30 AM NY. Expect positioning adjustments today.</div>`);
     }
-    // NFP Day Of (Friday)
     if (dayOfWeek === 5 && dateOfMonth <= 7) {
         messages.push(`<div class="alert-banner" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;"><strong>🇺🇸 NFP DATA RELEASE:</strong> Non-Farm Payrolls at 8:30 AM NY. Do not hold tight stops through the release.</div>`);
     }
     
-    // Monthly Options Expiry
     if (dayOfWeek === 4 && dateOfMonth === (lastFridayDate - 1)) {
         messages.push(`<div class="alert-banner" style="background-color: #e2d9f3; color: #3c2a4d;"><strong>⚠️ Pre-Expiry Volatility:</strong> Tomorrow is Monthly Options Expiry. Expect positioning adjustments today.</div>`);
     }
@@ -3155,7 +3058,6 @@ function checkMarketAlerts() {
         messages.push(`<div class="alert-banner" style="background-color: #f8d7da; color: #721c24;"><strong>⚠️ Monthly Crypto Expiry:</strong> Last Friday of the month. Deribit/CME expiry may cause "pinning" or high volatility.</div>`);
     }
 
-    // Earnings Season
     const isBigTechEarnings = 
         ([0, 3, 6, 9].includes(monthIndex) && dateOfMonth >= 12) || 
         ([1, 4, 7, 10].includes(monthIndex) && dateOfMonth <= 7);
@@ -3168,7 +3070,6 @@ function checkMarketAlerts() {
         `);
     }
 
-    // Final Render
     container.innerHTML = messages.length > 0 ? messages.join('') : '';
 }
         
@@ -3181,14 +3082,12 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     
     let rowsHtml = '';
     
-    // Pagination Selectors
     const showAll = isTopstep ? STATE.tsCompletedTradesShowAll : STATE.completedTradesShowAll;
     const currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
     const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
     const showAllButton = document.getElementById(isTopstep ? 'ts-toggle-all-completed-trades' : 'toggle-all-completed-trades');
     const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
 
-    // --- 1. HEADERS (Now includes both Entered and Closed columns) ---
     const table = tbodyElement.closest('table');
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
@@ -3198,7 +3097,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         : `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th><th>RR(M)</th><th>Exit Price</th><th>Raw PnL</th><th>Fees</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
     thead.innerHTML = headers;
 
-    // --- 2. ORGANIZE DATA ---
     const tradesByDayAndGroup = {};
     const uniqueTradingDates = [];
     tradeIds.forEach(id => {
@@ -3211,7 +3109,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     });
     uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
 
-    // Pagination Logic
     let visibleDates = uniqueTradingDates;
     const todayStr = getTradingDayString(Date.now(), Date.now());
     if (showAll) {
@@ -3225,7 +3122,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         if (paginationControls) paginationControls.style.display = 'none';
     }
 
-    // --- 3. RENDER LOOP ---
     visibleDates.forEach(dateStr => {
         const groups = tradesByDayAndGroup[dateStr];
         let dPnL = 0, dWins = 0, dLosses = 0;
@@ -3237,7 +3133,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
         const safeDateKey = isTopstep ? `ts-${dateStr.replace(/[\/\s,]/g, '-')}` : dateStr.replace(/[\/\s,]/g, '-');
 
-        // DATE SUMMARY ROW
         rowsHtml += `
         <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
             <td colspan="11" style="text-align: left; padding: 10px 20px;">
@@ -3277,7 +3172,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             if (gType === 'Long') diffColor = diff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
             else if (gType === 'Short') diffColor = diff <= 0 ? 'var(--green-text)' : 'var(--red-text)';
 
-            // RICH GROUP HEADER
             rowsHtml += `
             <tr class="completed-group-header">
                 <td colspan="25" style="padding: 8px 15px; font-size: 0.95em;">
@@ -3302,7 +3196,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 const rawPnL = net + fees;
                 const tPct = isTopstep ? (((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)) : (net / parseFloat(t.size) * 100);
 
-                // --- Format Entry & Closed Times ---
                 const entryTime = t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
                 const closedTime = t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
 
@@ -3342,7 +3235,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px;">No records.</td></tr>';
 
-    // --- NATURAL EXPANSION FIX ---
     const section = tbodyElement.closest('.collapsible-section');
     if (section && section.classList.contains('is-open')) {
         const content = section.querySelector('.collapsible-content');
@@ -3611,7 +3503,6 @@ function getFeeRates(exchangeName) {
     if (STATE.isProcessing) return;
     STATE.isProcessing = true;
 
-    // 1. Determine which Database path to use
     const liveRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
     const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
 
@@ -3622,7 +3513,6 @@ function getFeeRates(exchangeName) {
             return;
         }
         
-        // 2. Determine default exit based on Win/Loss button clicked
         const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
         const exitPriceStr = prompt(`Closing ${trade.symbol} (${trade.type})\nEnter exact exit price:`, defaultExit);
         
@@ -3641,12 +3531,10 @@ function getFeeRates(exchangeName) {
         let completedTradeData;
 
         if (isTopstep) {
-            /* --- TOPSTEP / MNQ LOGIC (Simplified) --- */
-            const MNQ_MULT = 2; // $2 per point
+            const MNQ_MULT = 2; 
             const contracts = parseFloat(trade.contracts || trade.size);
             const totalFees = parseFloat(trade.commissions || 0.74);
             
-            // Calculate Points based on Long/Short
             const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
             const netResult = (points * MNQ_MULT * contracts) - totalFees;
 
@@ -3661,13 +3549,11 @@ function getFeeRates(exchangeName) {
                 note: (trade.note || '') + `\nClosed @ $${exitPrice} (Full)`
             };
 
-            // Process Database: Move to completed, delete from live
             compRef.push(completedTradeData)
                 .then(() => liveRef.child(tradeId).remove())
                 .finally(() => { STATE.isProcessing = false; });
 
         } else {
-            /* --- STANDARD CRYPTO LOGIC (Detailed Prompts) --- */
             const currentSize = parseFloat(trade.size);
             const closeSizeStr = prompt(`Closing Value ($)?\n(Total: $${currentSize.toFixed(2)})`, currentSize);
             
@@ -3690,7 +3576,6 @@ function getFeeRates(exchangeName) {
                 return;
             }
 
-            // Calculate results using the crypto helper
             const tradePortion = { ...trade, size: closingSize };
             const result = calculateNetResult(tradePortion, exitPrice, exitFeeType);
 
@@ -3704,7 +3589,6 @@ function getFeeRates(exchangeName) {
                 note: (trade.note || '') + `\nClosed $${closingSize.toFixed(2)} @ $${exitPrice}`
             };
 
-            // Handle Full vs Partial close for Crypto
             if (Math.abs(currentSize - closingSize) < 1) {
                 compRef.push(completedTradeData)
                     .then(() => liveRef.child(tradeId).remove())
@@ -3794,7 +3678,20 @@ function getFeeRates(exchangeName) {
                 localStorage.setItem('theme', theme);
             });
 
-            // 2. Independent Topstep Trading Setups (Text Areas)
+            // Handle Eval Account Dropdown changes
+            const evalSelector = document.getElementById('eval-account-selector');
+            if (evalSelector) {
+                evalSelector.addEventListener('change', (e) => {
+                    STATE.selectedEvalAccount = e.target.value;
+                    const text = e.target.options[e.target.selectedIndex].text;
+                    document.getElementById('eval-banner-title').textContent = text;
+                    document.getElementById('eval-add-trade-title').textContent = `Add New ${e.target.value} Trade`;
+                    document.getElementById('eval-add-btn').textContent = `Add ${e.target.value} Trade`;
+                    renderFilteredEvalData();
+                });
+            }
+
+            // 2. Independent Evaluation Trading Setups (Text Areas)
             const tsPrimary = document.getElementById('ts-primary-setups-notes');
             const tsSecondary = document.getElementById('ts-secondary-setups-notes');
 
@@ -3822,7 +3719,7 @@ function getFeeRates(exchangeName) {
                 });
             }
 
-            // 3. Independent Topstep Image Upload
+            // 3. Independent Evaluation Image Upload
             const tsSetupsUpload = document.getElementById('ts-setups-image-upload');
             if (tsSetupsUpload) {
                 tsSetupsUpload.addEventListener('change', (e) => {
@@ -3885,22 +3782,16 @@ function getFeeRates(exchangeName) {
 
             // 7. --- INLINE EDITING (Saves Notes/Prices on Blur) ---
             document.body.addEventListener('blur', (e) => {
-                // Handle Entry/Stop/Target/Size edits
                 if (e.target.matches('.editable-cell')) {
                     if (e.target.closest('#resting-trades-tbody, #ts-resting-trades-tbody')) handleRestingTradeUpdate(e.target);
                     else handleLiveTradeUpdate(e.target);
                 }
-                // Handle Live Notes
                 if (e.target.matches('.editable-live-note')) handleLiveNoteUpdate(e.target);
                 
-                // --- CRITICAL: Handle Completed Trades Notes & Prices ---
-                // Locate this inside setupEventListeners() -> blur listener
 if (e.target.matches('.editable-completed-cell')) {
-    console.log("Saving completed trade edit..."); // Debug check
     handleCompletedTradeUpdate(e.target);
 }
 
-                // Handle Daily Summary Notes
                 if (e.target.matches('.editable-daily-note')) {
                     if (!STATE.isMasterUser) return;
                     dbRefs.dailyNotes.child(e.target.dataset.dateKey).set(e.target.innerText.trim()).then(() => {
@@ -3914,9 +3805,8 @@ if (e.target.matches('.editable-completed-cell')) {
             if (DOM.addTradeForm) DOM.addTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, false));
             if (DOM.tsAddTradeForm) DOM.tsAddTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, true));
 
-            // 9. Global Click Handler (Collapsibles, Pagination, Image Dispatcher)
+            // 9. Global Click Handler
             document.body.addEventListener('click', (e) => {
-              // Locate this inside your global click listener:
 const header = e.target.closest('.collapsible-header');
 if (header) {
     const section = header.parentElement;
@@ -3928,18 +3818,13 @@ if (header) {
     toggleBtn.textContent = isOpen ? '−' : '+';
     
     if (isOpen) {
-        // 1. Initial slide down based on content height
         content.style.maxHeight = content.scrollHeight + "px";
-        
-        // 2. IMPORTANT: Remove the cap after animation (0.4s)
-        // This allows the table to grow or shrink without cutting off data
         setTimeout(() => {
             if (section.classList.contains('is-open')) {
                 content.style.maxHeight = "none";
             }
         }, 450);
     } else { 
-        // Slide up
         content.style.maxHeight = content.scrollHeight + "px";
         setTimeout(() => {
             content.style.maxHeight = '0px';
@@ -3952,7 +3837,6 @@ if (header) {
                     handleGenericImageLibraryClick(e);
                 }
 
-                // Pagination: Crypto Completed
                 else if (e.target.id === 'toggle-all-completed-trades') {
                     STATE.completedTradesShowAll = true; STATE.completedTradesCurrentPage = 1;
                     renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
@@ -3963,19 +3847,16 @@ if (header) {
                     if (STATE.completedTradesCurrentPage < tPages) { STATE.completedTradesCurrentPage++; renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); }
                 } 
 
-                // Pagination: Topstep Completed
                 else if (e.target.id === 'ts-toggle-all-completed-trades') {
                     STATE.tsCompletedTradesShowAll = true; STATE.tsCompletedTradesCurrentPage = 1;
-                    renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true);
+                    renderFilteredEvalData();
                 } else if (e.target.id === 'ts-completed-trades-prev-page') {
-                    if (STATE.tsCompletedTradesCurrentPage > 1) { STATE.tsCompletedTradesCurrentPage--; renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true); }
+                    if (STATE.tsCompletedTradesCurrentPage > 1) { STATE.tsCompletedTradesCurrentPage--; renderFilteredEvalData(); }
                 } else if (e.target.id === 'ts-completed-trades-next-page') {
                     const tPagesTS = Math.ceil(Object.keys(STATE.allTsCompletedTrades).length / 5);
-                    if (STATE.tsCompletedTradesCurrentPage < tPagesTS) { STATE.tsCompletedTradesCurrentPage++; renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true); }
+                    if (STATE.tsCompletedTradesCurrentPage < tPagesTS) { STATE.tsCompletedTradesCurrentPage++; renderFilteredEvalData(); }
                 }
 
-                // --- INDEPENDENT GALLERY PAGINATION ---
-                // Crypto Buttons
                 else if (e.target.id === 'toggle-all-setups-images') {
                     STATE.setupsImagesShowAll = true; STATE.setupsImagesCurrentPage = 1;
                     renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
@@ -3985,7 +3866,6 @@ if (header) {
                     const totalDays = new Set(Object.values(STATE.allSetupsImages).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
                     if (STATE.setupsImagesCurrentPage < totalDays) { STATE.setupsImagesCurrentPage++; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
                 }
-                // Topstep Buttons
                 else if (e.target.id === 'ts-toggle-all-setups-images') {
                     STATE.tsSetupsImagesShowAll = true; STATE.tsSetupsImagesCurrentPage = 1;
                     renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
@@ -4051,7 +3931,7 @@ if (header) {
                 STATE.strategySaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.strategyNotes.set(e.target.value); }, 1000);
             });
 
-            // 15. --- TOPSTEP TAB SPECIFIC (For zooms/bins) ---
+            // 15. --- EVAL TAB SPECIFIC (For zooms/bins) ---
             const tsTabEl = document.getElementById('topstep-tab');
             if (tsTabEl) {
                 tsTabEl.addEventListener('click', (e) => {
@@ -4180,34 +4060,6 @@ if (header) {
             };
         }
 
-        function calculateFuturesMetrics(tradeData) {
-    const MNQ_MULT = 2; // $2 per point for MNQ
-    const entry = parseFloat(tradeData.entry); 
-    const stoploss = parseFloat(tradeData.stoploss); 
-    const target = parseFloat(tradeData.target); 
-    const contracts = parseFloat(tradeData.contracts); 
-    const type = tradeData.type;
-    const commissions = parseFloat(tradeData.commissions || 0.74);
-
-    const pointsProfit = type === 'Long' ? (target - entry) : (entry - target);
-    const pointsLoss = type === 'Long' ? (entry - stoploss) : (stoploss - entry);
-
-    // Futures math: (Point Difference * Multiplier * Contracts)
-    const expected_profit = (pointsProfit * MNQ_MULT * contracts) - commissions;
-    const expected_loss = (pointsLoss * MNQ_MULT * contracts) + commissions;
-    const rr = (expected_loss > 0) ? (expected_profit / expected_loss).toFixed(2) : 0;
-
-    return { 
-        rr_taker: rr,
-        rr_maker: rr,
-        estimated_total_fee: commissions, 
-        expected_profit_taker: expected_profit, 
-        expected_profit_maker: expected_profit,
-        expected_loss_taker: expected_loss,
-        expected_loss_maker: expected_loss,
-        pnl_per_100_move: (100 * MNQ_MULT * contracts) // How much $ for every 100 points
-    };
-}
 function handleAddTradeSubmit(e, isTopstep = false) {
     e.preventDefault(); 
     if (!STATE.isMasterUser) return;
@@ -4222,7 +4074,6 @@ function handleAddTradeSubmit(e, isTopstep = false) {
     const stopLossPrice = parseFloat(document.getElementById(`${prefix}stop-loss`).value);
     const targetPrice = parseFloat(document.getElementById(`${prefix}target`).value);
 
-    // Initial Trade Object
     const trade = { 
         symbol: document.getElementById(`${prefix}trade-symbol`).value, 
         type: document.getElementById(`${prefix}trade-type`).value, 
@@ -4239,34 +4090,26 @@ function handleAddTradeSubmit(e, isTopstep = false) {
     let metrics;
 
     if (isTopstep) {
-        /* --- TOPSTEP / MNQ LOGIC --- */
-        // We use 'contracts' for MNQ and map it to 'size' so the table rows still work
+        trade.evalAccount = document.getElementById('eval-account-selector').value;
         trade.contracts = parseFloat(document.getElementById(`ts-contracts`).value);
         trade.size = trade.contracts; 
         trade.commissions = parseFloat(document.getElementById(`ts-commissions`).value);
         trade.exchange = "Futures";
         trade.entryFeeType = "fixed";
-
-        // Use the specialized Futures calculator
         metrics = calculateFuturesMetrics(trade);
     } else {
-        /* --- STANDARD CRYPTO LOGIC --- */
         trade.size = parseFloat(document.getElementById(`position-value`).value);
         trade.exchange = document.getElementById(`trade-exchange`).value;
         trade.entryFeeType = document.getElementById(`entry-fee-type`).value;
-
-        // Use standard percentage-based calculator
         metrics = calculateTradeMetrics(trade);
     }
 
-    // Validation
     if ([trade.entry, trade.stoploss, trade.target, trade.size].some(val => isNaN(val) || val === null)) {
         return alert('Please fill all price and size fields correctly.');
     }
 
     const tradeWithMetrics = { ...trade, ...metrics };
     
-    // Select DB Path
     let targetRef;
     if (isTopstep) {
         targetRef = (status === 'resting') ? dbRefs.tsRestingOrders : dbRefs.tsTrades;
@@ -4274,9 +4117,7 @@ function handleAddTradeSubmit(e, isTopstep = false) {
         targetRef = (status === 'resting') ? dbRefs.restingOrders : dbRefs.trades;
     }
 
-    // Push to Firebase
     targetRef.push(tradeWithMetrics).then(() => {
-        // Clear inputs after success
         document.getElementById(`${prefix}entry-price`).value = '';
         document.getElementById(`${prefix}stop-loss`).value = '';
         document.getElementById(`${prefix}target`).value = '';
@@ -4297,16 +4138,13 @@ function handleCompletedTradeUpdate(cell) {
 
     const tradeId = cell.dataset.id;
     const field = cell.dataset.field; 
-    // Use innerText to avoid capturing hidden HTML tags from contenteditable
     let newValue = cell.innerText.trim(); 
 
     if (!tradeId || !field) return;
 
-    // --- CASE A: Exit Price (Recalculate Math) ---
     if (field === 'exit_price') {
         const newPrice = parseFloat(newValue.replace(/[^0-9.-]/g, ''));
         if (isNaN(newPrice)) {
-            // Revert on error
             compRef.child(tradeId).child('exit_price').once('value', s => cell.innerText = s.val());
             return;
         }
@@ -4334,13 +4172,10 @@ function handleCompletedTradeUpdate(cell) {
             });
         });
     } 
-    // --- CASE B: Notes (Overwrite existing) ---
     else {
-        // Create an object with the dynamic key (note, note2, or note3)
         const updateObj = {};
         updateObj[field] = newValue;
 
-        // .update() will only change the specific field provided and leave the rest alone
         compRef.child(tradeId).update(updateObj).then(() => {
             cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
             setTimeout(() => cell.style.backgroundColor = '', 500);
@@ -4473,7 +4308,6 @@ function handleCompletedTradeUpdate(cell) {
 function handleGenericImageLibraryClick(e) {
     const clickedImg = e.target.closest('img');
     
-    // 1. Handle Opening the Modal (Zoom/View)
     if (clickedImg?.dataset.fullSrc) {
         const galleryContainer = clickedImg.closest('#setups-image-container, #ts-setups-image-container, .trade-image-thumbnails, #strategy-image-container');
         if (galleryContainer) { 
@@ -4485,8 +4319,6 @@ function handleGenericImageLibraryClick(e) {
         return;
     }
 
-    // 2. Handle the "Bin" (Delete) or "Edit" buttons
-    // We check which container the click happened in and assign the correct DB path
     const setupsContainer = e.target.closest('#setups-image-container');
     const tsSetupsContainer = e.target.closest('#ts-setups-image-container');
     const strategyContainer = e.target.closest('#strategy-image-container');
@@ -4514,15 +4346,12 @@ function handleGenericImageLibraryClick(e) {
         }
 
         if (confirm(`Delete this image from ${libraryType}?\n\n${filename}`)) {
-            // This builds the path: e.g., "ts_setups_images/uuid-123.png"
             const storagePath = `${libraryType}/${filename}`;
             
             storage.ref(storagePath).delete().then(() => {
-                // Once deleted from storage, remove from database
                 dbRef.child(id).remove();
             }).catch((err) => {
                 if (err.code === 'storage/object-not-found') {
-                    // If file is already gone from storage, just clean up the database
                     dbRef.child(id).remove();
                 } else {
                     console.error("Firebase Deletion Error:", err);
@@ -4656,7 +4485,6 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     const isTS = (libraryType === 'ts_setups_images');
     const prefix = isTS ? 'ts-' : '';
 
-    // --- LOGIC: Select the correct state variables ---
     const showAll = isTS ? STATE.tsSetupsImagesShowAll : STATE.setupsImagesShowAll;
     const currentPage = isTS ? STATE.tsSetupsImagesCurrentPage : STATE.setupsImagesCurrentPage;
 
@@ -4665,7 +4493,6 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     const pageInfo = document.getElementById(prefix + 'setups-images-page-info');
     const prevBtn = document.getElementById(prefix + 'setups-images-prev-page');
     const nextBtn = document.getElementById(prefix + 'setups-images-next-page');
-    // -------------------------------------------------
 
     const masterButtonsHtml = (id, fileName) => (STATE.isMasterUser) ? `<button class="delete-library-image" title="Delete Image" data-id="${id}" data-filename="${fileName}" data-library-type="${libraryType}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64s14.3 32 32 32h384c17.7 0 32-14.3 32-32s-14.3-32-32-32h-96l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32l21.2 339c1.6 25.3 22.6 45 47.9 45h245.8c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg></button><button class="edit-caption-btn" title="Edit Caption" data-id="${id}" data-library-type="${libraryType}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M471.6 21.7c-21.9-21.9-57.3-21.9-79.2 0L362.3 51.7l97.9 97.9 30.1-30.1c21.9-21.9 21.9-57.3 0-79.2L471.6 21.7zm-299.2 220c-6.1 6.1-10.8 13.6-13.5 21.9l-29.6 88.8c-2.9 8.6-.6 18.1 5.8 24.6s15.9 8.7 24.6 5.8l88.8-29.6c8.2-2.7 15.7-7.4 21.9-13.5L437.7 172.3 339.7 74.3 172.4 241.7zM96 64C43 64 0 107 0 160V416c0 53 43 96 96 96H352c53 0 96-43 96-96V320c0-17.7-14.3-32-32-32s-32 14.3-32 32v96c0 17.7-14.3 32-32 32H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h96c17.7 0 32-14.3 32-32s-14.3-32-32-32H96z"/></svg></button>` : '';
 
@@ -4725,15 +4552,12 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
 
    containerElement.innerHTML = imagesHtml || '<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 20px;">No images found.</div>';
 
-    // --- FIX FOR EXPANSION ---
-    // We run it once immediately
     resizeParentCollapsible(containerElement);
-
-    // And once again after a short delay to account for image rendering
     setTimeout(() => {
         resizeParentCollapsible(containerElement);
     }, 300); 
 }
+
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); 
             if (attachBtn) { 
@@ -4915,9 +4739,8 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
       function calculateTopstepStats(tsCompletedData) {
     const STARTING_BALANCE = 50000;
     const MAX_DRAWDOWN = 2000;
-    const INITIAL_MIN_BALANCE = STARTING_BALANCE - MAX_DRAWDOWN; // $48,000
+    const INITIAL_MIN_BALANCE = STARTING_BALANCE - MAX_DRAWDOWN; 
 
-    // 1. Group PnL by Trading Day
     const tradesByDay = {};
     Object.values(tsCompletedData).forEach(t => {
         if (!t.closed_date) return;
@@ -4930,32 +4753,22 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     
     let currentBalance = STARTING_BALANCE;
     let eodHwm = STARTING_BALANCE;
-    let maxLossLimit = INITIAL_MIN_BALANCE; // Starts at $48,000
+    let maxLossLimit = INITIAL_MIN_BALANCE; 
 
-    // 2. Iterate through days to trail the MLL
     sortedDays.forEach(day => {
         currentBalance += tradesByDay[day];
-
-        // If today's closing balance is higher than previous HWM, move the MLL
         if (currentBalance > eodHwm) {
             eodHwm = currentBalance;
-            
-            // Calculate where the limit would trail to
             let trailingLimit = eodHwm - MAX_DRAWDOWN;
-
-            // Rule: MLL only moves UP, and stops once it hits $50,000
             if (trailingLimit > maxLossLimit) {
-                // If trailingLimit is > 50k, it stays at 50k
                 maxLossLimit = Math.min(trailingLimit, STARTING_BALANCE);
             }
         }
     });
 
-    // 3. Final metrics
     const totalPL = currentBalance - STARTING_BALANCE;
     const bufferLeft = currentBalance - maxLossLimit;
 
-    // 4. Update UI
     const balEl = document.getElementById('ts-balance');
     const hwmEl = document.getElementById('ts-hwm');
     const minBalEl = document.getElementById('ts-min-bal');
@@ -4968,14 +4781,14 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     if(bufEl) bufEl.textContent = formatCurrency(bufferLeft);
     if(plEl) plEl.textContent = formatCurrency(totalPL);
 
-    // Color indicators
     if(bufEl) {
         if (bufferLeft <= 0) bufEl.style.color = 'var(--red-text)';
-        else if (bufferLeft <= 500) bufEl.style.color = 'orange'; // Warning zone
+        else if (bufferLeft <= 500) bufEl.style.color = 'orange'; 
         else bufEl.style.color = 'var(--green-text)';
     }
     if(plEl) plEl.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
 }
+
         function subscribeToData() {
             dbRefs.trades.on('value', s => { 
                 const trades = s.val() || {}; 
@@ -4994,47 +4807,41 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
                     renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
                 }
                 if (Object.keys(STATE.allTsCompletedTrades).length > 0) {
-                    renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true);
+                    renderFilteredEvalData();
                 }
             });
 
-            // Listen for Topstep Text Setups
-// --- Inside subscribeToData() ---
+            dbRefs.tsSetups1.on('value', (s) => { 
+                const val = s.val() || "";
+                const el = document.getElementById('ts-primary-setups-notes');
+                if (el && document.activeElement !== el) {
+                    el.value = val;
+                    setTimeout(() => {
+                        autoResizeTextarea(el);
+                        resizeParentCollapsible(el);
+                    }, 100);
+                }
+            });
 
-dbRefs.tsSetups1.on('value', (s) => { 
-    const val = s.val() || "";
-    const el = document.getElementById('ts-primary-setups-notes');
-    if (el && document.activeElement !== el) {
-        el.value = val;
-        // Trigger expansion after data loads
-        setTimeout(() => {
-            autoResizeTextarea(el);
-            resizeParentCollapsible(el);
-        }, 100);
-    }
-});
+            dbRefs.tsSetups2.on('value', (s) => { 
+                const val = s.val() || "";
+                const el = document.getElementById('ts-secondary-setups-notes');
+                if (el && document.activeElement !== el) {
+                    el.value = val;
+                    setTimeout(() => {
+                        autoResizeTextarea(el);
+                        resizeParentCollapsible(el);
+                    }, 100);
+                }
+            });
 
-dbRefs.tsSetups2.on('value', (s) => { 
-    const val = s.val() || "";
-    const el = document.getElementById('ts-secondary-setups-notes');
-    if (el && document.activeElement !== el) {
-        el.value = val;
-        // Trigger expansion after data loads
-        setTimeout(() => {
-            autoResizeTextarea(el);
-            resizeParentCollapsible(el);
-        }, 100);
-    }
-});
-
-// Listen for Topstep Image Setups
-dbRefs.tsSetupsImages.on('value', (s) => {
-    const images = s.val() || {};
-    const container = document.getElementById('ts-setups-image-container');
-    if (container) {
-        renderGenericImageLibrary(images, container, 'ts_setups_images');
-    }
-});
+            dbRefs.tsSetupsImages.on('value', (s) => {
+                STATE.allTsSetupsImages = s.val() || {};
+                const container = document.getElementById('ts-setups-image-container');
+                if (container) {
+                    renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
+                }
+            });
 
             dbRefs.completedTrades.on('value', s => {
                 STATE.allCompletedTrades = s.val() || {};
@@ -5086,21 +4893,20 @@ dbRefs.tsSetupsImages.on('value', (s) => {
                 dbRefs.bank.set({ currentBalance: newBalance });
             });
 
-            // Topstep Listeners
+            // Evaluation Accounts Listeners
             dbRefs.tsTrades.on('value', s => { 
-                const trades = s.val() || {}; 
-                renderLiveTable(trades, 'ts-trades-tbody', 'ts-live-trades-summary-container'); 
+                STATE.allTsTrades = s.val() || {}; 
+                renderFilteredEvalData(); 
             });
 
             dbRefs.tsRestingOrders.on('value', s => {
-                const orders = s.val() || {};
-                renderRestingTable(orders, 'ts-resting-trades-tbody', 'ts-resting-trades-summary-container');
+                STATE.allTsRestingOrders = s.val() || {};
+                renderFilteredEvalData();
             });
 
             dbRefs.tsCompletedTrades.on('value', s => {
                 STATE.allTsCompletedTrades = s.val() || {};
-                renderCompletedTable(STATE.allTsCompletedTrades, 'ts-completed-trades-tbody', true);
-                calculateTopstepStats(STATE.allTsCompletedTrades);
+                renderFilteredEvalData();
             });
 
             dbRefs.journalText.on('value', (s) => { 
@@ -5118,22 +4924,10 @@ dbRefs.tsSetupsImages.on('value', (s) => {
                 }
             });
 
-          // Inside subscribeToData() function:
-
-// Crypto Setup Images
-dbRefs.setupsImages.on('value', (s) => {
-    STATE.allSetupsImages = s.val() || {};
-    renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-});
-
-// Topstep Setup Images (The missing piece)
-dbRefs.tsSetupsImages.on('value', (s) => {
-    STATE.allTsSetupsImages = s.val() || {}; // This must be saved to STATE
-    const tsContainer = document.getElementById('ts-setups-image-container');
-    if (tsContainer) {
-        renderGenericImageLibrary(STATE.allTsSetupsImages, tsContainer, 'ts_setups_images');
-    }
-});
+            dbRefs.setupsImages.on('value', (s) => {
+                STATE.allSetupsImages = s.val() || {};
+                renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+            });
 
             dbRefs.favourites.on('value', (s) => { 
                 STATE.favouriteEntries = s.val() || {}; 
@@ -5187,8 +4981,7 @@ dbRefs.tsSetupsImages.on('value', (s) => {
 
         function openDefaultSectionsInContainer(containerElement) {
             if (!containerElement) return;
-            const sectionsToOpen = ['Live Trades', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Add New Topstep Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'EMA Snapshot', 'PnL Calendar', 'Strategy & Setups', 'Resting Limit Orders', 'Topstep Notes', 
-        'Topstep Setups'];
+            const sectionsToOpen = ['Live Trades', 'Completed Trades', 'Setups', 'Trading Setups', 'Add New Trade', 'Add New Topstep Trade', 'Add New Lucid Trade', 'Notes', 'My Notes', 'Charts', 'Misc', 'EMA Snapshot', 'PnL Calendar', 'Strategy & Setups', 'Resting Limit Orders', 'Topstep Notes', 'Funded Notes', 'Funded Setups', 'Topstep Setups'];
             containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
                 const title = h2.textContent.trim();
                 if (sectionsToOpen.includes(title)) {
@@ -5210,25 +5003,21 @@ dbRefs.tsSetupsImages.on('value', (s) => {
                     
                     document.body.classList.add('is-master');
                     
-                    // Unlock all text areas
                     if (DOM.journalEntryEl) DOM.journalEntryEl.readOnly = false;
                     if (DOM.strategyNotesEntry) DOM.strategyNotesEntry.readOnly = false;
                     if (DOM.primarySetupsNotes) DOM.primarySetupsNotes.readOnly = false; 
                     if (DOM.secondarySetupsNotes) DOM.secondarySetupsNotes.readOnly = false;
 
-                    // Unlock Topstep Specific Setups
                     const tsPrimary = document.getElementById('ts-primary-setups-notes');
                     const tsSecondary = document.getElementById('ts-secondary-setups-notes');
                     if (tsPrimary) tsPrimary.readOnly = false;
                     if (tsSecondary) tsSecondary.readOnly = false;
                     
-                    // Unlock Setup Tables if they exist
                     document.querySelectorAll('.setups-table .editable-setup-cell')
                         .forEach(cell => cell.setAttribute('contenteditable', 'true'));
                 }
             }
             
-            // If NOT master, ensure everything is locked (Safety check)
             if (!STATE.isMasterUser) {
                 document.body.classList.remove('is-master');
                 if (DOM.journalEntryEl) DOM.journalEntryEl.readOnly = true;
@@ -5244,62 +5033,50 @@ dbRefs.tsSetupsImages.on('value', (s) => {
         }
 
         async function initializeApp() {
-            // 1. Security & Master Mode
             checkMasterMode(); 
-            
-            // 2. External Data
             getViewerId();
             await fetchLiveConversionRate();
 
-            // 3. Theme Loading
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) { 
                 document.documentElement.setAttribute('data-theme', savedTheme); 
                 DOM.themeToggle.checked = savedTheme === 'dark'; 
             }
             
-            // 4. Date Setup
             const today = new Date(); 
             today.setUTCHours(0, 0, 0, 0);
             STATE.selectedDate = new Date(today); 
             STATE.centerDate = new Date(today);
             
-            // 5. Initialize Handlers
             setupEventListeners(); 
             subscribeToData();
             renderDateNavigation(); 
             checkMarketAlerts(); 
 
-            // 6. UI Specifics
             DOM.statsPanelContainer.style.display = 'block';
 
-            // 7. Auto-Expand Sections on Load
             setTimeout(() => {
                 const activeTabContent = document.querySelector('.tab-content.active');
                 if (activeTabContent) {
-                    // Open default collapsibles
                     openDefaultSectionsInContainer(activeTabContent);
                     activeTabContent.dataset.sectionsInitialized = 'true';
 
-                    // Specifically target Topstep textareas on load to size them
                     const tsPrimary = document.getElementById('ts-primary-setups-notes');
                     const tsSecondary = document.getElementById('ts-secondary-setups-notes');
                     
                     if (tsPrimary && tsPrimary.value) autoResizeTextarea(tsPrimary);
                     if (tsSecondary && tsSecondary.value) autoResizeTextarea(tsSecondary);
                     
-                    // Force the parent drawers to accommodate the resized text
                     activeTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
                         const content = section.querySelector('.collapsible-content');
                         if (content) content.style.maxHeight = content.scrollHeight + 'px';
                     });
                 }
             }, 700); 
-        } // <--- FIXED: Added missing closing brace for initializeApp
+        } 
 
-        // 8. Actually RUN the app
         initializeApp();
-    }); // This closes the DOMContentLoaded listener from the very top
+    }); 
 </script>
 </body>
 </html>
