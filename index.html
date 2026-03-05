@@ -1566,10 +1566,7 @@ body.is-master th.master-only {
                                 <label for="trade-type">Trade Type:</label>
                                 <select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select>
                             </div>
-                            <div>
-                                <label for="trade-status">Status:</label>
-                                <select id="trade-status"><option value="live">Live Trade</option><option value="resting">Resting (Limit)</option></select>
-                            </div>
+                   
                             <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
                             <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
                             <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
@@ -1584,29 +1581,7 @@ body.is-master th.master-only {
                 </div>
             </div>
 
-            <!-- Resting Orders Section -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Resting Limit Orders</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <div id="resting-trades-summary-container" class="ema-summary-container" style="display:none;"></div>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Symbol</th><th>Type</th><th>Group</th><th>Setup</th><th>Entry</th><th>SL</th><th>Target</th><th>RR(T)</th><th>RR(M)</th><th>Value</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="3">Notes</th><th class="master-only">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="resting-trades-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+  
             <!-- Live Trades Section -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
@@ -1789,10 +1764,7 @@ body.is-master th.master-only {
                                 <label for="ts-trade-type">Trade Type:</label>
                                 <select id="ts-trade-type"><option value="Long">Long</option><option value="Short">Short</option></select>
                             </div>
-                            <div>
-                                <label for="ts-trade-status">Status:</label>
-                                <select id="ts-trade-status"><option value="live">Live Trade</option><option value="resting">Resting (Limit)</option></select>
-                            </div>
+                  
                             <div><label for="ts-entry-price">Entry Price:</label><input type="number" id="ts-entry-price" step="any" required></div>
                             <div><label for="ts-stop-loss">Stop Loss:</label><input type="number" id="ts-stop-loss" step="any" required></div>
                             <div><label for="ts-target">Target:</label><input type="number" id="ts-target" step="any" required></div>
@@ -1810,28 +1782,7 @@ body.is-master th.master-only {
                 </div>
             </div>
 
-            <!-- Resting Orders Section -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2>Resting Limit Orders</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <div id="ts-resting-trades-summary-container" class="ema-summary-container" style="display:none;"></div>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Symbol</th><th>Type</th><th>Group</th><th>Setup</th><th>Entry</th><th>SL</th><th>Target</th><th>RR(T)</th><th>RR(M)</th><th>Value</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="3">Notes</th><th class="master-only">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ts-resting-trades-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      
 
             <!-- Live Trades Section -->
             <div class="collapsible-section">
@@ -4162,7 +4113,6 @@ function handleAddTradeSubmit(e, isTopstep = false) {
     if (!STATE.isMasterUser) return;
     
     const prefix = isTopstep ? 'ts-' : '';
-    const status = document.getElementById(`${prefix}trade-status`).value;
     const session = document.getElementById(`${prefix}trade-session`).value;
     const variant = document.getElementById(`${prefix}trade-variant`).value;
     const generatedGroupId = `${session}_${variant}`;
@@ -4209,11 +4159,10 @@ function handleAddTradeSubmit(e, isTopstep = false) {
     
     let targetRef;
     if (isTopstep) {
-        targetRef = (status === 'resting') ? dbRefs.tsRestingOrders : dbRefs.tsTrades;
+        targetRef = dbRefs.tsTrades;
     } else {
-        targetRef = (status === 'resting') ? dbRefs.restingOrders : dbRefs.trades;
+        targetRef = dbRefs.trades;
     }
-
     targetRef.push(tradeWithMetrics).then(() => {
         document.getElementById(`${prefix}entry-price`).value = '';
         document.getElementById(`${prefix}stop-loss`).value = '';
