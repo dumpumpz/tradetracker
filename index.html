@@ -1711,6 +1711,52 @@ body.is-master th.master-only {
                 </div>
             </div>
 
+    <!-- Evaluation Target Calculator -->
+            <div class="collapsible-section is-open">
+                <div class="collapsible-header">
+                    <h2>Target & Projections Calculator</h2>
+                    <button class="collapsible-toggle-btn">−</button>
+                </div>
+                <div class="collapsible-content" style="max-height: none;">
+                    <div class="collapsible-content-inner">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; text-align: center; margin-bottom: 20px; background: var(--bg-color); padding: 10px; border-radius: 8px; border: 1px dashed var(--border-color);">
+                            <div><span class="sum-label">Eval Target</span><span class="sum-val val-green">$53,000.00</span></div>
+                            <div><span class="sum-label">Distance Left</span><span class="sum-val" id="eval-distance-left">--</span></div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end;">
+                            <div>
+                                <label for="calc-risk-usd">Risk ($):</label>
+                                <input type="number" id="calc-risk-usd" value="150" step="10">
+                            </div>
+                            <div>
+                                <label for="calc-risk-ticks">Stop Loss (Ticks):</label>
+                                <input type="number" id="calc-risk-ticks" value="40" step="1">
+                            </div>
+                            <div>
+                                <label for="calc-reward-ticks">Take Profit (Ticks):</label>
+                                <input type="number" id="calc-reward-ticks" value="80" step="1">
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; text-align: center; align-items: center;">
+                            <div>
+                                <div class="sum-label">Projected Reward</div>
+                                <div id="calc-reward-usd" style="font-size: 18px; font-weight: bold; color: var(--green-text);">--</div>
+                            </div>
+                            <div>
+                                <div class="sum-label">Trade R:R</div>
+                                <div id="calc-rr" style="font-size: 18px; font-weight: bold; color: var(--link-color);">--</div>
+                            </div>
+                            <div style="background-color: var(--header-bg); padding: 8px 20px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                <div class="sum-label" style="color: var(--text-color);">Wins Needed to Pass</div>
+                                <div id="calc-wins-needed" style="font-size: 26px; font-weight: bold; font-family: 'Courier New', monospace;">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Add Trade (Master Only) -->
             <div class="collapsible-section master-only">
                 <div class="collapsible-header">
@@ -2663,6 +2709,7 @@ function calculateFuturesMetrics(tradeData) {
     };
 }
 
+        
 function calculateFuturesNetResult(trade, exitPrice) {
     const entry = parseFloat(trade.entry);
     const contracts = parseFloat(trade.contracts || trade.size);
@@ -2677,6 +2724,60 @@ function calculateFuturesNetResult(trade, exitPrice) {
         entry_fee: fees / 2,
         exit_fee: fees / 2
     };
+}
+
+        function updateTargetCalculator() {
+    const TARGET_BALANCE = 53000;
+    
+    // Get current balance safely from the DOM
+    const currentBalanceStr = document.getElementById('ts-balance').textContent.replace(/[^0-9.-]+/g,"");
+    const currentBalance = parseFloat(currentBalanceStr) || 50000;
+    
+    const distanceLeft = TARGET_BALANCE - currentBalance;
+    const distEl = document.getElementById('eval-distance-left');
+    if (distEl) {
+        if (distanceLeft <= 0) {
+            distEl.textContent = "PASSED!";
+            distEl.style.color = "var(--green-text)";
+        } else {
+            distEl.textContent = formatCurrency(distanceLeft);
+            distEl.style.color = "var(--text-color)";
+        }
+    }
+
+    const riskUsd = parseFloat(document.getElementById('calc-risk-usd').value) || 0;
+    const riskTicks = parseFloat(document.getElementById('calc-risk-ticks').value) || 0;
+    const rewardTicks = parseFloat(document.getElementById('calc-reward-ticks').value) || 0;
+
+    const rewardUsdEl = document.getElementById('calc-reward-usd');
+    const rrEl = document.getElementById('calc-rr');
+    const winsNeededEl = document.getElementById('calc-wins-needed');
+
+    if (riskUsd <= 0 || riskTicks <= 0 || rewardTicks < 0) {
+        if(rewardUsdEl) rewardUsdEl.textContent = '--';
+        if(rrEl) rrEl.textContent = '--';
+        if(winsNeededEl) winsNeededEl.textContent = '--';
+        return;
+    }
+
+    // Tick math
+    const tickValue = riskUsd / riskTicks;
+    const rewardUsd = rewardTicks * tickValue;
+    const rr = rewardUsd / riskUsd;
+
+    if(rewardUsdEl) rewardUsdEl.textContent = formatCurrency(rewardUsd);
+    if(rrEl) rrEl.textContent = rr.toFixed(2) + "R";
+
+    if(winsNeededEl) {
+        if (distanceLeft <= 0) {
+            winsNeededEl.textContent = "0";
+        } else if (rewardUsd > 0) {
+            const winsNeeded = Math.ceil(distanceLeft / rewardUsd);
+            winsNeededEl.textContent = winsNeeded;
+        } else {
+            winsNeededEl.textContent = "∞";
+        }
+    }
 }
 
 function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
@@ -3669,7 +3770,11 @@ function getFeeRates(exchangeName) {
                 document.documentElement.setAttribute('data-theme', theme);
                 localStorage.setItem('theme', theme);
             });
-
+// Evaluation Target Calculator Events
+            ['calc-risk-usd', 'calc-risk-ticks', 'calc-reward-ticks'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', updateTargetCalculator);
+            });
             // Handle Eval Account Dropdown changes
             const evalSelector = document.getElementById('eval-account-selector');
             if (evalSelector) {
@@ -4779,6 +4884,10 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
         else bufEl.style.color = 'var(--green-text)';
     }
     if(plEl) plEl.style.color = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+
+    // ADD THIS LINE HERE:
+    updateTargetCalculator();
+
 }
 
         function subscribeToData() {
