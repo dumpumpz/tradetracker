@@ -1548,165 +1548,161 @@
         }
 
 
-        function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
-            try {
-                const tbodyElement = document.getElementById(tbodyId);
-                if (!tbodyElement) return;
-                const isTopstep = tbodyId.includes('ts-');
-                const trades = data || {};
-                const groupedTrades = {};
+      function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
+    try {
+        const tbodyElement = document.getElementById(tbodyId);
+        if (!tbodyElement) return;
+        const isTopstep = tbodyId.includes('ts-');
+        const trades = data || {};
+        const groupedTrades = {};
 
-                Object.keys(trades).forEach(id => {
-                    const trade = trades[id];
-                    const gid = trade.groupId || `${trade.symbol}_${trade.type}_Legacy`; 
-                    
-                    if (!groupedTrades[gid]) {
-                        groupedTrades[gid] = {
-                            id: gid, symbol: trade.symbol, type: trade.type, trades: [],
-                            totalSize: 0, totalQty: 0, wEntry: 0, wOrigStop: 0, wTarget: 0,
-                            profitTaker: 0, profitMaker: 0, lossTaker: 0, lossMaker: 0,
-                            fees: 0, pnlPer100: 0
-                        };
-                    }
-
-                    groupedTrades[gid].trades.push({ ...trade, dbId: id });
-
-                    const size = isTopstep ? (parseFloat(trade.contracts) || parseFloat(trade.size) || 0) : (parseFloat(trade.size) || 0);
-                    const entry = parseFloat(trade.entry) || 0;
-                    const origStop = parseFloat(trade.original_stoploss) || parseFloat(trade.stoploss) || 0;
-                    const target = parseFloat(trade.target) || 0;
-                    const qty = isTopstep ? size : ((entry > 0) ? size / entry : 0);
-                    
-                    const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
-
-                    groupedTrades[gid].totalSize += size;
-                    groupedTrades[gid].totalQty += qty;
-                    groupedTrades[gid].wEntry += (entry * qty);
-                    groupedTrades[gid].wOrigStop += (origStop * qty);
-                    groupedTrades[gid].wTarget += (target * qty);
-
-                    groupedTrades[gid].profitTaker += parseFloat(metrics.expected_profit_taker || 0);
-                    groupedTrades[gid].profitMaker += parseFloat(metrics.expected_profit_maker || 0);
-                    groupedTrades[gid].lossTaker += parseFloat(metrics.expected_loss_taker || 0);
-                    groupedTrades[gid].lossMaker += parseFloat(metrics.expected_loss_maker || 0);
-                    groupedTrades[gid].fees += parseFloat(metrics.estimated_total_fee || 0);
-                    groupedTrades[gid].pnlPer100 += parseFloat(metrics.pnl_per_100_move || 0);
-                });
-
-          let tableHtml = '';
-                const sortedGroupKeys = Object.keys(groupedTrades).sort((a, b) => {
-                    const getLatestDate = (group) => Math.max(...group.trades.map(t => t.date || 0));
-                    return getLatestDate(groupedTrades[b]) - getLatestDate(groupedTrades[a]);
-                });
-
-                sortedGroupKeys.forEach(gid => {
-                    const group = groupedTrades[gid];
-                    const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
-                    
-                    const dominantProfit = isTopstep ? group.profitTaker : ((group.type === 'Short') ? group.profitMaker : group.profitTaker);
-                    const dominantLoss = isTopstep ? group.lossTaker : ((group.type === 'Short') ? group.lossMaker : group.lossTaker);
-
-                    // The Close Group Button (Pushed to the right)
-                    const masterGroupBtn = STATE.isMasterUser ? `<button class="close-group-btn" data-group-id="${gid}" style="width: auto; padding: 4px 15px; margin-left: auto; font-size: 12px;">Close Group</button>` : '';
-
-                    // NEW SINGLE-ROW GROUP HEADER
-                    tableHtml += `
-                    <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color);">
-                        <td colspan="25" style="padding: 8px 15px;">
-                            <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center; width: 100%;">
-                                <span style="font-weight:bold; color:var(--link-color);">📂 ${gid}</span>
-                                <span style="color:var(--border-color);">|</span>
-                                <span style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${group.type}</span>
-                                <span style="color:var(--border-color);">|</span>
-                                <span style="color:var(--subtle-text);">Size: ${isTopstep ? group.totalSize + ' Contr' : '$' + group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
-                                <span style="color:var(--border-color);">|</span>
-                                <span style="color:var(--subtle-text);">Avg Entry: ${avgEntry.toFixed(2)}</span>
-                                <span style="color:var(--border-color);">|</span>
-                                <span style="color:var(--green-text);">Proj TP: $${dominantProfit.toFixed(2)}</span>
-                                <span style="color:var(--border-color);">|</span>
-                                <span style="color:var(--red-text);">Proj SL: $${dominantLoss.toFixed(2)}</span>
-                                ${masterGroupBtn}
-                            </div>
-                        </td>
-                    </tr>`;
-
-                    group.trades.forEach(trade => {
-                        const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
-                        const breakevenPrice = calculateBreakevenPrice(trade);
-                        const entriesList = (trade.entry_prices || [trade.entry]).map(p => parseFloat(p).toFixed(2)).join(', ');
-                        
-                        const showMaker = !isTopstep; 
-                        const isMaker = (trade.entryFeeType === 'maker');
-                        
-                        const valProfitTaker = parseFloat(metrics.expected_profit_taker).toFixed(2);
-                        const valProfitMaker = isTopstep ? '--' : parseFloat(metrics.expected_profit_maker).toFixed(2);
-                        const valLossTaker = parseFloat(metrics.expected_loss_taker).toFixed(2);
-                        const valLossMaker = isTopstep ? '--' : parseFloat(metrics.expected_loss_maker).toFixed(2);
-
-                        const styleTaker = (isTopstep || !isMaker) ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
-                        const styleMaker = isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.1;";
-
-                        const masterButtons = STATE.isMasterUser ? 
-                            `<div style="display:flex; gap:2px; justify-content:flex-end;">
-                                <button class="attach-image-btn" data-id="${trade.dbId}" data-type="live" style="padding:2px 5px; font-size:10px; background:#17a2b8;">Pic</button>
-                                <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#28a745;">W</button>
-                                <button class="loss-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#dc3545;">L</button>
-                                <button class="add-to-position-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#17a2b8;">+</button>
-                                <button class="delete-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#6c757d;">×</button>
-                            </div>` : '';
-
-                        const accBadge = isTopstep ? `<span class="acc-badge">${getEvalAccount(trade)}</span> ` : '';
-const showMaker = !isTopstep; 
-const hideIfFunded = isTopstep ? 'display: none;' : ''; // New helper
-
-tableHtml += `
-<tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
-    <td></td> <td></td> 
-    <td style="text-align:right;">↳ ${accBadge}${isTopstep ? 'MNQ Position' : 'Trade ('+trade.entryFeeType+')'}:</td>
-    <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
-    <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : '--'}</td>
-    <td class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
-    <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
-    <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(2)}</td>
-    <td>${metrics.rr_taker}</td>
-    <td style="display: ${showMaker ? 'table-cell' : 'none'};">${metrics.rr_maker}</td>
-    <td class="editable-cell" data-id="${trade.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}">${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
-    
-    <!-- Qty Column -->
-    <td style="${hideIfFunded}">${isTopstep ? '--' : (parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
-    
-    <!-- /100 Column -->
-    <td style="display: ${showMaker ? 'table-cell' : 'none'};">--</td>
-    
-    <!-- Fees Column -->
-    <td style="${hideIfFunded}">${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
-    
-    <td style="${styleTaker}">${valProfitTaker}</td>
-    <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valProfitMaker}</td>
-    <td style="${styleTaker}">${valLossTaker}</td>
-    <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valLossMaker}</td>
-    
-    <td colspan="4" class="note-cell editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}">${trade.note || ''}</td>
-    ${renderAttachmentThumbnails(trade, trade.dbId, 'live', isTopstep)}
-    <td class="master-only">${masterButtons}</td>
-</tr>`;
-                    });
-                });
-
-                tbodyElement.innerHTML = tableHtml;
-                const table = tbodyElement.closest('table');
-                let thead = table.querySelector('thead');
-                if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
-                
-                // Keep exactly the same headers for both so the CSS nth-child rules work properly
-                thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
-
-                if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades, summaryId, isTopstep);
-                setTimeout(() => adjustCollapsibleSize(tbodyElement), 10);
-            } catch (e) {
-                console.error("Error rendering live table:", e);
+        // 1. Group the trades
+        Object.keys(trades).forEach(id => {
+            const trade = trades[id];
+            const gid = trade.groupId || `${trade.symbol}_${trade.type}_Legacy`; 
+            
+            if (!groupedTrades[gid]) {
+                groupedTrades[gid] = {
+                    id: gid, symbol: trade.symbol, type: trade.type, trades: [],
+                    totalSize: 0, totalQty: 0, wEntry: 0, wOrigStop: 0, wTarget: 0,
+                    profitTaker: 0, profitMaker: 0, lossTaker: 0, lossMaker: 0,
+                    fees: 0, pnlPer100: 0
+                };
             }
-        }
+
+            groupedTrades[gid].trades.push({ ...trade, dbId: id });
+
+            const size = isTopstep ? (parseFloat(trade.contracts) || parseFloat(trade.size) || 0) : (parseFloat(trade.size) || 0);
+            const entry = parseFloat(trade.entry) || 0;
+            const origStop = parseFloat(trade.original_stoploss) || parseFloat(trade.stoploss) || 0;
+            const target = parseFloat(trade.target) || 0;
+            const qty = isTopstep ? size : ((entry > 0) ? size / entry : 0);
+            
+            const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
+
+            groupedTrades[gid].totalSize += size;
+            groupedTrades[gid].totalQty += qty;
+            groupedTrades[gid].wEntry += (entry * qty);
+            groupedTrades[gid].wOrigStop += (origStop * qty);
+            groupedTrades[gid].wTarget += (target * qty);
+
+            groupedTrades[gid].profitTaker += parseFloat(metrics.expected_profit_taker || 0);
+            groupedTrades[gid].profitMaker += parseFloat(metrics.expected_profit_maker || 0);
+            groupedTrades[gid].lossTaker += parseFloat(metrics.expected_loss_taker || 0);
+            groupedTrades[gid].lossMaker += parseFloat(metrics.expected_loss_maker || 0);
+            groupedTrades[gid].fees += parseFloat(metrics.estimated_total_fee || 0);
+            groupedTrades[gid].pnlPer100 += parseFloat(metrics.pnl_per_100_move || 0);
+        });
+
+        let tableHtml = '';
+        const sortedGroupKeys = Object.keys(groupedTrades).sort((a, b) => {
+            const getLatestDate = (group) => Math.max(...group.trades.map(t => t.date || 0));
+            return getLatestDate(groupedTrades[b]) - getLatestDate(groupedTrades[a]);
+        });
+
+        // 2. Build the Table HTML
+        sortedGroupKeys.forEach(gid => {
+            const group = groupedTrades[gid];
+            const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
+            
+            const dominantProfit = isTopstep ? group.profitTaker : ((group.type === 'Short') ? group.profitMaker : group.profitTaker);
+            const dominantLoss = isTopstep ? group.lossTaker : ((group.type === 'Short') ? group.lossMaker : group.lossTaker);
+
+            const masterGroupBtn = STATE.isMasterUser ? `<button class="close-group-btn" data-group-id="${gid}" style="width: auto; padding: 4px 15px; margin-left: auto; font-size: 12px;">Close Group</button>` : '';
+
+            // Group Header Row
+            tableHtml += `
+            <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color);">
+                <td colspan="25" style="padding: 8px 15px;">
+                    <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center; width: 100%;">
+                        <span style="font-weight:bold; color:var(--link-color);">📂 ${gid}</span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${group.type}</span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span style="color:var(--subtle-text);">Size: ${isTopstep ? group.totalSize + ' Contr' : '$' + group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span style="color:var(--subtle-text);">Avg Entry: ${avgEntry.toFixed(2)}</span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span style="color:var(--green-text);">Proj TP: $${dominantProfit.toFixed(2)}</span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span style="color:var(--red-text);">Proj SL: $${dominantLoss.toFixed(2)}</span>
+                        ${masterGroupBtn}
+                    </div>
+                </td>
+            </tr>`;
+
+            // Individual Trade Rows
+            group.trades.forEach(trade => {
+                const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
+                const breakevenPrice = calculateBreakevenPrice(trade);
+                const entriesList = (trade.entry_prices || [trade.entry]).map(p => parseFloat(p).toFixed(2)).join(', ');
+                
+                // --- Hiding Logic ---
+                const showMaker = !isTopstep; 
+                const hideIfFunded = isTopstep ? 'display: none;' : ''; 
+                const isMaker = (trade.entryFeeType === 'maker');
+                
+                const valProfitTaker = parseFloat(metrics.expected_profit_taker).toFixed(2);
+                const valProfitMaker = isTopstep ? '--' : parseFloat(metrics.expected_profit_maker).toFixed(2);
+                const valLossTaker = parseFloat(metrics.expected_loss_taker).toFixed(2);
+                const valLossMaker = isTopstep ? '--' : parseFloat(metrics.expected_loss_maker).toFixed(2);
+
+                const styleTaker = (isTopstep || !isMaker) ? "opacity: 1; font-weight:bold;" : "opacity: 0.3;";
+                const styleMaker = isMaker ? "opacity: 1; font-weight:bold;" : "opacity: 0.1;";
+
+                const masterButtons = STATE.isMasterUser ? 
+                    `<div style="display:flex; gap:2px; justify-content:flex-end;">
+                        <button class="attach-image-btn" data-id="${trade.dbId}" data-type="live" style="padding:2px 5px; font-size:10px; background:#17a2b8;">Pic</button>
+                        <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#28a745;">W</button>
+                        <button class="loss-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#dc3545;">L</button>
+                        <button class="add-to-position-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#17a2b8;">+</button>
+                        <button class="delete-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#6c757d;">×</button>
+                    </div>` : '';
+
+                const accBadge = isTopstep ? `<span class="acc-badge">${getEvalAccount(trade)}</span> ` : '';
+
+                tableHtml += `
+                <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
+                    <td></td> <td></td> 
+                    <td style="text-align:right;">↳ ${accBadge}${isTopstep ? 'MNQ Position' : 'Trade ('+trade.entryFeeType+')'}:</td>
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
+                    <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : '--'}</td>
+                    <td class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(2)}</td>
+                    <td>${metrics.rr_taker}</td>
+                    <td style="display: ${showMaker ? 'table-cell' : 'none'};">${metrics.rr_maker}</td>
+                    <td class="editable-cell" data-id="${trade.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}">${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
+                    
+                    <td style="${hideIfFunded}">${isTopstep ? '--' : (parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
+                    <td style="display: ${showMaker ? 'table-cell' : 'none'};">--</td>
+                    <td style="${hideIfFunded}">${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
+                    
+                    <td style="${styleTaker}">${valProfitTaker}</td>
+                    <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valProfitMaker}</td>
+                    <td style="${styleTaker}">${valLossTaker}</td>
+                    <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valLossMaker}</td>
+                    
+                    <td colspan="4" class="note-cell editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}">${trade.note || ''}</td>
+                    ${renderAttachmentThumbnails(trade, trade.dbId, 'live', isTopstep)}
+                    <td class="master-only">${masterButtons}</td>
+                </tr>`;
+            });
+        });
+
+        tbodyElement.innerHTML = tableHtml;
+        const table = tbodyElement.closest('table');
+        let thead = table.querySelector('thead');
+        if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
+        
+        thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
+
+        if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades, summaryId, isTopstep);
+        setTimeout(() => adjustCollapsibleSize(tbodyElement), 10);
+    } catch (e) {
+        console.error("Error rendering live table:", e);
+    }
+}
 
         function handleLiveNoteUpdate(cell) {
             if (!STATE.isMasterUser) return;
