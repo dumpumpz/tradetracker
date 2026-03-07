@@ -326,15 +326,21 @@
         .alert-banner strong { font-weight: 700; text-transform: uppercase; margin-right: 5px; }
         .alert-banner + .alert-banner { margin-top: -10px; }
 
-        #topstep-tab table th:nth-child(10), #topstep-tab table td:nth-child(10) { color: var(--link-color); font-weight: bold; }
-        #topstep-tab table th:nth-child(10):after { content: " (Contr)"; font-size: 0.8em; }
-        #topstep-tab table th:nth-child(12):after { content: " ($/100pt)"; font-size: 0.8em; }
+     /* Hide specific columns in the Funded/Topstep Live & Completed Tables */
+#topstep-tab th:nth-child(10), #ts-trades-tbody td:nth-child(10), /* RR(M) */
+#topstep-tab th:nth-child(12), #ts-trades-tbody td:nth-child(12), /* Qty */
+#topstep-tab th:nth-child(13), #ts-trades-tbody td:nth-child(13), /* /100 */
+#topstep-tab th:nth-child(14), #ts-trades-tbody td:nth-child(14), /* Fees */
+#topstep-tab th:nth-child(16), #ts-trades-tbody td:nth-child(16), /* Pr(M) */
+#topstep-tab th:nth-child(18), #ts-trades-tbody td:nth-child(18)  /* Ls(M) */
+{ 
+    display: none !important; 
+}
 
-        #topstep-tab th:nth-child(9), #topstep-tab td:nth-child(9), 
-        #topstep-tab th:nth-child(15), #topstep-tab td:nth-child(15), 
-        #topstep-tab th:nth-child(17), #topstep-tab td:nth-child(17), 
-        #topstep-tab th:nth-child(13), #topstep-tab td:nth-child(13) { display: none !important; }
-
+/* Adjust "Group / Details" width since we removed columns */
+#topstep-tab .child-row td:nth-child(3) {
+    min-width: 150px;
+}
         /* Funded Accounts Added Styles */
         .funded-radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
         .funded-radio-group label { flex: 1; text-align: center; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; transition: all 0.2s; font-weight: bold; font-size: 14px; background: var(--container-bg); }
@@ -1650,30 +1656,40 @@
                             </div>` : '';
 
                         const accBadge = isTopstep ? `<span class="acc-badge">${getEvalAccount(trade)}</span> ` : '';
+const showMaker = !isTopstep; 
+const hideIfFunded = isTopstep ? 'display: none;' : ''; // New helper
 
-                        tableHtml += `
-                        <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
-                            <td></td> <td></td> 
-                            <td style="text-align:right;">↳ ${accBadge}${isTopstep ? 'MNQ Position' : 'Trade ('+trade.entryFeeType+')'}:</td>
-                            <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
-                            <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : '--'}</td>
-                            <td class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
-                            <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
-                            <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(2)}</td>
-                            <td>${metrics.rr_taker}</td>
-                            <td style="display: ${showMaker ? 'table-cell' : 'none'};">${metrics.rr_maker}</td>
-                            <td class="editable-cell" data-id="${trade.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}">${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
-                            <td>${isTopstep ? '--' : (parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
-                            <td style="display: ${showMaker ? 'table-cell' : 'none'};">--</td>
-                            <td>${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
-                            <td style="${styleTaker}">${valProfitTaker}</td>
-                            <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valProfitMaker}</td>
-                            <td style="${styleTaker}">${valLossTaker}</td>
-                            <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valLossMaker}</td>
-                            <td colspan="4" class="note-cell editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}">${trade.note || ''}</td>
-                            ${renderAttachmentThumbnails(trade, trade.dbId, 'live', isTopstep)}
-                            <td class="master-only">${masterButtons}</td>
-                        </tr>`;
+tableHtml += `
+<tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
+    <td></td> <td></td> 
+    <td style="text-align:right;">↳ ${accBadge}${isTopstep ? 'MNQ Position' : 'Trade ('+trade.entryFeeType+')'}:</td>
+    <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
+    <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : '--'}</td>
+    <td class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
+    <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
+    <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(2)}</td>
+    <td>${metrics.rr_taker}</td>
+    <td style="display: ${showMaker ? 'table-cell' : 'none'};">${metrics.rr_maker}</td>
+    <td class="editable-cell" data-id="${trade.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}">${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
+    
+    <!-- Qty Column -->
+    <td style="${hideIfFunded}">${isTopstep ? '--' : (parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
+    
+    <!-- /100 Column -->
+    <td style="display: ${showMaker ? 'table-cell' : 'none'};">--</td>
+    
+    <!-- Fees Column -->
+    <td style="${hideIfFunded}">${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
+    
+    <td style="${styleTaker}">${valProfitTaker}</td>
+    <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valProfitMaker}</td>
+    <td style="${styleTaker}">${valLossTaker}</td>
+    <td style="display: ${showMaker ? 'table-cell' : 'none'}; ${styleMaker}">${valLossMaker}</td>
+    
+    <td colspan="4" class="note-cell editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}">${trade.note || ''}</td>
+    ${renderAttachmentThumbnails(trade, trade.dbId, 'live', isTopstep)}
+    <td class="master-only">${masterButtons}</td>
+</tr>`;
                     });
                 });
 
