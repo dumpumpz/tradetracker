@@ -645,7 +645,7 @@
                             </div>
                             <div>
                                 <label for="ts-commissions">Round Trip Fee ($):</label>
-                                <input type="number" id="ts-commissions" value="0.74" step="0.01">
+                                <input type="number" id="ts-commissions" value="0.78" step="0.01">
                             </div>
                             <div><button type="submit" id="eval-add-btn">Execute Trade</button></div>
                         </form>
@@ -1216,7 +1216,7 @@
                         // Funded Accounts (Futures Math)
                         const MNQ_MULT = 2; 
                         const contracts = parseFloat(trade.contracts || trade.size);
-                        const totalFees = parseFloat(trade.commissions || 0.74);
+                        const totalFees = parseFloat(trade.commissions || 0.78);
                         
                         const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
                         const netResult = (points * MNQ_MULT * contracts) - totalFees;
@@ -1273,7 +1273,7 @@
             const target = parseFloat(tradeData.target);
             const contracts = parseFloat(tradeData.contracts || tradeData.size); 
             const type = tradeData.type;
-            const commissions = parseFloat(tradeData.commissions || 0.74);
+            const commissions = parseFloat(tradeData.commissions || 0.78);
 
             if ([entry, stoploss, target, contracts].some(v => isNaN(v) || v <= 0)) return {};
 
@@ -1300,7 +1300,7 @@
             const entry = parseFloat(trade.entry);
             const contracts = parseFloat(trade.contracts || trade.size);
             const exit = parseFloat(exitPrice);
-            const fees = parseFloat(trade.commissions || 0.74);
+            const fees = parseFloat(trade.commissions || 0.78);
 
             const points = trade.type === "Long" ? (exit - entry) : (entry - exit);
             const grossResult = points * MNQ_MULTIPLIER * contracts;
@@ -1567,7 +1567,7 @@
                 // Keep exactly the same headers for both so the CSS nth-child rules work properly
                 thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
 
-                if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades, summaryId);
+                if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades, summaryId, isTopstep);
                 setTimeout(() => adjustCollapsibleSize(tbodyElement), 10);
             } catch (e) {
                 console.error("Error rendering live table:", e);
@@ -1591,7 +1591,7 @@
             }).catch(err => alert("Error saving note: " + err.message));
         }
 
-        function renderLiveSummaryCards(groupedTrades, summaryId) {
+          function renderLiveSummaryCards(groupedTrades, summaryId, isTopstep = false) {
             const summaryContainer = document.getElementById(summaryId);
             if (!summaryContainer) return;
             
@@ -1613,71 +1613,146 @@
                 
                 const riskDistance = Math.abs(avgEntry - avgOrigStop);
                 const directionMult = (g.type === 'Long') ? 1 : -1;
-                
-                let t1 = "--", t2 = "--", t4 = "--", actualRR = "0.00";
-                if (avgEntry > 0 && avgOrigStop > 0 && riskDistance > 0) {
-                    t1 = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(4);
-                    t2 = (avgEntry + (riskDistance * 2 * directionMult)).toFixed(4);
-                    t4 = (avgEntry + (riskDistance * 4 * directionMult)).toFixed(4);
-                    
-                    const rewardDistance = Math.abs(avgTarget - avgEntry);
-                    actualRR = (rewardDistance / riskDistance).toFixed(2);
-                }
-
-                let makerSize = 0;
-                let takerSize = 0;
-                
-                g.trades.forEach(t => {
-                    const s = parseFloat(t.size) || 0;
-                    if (t.entryFeeType === 'maker') makerSize += s;
-                    else takerSize += s;
-                });
-
-                const isMakerDominant = makerSize > takerSize;
-                const feeLabel = isMakerDominant ? 'Maker' : 'Taker';
-
-                let expProfit = 0, expLoss = 0;
-                
-                if (isMakerDominant) {
-                    expProfit = g.profitMaker;
-                    expLoss = g.lossMaker;
-                } else {
-                    expProfit = g.profitTaker;
-                    expLoss = g.lossTaker;
-                }
-
                 const cardClass = g.type === 'Long' ? 'long-card' : 'short-card';
 
-                summaryHtml += `
-                <div class="summary-card ${cardClass}">
-                    <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id} (${g.type})</h5>
-                    <div class="summary-grid-row">
-                        <div><span class="sum-label">Total Size</span><span class="sum-val">$${g.totalSize.toLocaleString(undefined, {minimumFractionDigits:0})}</span></div>
-                        <div><span class="sum-label">PnL per $100</span><span class="sum-val" style="font-weight:900;">$${g.pnlPer100.toFixed(2)}</span></div>
-                    </div>
-                    <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 8px;">
-                        <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
-                        <div><span class="sum-label">Avg Target RR</span><span class="sum-val" style="color: #d39e00;">${actualRR}:1</span></div>
-                    </div>
-                    <div class="summary-grid-row">
-                        <div><span class="sum-label">Avg Orig Stop</span><span class="sum-val val-red">${avgOrigStop.toFixed(4)}</span></div>
-                        <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
-                    </div>
-                    <div class="summary-grid-row">
-                        <div><span class="sum-label">1:2 Target</span><span class="sum-val" style="color:var(--green-text)">${t2}</span></div>
-                        <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
-                    </div>
-                    <div class="summary-grid-row financials">
-                        <div>
-                            <span class="sum-label">Exp Profit (${feeLabel})</span>
-                            <span class="sum-val val-green">$${expProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                if (isTopstep) {
+                    // ==========================================
+                    // FUNDED ACCOUNTS SUMMARY CARD
+                    // ==========================================
+                    let t05 = "--", t1 = "--";
+                    if (avgEntry > 0 && avgOrigStop > 0 && riskDistance > 0) {
+                        t05 = (avgEntry + (riskDistance * 0.5 * directionMult)).toFixed(2);
+                        t1 = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(2);
+                    }
+
+                    let totalProfit = 0;
+                    let totalLoss = 0;
+                    const accountBreakdown = {};
+
+                    // Calculate totals and group by account
+                    g.trades.forEach(t => {
+                        const m = calculateFuturesMetrics(t);
+                        const acc = getEvalAccount(t);
+                        
+                        if (!accountBreakdown[acc]) accountBreakdown[acc] = { contracts: 0, profit: 0, loss: 0 };
+                        
+                        const contracts = parseFloat(t.contracts || t.size || 0);
+                        accountBreakdown[acc].contracts += contracts;
+                        accountBreakdown[acc].profit += parseFloat(m.expected_profit_taker || 0);
+                        accountBreakdown[acc].loss += parseFloat(m.expected_loss_taker || 0);
+                        
+                        totalProfit += parseFloat(m.expected_profit_taker || 0);
+                        totalLoss += parseFloat(m.expected_loss_taker || 0);
+                    });
+
+                    // Build Account Breakdown rows
+                    let accountsHtml = '';
+                    Object.keys(accountBreakdown).forEach(acc => {
+                        const stats = accountBreakdown[acc];
+                        accountsHtml += `
+                            <div style="display:flex; justify-content:space-between; font-size:12px; padding: 4px 0; border-top: 1px dotted var(--border-color);">
+                                <span style="font-weight:bold; color:var(--subtle-text)">${acc} <span style="font-size:10px; font-weight:normal;">(${stats.contracts}c)</span></span>
+                                <span><span class="val-green">+$${stats.profit.toFixed(2)}</span> / <span class="val-red">-$${stats.loss.toFixed(2)}</span></span>
+                            </div>
+                        `;
+                    });
+
+                    summaryHtml += `
+                    <div class="summary-card ${cardClass}">
+                        <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id} (${g.type})</h5>
+                        
+                        <div class="summary-grid-row">
+                            <div><span class="sum-label">Total Contracts</span><span class="sum-val">${g.totalSize}</span></div>
+                            <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(2)}</span></div>
                         </div>
-                        <div>
-                            <span class="sum-label">Exp Loss (${feeLabel})</span>
-                            <span class="sum-val val-red">$${expLoss.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                        
+                        <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 8px;">
+                            <div><span class="sum-label">Avg Stop</span><span class="sum-val val-red">${avgOrigStop.toFixed(2)}</span></div>
+                            <div><span class="sum-label">Full Target</span><span class="sum-val val-green">${avgTarget.toFixed(2)}</span></div>
                         </div>
-                    </div>
-                </div>`;
+                        
+                        <div class="summary-grid-row">
+                            <div><span class="sum-label">0.5:1 Target (Half)</span><span class="sum-val" style="color:var(--link-color)">${t05}</span></div>
+                            <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
+                        </div>
+                        
+                        <div class="summary-grid-row financials">
+                            <div>
+                                <span class="sum-label">Total Proj Profit</span>
+                                <span class="sum-val val-green">$${totalProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                            </div>
+                            <div>
+                                <span class="sum-label">Total Risk</span>
+                                <span class="sum-val val-red">$${totalLoss.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 12px; background: var(--header-bg); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div class="sum-label" style="text-align:center; margin-bottom:5px; font-weight:bold;">Account Breakdown</div>
+                            ${accountsHtml}
+                        </div>
+                    </div>`;
+
+                } else {
+                    // ==========================================
+                    // CRYPTO TRACKER SUMMARY CARD (Unchanged)
+                    // ==========================================
+                    let t1 = "--", t2 = "--", t4 = "--", actualRR = "0.00";
+                    if (avgEntry > 0 && avgOrigStop > 0 && riskDistance > 0) {
+                        t1 = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(4);
+                        t2 = (avgEntry + (riskDistance * 2 * directionMult)).toFixed(4);
+                        t4 = (avgEntry + (riskDistance * 4 * directionMult)).toFixed(4);
+                        
+                        const rewardDistance = Math.abs(avgTarget - avgEntry);
+                        actualRR = (rewardDistance / riskDistance).toFixed(2);
+                    }
+
+                    let makerSize = 0;
+                    let takerSize = 0;
+                    
+                    g.trades.forEach(t => {
+                        const s = parseFloat(t.size) || 0;
+                        if (t.entryFeeType === 'maker') makerSize += s;
+                        else takerSize += s;
+                    });
+
+                    const isMakerDominant = makerSize > takerSize;
+                    const feeLabel = isMakerDominant ? 'Maker' : 'Taker';
+
+                    let expProfit = isMakerDominant ? g.profitMaker : g.profitTaker;
+                    let expLoss = isMakerDominant ? g.lossMaker : g.lossTaker;
+
+                    summaryHtml += `
+                    <div class="summary-card ${cardClass}">
+                        <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id} (${g.type})</h5>
+                        <div class="summary-grid-row">
+                            <div><span class="sum-label">Total Size</span><span class="sum-val">$${g.totalSize.toLocaleString(undefined, {minimumFractionDigits:0})}</span></div>
+                            <div><span class="sum-label">PnL per $100</span><span class="sum-val" style="font-weight:900;">$${g.pnlPer100.toFixed(2)}</span></div>
+                        </div>
+                        <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 8px;">
+                            <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
+                            <div><span class="sum-label">Avg Target RR</span><span class="sum-val" style="color: #d39e00;">${actualRR}:1</span></div>
+                        </div>
+                        <div class="summary-grid-row">
+                            <div><span class="sum-label">Avg Orig Stop</span><span class="sum-val val-red">${avgOrigStop.toFixed(4)}</span></div>
+                            <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
+                        </div>
+                        <div class="summary-grid-row">
+                            <div><span class="sum-label">1:2 Target</span><span class="sum-val" style="color:var(--green-text)">${t2}</span></div>
+                            <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
+                        </div>
+                        <div class="summary-grid-row financials">
+                            <div>
+                                <span class="sum-label">Exp Profit (${feeLabel})</span>
+                                <span class="sum-val val-green">$${expProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                            </div>
+                            <div>
+                                <span class="sum-label">Exp Loss (${feeLabel})</span>
+                                <span class="sum-val val-red">$${expLoss.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                            </div>
+                        </div>
+                    </div>`;
+                }
             });
             
             summaryHtml += '</div>';
@@ -1935,7 +2010,7 @@
                     groupTrades.forEach(t => {
                         const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
                         const net = parseFloat(t.net_result || 0);
-                        const fees = isTopstep ? (parseFloat(t.commissions) || 0.74) : (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0));
+                        const fees = isTopstep ? (parseFloat(t.commissions) || 0.78) : (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0));
                         const rawPnL = net + fees;
                         const tPct = isTopstep ? (((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)) : (net / parseFloat(t.size) * 100);
 
@@ -2279,7 +2354,7 @@
                 if (isTopstep) {
                     const MNQ_MULT = 2; 
                     const contracts = parseFloat(trade.contracts || trade.size);
-                    const totalFees = parseFloat(trade.commissions || 0.74);
+                    const totalFees = parseFloat(trade.commissions || 0.78);
                     
                     const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
                     const netResult = (points * MNQ_MULT * contracts) - totalFees;
@@ -2898,7 +2973,7 @@
                     if (isTopstep) {
                         const MNQ_MULT = 2;
                         const contracts = parseFloat(trade.contracts || trade.size || 1);
-                        const fees = parseFloat(trade.commissions || 0.74);
+                        const fees = parseFloat(trade.commissions || 0.78);
                         const points = trade.type === "Long" ? (newPrice - trade.entry) : (trade.entry - newPrice);
                         const netResult = (points * MNQ_MULT * contracts) - fees;
                         updates = { exit_price: newPrice, net_result: netResult };
