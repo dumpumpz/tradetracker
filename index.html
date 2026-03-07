@@ -325,18 +325,26 @@
         .alert-banner { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 12px 15px; margin-bottom: 20px; border-radius: 6px; text-align: center; font-size: 14px; line-height: 1.5; animation: fadeIn 0.5s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .alert-banner strong { font-weight: 700; text-transform: uppercase; margin-right: 5px; }
         .alert-banner + .alert-banner { margin-top: -10px; }
+/* --- Funded Tab Column Cleanup --- */
 
-     /* Hide specific columns in the Funded/Topstep Live & Completed Tables */
-#topstep-tab th:nth-child(10), #ts-trades-tbody td:nth-child(10), /* RR(M) */
-#topstep-tab th:nth-child(12), #ts-trades-tbody td:nth-child(12), /* Qty */
-#topstep-tab th:nth-child(13), #ts-trades-tbody td:nth-child(13), /* /100 */
-#topstep-tab th:nth-child(14), #ts-trades-tbody td:nth-child(14), /* Fees */
-#topstep-tab th:nth-child(16), #ts-trades-tbody td:nth-child(16), /* Pr(M) */
-#topstep-tab th:nth-child(18), #ts-trades-tbody td:nth-child(18)  /* Ls(M) */
-{ 
-    display: none !important; 
+/* 1. Hide: Avg Entry(4), BE(5), Entries(6), RR-M(10), Qty(12), /100(13), Fees(14), Pr-M(16), Ls-M(18) */
+#topstep-tab th:nth-child(4), #topstep-tab td:nth-child(4),
+#topstep-tab th:nth-child(5), #topstep-tab td:nth-child(5),
+#topstep-tab th:nth-child(6), #topstep-tab td:nth-child(6),
+#topstep-tab th:nth-child(10), #topstep-tab td:nth-child(10),
+#topstep-tab th:nth-child(12), #topstep-tab td:nth-child(12),
+#topstep-tab th:nth-child(13), #topstep-tab td:nth-child(13),
+#topstep-tab th:nth-child(14), #topstep-tab td:nth-child(14),
+#topstep-tab th:nth-child(16), #topstep-tab td:nth-child(16),
+#topstep-tab th:nth-child(18), #topstep-tab td:nth-child(18) {
+    display: none !important;
 }
 
+/* 2. Style the Contracts column for Funded */
+#topstep-tab td:nth-child(11) {
+    font-weight: bold;
+    color: var(--link-color);
+}
 /* Adjust "Group / Details" width since we removed columns */
 #topstep-tab .child-row td:nth-child(3) {
     min-width: 150px;
@@ -1548,7 +1556,7 @@
         }
 
 
-      function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
+    function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
     try {
         const tbodyElement = document.getElementById(tbodyId);
         if (!tbodyElement) return;
@@ -1622,7 +1630,6 @@
                         <span style="color:var(--subtle-text);">Size: ${isTopstep ? group.totalSize + ' Contr' : '$' + group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
                         <span style="color:var(--border-color);">|</span>
                         <span style="color:var(--subtle-text);">Avg Entry: ${avgEntry.toFixed(2)}</span>
-                        <span style="color:var(--border-color);">|</span>
                         <span style="color:var(--green-text);">Proj TP: $${dominantProfit.toFixed(2)}</span>
                         <span style="color:var(--border-color);">|</span>
                         <span style="color:var(--red-text);">Proj SL: $${dominantLoss.toFixed(2)}</span>
@@ -1637,7 +1644,6 @@
                 const breakevenPrice = calculateBreakevenPrice(trade);
                 const entriesList = (trade.entry_prices || [trade.entry]).map(p => parseFloat(p).toFixed(2)).join(', ');
                 
-                // --- Hiding Logic ---
                 const showMaker = !isTopstep; 
                 const hideIfFunded = isTopstep ? 'display: none;' : ''; 
                 const isMaker = (trade.entryFeeType === 'maker');
@@ -1665,13 +1671,18 @@
                 <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
                     <td></td> <td></td> 
                     <td style="text-align:right;">↳ ${accBadge}${isTopstep ? 'MNQ Position' : 'Trade ('+trade.entryFeeType+')'}:</td>
-                    <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
-                    <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : '--'}</td>
-                    <td class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
+                    
+                    <!-- Hide Entry, BE, and List for Funded -->
+                    <td style="${hideIfFunded}" class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
+                    <td style="${hideIfFunded}; font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : '--'}</td>
+                    <td style="${hideIfFunded}" class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
+                    
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(2)}</td>
                     <td>${metrics.rr_taker}</td>
                     <td style="display: ${showMaker ? 'table-cell' : 'none'};">${metrics.rr_maker}</td>
+                    
+                    <!-- Value / Contracts Column -->
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}">${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
                     
                     <td style="${hideIfFunded}">${isTopstep ? '--' : (parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
@@ -1695,7 +1706,10 @@
         let thead = table.querySelector('thead');
         if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
         
-        thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
+        // Define Header names based on tab
+        const valLabel = isTopstep ? "Contracts" : "Value ($)";
+
+        thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>${valLabel}</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
 
         if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades, summaryId, isTopstep);
         setTimeout(() => adjustCollapsibleSize(tbodyElement), 10);
@@ -1703,7 +1717,6 @@
         console.error("Error rendering live table:", e);
     }
 }
-
         function handleLiveNoteUpdate(cell) {
             if (!STATE.isMasterUser) return;
 
