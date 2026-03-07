@@ -363,7 +363,37 @@
             border: 1px dashed var(--border-color);
             text-align: center;
         }
+/* Update this existing rule */
+.summary-card { 
+    flex: 1; 
+    min-width: 280px; /* Slightly smaller to fit narrow phones */
+    border-radius: 8px; 
+    padding: 12px; 
+    border: 1px solid var(--border-color); 
+    background-color: var(--bg-color); 
+}
 
+/* Add this new rule for the Funded Banner grid */
+.funded-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+/* Mobile fix for the 5-column grid */
+@media (max-width: 768px) {
+    .funded-grid {
+        grid-template-columns: repeat(2, 1fr) !important; /* Stack into 2 columns on mobile */
+    }
+    .funded-grid > div:last-child {
+        grid-column: span 2; /* Make the "Total P/L" take full width at the bottom */
+    }
+    .summary-split-container {
+        gap: 10px;
+    }
+}
     </style>
 </head>
 <body>
@@ -1357,37 +1387,36 @@
             container.innerHTML = html;
         }
 
-        function renderFundedBanners() {
-            const container = document.getElementById('funded-accounts-banners');
-            if (!container) return;
-            let html = '';
-            CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
-                const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, hwm: CONFIG.FUNDED_START, maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN };
-                const totalPL = stats.balance - CONFIG.FUNDED_START;
-                const bufferLeft = stats.balance - stats.maxLoss;
+      function renderFundedBanners() {
+    const container = document.getElementById('funded-accounts-banners');
+    if (!container) return;
+    let html = '';
+    CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
+        const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, hwm: CONFIG.FUNDED_START, maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN };
+        const totalPL = stats.balance - CONFIG.FUNDED_START;
+        const bufferLeft = stats.balance - stats.maxLoss;
 
-                let bufColor = 'var(--green-text)';
-                if (bufferLeft <= 0) bufColor = 'var(--red-text)';
-                else if (bufferLeft <= 500) bufColor = 'orange';
+        let bufColor = 'var(--green-text)';
+        if (bufferLeft <= 0) bufColor = 'var(--red-text)';
+        else if (bufferLeft <= 500) bufColor = 'orange';
 
-                const plColor = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+        const plColor = totalPL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
 
-                html += `
-                <div class="summary-card" style="border-top: 3px solid var(--link-color); background-color: rgba(0,123,255,0.05);">
-                    <h5>${acc} Evaluation</h5>
-                    <div class="summary-grid-row" style="grid-template-columns: repeat(5, 1fr);">
-                        <div><span class="sum-label">Current Balance</span><span class="sum-val">${formatCurrency(stats.balance)}</span></div>
-                        <div><span class="sum-label">HWM (EOD)</span><span class="sum-val">${formatCurrency(stats.hwm)}</span></div>
-                        <div><span class="sum-label">Max Loss Limit</span><span class="sum-val val-red">${formatCurrency(stats.maxLoss)}</span></div>
-                        <div><span class="sum-label">Buffer Left</span><span class="sum-val" style="color:${bufColor}">${formatCurrency(bufferLeft)}</span></div>
-                        <div><span class="sum-label">Total P/L</span><span class="sum-val" style="color:${plColor}">${formatCurrency(totalPL)}</span></div>
-                    </div>
-                </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
+        html += `
+        <div class="summary-card" style="border-top: 3px solid var(--link-color); background-color: rgba(0,123,255,0.05);">
+            <h5>${acc} Evaluation</h5>
+            <div class="funded-grid"> <!-- Use the new class here -->
+                <div><span class="sum-label">Current Balance</span><span class="sum-val">${formatCurrency(stats.balance)}</span></div>
+                <div><span class="sum-label">HWM (EOD)</span><span class="sum-val">${formatCurrency(stats.hwm)}</span></div>
+                <div><span class="sum-label">Max Loss Limit</span><span class="sum-val val-red">${formatCurrency(stats.maxLoss)}</span></div>
+                <div><span class="sum-label">Buffer Left</span><span class="sum-val" style="color:${bufColor}">${formatCurrency(bufferLeft)}</span></div>
+                <div><span class="sum-label">Total P/L</span><span class="sum-val" style="color:${plColor}">${formatCurrency(totalPL)}</span></div>
+            </div>
+        </div>
+        `;
+    });
+    container.innerHTML = html;
+}
         function renderFundedAccountRadios() {
             const container = document.getElementById('funded-account-radios');
             if (!container) return;
