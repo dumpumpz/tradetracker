@@ -394,6 +394,25 @@
         gap: 10px;
     }
 }
+
+        @media (max-width: 768px) {
+    /* Ensures summary cards stack nicely and take full width on phones */
+    .summary-split-container {
+        flex-direction: column;
+        gap: 12px;
+    }
+    .summary-card {
+        min-width: 100% !important;
+        padding: 10px;
+    }
+    /* Prevents the 2-column grid from becoming too cramped */
+    .summary-grid-row {
+        gap: 5px;
+    }
+    .sum-val {
+        font-size: 13px; /* Slightly smaller text for phone screens */
+    }
+}
     </style>
 </head>
 <body>
@@ -1620,174 +1639,180 @@
             }).catch(err => alert("Error saving note: " + err.message));
         }
 
-          function renderLiveSummaryCards(groupedTrades, summaryId, isTopstep = false) {
-            const summaryContainer = document.getElementById(summaryId);
-            if (!summaryContainer) return;
+      function renderLiveSummaryCards(groupedTrades, summaryId, isTopstep = false) {
+    const summaryContainer = document.getElementById(summaryId);
+    if (!summaryContainer) return;
+    
+    const groupKeys = Object.keys(groupedTrades);
+    if (groupKeys.length === 0) {
+        summaryContainer.style.display = 'none';
+        return;
+    }
+
+    summaryContainer.style.display = 'block';
+    let summaryHtml = '<div class="summary-split-container">';
+
+    groupKeys.forEach(key => {
+        const g = groupedTrades[key];
+        
+        const avgEntry = g.totalQty > 0 ? (g.wEntry / g.totalQty) : 0;
+        const avgOrigStop = g.totalQty > 0 ? (g.wOrigStop / g.totalQty) : 0;
+        const avgTarget = g.totalQty > 0 ? (g.wTarget / g.totalQty) : 0;
+        
+        const riskDistance = Math.abs(avgEntry - avgOrigStop);
+        const directionMult = (g.type === 'Long') ? 1 : -1;
+        const cardClass = g.type === 'Long' ? 'long-card' : 'short-card';
+
+        if (isTopstep) {
+            // ==========================================
+            // FUNDED ACCOUNTS SUMMARY CARD (MATH UPDATED)
+            // ==========================================
+            let tHalfway = "--", t1RR = "--";
             
-            const groupKeys = Object.keys(groupedTrades);
-            if (groupKeys.length === 0) {
-                summaryContainer.style.display = 'none';
-                return;
+            // Calculate Halfway to Target (Reward Based)
+            if (avgEntry > 0 && avgTarget > 0) {
+                const rewardDist = avgTarget - avgEntry;
+                tHalfway = (avgEntry + (rewardDist * 0.5)).toFixed(2);
             }
 
-            summaryContainer.style.display = 'block';
-            let summaryHtml = '<div class="summary-split-container">';
+            // Calculate 1:1 Risk/Reward Price (Risk Based)
+            if (avgEntry > 0 && avgOrigStop > 0) {
+                t1RR = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(2);
+            }
 
-            groupKeys.forEach(key => {
-                const g = groupedTrades[key];
+            let totalProfit = 0;
+            let totalLoss = 0;
+            const accountBreakdown = {};
+
+            // Calculate totals and group by account
+            g.trades.forEach(t => {
+                const m = calculateFuturesMetrics(t);
+                const acc = getEvalAccount(t);
                 
-                const avgEntry = g.totalQty > 0 ? (g.wEntry / g.totalQty) : 0;
-                const avgOrigStop = g.totalQty > 0 ? (g.wOrigStop / g.totalQty) : 0;
-                const avgTarget = g.totalQty > 0 ? (g.wTarget / g.totalQty) : 0;
+                if (!accountBreakdown[acc]) accountBreakdown[acc] = { contracts: 0, profit: 0, loss: 0 };
                 
-                const riskDistance = Math.abs(avgEntry - avgOrigStop);
-                const directionMult = (g.type === 'Long') ? 1 : -1;
-                const cardClass = g.type === 'Long' ? 'long-card' : 'short-card';
-
-                if (isTopstep) {
-                    // ==========================================
-                    // FUNDED ACCOUNTS SUMMARY CARD
-                    // ==========================================
-                    let t05 = "--", t1 = "--";
-                    if (avgEntry > 0 && avgOrigStop > 0 && riskDistance > 0) {
-                        t05 = (avgEntry + (riskDistance * 0.5 * directionMult)).toFixed(2);
-                        t1 = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(2);
-                    }
-
-                    let totalProfit = 0;
-                    let totalLoss = 0;
-                    const accountBreakdown = {};
-
-                    // Calculate totals and group by account
-                    g.trades.forEach(t => {
-                        const m = calculateFuturesMetrics(t);
-                        const acc = getEvalAccount(t);
-                        
-                        if (!accountBreakdown[acc]) accountBreakdown[acc] = { contracts: 0, profit: 0, loss: 0 };
-                        
-                        const contracts = parseFloat(t.contracts || t.size || 0);
-                        accountBreakdown[acc].contracts += contracts;
-                        accountBreakdown[acc].profit += parseFloat(m.expected_profit_taker || 0);
-                        accountBreakdown[acc].loss += parseFloat(m.expected_loss_taker || 0);
-                        
-                        totalProfit += parseFloat(m.expected_profit_taker || 0);
-                        totalLoss += parseFloat(m.expected_loss_taker || 0);
-                    });
-
-                    // Build Account Breakdown rows
-                    let accountsHtml = '';
-                    Object.keys(accountBreakdown).forEach(acc => {
-                        const stats = accountBreakdown[acc];
-                        accountsHtml += `
-                            <div style="display:flex; justify-content:space-between; font-size:12px; padding: 4px 0; border-top: 1px dotted var(--border-color);">
-                                <span style="font-weight:bold; color:var(--subtle-text)">${acc} <span style="font-size:10px; font-weight:normal;">(${stats.contracts}c)</span></span>
-                                <span><span class="val-green">+$${stats.profit.toFixed(2)}</span> / <span class="val-red">-$${stats.loss.toFixed(2)}</span></span>
-                            </div>
-                        `;
-                    });
-
-                    summaryHtml += `
-                    <div class="summary-card ${cardClass}">
-                        <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id} (${g.type})</h5>
-                        
-                        <div class="summary-grid-row">
-                            <div><span class="sum-label">Total Contracts</span><span class="sum-val">${g.totalSize}</span></div>
-                            <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(2)}</span></div>
-                        </div>
-                        
-                        <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 8px;">
-                            <div><span class="sum-label">Avg Stop</span><span class="sum-val val-red">${avgOrigStop.toFixed(2)}</span></div>
-                            <div><span class="sum-label">Full Target</span><span class="sum-val val-green">${avgTarget.toFixed(2)}</span></div>
-                        </div>
-                        
-                        <div class="summary-grid-row">
-                             <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
-                          <div><span class="sum-label">1:2 Target (Halfway)</span><span class="sum-val" style="color:var(--link-color)">${t05}</span></div>
-                       
-                        </div>
-                        
-                        <div class="summary-grid-row financials">
-                            <div>
-                                <span class="sum-label">Total Proj Profit</span>
-                                <span class="sum-val val-green">$${totalProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
-                            </div>
-                            <div>
-                                <span class="sum-label">Total Risk</span>
-                                <span class="sum-val val-red">$${totalLoss.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
-                            </div>
-                        </div>
-
-                        <div style="margin-top: 12px; background: var(--header-bg); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
-                            <div class="sum-label" style="text-align:center; margin-bottom:5px; font-weight:bold;">Account Breakdown</div>
-                            ${accountsHtml}
-                        </div>
-                    </div>`;
-
-                } else {
-                    // ==========================================
-                    // CRYPTO TRACKER SUMMARY CARD (Unchanged)
-                    // ==========================================
-                    let t1 = "--", t2 = "--", t4 = "--", actualRR = "0.00";
-                    if (avgEntry > 0 && avgOrigStop > 0 && riskDistance > 0) {
-                        t1 = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(4);
-                        t2 = (avgEntry + (riskDistance * 2 * directionMult)).toFixed(4);
-                        t4 = (avgEntry + (riskDistance * 4 * directionMult)).toFixed(4);
-                        
-                        const rewardDistance = Math.abs(avgTarget - avgEntry);
-                        actualRR = (rewardDistance / riskDistance).toFixed(2);
-                    }
-
-                    let makerSize = 0;
-                    let takerSize = 0;
-                    
-                    g.trades.forEach(t => {
-                        const s = parseFloat(t.size) || 0;
-                        if (t.entryFeeType === 'maker') makerSize += s;
-                        else takerSize += s;
-                    });
-
-                    const isMakerDominant = makerSize > takerSize;
-                    const feeLabel = isMakerDominant ? 'Maker' : 'Taker';
-
-                    let expProfit = isMakerDominant ? g.profitMaker : g.profitTaker;
-                    let expLoss = isMakerDominant ? g.lossMaker : g.lossTaker;
-
-                    summaryHtml += `
-                    <div class="summary-card ${cardClass}">
-                        <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id} (${g.type})</h5>
-                        <div class="summary-grid-row">
-                            <div><span class="sum-label">Total Size</span><span class="sum-val">$${g.totalSize.toLocaleString(undefined, {minimumFractionDigits:0})}</span></div>
-                            <div><span class="sum-label">PnL per $100</span><span class="sum-val" style="font-weight:900;">$${g.pnlPer100.toFixed(2)}</span></div>
-                        </div>
-                        <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 8px;">
-                            <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
-                            <div><span class="sum-label">Avg Target RR</span><span class="sum-val" style="color: #d39e00;">${actualRR}:1</span></div>
-                        </div>
-                        <div class="summary-grid-row">
-                            <div><span class="sum-label">Avg Orig Stop</span><span class="sum-val val-red">${avgOrigStop.toFixed(4)}</span></div>
-                            <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
-                        </div>
-                        <div class="summary-grid-row">
-                            <div><span class="sum-label">1:2 Target</span><span class="sum-val" style="color:var(--green-text)">${t2}</span></div>
-                            <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
-                        </div>
-                        <div class="summary-grid-row financials">
-                            <div>
-                                <span class="sum-label">Exp Profit (${feeLabel})</span>
-                                <span class="sum-val val-green">$${expProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
-                            </div>
-                            <div>
-                                <span class="sum-label">Exp Loss (${feeLabel})</span>
-                                <span class="sum-val val-red">$${expLoss.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
-                            </div>
-                        </div>
-                    </div>`;
-                }
+                const contracts = parseFloat(t.contracts || t.size || 0);
+                accountBreakdown[acc].contracts += contracts;
+                accountBreakdown[acc].profit += parseFloat(m.expected_profit_taker || 0);
+                accountBreakdown[acc].loss += parseFloat(m.expected_loss_taker || 0);
+                
+                totalProfit += parseFloat(m.expected_profit_taker || 0);
+                totalLoss += parseFloat(m.expected_loss_taker || 0);
             });
+
+            // Build Account Breakdown rows
+            let accountsHtml = '';
+            Object.keys(accountBreakdown).forEach(acc => {
+                const stats = accountBreakdown[acc];
+                accountsHtml += `
+                    <div style="display:flex; justify-content:space-between; font-size:12px; padding: 6px 0; border-top: 1px dotted var(--border-color);">
+                        <span style="font-weight:bold; color:var(--subtle-text)">${acc} <span style="font-size:10px; font-weight:normal;">(${stats.contracts}c)</span></span>
+                        <span><span class="val-green">+$${stats.profit.toFixed(2)}</span> / <span class="val-red">-$${stats.loss.toFixed(2)}</span></span>
+                    </div>
+                `;
+            });
+
+            summaryHtml += `
+            <div class="summary-card ${cardClass}" style="min-width: 300px; margin-bottom: 10px;">
+                <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; margin-bottom: 12px;">${g.id} (${g.type})</h5>
+                
+                <div class="summary-grid-row">
+                    <div><span class="sum-label">Total Contracts</span><span class="sum-val">${g.totalSize}</span></div>
+                    <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(2)}</span></div>
+                </div>
+                
+                <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 8px 0; border-radius: 4px; margin-bottom: 8px;">
+                    <div><span class="sum-label">Avg Stop</span><span class="sum-val val-red">${avgOrigStop.toFixed(2)}</span></div>
+                    <div><span class="sum-label">Full Target</span><span class="sum-val val-green">${avgTarget.toFixed(2)}</span></div>
+                </div>
+                
+                <div class="summary-grid-row">
+                    <div><span class="sum-label">Halfway to TP</span><span class="sum-val" style="color:var(--link-color)">${tHalfway}</span></div>
+                    <div><span class="sum-label">1:1 RR Price</span><span class="sum-val" style="color:var(--link-color)">${t1RR}</span></div>
+                </div>
+                
+                <div class="summary-grid-row financials" style="margin-top: 10px; padding-top: 10px;">
+                    <div>
+                        <span class="sum-label">Total Proj Profit</span>
+                        <span class="sum-val val-green">$${totalProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                    </div>
+                    <div>
+                        <span class="sum-label">Total Risk</span>
+                        <span class="sum-val val-red">$${totalLoss.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; background: var(--header-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <div class="sum-label" style="text-align:center; margin-bottom:5px; font-weight:bold; letter-spacing: 0.5px;">Account Split</div>
+                    ${accountsHtml}
+                </div>
+            </div>`;
+
+        } else {
+            // ==========================================
+            // CRYPTO TRACKER SUMMARY CARD
+            // ==========================================
+            let t1 = "--", t2 = "--", t4 = "--", actualRR = "0.00";
+            if (avgEntry > 0 && avgOrigStop > 0 && riskDistance > 0) {
+                t1 = (avgEntry + (riskDistance * 1 * directionMult)).toFixed(4);
+                t2 = (avgEntry + (riskDistance * 2 * directionMult)).toFixed(4);
+                t4 = (avgEntry + (riskDistance * 4 * directionMult)).toFixed(4);
+                
+                const rewardDistance = Math.abs(avgTarget - avgEntry);
+                actualRR = (rewardDistance / riskDistance).toFixed(2);
+            }
+
+            let makerSize = 0;
+            let takerSize = 0;
             
-            summaryHtml += '</div>';
-            summaryContainer.innerHTML = summaryHtml;
+            g.trades.forEach(t => {
+                const s = parseFloat(t.size) || 0;
+                if (t.entryFeeType === 'maker') makerSize += s;
+                else takerSize += s;
+            });
+
+            const isMakerDominant = makerSize > takerSize;
+            const feeLabel = isMakerDominant ? 'Maker' : 'Taker';
+
+            let expProfit = isMakerDominant ? g.profitMaker : g.profitTaker;
+            let expLoss = isMakerDominant ? g.lossMaker : g.lossTaker;
+
+            summaryHtml += `
+            <div class="summary-card ${cardClass}" style="min-width: 300px; margin-bottom: 10px;">
+                <h5 style="color: ${g.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${g.id} (${g.type})</h5>
+                <div class="summary-grid-row">
+                    <div><span class="sum-label">Total Size</span><span class="sum-val">$${g.totalSize.toLocaleString(undefined, {minimumFractionDigits:0})}</span></div>
+                    <div><span class="sum-label">PnL per $100</span><span class="sum-val" style="font-weight:900;">$${g.pnlPer100.toFixed(2)}</span></div>
+                </div>
+                <div class="summary-grid-row" style="background: rgba(0,0,0,0.05); padding: 5px 0; border-radius: 4px; margin-bottom: 8px;">
+                    <div><span class="sum-label">Avg Entry</span><span class="sum-val">${avgEntry.toFixed(4)}</span></div>
+                    <div><span class="sum-label">Avg Target RR</span><span class="sum-val" style="color: #d39e00;">${actualRR}:1</span></div>
+                </div>
+                <div class="summary-grid-row">
+                    <div><span class="sum-label">Avg Orig Stop</span><span class="sum-val val-red">${avgOrigStop.toFixed(4)}</span></div>
+                    <div><span class="sum-label">1:1 Target</span><span class="sum-val" style="color:var(--link-color)">${t1}</span></div>
+                </div>
+                <div class="summary-grid-row">
+                    <div><span class="sum-label">1:2 Target</span><span class="sum-val" style="color:var(--green-text)">${t2}</span></div>
+                    <div><span class="sum-label">1:4 Target</span><span class="sum-val" style="color:var(--green-text)">${t4}</span></div>
+                </div>
+                <div class="summary-grid-row financials">
+                    <div>
+                        <span class="sum-label">Exp Profit (${feeLabel})</span>
+                        <span class="sum-val val-green">$${expProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                    </div>
+                    <div>
+                        <span class="sum-label">Exp Loss (${feeLabel})</span>
+                        <span class="sum-val val-red">$${expLoss.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                    </div>
+                </div>
+            </div>`;
         }
+    });
+    
+    summaryHtml += '</div>';
+    summaryContainer.innerHTML = summaryHtml;
+}
 
         function checkMarketAlerts() {
             const container = document.getElementById('tracker-alerts');
