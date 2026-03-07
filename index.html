@@ -1424,7 +1424,7 @@
         }
 
 
- function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
+        function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
             try {
                 const tbodyElement = document.getElementById(tbodyId);
                 if (!tbodyElement) return;
@@ -1559,41 +1559,37 @@
                     });
                 });
 
-function handleLiveNoteUpdate(cell) {
-    if (!STATE.isMasterUser) return;
-    const isTopstep = cell.closest('table').id.includes('topstep') || cell.closest('div').id.includes('topstep');
-    const tradeRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
-    const tradeId = cell.dataset.id;
-    const newNote = cell.innerText.trim();
+                tbodyElement.innerHTML = tableHtml;
+                const table = tbodyElement.closest('table');
+                let thead = table.querySelector('thead');
+                if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
+                
+                // Keep exactly the same headers for both so the CSS nth-child rules work properly
+                thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
 
-    tradeRef.child(tradeId).update({ note: newNote }).then(() => {
-        cell.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
-        setTimeout(() => cell.style.backgroundColor = 'rgba(255,255,255,0.05)', 500);
-    });
-}
-function handleLiveNoteUpdate(cell) {
-    if (!STATE.isMasterUser) return;
-    
-    // Check if we are in Topstep based on the table ID
-    const table = cell.closest('table');
-    const isTopstep = table && (table.id.includes('topstep') || table.id.includes('ts-'));
-    const tradeRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
+                if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades, summaryId, isTopstep);
+                setTimeout(() => adjustCollapsibleSize(tbodyElement), 10);
+            } catch (e) {
+                console.error("Error rendering live table:", e);
+            }
+        }
 
-    const tradeId = cell.dataset.id;
-    const newNote = cell.innerText.trim(); // innerText captures contenteditable better than textContent
+        function handleLiveNoteUpdate(cell) {
+            if (!STATE.isMasterUser) return;
 
-    if (!tradeId || !tradeRef) return;
+            const isTopstep = cell.closest('#topstep-tab') !== null;
+            const tradeRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
 
-    tradeRef.child(tradeId).update({ note: newNote })
-        .then(() => {
-            cell.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
-            setTimeout(() => cell.style.backgroundColor = 'rgba(255,255,255,0.05)', 500);
-        })
-        .catch(err => {
-            console.error("Save Error:", err);
-            cell.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
-        });
-}
+            const tradeId = cell.dataset.id;
+            const newNote = cell.textContent.trim();
+
+            tradeRef.child(tradeId).update({
+                note: newNote
+            }).then(() => {
+                cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                setTimeout(() => cell.style.backgroundColor = '', 500);
+            }).catch(err => alert("Error saving note: " + err.message));
+        }
 
           function renderLiveSummaryCards(groupedTrades, summaryId, isTopstep = false) {
             const summaryContainer = document.getElementById(summaryId);
