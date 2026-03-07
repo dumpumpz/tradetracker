@@ -1165,10 +1165,10 @@
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 
-        function handleCloseGroup(groupId, isTopstep) {
+       function handleCloseGroup(groupId, isTopstep) {
             if (STATE.isProcessing) return;
             
-            if (!confirm(`Are you sure you want to close ALL trades in group: ${groupId}?`)) return;
+            if (!confirm(`Are you sure you want to close ALL active trades in group: ${groupId}?`)) return;
 
             const liveRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
             const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
@@ -1177,6 +1177,7 @@
                 const allTrades = snapshot.val();
                 if (!allTrades) return;
 
+                // Find all trades belonging to this group
                 const groupEntries = Object.entries(allTrades).filter(([id, t]) => t.groupId === groupId);
                 
                 if (groupEntries.length === 0) {
@@ -1184,13 +1185,10 @@
                     return;
                 }
 
+                // Prompt for Exit Price
                 const defaultExit = groupEntries[0][1].target;
-                const exitPriceStr = prompt(`Closing Group: ${groupId}\nEnter exit price for ALL positions:`, defaultExit);
+                const exitPriceStr = prompt(`Closing Group: ${groupId}\nEnter EXACT exit price for ALL positions:`, defaultExit);
                 if (exitPriceStr === null) return; 
-
-                let exitFeeType = prompt("Enter exit fee type (maker/taker):", "maker");
-                if (exitFeeType === null) return;
-                exitFeeType = exitFeeType.toLowerCase().trim();
 
                 const exitPrice = parseFloat(exitPriceStr);
                 if (isNaN(exitPrice)) {
@@ -1198,26 +1196,60 @@
                     return;
                 }
 
+                // Only ask for Maker/Taker if it's the Crypto tracker
+                let exitFeeType = 'taker';
+                if (!isTopstep) {
+                    const feePrompt = prompt("Enter exit fee type (maker/taker):", "maker");
+                    if (feePrompt === null) return;
+                    exitFeeType = feePrompt.toLowerCase().trim();
+                }
+
                 STATE.isProcessing = true;
                 const updates = {};
                 const completedPromises = [];
 
+                // Loop through every trade in the group and close it
                 groupEntries.forEach(([id, trade]) => {
-                    const result = calculateNetResult(trade, exitPrice, exitFeeType);
+                    let completedTrade;
 
-                    const completedTrade = {
-                        ...trade,
-                        ...result,
-                        closed_date: firebase.database.ServerValue.TIMESTAMP,
-                        exit_price: exitPrice,
-                        exitFeeType: exitFeeType,
-                        note: (trade.note || '') + `\nGroup closed @ $${exitPrice}`
-                    };
+                    if (isTopstep) {
+                        // Funded Accounts (Futures Math)
+                        const MNQ_MULT = 2; 
+                        const contracts = parseFloat(trade.contracts || trade.size);
+                        const totalFees = parseFloat(trade.commissions || 0.74);
+                        
+                        const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
+                        const netResult = (points * MNQ_MULT * contracts) - totalFees;
 
+                        completedTrade = {
+                            ...trade,
+                            exit_price: exitPrice,
+                            net_result: netResult,
+                            entry_fee: totalFees / 2,
+                            exit_fee: totalFees / 2,
+                            exitFeeType: 'fixed',
+                            closed_date: firebase.database.ServerValue.TIMESTAMP,
+                            note: (trade.note || '') + `\nGroup closed @ $${exitPrice}`
+                        };
+                    } else {
+                        // Crypto Accounts (Percent Math)
+                        const result = calculateNetResult(trade, exitPrice, exitFeeType);
+                        completedTrade = {
+                            ...trade,
+                            ...result,
+                            closed_date: firebase.database.ServerValue.TIMESTAMP,
+                            exit_price: exitPrice,
+                            exitFeeType: exitFeeType,
+                            note: (trade.note || '') + `\nGroup closed @ $${exitPrice}`
+                        };
+                    }
+
+                    // Push to completed table and mark live entry for deletion
                     completedPromises.push(compRef.push(completedTrade));
                     updates[id] = null; 
                 });
 
+                // Execute all database updates
                 Promise.all(completedPromises)
                     .then(() => {
                         return liveRef.update(updates);
@@ -1233,8 +1265,6 @@
                     });
             });
         }
-
-
         const MNQ_MULTIPLIER = 2; 
 
         function calculateFuturesMetrics(tradeData) {
@@ -1439,7 +1469,7 @@
                     groupedTrades[gid].pnlPer100 += parseFloat(metrics.pnl_per_100_move || 0);
                 });
 
-                let tableHtml = '';
+          let tableHtml = '';
                 const sortedGroupKeys = Object.keys(groupedTrades).sort((a, b) => {
                     const getLatestDate = (group) => Math.max(...group.trades.map(t => t.date || 0));
                     return getLatestDate(groupedTrades[b]) - getLatestDate(groupedTrades[a]);
@@ -1452,22 +1482,28 @@
                     const dominantProfit = isTopstep ? group.profitTaker : ((group.type === 'Short') ? group.profitMaker : group.profitTaker);
                     const dominantLoss = isTopstep ? group.lossTaker : ((group.type === 'Short') ? group.lossMaker : group.lossTaker);
 
-                    const masterGroupBtn = STATE.isMasterUser ? `<button class="close-group-btn" data-group-id="${gid}">Close Idea</button>` : '';
+                    // The Close Group Button (Pushed to the right)
+                    const masterGroupBtn = STATE.isMasterUser ? `<button class="close-group-btn" data-group-id="${gid}" style="width: auto; padding: 4px 15px; margin-left: auto; font-size: 12px;">Close Group</button>` : '';
 
+                    // NEW SINGLE-ROW GROUP HEADER
                     tableHtml += `
-                    <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color); font-weight: bold;">
-                        <td style="border-left: 4px solid var(--link-color);">${group.symbol}</td>
-                        <td style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${group.type}</td>
-                        <td colspan="3" style="color: var(--text-color); font-size: 0.95em;">📂 ${gid}</td>
-                        <td>--</td> <td>--</td> <td>--</td> <td>--</td> <td>--</td> 
-                        <td style="font-size: 1.05em;">${isTopstep ? group.totalSize + ' Contr' : '$' + group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-                        <td style="font-family: 'Courier New';">${isTopstep ? '--' : group.totalQty.toFixed(4)}</td>
-                        <td>$${group.pnlPer100.toFixed(2)}</td>
-                        <td>$${group.fees.toFixed(2)}</td>
-                        <td colspan="2" style="text-align:center; color: var(--green-text); opacity: 0.8;">TP: $${dominantProfit.toFixed(2)}</td>
-                        <td colspan="2" style="text-align:center; color: var(--red-text); opacity: 0.8;">SL: $${dominantLoss.toFixed(2)}</td>
-                        <td colspan="4" style="text-align:right; font-weight:normal; font-style:italic;">Avg: ${avgEntry.toFixed(2)}</td>
-                        <td></td> <td class="master-only">${masterGroupBtn}</td>
+                    <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color);">
+                        <td colspan="25" style="padding: 8px 15px;">
+                            <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center; width: 100%;">
+                                <span style="font-weight:bold; color:var(--link-color);">📂 ${gid}</span>
+                                <span style="color:var(--border-color);">|</span>
+                                <span style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${group.type}</span>
+                                <span style="color:var(--border-color);">|</span>
+                                <span style="color:var(--subtle-text);">Size: ${isTopstep ? group.totalSize + ' Contr' : '$' + group.totalSize.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                                <span style="color:var(--border-color);">|</span>
+                                <span style="color:var(--subtle-text);">Avg Entry: ${avgEntry.toFixed(2)}</span>
+                                <span style="color:var(--border-color);">|</span>
+                                <span style="color:var(--green-text);">Proj TP: $${dominantProfit.toFixed(2)}</span>
+                                <span style="color:var(--border-color);">|</span>
+                                <span style="color:var(--red-text);">Proj SL: $${dominantLoss.toFixed(2)}</span>
+                                ${masterGroupBtn}
+                            </div>
+                        </td>
                     </tr>`;
 
                     group.trades.forEach(trade => {
@@ -1528,11 +1564,8 @@
                 let thead = table.querySelector('thead');
                 if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
                 
-                if (isTopstep) {
-                    thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR</th><th>Contracts</th><th>--</th><th>Fees</th><th>Pr ($)</th><th>Ls ($)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
-                } else {
-                    thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
-                }
+                // Keep exactly the same headers for both so the CSS nth-child rules work properly
+                thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value ($)</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
 
                 if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades, summaryId);
                 setTimeout(() => adjustCollapsibleSize(tbodyElement), 10);
@@ -1939,7 +1972,7 @@
                             <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${t.note2 || ''}</td>
                             <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${t.note3 || ''}</td>
                             ${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}
-                            <td class="action-buttons"><button class="attach-image-btn" data-id="${t.dbId}" data-type="completed">Pic</button><button class="delete-btn-completed" data-id="${t.dbId}">Del</button></td>
+                            <td class="action-buttons master-only"><button class="attach-image-btn" data-id="${t.dbId}" data-type="completed">Pic</button><button class="delete-btn-completed" data-id="${t.dbId}">Del</button></td>
                         </tr>`;
                     });
                 });
