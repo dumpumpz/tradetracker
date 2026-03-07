@@ -1424,7 +1424,7 @@
         }
 
 
- function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
+function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
     try {
         const tbodyElement = document.getElementById(tbodyId);
         if (!tbodyElement) return;
@@ -1432,10 +1432,11 @@
         const trades = data || {};
         const groupedTrades = {};
 
-        // 1. Grouping Logic
+        // 1. Grouping and Calculations
         Object.keys(trades).forEach(id => {
             const trade = trades[id];
             const gid = trade.groupId || `${trade.symbol}_${trade.type}_Legacy`; 
+            
             if (!groupedTrades[gid]) {
                 groupedTrades[gid] = {
                     id: gid, symbol: trade.symbol, type: trade.type, trades: [],
@@ -1443,7 +1444,9 @@
                     lossTaker: 0, lossMaker: 0, fees: 0, pnlPer100: 0
                 };
             }
+
             groupedTrades[gid].trades.push({ ...trade, dbId: id });
+
             const size = isTopstep ? (parseFloat(trade.contracts) || 0) : (parseFloat(trade.size) || 0);
             const entry = parseFloat(trade.entry) || 0;
             const qty = isTopstep ? size : ((entry > 0) ? size / entry : 0);
@@ -1462,26 +1465,29 @@
 
         let tableHtml = '';
         const sortedKeys = Object.keys(groupedTrades).sort((a, b) => {
-            const getLatest = (g) => Math.max(...g.trades.map(t => t.date || 0));
-            return getLatest(groupedTrades[b]) - getLatest(groupedTrades[a]);
+            const getLatestDate = (g) => Math.max(...g.trades.map(t => t.date || 0));
+            return getLatestDate(groupedTrades[b]) - getLatestDate(groupedTrades[a]);
         });
 
+        // 2. Build the Rows
         sortedKeys.forEach(gid => {
             const group = groupedTrades[gid];
             const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
             const domProfit = isTopstep ? group.profitTaker : ((group.type === 'Short') ? group.profitMaker : group.profitTaker);
             const domLoss = isTopstep ? group.lossTaker : ((group.type === 'Short') ? group.lossMaker : group.lossTaker);
 
-            // Group Header (Colspan 17 for Topstep, 21 for Regular)
-            const colSpan = isTopstep ? 17 : 21;
+            // Calculate exact colSpan based on the row structure below
+            const totalCols = isTopstep ? 17 : 21;
+
+            // GROUP HEADER
             tableHtml += `
-            <tr style="background: rgba(127, 127, 127, 0.15); border-top: 2px solid var(--border-color); font-weight: bold;">
-                <td colspan="${colSpan}" style="padding: 12px;">
-                    <div style="display:flex; align-items:center; gap:20px;">
-                        <span style="color:var(--link-color); font-size:1.1em;">📂 ${gid}</span>
-                        <span style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${group.type.toUpperCase()}</span>
-                        <span>Size: ${isTopstep ? group.totalSize + ' Contr' : '$' + group.totalSize.toLocaleString()}</span>
-                        <span>Avg: ${avgEntry.toFixed(2)}</span>
+            <tr style="background-color: rgba(127, 127, 127, 0.15); border-top: 2px solid var(--border-color); font-weight: bold;">
+                <td colspan="${totalCols}" style="padding: 10px 15px;">
+                    <div style="display:flex; align-items:center; gap:20px; width:100%;">
+                        <span style="color:var(--link-color); font-size: 1.1em;">📂 ${gid}</span>
+                        <span style="color: ${group.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'};">${group.type.toUpperCase()}</span>
+                        <span style="color:var(--subtle-text);">Size: ${isTopstep ? group.totalSize + ' Contr' : '$' + group.totalSize.toLocaleString()}</span>
+                        <span style="color:var(--subtle-text);">Avg: ${avgEntry.toFixed(2)}</span>
                         <span style="color:var(--green-text);">Proj TP: $${domProfit.toFixed(2)}</span>
                         <span style="color:var(--red-text);">Proj SL: $${domLoss.toFixed(2)}</span>
                         ${STATE.isMasterUser ? `<button class="close-group-btn" data-group-id="${gid}" style="margin-left:auto; background:var(--link-color); color:white; border:none; padding:4px 12px; border-radius:4px; cursor:pointer;">Close Idea</button>` : ''}
@@ -1492,26 +1498,26 @@
             group.trades.forEach(trade => {
                 const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
                 const breakeven = calculateBreakevenPrice(trade);
-                const entries = (trade.entry_prices || [trade.entry]).join(', ');
-                const isMaker = trade.entryFeeType === 'maker';
+                const entriesList = (trade.entry_prices || [trade.entry]).join(', ');
+                const isMaker = (trade.entryFeeType === 'maker');
 
                 const masterButtons = STATE.isMasterUser ? `
-                    <div style="display:flex; gap:2px;">
-                        <button class="attach-image-btn" data-id="${trade.dbId}" style="background:#17a2b8; border:none; color:white; padding:2px 4px;">Pic</button>
-                        <button class="win-btn" data-id="${trade.dbId}" style="background:#28a745; border:none; color:white; padding:2px 6px;">W</button>
-                        <button class="loss-btn" data-id="${trade.dbId}" style="background:#dc3545; border:none; color:white; padding:2px 6px;">L</button>
-                        <button class="delete-btn" data-id="${trade.dbId}" style="background:#6c757d; border:none; color:white; padding:2px 4px;">×</button>
+                    <div style="display:flex; gap:2px; justify-content:flex-end;">
+                        <button class="attach-image-btn" data-id="${trade.dbId}" data-type="live" style="padding:2px 5px; font-size:10px; background:#17a2b8; color:white; border:none;">Pic</button>
+                        <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#28a745; color:white; border:none;">W</button>
+                        <button class="loss-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#dc3545; color:white; border:none;">L</button>
+                        <button class="delete-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:10px; background:#6c757d; color:white; border:none;">×</button>
                     </div>` : '';
 
                 if (isTopstep) {
-                    // --- TOPSTEP ROW (17 COLUMNS) ---
+                    // TOPSTEP VIEW (17 COLS)
                     tableHtml += `
-                    <tr class="child-row" style="font-size:0.9em; color:var(--subtle-text);">
-                        <td></td> <td></td> <!-- Sym/Type Empty -->
+                    <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
+                        <td></td><td></td> 
                         <td style="text-align:right; font-weight:bold;">↳ MNQ Pos:</td>
                         <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
                         <td>${breakeven.toFixed(2)}</td>
-                        <td style="max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${entries}">${entries}</td>
+                        <td style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${entriesList}">${entriesList}</td>
                         <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
                         <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(2)}</td>
                         <td>${metrics.rr_taker}</td>
@@ -1520,21 +1526,21 @@
                         <td>$${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
                         <td style="color:var(--green-text); font-weight:bold;">$${parseFloat(metrics.expected_profit_taker).toFixed(2)}</td>
                         <td style="color:var(--red-text); font-weight:bold;">$${parseFloat(metrics.expected_loss_taker).toFixed(2)}</td>
-                        <td class="editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}" onblur="handleLiveNoteUpdate(this)" style="background:rgba(255,255,255,0.05); min-width:100px;">${trade.note || ''}</td>
-                        <td>${renderAttachmentThumbnails(trade, trade.dbId, 'live', true)}</td>
+                        <td class="note-cell editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}" onblur="handleLiveNoteUpdate(this)" style="background:rgba(255,255,255,0.05); min-width:150px;">${trade.note || ''}</td>
+                        <td>${typeof renderAttachmentThumbnails === 'function' ? renderAttachmentThumbnails(trade, trade.dbId, 'live', true) : ''}</td>
                         <td class="master-only">${masterButtons}</td>
                     </tr>`;
                 } else {
-                    // --- REGULAR ROW (21 COLUMNS) ---
-                    const sT = (!isMaker) ? "font-weight:bold;" : "opacity:0.4;";
-                    const sM = (isMaker) ? "font-weight:bold;" : "opacity:0.4;";
+                    // REGULAR VIEW (21 COLS)
+                    const sT = (!isMaker) ? "font-weight:bold; opacity:1;" : "opacity:0.4;";
+                    const sM = (isMaker) ? "font-weight:bold; opacity:1;" : "opacity:0.4;";
                     tableHtml += `
-                    <tr class="child-row" style="font-size:0.9em; color:var(--subtle-text);">
-                        <td></td> <td></td>
+                    <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
+                        <td></td><td></td>
                         <td style="text-align:right;">↳ Trade:</td>
                         <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
                         <td>${breakeven.toFixed(2)}</td>
-                        <td style="max-width:100px; overflow:hidden;">${entries}</td>
+                        <td style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${entriesList}</td>
                         <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
                         <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(2)}</td>
                         <td>${metrics.rr_taker}</td><td>${metrics.rr_maker}</td>
@@ -1546,8 +1552,8 @@
                         <td style="${sM} color:var(--green-text);">$${parseFloat(metrics.expected_profit_maker).toFixed(2)}</td>
                         <td style="${sT} color:var(--red-text);">$${parseFloat(metrics.expected_loss_taker).toFixed(2)}</td>
                         <td style="${sM} color:var(--red-text);">$${parseFloat(metrics.expected_loss_maker).toFixed(2)}</td>
-                        <td class="editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}" onblur="handleLiveNoteUpdate(this)" style="background:rgba(255,255,255,0.05); min-width:100px;">${trade.note || ''}</td>
-                        <td>${renderAttachmentThumbnails(trade, trade.dbId, 'live', false)}</td>
+                        <td class="note-cell editable-live-note" data-id="${trade.dbId}" contenteditable="${STATE.isMasterUser}" onblur="handleLiveNoteUpdate(this)" style="background:rgba(255,255,255,0.05); min-width:150px;">${trade.note || ''}</td>
+                        <td>${typeof renderAttachmentThumbnails === 'function' ? renderAttachmentThumbnails(trade, trade.dbId, 'live', false) : ''}</td>
                         <td class="master-only">${masterButtons}</td>
                     </tr>`;
                 }
@@ -1555,17 +1561,28 @@
         });
 
         tbodyElement.innerHTML = tableHtml;
-        const thead = tbodyElement.closest('table').querySelector('thead');
+
+        // 3. Header Logic
+        const table = tbodyElement.closest('table');
+        let thead = table.querySelector('thead');
+        if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
+        
         if (isTopstep) {
             thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Details</th><th>Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR</th><th>Contr</th><th>--</th><th>Fees</th><th>Pr ($)</th><th>Ls ($)</th><th>Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
         } else {
             thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Details</th><th>Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>Value</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
         }
-        
-        if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades, summaryId, isTopstep);
-    } catch (e) { console.error("Table Render Error:", e); }
-}
 
+        // 4. Call Summary Cards
+        if(typeof renderLiveSummaryCards === 'function') {
+            renderLiveSummaryCards(groupedTrades, summaryId, isTopstep);
+        }
+        
+        setTimeout(() => typeof adjustCollapsibleSize === 'function' && adjustCollapsibleSize(tbodyElement), 10);
+    } catch (e) {
+        console.error("Critical Render Error:", e);
+    }
+}
 function handleLiveNoteUpdate(cell) {
     if (!STATE.isMasterUser) return;
     const isTopstep = cell.closest('table').id.includes('topstep') || cell.closest('div').id.includes('topstep');
@@ -1578,48 +1595,28 @@ function handleLiveNoteUpdate(cell) {
         setTimeout(() => cell.style.backgroundColor = 'rgba(255,255,255,0.05)', 500);
     });
 }
-
-// Updated handleLiveNoteUpdate to ensure it captures data correctly
 function handleLiveNoteUpdate(cell) {
     if (!STATE.isMasterUser) return;
-
-    const isTopstep = cell.closest('#topstep-tab') !== null || cell.closest('[id*="ts-"]') !== null;
+    
+    // Check if we are in Topstep based on the table ID
+    const table = cell.closest('table');
+    const isTopstep = table && (table.id.includes('topstep') || table.id.includes('ts-'));
     const tradeRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
 
     const tradeId = cell.dataset.id;
-    const newNote = cell.innerText.trim(); // innerText is better for contenteditable
-
-    if (!tradeId) return;
-
-    tradeRef.child(tradeId).update({
-        note: newNote
-    }).then(() => {
-        cell.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
-        setTimeout(() => cell.style.backgroundColor = 'rgba(255,255,255,0.05)', 500);
-    }).catch(err => console.error("Error saving note:", err));
-}
-   function handleLiveNoteUpdate(cell) {
-    if (!STATE.isMasterUser) return;
-
-    // Reliability check: find if this cell belongs to the topstep tab
-    const isTopstep = cell.closest('#topstep-tab') !== null || cell.closest('[id*="ts-"]') !== null;
-    const tradeRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
-
-    const tradeId = cell.dataset.id;
-    const newNote = cell.innerText.trim();
+    const newNote = cell.innerText.trim(); // innerText captures contenteditable better than textContent
 
     if (!tradeId || !tradeRef) return;
 
-    tradeRef.child(tradeId).update({
-        note: newNote
-    }).then(() => {
-        // Subtle success flash
-        cell.style.backgroundColor = 'rgba(40, 167, 69, 0.15)';
-        setTimeout(() => cell.style.backgroundColor = 'rgba(255,255,255,0.03)', 800);
-    }).catch(err => {
-        console.error("Save Error:", err);
-        cell.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
-    });
+    tradeRef.child(tradeId).update({ note: newNote })
+        .then(() => {
+            cell.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+            setTimeout(() => cell.style.backgroundColor = 'rgba(255,255,255,0.05)', 500);
+        })
+        .catch(err => {
+            console.error("Save Error:", err);
+            cell.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
+        });
 }
 
           function renderLiveSummaryCards(groupedTrades, summaryId, isTopstep = false) {
