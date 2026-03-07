@@ -413,6 +413,76 @@
         font-size: 13px; /* Slightly smaller text for phone screens */
     }
 }
+
+
+        /* --- Optimized Summary Cards --- */
+.summary-split-container { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 15px; 
+    width: 100%; 
+    box-sizing: border-box;
+}
+
+.summary-card { 
+    flex: 1; 
+    min-width: 300px; 
+    border-radius: 8px; 
+    padding: 12px; 
+    border: 1px solid var(--border-color); 
+    background-color: var(--bg-color); 
+    box-sizing: border-box; /* Crucial for containment */
+}
+
+/* 5-column grid for Desktop */
+.funded-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 8px;
+    }
+
+    .summary-split-container {
+        gap: 10px;
+    }
+
+    .summary-card {
+        min-width: 100% !important;
+        width: 100%;
+        padding: 10px 8px; /* Tighten padding */
+    }
+
+    /* Stack to 2 columns on mobile to prevent squashing */
+    .funded-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px;
+    }
+
+    /* Force the 5th item (Total P/L) to span full width at bottom */
+    .funded-grid > div:last-child {
+        grid-column: span 2;
+        border-top: 1px dashed var(--border-color);
+        padding-top: 5px;
+        margin-top: 2px;
+    }
+
+    /* Shrink text so it fits within the phone width */
+    .sum-val {
+        font-size: 12px !important;
+    }
+    .sum-label {
+        font-size: 9px !important;
+    }
+    .summary-card h5 {
+        font-size: 12px;
+        margin-bottom: 8px;
+    }
+}
     </style>
 </head>
 <body>
@@ -1406,7 +1476,7 @@
             container.innerHTML = html;
         }
 
-      function renderFundedBanners() {
+   function renderFundedBanners() {
     const container = document.getElementById('funded-accounts-banners');
     if (!container) return;
     let html = '';
@@ -1424,11 +1494,11 @@
         html += `
         <div class="summary-card" style="border-top: 3px solid var(--link-color); background-color: rgba(0,123,255,0.05);">
             <h5>${acc} Evaluation</h5>
-            <div class="funded-grid"> <!-- Use the new class here -->
-                <div><span class="sum-label">Current Balance</span><span class="sum-val">${formatCurrency(stats.balance)}</span></div>
-                <div><span class="sum-label">HWM (EOD)</span><span class="sum-val">${formatCurrency(stats.hwm)}</span></div>
-                <div><span class="sum-label">Max Loss Limit</span><span class="sum-val val-red">${formatCurrency(stats.maxLoss)}</span></div>
-                <div><span class="sum-label">Buffer Left</span><span class="sum-val" style="color:${bufColor}">${formatCurrency(bufferLeft)}</span></div>
+            <div class="funded-grid">
+                <div><span class="sum-label">Balance</span><span class="sum-val">${formatCurrency(stats.balance)}</span></div>
+                <div><span class="sum-label">HWM</span><span class="sum-val">${formatCurrency(stats.hwm)}</span></div>
+                <div><span class="sum-label">Max Loss</span><span class="sum-val val-red">${formatCurrency(stats.maxLoss)}</span></div>
+                <div><span class="sum-label">Buffer</span><span class="sum-val" style="color:${bufColor}">${formatCurrency(bufferLeft)}</span></div>
                 <div><span class="sum-label">Total P/L</span><span class="sum-val" style="color:${plColor}">${formatCurrency(totalPL)}</span></div>
             </div>
         </div>
