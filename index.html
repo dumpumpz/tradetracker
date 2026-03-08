@@ -329,9 +329,10 @@
 
 /* --- Funded Tab Column Cleanup --- */
 
-/* 1. Hide: Sym(1), Avg Entry(4), BE(5), Entries(6), RR-M(10), Qty(12), /100(13), Fees(14), Pr-M(16), Ls-M(18) */
+/* --- Funded Tab Column Cleanup --- */
+
+/* 1. Hide: Sym(1), BE(5), Entries(6), RR-M(10), Qty(12), /100(13), Fees(14), Pr-M(16), Ls-M(18) */
 #topstep-tab th:nth-child(1), #topstep-tab td:nth-child(1),
-#topstep-tab th:nth-child(4), #topstep-tab td:nth-child(4),
 #topstep-tab th:nth-child(5), #topstep-tab td:nth-child(5),
 #topstep-tab th:nth-child(6), #topstep-tab td:nth-child(6),
 #topstep-tab th:nth-child(10), #topstep-tab td:nth-child(10),
@@ -349,10 +350,9 @@
     color: var(--link-color);
 }
 
-/* 3. Style the Type column to ensure it fills */
-#topstep-tab td:nth-child(2) {
+/* 3. Style the Entry & Type columns */
+#topstep-tab td:nth-child(2), #topstep-tab td:nth-child(4) {
     font-weight: bold;
-    text-transform: uppercase;
 }
 /* Adjust "Group / Details" width since we removed columns */
 #topstep-tab .child-row td:nth-child(3) {
@@ -1565,7 +1565,7 @@
         }
 
 
- function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
+function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
     try {
         const tbodyElement = document.getElementById(tbodyId);
         if (!tbodyElement) return;
@@ -1674,7 +1674,7 @@
 
                 tableHtml += `
                 <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
-                    <!-- Sym Column (1) -->
+                    <!-- Sym Column (1) - Hidden in Funded -->
                     <td style="${hideIfFunded}">${trade.symbol}</td>
                     
                     <!-- Type Column (2) -->
@@ -1683,12 +1683,14 @@
                     <!-- Details Column (3) -->
                     <td style="text-align:right;">↳ ${accBadge}${isTopstep ? 'Position' : 'Trade ('+trade.entryFeeType+')'}:</td>
                     
-                    <!-- Entry (4), BE (5), Entries (6) - Hidden by CSS in Funded -->
+                    <!-- Entry Price Column (4) - Labeled "Entry" in Funded -->
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
+                    
+                    <!-- BE (5) and Entries (6) - Hidden in Funded by CSS -->
                     <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : '--'}</td>
                     <td class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
                     
-                    <!-- Visible Columns -->
+                    <!-- Target/Stop Columns -->
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(2)}</td>
                     <td>${metrics.rr_taker}</td>
@@ -1697,10 +1699,10 @@
                     <!-- Contracts Column (11) -->
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}">${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
                     
-                    <!-- Crypto only cols (Hidden by CSS in Funded) -->
-                    <td>${isTopstep ? '--' : (parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
+                    <!-- Hidden Crypto Cols -->
+                    <td style="${hideIfFunded}">${isTopstep ? '--' : (parseFloat(trade.size)/parseFloat(trade.entry)).toFixed(4)}</td>
                     <td style="display: ${showMaker ? 'table-cell' : 'none'};">--</td>
-                    <td>${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
+                    <td style="${hideIfFunded}">${parseFloat(metrics.estimated_total_fee).toFixed(2)}</td>
                     
                     <!-- Profit/Loss cols -->
                     <td style="${styleTaker}">${valProfitTaker}</td>
@@ -1720,9 +1722,11 @@
         let thead = table.querySelector('thead');
         if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
         
+        // Define Header names based on tab
+        const entryLabel = isTopstep ? "Entry" : "Avg Entry";
         const valLabel = isTopstep ? "Contracts" : "Value ($)";
 
-        thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>Avg Entry</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>${valLabel}</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
+        thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>${entryLabel}</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>${valLabel}</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
 
         if(typeof renderLiveSummaryCards === 'function') renderLiveSummaryCards(groupedTrades, summaryId, isTopstep);
         setTimeout(() => adjustCollapsibleSize(tbodyElement), 10);
