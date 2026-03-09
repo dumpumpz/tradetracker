@@ -1623,8 +1623,11 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
             const avgEntry = group.totalQty > 0 ? (group.wEntry / group.totalQty) : 0;
             const dominantProfit = isTopstep ? group.profitTaker : ((group.type === 'Short') ? group.profitMaker : group.profitTaker);
             const dominantLoss = isTopstep ? group.lossTaker : ((group.type === 'Short') ? group.lossMaker : group.lossTaker);
+            
+            // RESTORED: Close Group Button
             const masterGroupBtn = STATE.isMasterUser ? `<button class="close-group-btn" data-group-id="${gid}" style="width: auto; padding: 4px 15px; margin-left: auto; font-size: 12px;">Close Group</button>` : '';
 
+            // Group Header Row
             tableHtml += `
             <tr style="background-color: rgba(127, 127, 127, 0.07); border-top: 2px solid var(--border-color);">
                 <td colspan="25" style="padding: 8px 15px;">
@@ -1644,6 +1647,7 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                 </td>
             </tr>`;
 
+            // Individual Trade Rows
             group.trades.forEach(trade => {
                 const metrics = isTopstep ? calculateFuturesMetrics(trade) : calculateTradeMetrics(trade);
                 const breakevenPrice = calculateBreakevenPrice(trade);
@@ -1674,7 +1678,7 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
 
                 tableHtml += `
                 <tr class="child-row" style="font-size: 0.9em; color: var(--subtle-text);">
-                    <!-- Sym Column (1) - Hidden in Funded -->
+                    <!-- Sym Column (1) - Hidden by CSS for Funded -->
                     <td style="${hideIfFunded}">${trade.symbol}</td>
                     
                     <!-- Type Column (2) -->
@@ -1683,20 +1687,20 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                     <!-- Details Column (3) -->
                     <td style="text-align:right;">↳ ${accBadge}${isTopstep ? 'Position' : 'Trade ('+trade.entryFeeType+')'}:</td>
                     
-                    <!-- Entry Price Column (4) - Labeled "Entry" in Funded -->
+                    <!-- Entry Price (4) - Labeled "Entry" in Funded -->
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
                     
-                    <!-- BE (5) and Entries (6) - Hidden in Funded by CSS -->
+                    <!-- BE (5) and Entries (6) - Hidden by CSS for Funded -->
                     <td style="font-weight:bold;">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : '--'}</td>
                     <td class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
                     
-                    <!-- Target/Stop Columns -->
+                    <!-- Stop and Target -->
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.target).toFixed(2)}</td>
                     <td>${metrics.rr_taker}</td>
                     <td style="display: ${showMaker ? 'table-cell' : 'none'};">${metrics.rr_maker}</td>
                     
-                    <!-- Contracts Column (11) -->
+                    <!-- Contracts Column (11) - Labeled "Contracts" in Funded -->
                     <td class="editable-cell" data-id="${trade.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}">${isTopstep ? trade.contracts : parseFloat(trade.size).toFixed(2)}</td>
                     
                     <!-- Hidden Crypto Cols -->
@@ -1722,7 +1726,6 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
         let thead = table.querySelector('thead');
         if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
         
-        // Define Header names based on tab
         const entryLabel = isTopstep ? "Entry" : "Avg Entry";
         const valLabel = isTopstep ? "Contracts" : "Value ($)";
 
