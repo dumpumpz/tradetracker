@@ -326,35 +326,47 @@
         .alert-banner strong { font-weight: 700; text-transform: uppercase; margin-right: 5px; }
         .alert-banner + .alert-banner { margin-top: -10px; }
 /* --- Funded Tab Column Cleanup --- */
-
 /* --- Funded Tab Column Cleanup --- */
 
-/* --- Funded Tab Column Cleanup --- */
+/* 1. Hide the "Sym" Header */
+#topstep-tab thead th:nth-child(1) { display: none !important; }
 
-/* 1. Hide: Sym(1), BE(5), Entries(6), RR-M(10), Qty(12), /100(13), Fees(14), Pr-M(16), Ls-M(18) */
-#topstep-tab th:nth-child(1), #topstep-tab td:nth-child(1),
-#topstep-tab th:nth-child(5), #topstep-tab td:nth-child(5),
-#topstep-tab th:nth-child(6), #topstep-tab td:nth-child(6),
-#topstep-tab th:nth-child(10), #topstep-tab td:nth-child(10),
-#topstep-tab th:nth-child(12), #topstep-tab td:nth-child(12),
-#topstep-tab th:nth-child(13), #topstep-tab td:nth-child(13),
-#topstep-tab th:nth-child(14), #topstep-tab td:nth-child(14),
-#topstep-tab th:nth-child(16), #topstep-tab td:nth-child(16),
-#topstep-tab th:nth-child(18), #topstep-tab td:nth-child(18) {
+/* 2. Hide specific DATA columns in child rows only */
+/* This prevents hiding the Group Header (Close Group button) */
+#topstep-tab .child-row td:nth-child(1),  /* Sym */
+#topstep-tab .child-row td:nth-child(5),  /* BE */
+#topstep-tab .child-row td:nth-child(6),  /* Entries List */
+#topstep-tab .child-row td:nth-child(10), /* RR-M */
+#topstep-tab .child-row td:nth-child(12), /* Qty */
+#topstep-tab .child-row td:nth-child(13), /* /100 */
+#topstep-tab .child-row td:nth-child(14), /* Fees */
+#topstep-tab .child-row td:nth-child(16), /* Pr-M */
+#topstep-tab .child-row td:nth-child(18)  /* Ls-M */
+{
     display: none !important;
 }
 
-/* 2. Style the Contracts column for Funded */
-#topstep-tab td:nth-child(11) {
+/* 3. Hide the corresponding Headers */
+#topstep-tab thead th:nth-child(5),
+#topstep-tab thead th:nth-child(6),
+#topstep-tab thead th:nth-child(10),
+#topstep-tab thead th:nth-child(12),
+#topstep-tab thead th:nth-child(13),
+#topstep-tab thead th:nth-child(14),
+#topstep-tab thead th:nth-child(16),
+#topstep-tab thead th:nth-child(18) {
+    display: none !important;
+}
+
+/* 4. Style the visible columns */
+#topstep-tab .child-row td:nth-child(11) {
     font-weight: bold;
     color: var(--link-color);
 }
-
-/* 3. Style the Entry & Type columns */
-#topstep-tab td:nth-child(2), #topstep-tab td:nth-child(4) {
+#topstep-tab .child-row td:nth-child(2), 
+#topstep-tab .child-row td:nth-child(4) {
     font-weight: bold;
 }
-/* Adjust "Group / Details" width since we removed columns */
 #topstep-tab .child-row td:nth-child(3) {
     min-width: 150px;
 }
