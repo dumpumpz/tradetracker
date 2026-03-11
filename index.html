@@ -998,6 +998,7 @@
             FUNDED_START: 50000,
             FUNDED_TARGET: 53000,
             FUNDED_DRAWDOWN: 2000,
+    MNQ_MULTIPLIER: 2, // <--- ADD THIS LINE
 
             FIREBASE: {
                 apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
@@ -1417,13 +1418,12 @@
     });
 }
 
-    function calculateFuturesMetrics(tradeData) {
+  function calculateFuturesMetrics(tradeData) {
     const entry = parseFloat(tradeData.entry);
     const stoploss = parseFloat(tradeData.stoploss);
     const target = parseFloat(tradeData.target);
     const contracts = parseFloat(tradeData.contracts || tradeData.size || 1); 
     const type = tradeData.type;
-    // Interpret commissions as "Per Contract"
     const feePerContract = parseFloat(tradeData.commissions || 0.78);
     const totalCommissions = feePerContract * contracts;
 
@@ -1432,20 +1432,20 @@
     const pointsToTarget = Math.abs(target - entry);
     const pointsToStop = Math.abs(entry - stoploss);
 
-    // Math Fix: Subtract/Add total commissions (contracts * fee)
-    const expected_profit = (pointsToTarget * MNQ_MULTIPLIER * contracts) - totalCommissions;
-    const expected_loss = (pointsToStop * MNQ_MULTIPLIER * contracts) + totalCommissions;
+    // FIX: Change MNQ_MULTIPLIER to CONFIG.MNQ_MULTIPLIER
+    const expected_profit = (pointsToTarget * CONFIG.MNQ_MULTIPLIER * contracts) - totalCommissions;
+    const expected_loss = (pointsToStop * CONFIG.MNQ_MULTIPLIER * contracts) + totalCommissions;
     const rr = (expected_loss > 0) ? (expected_profit / expected_loss).toFixed(2) : 0;
 
     return {
         rr_taker: rr, 
         rr_maker: rr,
-        estimated_total_fee: totalCommissions, // Now shows total fee for all contracts
+        estimated_total_fee: totalCommissions,
         expected_profit_taker: expected_profit,
         expected_profit_maker: expected_profit,
         expected_loss_taker: expected_loss,
         expected_loss_maker: expected_loss,
-        pnl_per_100_move: (100 * MNQ_MULTIPLIER * contracts)
+        pnl_per_100_move: (100 * CONFIG.MNQ_MULTIPLIER * contracts) // FIX HERE TOO
     };
 }
         function calculateFuturesNetResult(trade, exitPrice) {
@@ -2615,16 +2615,16 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
         }
     });
 }
-        function fixHistoricalFundedMath() {
+function fixHistoricalFundedMath() {
+    // ONLY run this if the Master is logged in, otherwise it will error for viewers
+    if (!STATE.isMasterUser) return;
+
     console.log("Starting Database Repair...");
     const ref = firebase.database().ref('ts_completed_trades');
     
     ref.once('value', snapshot => {
         const trades = snapshot.val();
-        if (!trades) {
-            console.log("No completed funded trades found.");
-            return;
-        }
+        if (!trades) return;
 
         const updates = {};
         let count = 0;
@@ -2635,16 +2635,16 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
             const exit = parseFloat(t.exit_price);
             const contracts = parseFloat(t.contracts || t.size || 1);
             const feePerContract = parseFloat(t.commissions || 0.78);
-            const MNQ_MULT = 2;
+            
+            // Standardize this name with your other functions
+            const MULTIPLIER = 2; 
 
             if (!isNaN(entry) && !isNaN(exit)) {
-                // The Correct Math
                 const points = t.type === "Long" ? (exit - entry) : (entry - exit);
-                const grossResult = points * MNQ_MULT * contracts;
+                const grossResult = points * MULTIPLIER * contracts;
                 const totalFees = feePerContract * contracts;
                 const correctNet = grossResult - totalFees;
 
-                // Only queue update if the difference is more than 1 cent
                 if (Math.abs((t.net_result || 0) - correctNet) > 0.01) {
                     updates[`${id}/net_result`] = correctNet;
                     updates[`${id}/entry_fee`] = totalFees / 2;
@@ -2656,13 +2656,14 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
 
         if (count > 0) {
             ref.update(updates)
-                .then(() => console.log(`SUCCESS: Fixed math for ${count} trades. Your banners should now be accurate.`))
-                .catch(err => console.error("Database update failed:", err));
-        } else {
-            console.log("All historical trades already have correct math.");
+                .then(() => console.log(`SUCCESS: Fixed math for ${count} trades.`))
+                .catch(err => console.error("Repair failed (likely permission denied):", err));
         }
     });
 }
+
+// Move the call inside initializeApp or after the master check
+// so it doesn't try to run for random viewers.
 
 // Execute the function
 fixHistoricalFundedMath();
