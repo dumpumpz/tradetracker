@@ -2201,10 +2201,15 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                     groupTrades.forEach(t => {
                         const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
                         const net = parseFloat(t.net_result || 0);
-                        const fees = isTopstep ? (parseFloat(t.commissions) || 0.78) : (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0));
-                        const rawPnL = net + fees;
-                        const tPct = isTopstep ? (((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)) : (net / parseFloat(t.size) * 100);
+                        const fees = isTopstep 
+    ? ((parseFloat(t.commissions) || 0.78) * (parseFloat(t.contracts || t.size || 1))) 
+    : (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0));
+                       // Raw PnL is the profit before fees. Net is what's stored in DB.
+const net = parseFloat(t.net_result || 0);
+const rawPnL = net + fees; 
 
+// Percentage should be based on the move relative to entry price
+const tPct = (((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1));
                         const entryTime = t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
                         const closedTime = t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
 
