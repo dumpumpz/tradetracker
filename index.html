@@ -328,47 +328,33 @@
 /* --- Funded Tab Column Cleanup --- */
 /* --- Funded Tab Column Cleanup --- */
 
-/* 1. Hide the "Sym" Header */
-#topstep-tab thead th:nth-child(1) { display: none !important; }
+/* --- Optimized Funded Tab Column Cleanup --- */
 
-/* 2. Hide specific DATA columns in child rows only */
-/* This prevents hiding the Group Header (Close Group button) */
-#topstep-tab .child-row td:nth-child(1),  /* Sym */
-#topstep-tab .child-row td:nth-child(5),  /* BE */
-#topstep-tab .child-row td:nth-child(6),  /* Entries List */
-#topstep-tab .child-row td:nth-child(10), /* RR-M */
-#topstep-tab .child-row td:nth-child(12), /* Qty */
-#topstep-tab .child-row td:nth-child(13), /* /100 */
-#topstep-tab .child-row td:nth-child(14), /* Fees */
-#topstep-tab .child-row td:nth-child(16), /* Pr-M */
-#topstep-tab .child-row td:nth-child(18)  /* Ls-M */
+/* Only hide columns in the LIVE trades table, not the completed one */
+#ts-trades-tbody tr td:nth-child(1),  /* Sym */
+#ts-trades-tbody tr td:nth-child(5),  /* BE */
+#ts-trades-tbody tr td:nth-child(6),  /* Entries List */
+#ts-trades-tbody tr td:nth-child(10), /* RR-M */
+#ts-trades-tbody tr td:nth-child(12), /* Qty */
+#ts-trades-tbody tr td:nth-child(13), /* /100 */
+#ts-trades-tbody tr td:nth-child(14), /* Fees */
+#ts-trades-tbody tr td:nth-child(16), /* Pr-M */
+#ts-trades-tbody tr td:nth-child(18)  /* Ls-M */
 {
     display: none !important;
 }
 
-/* 3. Hide the corresponding Headers */
-#topstep-tab thead th:nth-child(5),
-#topstep-tab thead th:nth-child(6),
-#topstep-tab thead th:nth-child(10),
-#topstep-tab thead th:nth-child(12),
-#topstep-tab thead th:nth-child(13),
-#topstep-tab thead th:nth-child(14),
-#topstep-tab thead th:nth-child(16),
-#topstep-tab thead th:nth-child(18) {
+/* Hide the corresponding headers ONLY for the live table */
+#topstep-tab table:first-of-type thead th:nth-child(1),
+#topstep-tab table:first-of-type thead th:nth-child(5),
+#topstep-tab table:first-of-type thead th:nth-child(6),
+#topstep-tab table:first-of-type thead th:nth-child(10),
+#topstep-tab table:first-of-type thead th:nth-child(12),
+#topstep-tab table:first-of-type thead th:nth-child(13),
+#topstep-tab table:first-of-type thead th:nth-child(14),
+#topstep-tab table:first-of-type thead th:nth-child(16),
+#topstep-tab table:first-of-type thead th:nth-child(18) {
     display: none !important;
-}
-
-/* 4. Style the visible columns */
-#topstep-tab .child-row td:nth-child(11) {
-    font-weight: bold;
-    color: var(--link-color);
-}
-#topstep-tab .child-row td:nth-child(2), 
-#topstep-tab .child-row td:nth-child(4) {
-    font-weight: bold;
-}
-#topstep-tab .child-row td:nth-child(3) {
-    min-width: 150px;
 }
         /* Funded Accounts Added Styles */
         .funded-radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
@@ -2091,8 +2077,23 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
             if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
 
             const headers = isTopstep 
-                ? `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Contr.</th><th>Proj Pr</th><th>Proj Ls</th><th>RR</th><th>Exit Price</th><th>Raw PnL</th><th>Comms</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`
-                : `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th><th>RR(M)</th><th>Exit Price</th><th>Raw PnL</th><th>Fees</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
+                ? `<tr>
+                    <th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th>
+                    <th>SL</th><th>TP</th><th>Contr.</th><th>Proj Pr</th>
+                    <th>Proj Ls</th><th>RR</th><th>Exit Price</th><th>Raw PnL</th>
+                    <th>Comms</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th>
+                    <th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th>
+                    <th>Pics</th><th class="master-only">Actions</th>
+                   </tr>`
+                : `<tr>
+                    <th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th>
+                    <th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th>
+                    <th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th>
+                    <th>RR(M)</th><th>Exit Price</th><th>Raw PnL</th><th>Fees</th>
+                    <th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th>
+                    <th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>
+                    <th class="master-only">Actions</th>
+                   </tr>`;
             thead.innerHTML = headers;
 
             const tradesByDayAndGroup = {};
@@ -2206,14 +2207,13 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                             <td class="note-cell" style="font-size:10px;">${(t.entry_prices || [t.entry]).map(p => parseFloat(p).toFixed(2)).join(', ')}</td>
                             <td>${parseFloat(t.stoploss || 0).toFixed(2)}</td>
                             <td>${parseFloat(t.target || 0).toFixed(2)}</td>
-                            <td>${isTopstep ? t.contracts : parseFloat(t.size).toFixed(2)}</td>
+                            <td>${isTopstep ? (t.contracts || t.size) : parseFloat(t.size).toFixed(2)}</td>
                             
-                            <td style="color:var(--green-text); opacity:0.6;">${parseFloat(m.expected_profit_taker).toFixed(2)}</td>
-                            <td style="color:var(--red-text); opacity:0.6;">${parseFloat(m.expected_loss_taker).toFixed(2)}</td>
+                            <td style="color:var(--green-text); opacity:0.6;">$${parseFloat(m.expected_profit_taker).toFixed(2)}</td>
+                            <td style="color:var(--red-text); opacity:0.6;">$${parseFloat(m.expected_loss_taker).toFixed(2)}</td>
                             
-                            ${!isTopstep ? `<td style="display:none"></td><td style="display:none"></td>` : ''} 
+                            ${!isTopstep ? `<td>${m.rr_maker}</td>` : `<td>${m.rr_taker}</td>`} 
 
-                            <td>${m.rr_taker}</td>
                             <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}">${parseFloat(t.exit_price).toFixed(2)}</td>
                             <td style="color:var(--subtle-text)">${rawPnL.toFixed(2)}</td>
                             <td>${fees.toFixed(2)}</td>
@@ -2227,7 +2227,10 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
                             <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${t.note2 || ''}</td>
                             <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${t.note3 || ''}</td>
                             ${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}
-                            <td class="action-buttons master-only"><button class="attach-image-btn" data-id="${t.dbId}" data-type="completed">Pic</button><button class="delete-btn-completed" data-id="${t.dbId}">Del</button></td>
+                            <td class="action-buttons master-only">
+                                <button class="attach-image-btn" data-id="${t.dbId}" data-type="completed">Pic</button>
+                                <button class="delete-btn-completed" data-id="${t.dbId}">Del</button>
+                            </td>
                         </tr>`;
                     });
                 });
