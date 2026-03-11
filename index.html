@@ -793,10 +793,11 @@ table:has(#ts-completed-trades-tbody) thead th {
                                 <label for="ts-contracts">Contracts (Qty):</label>
                                 <input type="number" id="ts-contracts" value="1" step="1">
                             </div>
-                            <div>
-                                <label for="ts-commissions">Round Trip Fee ($):</label>
-                                <input type="number" id="ts-commissions" value="0.78" step="0.01">
-                            </div>
+                            <!-- Change from 0.78 to 1.00 -->
+<div>
+    <label for="ts-commissions">Round Trip Fee ($):</label>
+    <input type="number" id="ts-commissions" value="1.00" step="0.01">
+</div>
                             <div><button type="submit" id="eval-add-btn">Execute Trade</button></div>
                         </form>
                     </div>
@@ -1444,6 +1445,27 @@ table:has(#ts-completed-trades-tbody) thead th {
         pnl_per_100_move: (100 * CONFIG.MNQ_MULTIPLIER * contracts) // FIX HERE TOO
     };
 }
+
+        (function fixFees() {
+    const ref = firebase.database().ref('ts_completed_trades');
+    ref.once('value', snapshot => {
+        const trades = snapshot.val();
+        const updates = {};
+        Object.keys(trades).forEach(id => {
+            const t = trades[id];
+            if (t.symbol === "MNQ") {
+                const contracts = parseFloat(t.contracts || 5);
+                const actualTotalFee = contracts * 1.00; // $1.00 All-in Round Trip
+                const points = t.type === "Long" ? (t.exit_price - t.entry) : (t.entry - t.exit_price);
+                const gross = points * 2 * contracts;
+                
+                updates[`${id}/commissions`] = 1.00;
+                updates[`${id}/net_result`] = gross - actualTotalFee;
+            }
+        });
+        ref.update(updates).then(() => console.log("Fees updated to $1.00 RT."));
+    });
+})();
         function calculateFuturesNetResult(trade, exitPrice) {
             const entry = parseFloat(trade.entry);
             const contracts = parseFloat(trade.contracts || trade.size);
