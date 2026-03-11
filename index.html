@@ -329,8 +329,9 @@
 /* --- Funded Tab Column Cleanup --- */
 
 /* --- Optimized Funded Tab Column Cleanup --- */
+/* --- FINAL FIX FOR TABLE ALIGNMENT --- */
 
-/* Only hide columns in the LIVE trades table, not the completed one */
+/* 1. Target ONLY the Live Trades Table Data */
 #ts-trades-tbody tr td:nth-child(1),  /* Sym */
 #ts-trades-tbody tr td:nth-child(5),  /* BE */
 #ts-trades-tbody tr td:nth-child(6),  /* Entries List */
@@ -344,17 +345,26 @@
     display: none !important;
 }
 
-/* Hide the corresponding headers ONLY for the live table */
-#topstep-tab table:first-of-type thead th:nth-child(1),
-#topstep-tab table:first-of-type thead th:nth-child(5),
-#topstep-tab table:first-of-type thead th:nth-child(6),
-#topstep-tab table:first-of-type thead th:nth-child(10),
-#topstep-tab table:first-of-type thead th:nth-child(12),
-#topstep-tab table:first-of-type thead th:nth-child(13),
-#topstep-tab table:first-of-type thead th:nth-child(14),
-#topstep-tab table:first-of-type thead th:nth-child(16),
-#topstep-tab table:first-of-type thead th:nth-child(18) {
+/* 2. Target ONLY the Live Trades Table Headers */
+/* We find the header that sits exactly above our Live Tbody */
+#ts-trades-tbody ~ thead th:nth-child(1), 
+table:has(#ts-trades-tbody) thead th:nth-child(1),
+table:has(#ts-trades-tbody) thead th:nth-child(5),
+table:has(#ts-trades-tbody) thead th:nth-child(6),
+table:has(#ts-trades-tbody) thead th:nth-child(10),
+table:has(#ts-trades-tbody) thead th:nth-child(12),
+table:has(#ts-trades-tbody) thead th:nth-child(13),
+table:has(#ts-trades-tbody) thead th:nth-child(14),
+table:has(#ts-trades-tbody) thead th:nth-child(16),
+table:has(#ts-trades-tbody) thead th:nth-child(18) {
     display: none !important;
+}
+
+/* 3. ENSURE Completed Trades table shows EVERYTHING */
+#ts-completed-trades-tbody tr td, 
+#ts-completed-trades-tbody ~ thead th,
+table:has(#ts-completed-trades-tbody) thead th {
+    display: table-cell !important;
 }
         /* Funded Accounts Added Styles */
         .funded-radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
@@ -2076,7 +2086,7 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
             let thead = table.querySelector('thead');
             if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
 
-            const headers = isTopstep 
+          const headers = isTopstep 
                 ? `<tr>
                     <th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th>
                     <th>SL</th><th>TP</th><th>Contr.</th><th>Proj Pr</th>
