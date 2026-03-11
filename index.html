@@ -1319,137 +1319,135 @@
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 
-       function handleCloseGroup(groupId, isTopstep) {
-            if (STATE.isProcessing) return;
-            
-            if (!confirm(`Are you sure you want to close ALL active trades in group: ${groupId}?`)) return;
+      function handleCloseGroup(groupId, isTopstep) {
+    if (STATE.isProcessing) return;
+    
+    if (!confirm(`Are you sure you want to close ALL active trades in group: ${groupId}?`)) return;
 
-            const liveRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
-            const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
+    const liveRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
+    const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
 
-            liveRef.once('value', snapshot => {
-                const allTrades = snapshot.val();
-                if (!allTrades) return;
+    liveRef.once('value', snapshot => {
+        const allTrades = snapshot.val();
+        if (!allTrades) return;
 
-                // Find all trades belonging to this group
-                const groupEntries = Object.entries(allTrades).filter(([id, t]) => t.groupId === groupId);
+        const groupEntries = Object.entries(allTrades).filter(([id, t]) => t.groupId === groupId);
+        
+        if (groupEntries.length === 0) {
+            alert("No live trades found for this group.");
+            return;
+        }
+
+        const defaultExit = groupEntries[0][1].target;
+        const exitPriceStr = prompt(`Closing Group: ${groupId}\nEnter EXACT exit price for ALL positions:`, defaultExit);
+        if (exitPriceStr === null) return; 
+
+        const exitPrice = parseFloat(exitPriceStr);
+        if (isNaN(exitPrice)) {
+            alert("Invalid exit price.");
+            return;
+        }
+
+        let exitFeeType = 'taker';
+        if (!isTopstep) {
+            const feePrompt = prompt("Enter exit fee type (maker/taker):", "maker");
+            if (feePrompt === null) return;
+            exitFeeType = feePrompt.toLowerCase().trim();
+        }
+
+        STATE.isProcessing = true;
+        const updates = {};
+        const completedPromises = [];
+
+        groupEntries.forEach(([id, trade]) => {
+            let completedTrade;
+
+            if (isTopstep) {
+                // --- FUTURES MATH (PER CONTRACT) ---
+                const MNQ_MULT = 2; 
+                const contracts = parseFloat(trade.contracts || trade.size || 1);
+                const feePerContract = parseFloat(trade.commissions || 0.78);
                 
-                if (groupEntries.length === 0) {
-                    alert("No live trades found for this group.");
-                    return;
-                }
+                // Calculate total fees for all contracts in this specific trade
+                const totalFees = feePerContract * contracts;
+                
+                const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
+                const netResult = (points * MNQ_MULT * contracts) - totalFees;
 
-                // Prompt for Exit Price
-                const defaultExit = groupEntries[0][1].target;
-                const exitPriceStr = prompt(`Closing Group: ${groupId}\nEnter EXACT exit price for ALL positions:`, defaultExit);
-                if (exitPriceStr === null) return; 
+                completedTrade = {
+                    ...trade,
+                    exit_price: exitPrice,
+                    net_result: netResult,
+                    entry_fee: totalFees / 2, // Accounting split
+                    exit_fee: totalFees / 2,
+                    exitFeeType: 'fixed',
+                    closed_date: firebase.database.ServerValue.TIMESTAMP,
+                    note: (trade.note || '') + `\nGroup closed @ $${exitPrice}`
+                };
+            } else {
+                // --- CRYPTO MATH (PERCENT BASED) ---
+                const result = calculateNetResult(trade, exitPrice, exitFeeType);
+                completedTrade = {
+                    ...trade,
+                    ...result,
+                    closed_date: firebase.database.ServerValue.TIMESTAMP,
+                    exit_price: exitPrice,
+                    exitFeeType: exitFeeType,
+                    note: (trade.note || '') + `\nGroup closed @ $${exitPrice}`
+                };
+            }
 
-                const exitPrice = parseFloat(exitPriceStr);
-                if (isNaN(exitPrice)) {
-                    alert("Invalid exit price.");
-                    return;
-                }
+            completedPromises.push(compRef.push(completedTrade));
+            updates[id] = null; 
+        });
 
-                // Only ask for Maker/Taker if it's the Crypto tracker
-                let exitFeeType = 'taker';
-                if (!isTopstep) {
-                    const feePrompt = prompt("Enter exit fee type (maker/taker):", "maker");
-                    if (feePrompt === null) return;
-                    exitFeeType = feePrompt.toLowerCase().trim();
-                }
-
-                STATE.isProcessing = true;
-                const updates = {};
-                const completedPromises = [];
-
-                // Loop through every trade in the group and close it
-                groupEntries.forEach(([id, trade]) => {
-                    let completedTrade;
-
-                    if (isTopstep) {
-                        // Funded Accounts (Futures Math)
-                        const MNQ_MULT = 2; 
-                        const contracts = parseFloat(trade.contracts || trade.size);
-                        const totalFees = parseFloat(trade.commissions || 0.78);
-                        
-                        const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
-                        const netResult = (points * MNQ_MULT * contracts) - totalFees;
-
-                        completedTrade = {
-                            ...trade,
-                            exit_price: exitPrice,
-                            net_result: netResult,
-                            entry_fee: totalFees / 2,
-                            exit_fee: totalFees / 2,
-                            exitFeeType: 'fixed',
-                            closed_date: firebase.database.ServerValue.TIMESTAMP,
-                            note: (trade.note || '') + `\nGroup closed @ $${exitPrice}`
-                        };
-                    } else {
-                        // Crypto Accounts (Percent Math)
-                        const result = calculateNetResult(trade, exitPrice, exitFeeType);
-                        completedTrade = {
-                            ...trade,
-                            ...result,
-                            closed_date: firebase.database.ServerValue.TIMESTAMP,
-                            exit_price: exitPrice,
-                            exitFeeType: exitFeeType,
-                            note: (trade.note || '') + `\nGroup closed @ $${exitPrice}`
-                        };
-                    }
-
-                    // Push to completed table and mark live entry for deletion
-                    completedPromises.push(compRef.push(completedTrade));
-                    updates[id] = null; 
-                });
-
-                // Execute all database updates
-                Promise.all(completedPromises)
-                    .then(() => {
-                        return liveRef.update(updates);
-                    })
-                    .then(() => {
-                        alert(`Successfully closed ${groupEntries.length} trades in group ${groupId}.`);
-                    })
-                    .catch(err => {
-                        alert("Error closing group: " + err.message);
-                    })
-                    .finally(() => {
-                        STATE.isProcessing = false;
-                    });
+        Promise.all(completedPromises)
+            .then(() => {
+                return liveRef.update(updates);
+            })
+            .then(() => {
+                alert(`Successfully closed ${groupEntries.length} trades in group ${groupId}.`);
+            })
+            .catch(err => {
+                alert("Error closing group: " + err.message);
+            })
+            .finally(() => {
+                STATE.isProcessing = false;
             });
-        }
-        const MNQ_MULTIPLIER = 2; 
+    });
+}
 
-        function calculateFuturesMetrics(tradeData) {
-            const entry = parseFloat(tradeData.entry);
-            const stoploss = parseFloat(tradeData.stoploss);
-            const target = parseFloat(tradeData.target);
-            const contracts = parseFloat(tradeData.contracts || tradeData.size); 
-            const type = tradeData.type;
-            const commissions = parseFloat(tradeData.commissions || 0.78);
+    function calculateFuturesMetrics(tradeData) {
+    const entry = parseFloat(tradeData.entry);
+    const stoploss = parseFloat(tradeData.stoploss);
+    const target = parseFloat(tradeData.target);
+    const contracts = parseFloat(tradeData.contracts || tradeData.size || 1); 
+    const type = tradeData.type;
+    // Interpret commissions as "Per Contract"
+    const feePerContract = parseFloat(tradeData.commissions || 0.78);
+    const totalCommissions = feePerContract * contracts;
 
-            if ([entry, stoploss, target, contracts].some(v => isNaN(v) || v <= 0)) return {};
+    if ([entry, stoploss, target, contracts].some(v => isNaN(v) || v <= 0)) return {};
 
-            const pointsToTarget = Math.abs(target - entry);
-            const pointsToStop = Math.abs(entry - stoploss);
+    const pointsToTarget = Math.abs(target - entry);
+    const pointsToStop = Math.abs(entry - stoploss);
 
-            const expected_profit = (pointsToTarget * MNQ_MULTIPLIER * contracts) - commissions;
-            const expected_loss = (pointsToStop * MNQ_MULTIPLIER * contracts) + commissions;
-            const rr = (expected_loss > 0) ? (expected_profit / expected_loss).toFixed(2) : 0;
+    // Math Fix: Subtract/Add total commissions (contracts * fee)
+    const expected_profit = (pointsToTarget * MNQ_MULTIPLIER * contracts) - totalCommissions;
+    const expected_loss = (pointsToStop * MNQ_MULTIPLIER * contracts) + totalCommissions;
+    const rr = (expected_loss > 0) ? (expected_profit / expected_loss).toFixed(2) : 0;
 
-            return {
-                rr_taker: rr, 
-                rr_maker: rr,
-                estimated_total_fee: commissions,
-                expected_profit_taker: expected_profit,
-                expected_profit_maker: expected_profit,
-                expected_loss_taker: expected_loss,
-                expected_loss_maker: expected_loss,
-                pnl_per_100_move: (100 * MNQ_MULTIPLIER * contracts)
-            };
-        }
-                
+    return {
+        rr_taker: rr, 
+        rr_maker: rr,
+        estimated_total_fee: totalCommissions, // Now shows total fee for all contracts
+        expected_profit_taker: expected_profit,
+        expected_profit_maker: expected_profit,
+        expected_loss_taker: expected_loss,
+        expected_loss_maker: expected_loss,
+        pnl_per_100_move: (100 * MNQ_MULTIPLIER * contracts)
+    };
+}
         function calculateFuturesNetResult(trade, exitPrice) {
             const entry = parseFloat(trade.entry);
             const contracts = parseFloat(trade.contracts || trade.size);
@@ -2502,117 +2500,172 @@ function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trade
             };
         }
 
-        function completeTrade(tradeId, outcome, isTopstep = false) {
-            if (STATE.isProcessing) return;
-            STATE.isProcessing = true;
+   function completeTrade(tradeId, outcome, isTopstep = false) {
+    if (STATE.isProcessing) return;
+    STATE.isProcessing = true;
 
-            const liveRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
-            const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
+    const liveRef = isTopstep ? dbRefs.tsTrades : dbRefs.trades;
+    const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
 
-            liveRef.child(tradeId).once('value', snapshot => {
-                const trade = snapshot.val(); 
-                if (!trade) {
-                    STATE.isProcessing = false;
-                    return;
-                }
-                
-                const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
-                const exitPriceStr = prompt(`Closing ${trade.symbol} (${trade.type})\nEnter exact exit price:`, defaultExit);
-                
-                if (exitPriceStr === null) {
-                    STATE.isProcessing = false;
-                    return;
-                }
-
-                const exitPrice = parseFloat(exitPriceStr);
-                if (isNaN(exitPrice)) {
-                    alert("Invalid exit price.");
-                    STATE.isProcessing = false;
-                    return;
-                }
-
-                let completedTradeData;
-
-                if (isTopstep) {
-                    const MNQ_MULT = 2; 
-                    const contracts = parseFloat(trade.contracts || trade.size);
-                    const totalFees = parseFloat(trade.commissions || 0.78);
-                    
-                    const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
-                    const netResult = (points * MNQ_MULT * contracts) - totalFees;
-
-                    completedTradeData = {
-                        ...trade,
-                        exit_price: exitPrice,
-                        net_result: netResult,
-                        entry_fee: totalFees / 2,
-                        exit_fee: totalFees / 2,
-                        exitFeeType: 'fixed',
-                        closed_date: firebase.database.ServerValue.TIMESTAMP,
-                        note: (trade.note || '') + `\nClosed @ $${exitPrice} (Full)`
-                    };
-
-                    compRef.push(completedTradeData)
-                        .then(() => liveRef.child(tradeId).remove())
-                        .finally(() => { STATE.isProcessing = false; });
-
-                } else {
-                    const currentSize = parseFloat(trade.size);
-                    const closeSizeStr = prompt(`Closing Value ($)?\n(Total: $${currentSize.toFixed(2)})`, currentSize);
-                    
-                    if (closeSizeStr === null) {
-                        STATE.isProcessing = false;
-                        return;
-                    }
-                    
-                    let exitFeeType = prompt("Enter exit fee type (maker/taker):", "taker");
-                    if (exitFeeType === null) {
-                        STATE.isProcessing = false;
-                        return;
-                    }
-                    exitFeeType = exitFeeType.toLowerCase().trim();
-
-                    const closingSize = parseFloat(closeSizeStr);
-                    if (isNaN(closingSize) || closingSize <= 0 || closingSize > currentSize) {
-                        alert("Invalid size input.");
-                        STATE.isProcessing = false;
-                        return;
-                    }
-
-                    const tradePortion = { ...trade, size: closingSize };
-                    const result = calculateNetResult(tradePortion, exitPrice, exitFeeType);
-
-                    completedTradeData = {
-                        ...trade,
-                        size: closingSize,
-                        ...result,
-                        closed_date: firebase.database.ServerValue.TIMESTAMP,
-                        exit_price: exitPrice,
-                        exitFeeType: exitFeeType,
-                        note: (trade.note || '') + `\nClosed $${closingSize.toFixed(2)} @ $${exitPrice}`
-                    };
-
-                    if (Math.abs(currentSize - closingSize) < 1) {
-                        compRef.push(completedTradeData)
-                            .then(() => liveRef.child(tradeId).remove())
-                            .finally(() => { STATE.isProcessing = false; }); 
-                    } else {
-                        const remainingSize = currentSize - closingSize;
-                        const updatedLiveTrade = {
-                            size: remainingSize,
-                            note: (trade.note || '') + `\nPartial close: -$${closingSize.toFixed(2)}`
-                        };
-                        const recalcMetrics = calculateTradeMetrics({ ...trade, size: remainingSize });
-                        Object.assign(updatedLiveTrade, recalcMetrics);
-
-                        compRef.push(completedTradeData);
-                        liveRef.child(tradeId).update(updatedLiveTrade)
-                            .finally(() => { STATE.isProcessing = false; }); 
-                    }
-                }
-            });
+    liveRef.child(tradeId).once('value', snapshot => {
+        const trade = snapshot.val(); 
+        if (!trade) {
+            STATE.isProcessing = false;
+            return;
+        }
+        
+        const defaultExit = outcome === 'win' ? trade.target : trade.stoploss;
+        const exitPriceStr = prompt(`Closing ${trade.symbol} (${trade.type})\nEnter exact exit price:`, defaultExit);
+        
+        if (exitPriceStr === null) {
+            STATE.isProcessing = false;
+            return;
         }
 
+        const exitPrice = parseFloat(exitPriceStr);
+        if (isNaN(exitPrice)) {
+            alert("Invalid exit price.");
+            STATE.isProcessing = false;
+            return;
+        }
+
+        let completedTradeData;
+
+        if (isTopstep) {
+            // --- FUTURES MATH (PER CONTRACT) ---
+            const MNQ_MULT = 2; 
+            const contracts = parseFloat(trade.contracts || trade.size || 1);
+            const feePerContract = parseFloat(trade.commissions || 0.78);
+            
+            // Calculate total fees for the contracts being closed
+            const totalFees = feePerContract * contracts;
+            
+            const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
+            const netResult = (points * MNQ_MULT * contracts) - totalFees;
+
+            completedTradeData = {
+                ...trade,
+                exit_price: exitPrice,
+                net_result: netResult,
+                entry_fee: totalFees / 2,
+                exit_fee: totalFees / 2,
+                exitFeeType: 'fixed',
+                closed_date: firebase.database.ServerValue.TIMESTAMP,
+                note: (trade.note || '') + `\nClosed @ $${exitPrice} (Full)`
+            };
+
+            compRef.push(completedTradeData)
+                .then(() => liveRef.child(tradeId).remove())
+                .finally(() => { STATE.isProcessing = false; });
+
+        } else {
+            // --- CRYPTO MATH ---
+            const currentSize = parseFloat(trade.size);
+            const closeSizeStr = prompt(`Closing Value ($)?\n(Total: $${currentSize.toFixed(2)})`, currentSize);
+            
+            if (closeSizeStr === null) {
+                STATE.isProcessing = false;
+                return;
+            }
+            
+            let exitFeeType = prompt("Enter exit fee type (maker/taker):", "taker");
+            if (exitFeeType === null) {
+                STATE.isProcessing = false;
+                return;
+            }
+            exitFeeType = exitFeeType.toLowerCase().trim();
+
+            const closingSize = parseFloat(closeSizeStr);
+            if (isNaN(closingSize) || closingSize <= 0 || closingSize > currentSize) {
+                alert("Invalid size input.");
+                STATE.isProcessing = false;
+                return;
+            }
+
+            const tradePortion = { ...trade, size: closingSize };
+            const result = calculateNetResult(tradePortion, exitPrice, exitFeeType);
+
+            completedTradeData = {
+                ...trade,
+                size: closingSize,
+                ...result,
+                closed_date: firebase.database.ServerValue.TIMESTAMP,
+                exit_price: exitPrice,
+                exitFeeType: exitFeeType,
+                note: (trade.note || '') + `\nClosed $${closingSize.toFixed(2)} @ $${exitPrice}`
+            };
+
+            if (Math.abs(currentSize - closingSize) < 1) {
+                compRef.push(completedTradeData)
+                    .then(() => liveRef.child(tradeId).remove())
+                    .finally(() => { STATE.isProcessing = false; }); 
+            } else {
+                const remainingSize = currentSize - closingSize;
+                const updatedLiveTrade = {
+                    size: remainingSize,
+                    note: (trade.note || '') + `\nPartial close: -$${closingSize.toFixed(2)}`
+                };
+                const recalcMetrics = calculateTradeMetrics({ ...trade, size: remainingSize });
+                Object.assign(updatedLiveTrade, recalcMetrics);
+
+                compRef.push(completedTradeData);
+                liveRef.child(tradeId).update(updatedLiveTrade)
+                    .finally(() => { STATE.isProcessing = false; }); 
+            }
+        }
+    });
+}
+        function fixHistoricalFundedMath() {
+    console.log("Starting Database Repair...");
+    const ref = firebase.database().ref('ts_completed_trades');
+    
+    ref.once('value', snapshot => {
+        const trades = snapshot.val();
+        if (!trades) {
+            console.log("No completed funded trades found.");
+            return;
+        }
+
+        const updates = {};
+        let count = 0;
+
+        Object.keys(trades).forEach(id => {
+            const t = trades[id];
+            const entry = parseFloat(t.entry);
+            const exit = parseFloat(t.exit_price);
+            const contracts = parseFloat(t.contracts || t.size || 1);
+            const feePerContract = parseFloat(t.commissions || 0.78);
+            const MNQ_MULT = 2;
+
+            if (!isNaN(entry) && !isNaN(exit)) {
+                // The Correct Math
+                const points = t.type === "Long" ? (exit - entry) : (entry - exit);
+                const grossResult = points * MNQ_MULT * contracts;
+                const totalFees = feePerContract * contracts;
+                const correctNet = grossResult - totalFees;
+
+                // Only queue update if the difference is more than 1 cent
+                if (Math.abs((t.net_result || 0) - correctNet) > 0.01) {
+                    updates[`${id}/net_result`] = correctNet;
+                    updates[`${id}/entry_fee`] = totalFees / 2;
+                    updates[`${id}/exit_fee`] = totalFees / 2;
+                    count++;
+                }
+            }
+        });
+
+        if (count > 0) {
+            ref.update(updates)
+                .then(() => console.log(`SUCCESS: Fixed math for ${count} trades. Your banners should now be accurate.`))
+                .catch(err => console.error("Database update failed:", err));
+        } else {
+            console.log("All historical trades already have correct math.");
+        }
+    });
+}
+
+// Execute the function
+fixHistoricalFundedMath();
         function openImageModal(imageArray, clickedIndex) {
             STATE.modalImageGallery = imageArray;
             STATE.modalImageIndex = clickedIndex;
