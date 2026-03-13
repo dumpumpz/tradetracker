@@ -3838,6 +3838,7 @@ fixHistoricalFundedMath();
                 };
             });
 
+            // 1. Group all completed net results by Trading Day
             Object.values(tsCompletedData).forEach(t => {
                 if (!t.closed_date) return;
                 const acc = getEvalAccount(t);
@@ -3847,15 +3848,29 @@ fixHistoricalFundedMath();
                 stats[acc].tradesByDay[dayStr] += parseFloat(t.net_result || 0);
             });
 
+            // 2. Identify the current active trading session (EST close / Perth morning)
+            const currentTradingDay = getTradingDayString(Date.now(), Date.now());
+
             CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
                 const sortedDays = Object.keys(stats[acc].tradesByDay).sort((a,b) => new Date(a) - new Date(b));
+                
                 sortedDays.forEach(day => {
+                    // Always add to the balance so your live PnL and total buffer are completely accurate
                     stats[acc].balance += stats[acc].tradesByDay[day];
-                    if (stats[acc].balance > stats[acc].hwm) {
-                        stats[acc].hwm = stats[acc].balance;
-                        let trailingLimit = stats[acc].hwm - CONFIG.FUNDED_DRAWDOWN;
-                        if (trailingLimit > stats[acc].maxLoss) {
-                            stats[acc].maxLoss = Math.min(trailingLimit, CONFIG.FUNDED_START); 
+                    
+                    // LUCID EOD MAX LOSS RULE:
+                    // Only update the High Water Mark (HWM) and Trailing Max Loss if the trading day has completely CLOSED.
+                    // Intraday profits for 'currentTradingDay' will NOT pull the Max Loss up until tomorrow.
+                    if (day !== currentTradingDay) {
+                        if (stats[acc].balance > stats[acc].hwm) {
+                            stats[acc].hwm = stats[acc].balance;
+                            
+                            let trailingLimit = stats[acc].hwm - CONFIG.FUNDED_DRAWDOWN;
+                            
+                            // Only pull max loss up, never let it drop, and cap it at the starting balance
+                            if (trailingLimit > stats[acc].maxLoss) {
+                                stats[acc].maxLoss = Math.min(trailingLimit, CONFIG.FUNDED_START); 
+                            }
                         }
                     }
                 });
