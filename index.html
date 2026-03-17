@@ -795,9 +795,13 @@ table:has(#ts-completed-trades-tbody) thead th {
                                 </div>
                             </div>
                             <div>
-                                <label for="ts-trade-symbol">Symbol:</label>
-                                <input type="text" id="ts-trade-symbol" value="MNQ" placeholder="MNQ">
-                            </div>
+    <label for="ts-trade-symbol">Symbol:</label>
+    <select id="ts-trade-symbol">
+        <option value="MNQ">MNQ ($2/pt)</option>
+        <option value="NQ">NQ ($20/pt)</option>
+
+    </select>
+</div>
                     
                             <div>
                                 <label for="ts-trade-type">Trade Type:</label>
@@ -1380,9 +1384,9 @@ table:has(#ts-completed-trades-tbody) thead th {
 
             if (isTopstep) {
                 // --- FUTURES MATH (PER CONTRACT) ---
-                const MNQ_MULT = 2; 
-                const contracts = parseFloat(trade.contracts || trade.size || 1);
-                const feePerContract = parseFloat(trade.commissions || 0.78);
+                const MULT = getFuturesMultiplier(trade.symbol); 
+const contracts = parseFloat(trade.contracts || trade.size || 1);
+const feePerContract = parseFloat(trade.commissions || 0.78);
                 
                 // Calculate total fees for all contracts in this specific trade
                 const totalFees = feePerContract * contracts;
@@ -1433,7 +1437,7 @@ table:has(#ts-completed-trades-tbody) thead th {
     });
 }
 
-  function calculateFuturesMetrics(tradeData) {
+ function calculateFuturesMetrics(tradeData) {
     const entry = parseFloat(tradeData.entry);
     const stoploss = parseFloat(tradeData.stoploss);
     const target = parseFloat(tradeData.target);
@@ -1447,9 +1451,10 @@ table:has(#ts-completed-trades-tbody) thead th {
     const pointsToTarget = Math.abs(target - entry);
     const pointsToStop = Math.abs(entry - stoploss);
 
-    // FIX: Change MNQ_MULTIPLIER to CONFIG.MNQ_MULTIPLIER
-    const expected_profit = (pointsToTarget * CONFIG.MNQ_MULTIPLIER * contracts) - totalCommissions;
-    const expected_loss = (pointsToStop * CONFIG.MNQ_MULTIPLIER * contracts) + totalCommissions;
+    // FIX: Use the dynamic multiplier based on the symbol
+    const MULT = getFuturesMultiplier(tradeData.symbol);
+    const expected_profit = (pointsToTarget * MULT * contracts) - totalCommissions;
+    const expected_loss = (pointsToStop * MULT * contracts) + totalCommissions;
     const rr = (expected_loss > 0) ? (expected_profit / expected_loss).toFixed(2) : 0;
 
     return {
@@ -1460,10 +1465,9 @@ table:has(#ts-completed-trades-tbody) thead th {
         expected_profit_maker: expected_profit,
         expected_loss_taker: expected_loss,
         expected_loss_maker: expected_loss,
-        pnl_per_100_move: (100 * CONFIG.MNQ_MULTIPLIER * contracts) // FIX HERE TOO
+        pnl_per_100_move: (100 * MULT * contracts)
     };
 }
-
         (function fixFees() {
     const ref = firebase.database().ref('ts_completed_trades');
     ref.once('value', snapshot => {
@@ -1484,6 +1488,9 @@ table:has(#ts-completed-trades-tbody) thead th {
         ref.update(updates).then(() => console.log("Fees updated to $1.00 RT."));
     });
 })();
+
+
+        
         function calculateFuturesNetResult(trade, exitPrice) {
             const entry = parseFloat(trade.entry);
             const contracts = parseFloat(trade.contracts || trade.size);
@@ -1499,7 +1506,14 @@ table:has(#ts-completed-trades-tbody) thead th {
                 exit_fee: fees / 2
             };
         }
+function getFuturesMultiplier(symbol) {
+    if (!symbol) return 2;
+    const sym = symbol.toUpperCase();
+    if (sym.includes('MNQ')) return 2;
+    if (sym.includes('NQ')) return 20;
 
+    return 2; // Default fallback
+}
         function updateTargetCalculator() {
             const riskUsd = parseFloat(document.getElementById('calc-risk-usd').value) || 0;
             const riskTicks = parseFloat(document.getElementById('calc-risk-ticks').value) || 0;
@@ -2590,9 +2604,9 @@ const tPct = (((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.e
 
         if (isTopstep) {
             // --- FUTURES MATH (PER CONTRACT) ---
-            const MNQ_MULT = 2; 
-            const contracts = parseFloat(trade.contracts || trade.size || 1);
-            const feePerContract = parseFloat(trade.commissions || 0.78);
+            const MULT = getFuturesMultiplier(trade.symbol); 
+const contracts = parseFloat(trade.contracts || trade.size || 1);
+const feePerContract = parseFloat(trade.commissions || 0.78);
             
             // Calculate total fees for the contracts being closed
             const totalFees = feePerContract * contracts;
@@ -2825,7 +2839,19 @@ fixHistoricalFundedMath();
                     }, 1000);
                 });
             }
+// Auto-update default commission based on symbol selection
+const tsTradeSymbolSelect = document.getElementById('ts-trade-symbol');
+const tsCommissionsInput = document.getElementById('ts-commissions');
 
+if (tsTradeSymbolSelect && tsCommissionsInput) {
+    tsTradeSymbolSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'NQ' || e.target.value === 'ES') {
+            tsCommissionsInput.value = '4.36'; // Standard Mini RT fee
+        } else if (e.target.value === 'MNQ' || e.target.value === 'MES') {
+            tsCommissionsInput.value = '1.00'; // Your current Micro RT fee
+        }
+    });
+}
             // 3. Independent Evaluation Image Upload
             const tsSetupsUpload = document.getElementById('ts-setups-image-upload');
             if (tsSetupsUpload) {
@@ -3264,11 +3290,11 @@ fixHistoricalFundedMath();
 
                     let updates;
                     if (isTopstep) {
-                        const MNQ_MULT = 2;
-                        const contracts = parseFloat(trade.contracts || trade.size || 1);
-                        const fees = parseFloat(trade.commissions || 0.78);
-                        const points = trade.type === "Long" ? (newPrice - trade.entry) : (trade.entry - newPrice);
-                        const netResult = (points * MNQ_MULT * contracts) - fees;
+                       const MULT = getFuturesMultiplier(trade.symbol);
+const contracts = parseFloat(trade.contracts || trade.size || 1);
+const fees = parseFloat(trade.commissions || 0.78);
+const points = trade.type === "Long" ? (newPrice - trade.entry) : (trade.entry - newPrice);
+const netResult = (points * MULT * contracts) - fees;
                         updates = { exit_price: newPrice, net_result: netResult };
                     } else {
                         const res = calculateNetResult(trade, newPrice, trade.exitFeeType || 'taker');
