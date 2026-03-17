@@ -1339,7 +1339,7 @@ table:has(#ts-completed-trades-tbody) thead th {
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 
-      function handleCloseGroup(groupId, isTopstep) {
+  function handleCloseGroup(groupId, isTopstep) {
     if (STATE.isProcessing) return;
     
     if (!confirm(`Are you sure you want to close ALL active trades in group: ${groupId}?`)) return;
@@ -1384,15 +1384,15 @@ table:has(#ts-completed-trades-tbody) thead th {
 
             if (isTopstep) {
                 // --- FUTURES MATH (PER CONTRACT) ---
-                const MULT = getFuturesMultiplier(trade.symbol); 
-const contracts = parseFloat(trade.contracts || trade.size || 1);
-const feePerContract = parseFloat(trade.commissions || 0.78);
+                const MULT = getFuturesMultiplier(trade.symbol); // Updated for NQ/MNQ
+                const contracts = parseFloat(trade.contracts || trade.size || 1);
+                const feePerContract = parseFloat(trade.commissions || 0.78);
                 
                 // Calculate total fees for all contracts in this specific trade
                 const totalFees = feePerContract * contracts;
                 
                 const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
-                const netResult = (points * MNQ_MULT * contracts) - totalFees;
+                const netResult = (points * MULT * contracts) - totalFees; // Fixed variable here
 
                 completedTrade = {
                     ...trade,
@@ -1436,7 +1436,6 @@ const feePerContract = parseFloat(trade.commissions || 0.78);
             });
     });
 }
-
  function calculateFuturesMetrics(tradeData) {
     const entry = parseFloat(tradeData.entry);
     const stoploss = parseFloat(tradeData.stoploss);
@@ -2604,15 +2603,15 @@ const tPct = (((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.e
 
         if (isTopstep) {
             // --- FUTURES MATH (PER CONTRACT) ---
-            const MULT = getFuturesMultiplier(trade.symbol); 
-const contracts = parseFloat(trade.contracts || trade.size || 1);
-const feePerContract = parseFloat(trade.commissions || 0.78);
+            const MULT = getFuturesMultiplier(trade.symbol); // Updated for NQ/MNQ
+            const contracts = parseFloat(trade.contracts || trade.size || 1);
+            const feePerContract = parseFloat(trade.commissions || 0.78);
             
             // Calculate total fees for the contracts being closed
             const totalFees = feePerContract * contracts;
             
             const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
-            const netResult = (points * MNQ_MULT * contracts) - totalFees;
+            const netResult = (points * MULT * contracts) - totalFees; // Fixed variable here
 
             completedTradeData = {
                 ...trade,
@@ -2686,6 +2685,7 @@ const feePerContract = parseFloat(trade.commissions || 0.78);
         }
     });
 }
+
 function fixHistoricalFundedMath() {
     // ONLY run this if the Master is logged in, otherwise it will error for viewers
     if (!STATE.isMasterUser) return;
