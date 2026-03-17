@@ -3076,6 +3076,74 @@ if (tsTradeSymbolSelect && tsCommissionsInput) {
                 });
             }
 
+            // ==========================================
+// AUTO-FILL SL & TP BASED ON ENTRY PRICE
+// ==========================================
+
+// 1. Funded Tab (MNQ/NQ) - Uses Target Calculator Ticks
+const tsEntryInput = document.getElementById('ts-entry-price');
+const tsTypeSelect = document.getElementById('ts-trade-type');
+
+function updateFundedSLTP() {
+    const entry = parseFloat(tsEntryInput.value);
+    if (isNaN(entry)) return;
+    
+    const isLong = tsTypeSelect.value === 'Long';
+    
+    // Grab ticks from your Target Calculator (defaults: 50 risk, 200 reward = 1:4 RR)
+    const riskTicks = parseFloat(document.getElementById('calc-risk-ticks').value) || 50;
+    const rewardTicks = parseFloat(document.getElementById('calc-reward-ticks').value) || 200;
+    
+    // Convert ticks to points (4 ticks = 1 point on NQ/ES)
+    const riskPoints = riskTicks / 4;
+    const rewardPoints = rewardTicks / 4;
+    
+    let sl, tp;
+    if (isLong) {
+        sl = entry - riskPoints;
+        tp = entry + rewardPoints;
+    } else {
+        sl = entry + riskPoints;
+        tp = entry - rewardPoints;
+    }
+    
+    document.getElementById('ts-stop-loss').value = sl.toFixed(2);
+    document.getElementById('ts-target').value = tp.toFixed(2);
+}
+
+if (tsEntryInput) tsEntryInput.addEventListener('input', updateFundedSLTP);
+if (tsTypeSelect) tsTypeSelect.addEventListener('change', updateFundedSLTP);
+
+
+// 2. Standard/Crypto Tab - Uses flat 1% Risk / 4% Reward
+const cryptoEntryInput = document.getElementById('entry-price');
+const cryptoTypeSelect = document.getElementById('trade-type');
+
+function updateCryptoSLTP() {
+    const entry = parseFloat(cryptoEntryInput.value);
+    if (isNaN(entry)) return;
+    
+    const isLong = cryptoTypeSelect.value === 'Long';
+    
+    // Default 1% Risk, 4% Reward
+    const riskPct = 0.01;
+    const rewardPct = 0.04;
+    
+    let sl, tp;
+    if (isLong) {
+        sl = entry * (1 - riskPct);
+        tp = entry * (1 + rewardPct);
+    } else {
+        sl = entry * (1 + riskPct);
+        tp = entry * (1 - rewardPct);
+    }
+    
+    document.getElementById('stop-loss').value = sl.toFixed(2);
+    document.getElementById('target').value = tp.toFixed(2);
+}
+
+if (cryptoEntryInput) cryptoEntryInput.addEventListener('input', updateCryptoSLTP);
+if (cryptoTypeSelect) cryptoTypeSelect.addEventListener('change', updateCryptoSLTP);
             // 16. Journal Tab Dispatcher
             DOM.journalTab.addEventListener('click', (e) => {
                 if (e.target.closest('.delete-journal-image')) { handleImageDelete(e); return; }
