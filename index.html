@@ -514,6 +514,19 @@ table:has(#ts-completed-trades-tbody) thead th {
         margin-bottom: 8px;
     }
 }
+
+        
+/* Update this in your <style> section */
+.funded-radio-group input[type="checkbox"]:checked + label {
+    background-color: var(--link-color);
+    color: white;
+    border-color: var(--link-color);
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.acc-checkbox + label:hover {
+    border-color: var(--link-color);
+}
     </style>
 </head>
 <body>
@@ -1599,40 +1612,37 @@ function getFuturesMultiplier(symbol) {
     });
     container.innerHTML = html;
 }
-        function renderFundedAccountRadios() {
-            const container = document.getElementById('funded-account-radios');
-            if (!container) return;
-            let html = '';
-            CONFIG.FUNDED_ACCOUNTS.forEach((acc, i) => {
-                html += `
-                <input type="radio" id="radio-acc-${i}" name="funded-account-target" value="${acc}" ${i===0 ? 'checked' : ''}>
-                <label for="radio-acc-${i}">${acc}</label>
-                `;
-            });
-            html += `
-                <input type="radio" id="radio-acc-all" name="funded-account-target" value="ALL">
-                <label for="radio-acc-all" class="all-active">ALL ACTIVE</label>
-            `;
-            container.innerHTML = html;
+      
+function renderFundedAccountRadios() {
+    const container = document.getElementById('funded-account-radios');
+    if (!container) return;
+    
+    // Add a helper button to toggle all at once
+    let html = `
+        <div style="width: 100%; margin-bottom: 10px; display: flex; gap: 10px;">
+            <button type="button" id="btn-select-all-acc" style="flex: 1; font-size: 11px; padding: 5px; background: var(--header-bg); color: var(--text-color);">Select All</button>
+            <button type="button" id="btn-deselect-all-acc" style="flex: 1; font-size: 11px; padding: 5px; background: var(--header-bg); color: var(--text-color);">Clear All</button>
+        </div>
+    `;
 
-            const updateLabels = (e) => {
-                container.querySelectorAll('label').forEach(lbl => {
-                    lbl.style.backgroundColor = '';
-                    lbl.style.color = '';
-                    lbl.style.borderColor = '';
-                });
-                const selectedLabel = container.querySelector(`label[for="${e.target.id}"]`);
-                if (selectedLabel) {
-                    selectedLabel.style.backgroundColor = e.target.value === 'ALL' ? '#28a745' : 'var(--link-color)';
-                    selectedLabel.style.color = 'white';
-                    selectedLabel.style.borderColor = e.target.value === 'ALL' ? '#28a745' : 'var(--link-color)';
-                }
-            };
-            container.addEventListener('change', updateLabels);
-            
-            const def = container.querySelector('input:checked');
-            if(def) updateLabels({target: def});
-        }
+    // Change radio to checkbox
+    CONFIG.FUNDED_ACCOUNTS.forEach((acc, i) => {
+        html += `
+        <input type="checkbox" id="check-acc-${i}" name="funded-account-target" value="${acc}" class="acc-checkbox">
+        <label for="check-acc-${i}">${acc}</label>
+        `;
+    });
+    
+    container.innerHTML = html;
+
+    // Logic for Select All / Clear All
+    document.getElementById('btn-select-all-acc').onclick = () => {
+        container.querySelectorAll('.acc-checkbox').forEach(cb => cb.checked = true);
+    };
+    document.getElementById('btn-deselect-all-acc').onclick = () => {
+        container.querySelectorAll('.acc-checkbox').forEach(cb => cb.checked = false);
+    };
+}
 
 
 function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
@@ -3270,80 +3280,104 @@ if (cryptoTypeSelect) cryptoTypeSelect.addEventListener('change', updateCryptoSL
             };
         }
 
-        function handleAddTradeSubmit(e, isTopstep = false) {
-            e.preventDefault(); 
-            if (!STATE.isMasterUser) return;
-            
-            const prefix = isTopstep ? 'ts-' : '';
-            const session = document.getElementById(`${prefix}trade-session`).value;
-            const variant = document.getElementById(`${prefix}trade-variant`).value;
-            const generatedGroupId = `${session}_${variant}`;
+function handleAddTradeSubmit(e, isTopstep = false) {
+    e.preventDefault(); 
+    if (!STATE.isMasterUser) return;
+    
+    const prefix = isTopstep ? 'ts-' : '';
+    const session = document.getElementById(`${prefix}trade-session`).value;
+    const variant = document.getElementById(`${prefix}trade-variant`).value;
+    const generatedGroupId = `${session}_${variant}`;
 
-            const entryPrice = parseFloat(document.getElementById(`${prefix}entry-price`).value);
-            const stopLossPrice = parseFloat(document.getElementById(`${prefix}stop-loss`).value);
-            const targetPrice = parseFloat(document.getElementById(`${prefix}target`).value);
+    const entryPrice = parseFloat(document.getElementById(`${prefix}entry-price`).value);
+    const stopLossPrice = parseFloat(document.getElementById(`${prefix}stop-loss`).value);
+    const targetPrice = parseFloat(document.getElementById(`${prefix}target`).value);
 
-            const trade = { 
-                symbol: document.getElementById(`${prefix}trade-symbol`).value, 
-                type: document.getElementById(`${prefix}trade-type`).value, 
-                setupType: 'Major', 
-                groupId: generatedGroupId, 
-                entry: entryPrice, 
-                stoploss: stopLossPrice,
-                original_stoploss: stopLossPrice, 
-                target: targetPrice, 
-                date: firebase.database.ServerValue.TIMESTAMP, 
-                entry_prices: [entryPrice]
-            };
+    // Common trade data structure
+    const trade = { 
+        symbol: document.getElementById(`${prefix}trade-symbol`).value, 
+        type: document.getElementById(`${prefix}trade-type`).value, 
+        setupType: 'Major', 
+        groupId: generatedGroupId, 
+        entry: entryPrice, 
+        stoploss: stopLossPrice,
+        original_stoploss: stopLossPrice, 
+        target: targetPrice, 
+        date: firebase.database.ServerValue.TIMESTAMP, 
+        entry_prices: [entryPrice]
+    };
 
-            if ([trade.entry, trade.stoploss, trade.target].some(val => isNaN(val) || val === null)) {
-                return alert('Please fill all price and size fields correctly.');
-            }
+    // Validation for prices
+    if ([trade.entry, trade.stoploss, trade.target].some(val => isNaN(val) || val === null)) {
+        return alert('Please fill all price fields correctly.');
+    }
 
-            if (isTopstep) {
-                const targetRadio = document.querySelector('input[name="funded-account-target"]:checked');
-                if (!targetRadio) return alert('Please select a funded account target.');
-                
-                const targetAcc = targetRadio.value;
-                const accountsToExecute = targetAcc === 'ALL' ? CONFIG.FUNDED_ACCOUNTS : [targetAcc];
-
-                trade.contracts = parseFloat(document.getElementById(`ts-contracts`).value);
-                trade.size = trade.contracts; 
-                trade.commissions = parseFloat(document.getElementById(`ts-commissions`).value);
-                trade.exchange = "Futures";
-                trade.entryFeeType = "fixed";
-
-                const promises = accountsToExecute.map(acc => {
-                    const specificTrade = { ...trade, evalAccount: acc };
-                    const metrics = calculateFuturesMetrics(specificTrade);
-                    return dbRefs.tsTrades.push({ ...specificTrade, ...metrics });
-                });
-
-                Promise.all(promises).then(() => {
-                    document.getElementById(`ts-entry-price`).value = '';
-                    document.getElementById(`ts-stop-loss`).value = '';
-                    document.getElementById(`ts-target`).value = '';
-                    document.getElementById(`ts-contracts`).value = '1';
-                }).catch(error => alert(`Error adding trades: ${error.message}`));
-                
-            } else {
-                trade.size = parseFloat(document.getElementById(`position-value`).value);
-                trade.exchange = document.getElementById(`trade-exchange`).value;
-                trade.entryFeeType = document.getElementById(`entry-fee-type`).value;
-                if (isNaN(trade.size)) return alert('Please fill position value correctly.');
-                
-                const metrics = calculateTradeMetrics(trade);
-                const tradeWithMetrics = { ...trade, ...metrics };
-                
-                dbRefs.trades.push(tradeWithMetrics).then(() => {
-                    document.getElementById(`entry-price`).value = '';
-                    document.getElementById(`stop-loss`).value = '';
-                    document.getElementById(`target`).value = '';
-                    document.getElementById(`position-value`).value = '';
-                }).catch(error => alert(`Error adding trade: ${error.message}`));
-            }
+    if (isTopstep) {
+        // 1. Find all CHECKED checkboxes
+        const selectedCheckboxes = document.querySelectorAll('input[name="funded-account-target"]:checked');
+        
+        if (selectedCheckboxes.length === 0) {
+            return alert('Please select at least one account to execute the trade.');
         }
+        
+        // 2. Map the checkbox values into an array (e.g., ["Lucid 1", "Lucid 3"])
+        const accountsToExecute = Array.from(selectedCheckboxes).map(cb => cb.value);
 
+        // 3. Get Funded specific fields
+        trade.contracts = parseFloat(document.getElementById(`ts-contracts`).value);
+        trade.size = trade.contracts; // Map size to contracts for consistency
+        trade.commissions = parseFloat(document.getElementById(`ts-commissions`).value);
+        trade.exchange = "Futures";
+        trade.entryFeeType = "fixed";
+
+        if (isNaN(trade.contracts)) return alert('Please enter contract quantity.');
+
+        // 4. Create a unique trade in Firebase for EVERY selected account
+        const promises = accountsToExecute.map(acc => {
+            const specificTrade = { 
+                ...trade, 
+                evalAccount: acc 
+            };
+            // Calculate specific metrics (PnL per 100 etc) for this instance
+            const metrics = calculateFuturesMetrics(specificTrade);
+            return dbRefs.tsTrades.push({ ...specificTrade, ...metrics });
+        });
+
+        // 5. Cleanup UI after all trades are sent
+        Promise.all(promises).then(() => {
+            document.getElementById(`ts-entry-price`).value = '';
+            document.getElementById(`ts-stop-loss`).value = '';
+            document.getElementById(`ts-target`).value = '';
+            // Reset contracts to 1 or keep same? Usually reset:
+            document.getElementById(`ts-contracts`).value = '1';
+            
+            // Optional: Uncheck all boxes after submission
+            // document.querySelectorAll('input[name="funded-account-target"]').forEach(cb => cb.checked = false);
+            
+            console.log(`Successfully executed trades for: ${accountsToExecute.join(', ')}`);
+        }).catch(error => {
+            alert(`Error adding trades: ${error.message}`);
+        });
+        
+    } else {
+        // --- STANDARD CRYPTO TRACKER LOGIC ---
+        trade.size = parseFloat(document.getElementById(`position-value`).value);
+        trade.exchange = document.getElementById(`trade-exchange`).value;
+        trade.entryFeeType = document.getElementById(`entry-fee-type`).value;
+
+        if (isNaN(trade.size)) return alert('Please fill position value correctly.');
+        
+        const metrics = calculateTradeMetrics(trade);
+        const tradeWithMetrics = { ...trade, ...metrics };
+        
+        dbRefs.trades.push(tradeWithMetrics).then(() => {
+            document.getElementById(`entry-price`).value = '';
+            document.getElementById(`stop-loss`).value = '';
+            document.getElementById(`target`).value = '';
+            document.getElementById(`position-value`).value = '';
+        }).catch(error => alert(`Error adding trade: ${error.message}`));
+    }
+}
         function handleCompletedTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
 
