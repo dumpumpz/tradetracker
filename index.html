@@ -527,6 +527,57 @@ table:has(#ts-completed-trades-tbody) thead th {
 .acc-checkbox + label:hover {
     border-color: var(--link-color);
 }
+
+        /* Container for the account selection */
+.funded-radio-group {
+    display: grid !important; 
+    grid-template-columns: 1fr; /* Default for very small screens */
+    gap: 10px;
+    width: 100%;
+}
+
+/* The Grid for the Account Buttons */
+.acc-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+/* Hide the actual checkbox square */
+.acc-checkbox {
+    display: none !important;
+}
+
+/* Style the Label to look like a Button */
+.acc-checkbox + label {
+    display: block;
+    padding: 12px 5px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--subtle-text);
+    user-select: none;
+}
+
+/* Hover State */
+.acc-checkbox + label:hover {
+    border-color: var(--link-color);
+}
+
+/* CHECKED STATE - Turns Green */
+.acc-checkbox:checked + label {
+    background-color: #28a745 !important; /* Success Green */
+    border-color: #218838 !important;
+    color: white !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
     </style>
 </head>
 <body>
@@ -1661,31 +1712,34 @@ function getFuturesMultiplier(symbol) {
         `;
     });
     container.innerHTML = html;
-}
-      
-function renderFundedAccountRadios() {
+}function renderFundedAccountRadios() {
     const container = document.getElementById('funded-account-radios');
     if (!container) return;
     
-    // Add a helper button to toggle all at once
+    // 1. Create the Control Buttons (Select All / Clear All)
     let html = `
-        <div style="width: 100%; margin-bottom: 10px; display: flex; gap: 10px;">
-            <button type="button" id="btn-select-all-acc" style="flex: 1; font-size: 11px; padding: 5px; background: var(--header-bg); color: var(--text-color);">Select All</button>
-            <button type="button" id="btn-deselect-all-acc" style="flex: 1; font-size: 11px; padding: 5px; background: var(--header-bg); color: var(--text-color);">Clear All</button>
+        <div style="display: flex; gap: 10px; margin-bottom: 5px; width: 100%;">
+            <button type="button" id="btn-select-all-acc" style="flex: 1; font-size: 11px; padding: 8px; background: var(--header-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">Select All</button>
+            <button type="button" id="btn-deselect-all-acc" style="flex: 1; font-size: 11px; padding: 8px; background: var(--header-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">Clear All</button>
         </div>
+        
+        <div class="acc-grid-container">
     `;
 
-    // Change radio to checkbox
+    // 2. Map through accounts and create grid items
     CONFIG.FUNDED_ACCOUNTS.forEach((acc, i) => {
         html += `
-        <input type="checkbox" id="check-acc-${i}" name="funded-account-target" value="${acc}" class="acc-checkbox">
-        <label for="check-acc-${i}">${acc}</label>
+            <div class="acc-item">
+                <input type="checkbox" id="check-acc-${i}" name="funded-account-target" value="${acc}" class="acc-checkbox">
+                <label for="check-acc-${i}">${acc}</label>
+            </div>
         `;
     });
     
+    html += `</div>`; // Close grid container
     container.innerHTML = html;
 
-    // Logic for Select All / Clear All
+    // 3. Re-attach Button Logic
     document.getElementById('btn-select-all-acc').onclick = () => {
         container.querySelectorAll('.acc-checkbox').forEach(cb => cb.checked = true);
     };
