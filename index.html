@@ -794,30 +794,20 @@ table:has(#ts-completed-trades-tbody) thead th {
                     <div class="collapsible-content-inner">
                         <form id="ts-add-trade-form">
                             <div id="funded-account-radios" class="funded-radio-group" style="grid-column: 1 / -1;"></div>
-
-                            <div style="display: flex; gap: 5px;">
-                                <div style="flex: 2;">
-                                    <label for="ts-trade-session">Session:</label>
-                                    <select id="ts-trade-session">
-                                        <option value="Pre_Asia">Pre Asia</option><option value="Asia">Asia</option><option value="Pre_London">Pre London</option><option value="London">London</option><option value="Pre_NY_AM">Pre NY AM</option><option value="NY_AM">NY AM</option><option value="Pre_NYL">Pre NYL</option><option value="NYL">NYL</option><option value="Pre_NY_PM">Pre NY PM</option><option value="NY_PM">NY PM</option>
-                                    </select>
-                                </div>
-                                <div style="flex: 1;">
-                                    <label for="ts-trade-variant">#:</label>
-                          <select id="ts-trade-variant">  <!-- FIXED -->
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-        <option value="7">7</option>
-        <option value="8">8</option>
-        <option value="9">9</option>
-        <option value="10">10</option>
-    </select>
-                                </div>
-                            </div>
+<div style="display: flex; gap: 5px;">
+    <div style="flex: 2;">
+        <label for="ts-trade-session">Session (Auto):</label>
+        <select id="ts-trade-session" disabled style="background-color: var(--header-bg); opacity: 0.7;">
+            <!-- Options remain the same -->
+        </select>
+    </div>
+    <div style="flex: 1;">
+        <label for="ts-trade-variant"># (Auto):</label>
+        <select id="ts-trade-variant" disabled style="background-color: var(--header-bg); opacity: 0.7;">
+            <!-- Options remain the same -->
+        </select>
+    </div>
+</div>
                             <div>
     <label for="ts-trade-symbol">Symbol:</label>
     <select id="ts-trade-symbol">
@@ -1459,6 +1449,66 @@ table:has(#ts-completed-trades-tbody) thead th {
                 STATE.isProcessing = false;
             });
     });
+}
+
+        function getNYTime() {
+    const options = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false };
+    const formatter = new Intl.DateTimeFormat('en-US', options);
+    const parts = formatter.formatToParts(new Date());
+    const hour = parseInt(parts.find(p => p.type === 'hour').value);
+    const minute = parseInt(parts.find(p => p.type === 'minute').value);
+    return hour + (minute / 60);
+}
+
+function getAutoSession() {
+    const nyTime = getNYTime();
+
+    if (nyTime >= 20 || nyTime < 0) return "Asia";
+    if (nyTime >= 0 && nyTime < 2) return "Pre_London";
+    if (nyTime >= 2 && nyTime < 5) return "London";
+    if (nyTime >= 5 && nyTime < 9.5) return "Pre_NY_AM";
+    if (nyTime >= 9.5 && nyTime < 11) return "NY_AM";
+    if (nyTime >= 11 && nyTime < 12) return "Pre_NYL";
+    if (nyTime >= 12 && nyTime < 13) return "NYL";
+    if (nyTime >= 13 && nyTime < 13.5) return "Pre_NY_PM";
+    if (nyTime >= 13.5 && nyTime < 16) return "NY_PM";
+    return "Pre_Asia"; // 16:00 to 20:00 (Post NY close)
+}
+
+function getNextTradeVariant(session) {
+    const todayStr = getTradingDayString(Date.now(), Date.now());
+    
+    // Combine Live and Completed trades to find the count
+    const allTrades = { ...STATE.allTsTrades, ...STATE.allTsCompletedTrades };
+    
+    // Filter by Today + This Session
+    const sessionTrades = Object.values(allTrades).filter(t => {
+        const tradeDay = getTradingDayString(t.closed_date || t.date, t.date);
+        return tradeDay === todayStr && t.groupId && t.groupId.startsWith(session);
+    });
+
+    if (sessionTrades.length === 0) return 1;
+
+    // Get the unique variants (since one execution might have 5 accounts with same variant)
+    const variants = sessionTrades.map(t => {
+        const parts = t.groupId.split('_');
+        return parseInt(parts[parts.length - 1]);
+    });
+
+    const maxVariant = Math.max(...variants);
+    return maxVariant + 1;
+}
+
+// Function to update the UI selects so you can see what it's choosing
+function updateAutoSessionUI() {
+    const session = getAutoSession();
+    const variant = getNextTradeVariant(session);
+    
+    const sessEl = document.getElementById('ts-trade-session');
+    const varEl = document.getElementById('ts-trade-variant');
+    
+    if (sessEl) sessEl.value = session;
+    if (varEl) varEl.value = variant;
 }
  function calculateFuturesMetrics(tradeData) {
     const entry = parseFloat(tradeData.entry);
@@ -3280,21 +3330,74 @@ if (cryptoTypeSelect) cryptoTypeSelect.addEventListener('change', updateCryptoSL
             };
         }
 
+
 function handleAddTradeSubmit(e, isTopstep = false) {
     e.preventDefault(); 
     if (!STATE.isMasterUser) return;
     
     const prefix = isTopstep ? 'ts-' : '';
-    const session = document.getElementById(`${prefix}trade-session`).value;
-    const variant = document.getElementById(`${prefix}trade-variant`).value;
+    let session, variant;
+
+    // --- AUTO-SESSION & VARIANT LOGIC ---
+    if (isTopstep) {
+        // 1. Detect NY Session based on Current Time
+        const nyHour = (() => {
+            const options = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false };
+            const formatter = new Intl.DateTimeFormat('en-US', options);
+            const parts = formatter.formatToParts(new Date());
+            const h = parseInt(parts.find(p => p.type === 'hour').value);
+            const m = parseInt(parts.find(p => p.type === 'minute').value);
+            return h + (m / 60);
+        })();
+
+        if (nyHour >= 20 || nyHour < 0) session = "Asia";
+        else if (nyHour >= 0 && nyHour < 2) session = "Pre_London";
+        else if (nyHour >= 2 && nyHour < 5) session = "London";
+        else if (nyHour >= 5 && nyHour < 9.5) session = "Pre_NY_AM";
+        else if (nyHour >= 9.5 && nyHour < 11) session = "NY_AM";
+        else if (nyHour >= 11 && nyHour < 12) session = "Pre_NYL";
+        else if (nyHour >= 12 && nyHour < 13) session = "NYL";
+        else if (nyHour >= 13 && nyHour < 13.5) session = "Pre_NY_PM";
+        else if (nyHour >= 13.5 && nyHour < 16) session = "NY_PM";
+        else session = "Pre_Asia";
+
+        // 2. Calculate next Trade # (Variant) for Today + This Session
+        const todayStr = getTradingDayString(Date.now(), Date.now());
+        const allTrades = { ...STATE.allTsTrades, ...STATE.allTsCompletedTrades };
+        
+        // Find highest existing variant for this session today
+        const existingVariants = Object.values(allTrades)
+            .filter(t => {
+                const tradeDay = getTradingDayString(t.closed_date || t.date, t.date);
+                return tradeDay === todayStr && t.groupId && t.groupId.startsWith(session);
+            })
+            .map(t => {
+                const parts = t.groupId.split('_');
+                return parseInt(parts[parts.length - 1]) || 0;
+            });
+
+        variant = existingVariants.length > 0 ? Math.max(...existingVariants) + 1 : 1;
+
+        // Update UI visuals so you can see what it chose
+        const uiSess = document.getElementById('ts-trade-session');
+        const uiVar = document.getElementById('ts-trade-variant');
+        if (uiSess) uiSess.value = session;
+        if (uiVar) uiVar.value = variant;
+
+    } else {
+        // Standard Manual Selection for Crypto Tab
+        session = document.getElementById(`trade-session`).value;
+        variant = document.getElementById(`trade-variant`).value;
+    }
+
     const generatedGroupId = `${session}_${variant}`;
 
+    // --- DATA GATHERING ---
     const entryPrice = parseFloat(document.getElementById(`${prefix}entry-price`).value);
     const stopLossPrice = parseFloat(document.getElementById(`${prefix}stop-loss`).value);
     const targetPrice = parseFloat(document.getElementById(`${prefix}target`).value);
 
-    // Common trade data structure
-    const trade = { 
+    const tradeBase = { 
         symbol: document.getElementById(`${prefix}trade-symbol`).value, 
         type: document.getElementById(`${prefix}trade-type`).value, 
         setupType: 'Major', 
@@ -3307,75 +3410,61 @@ function handleAddTradeSubmit(e, isTopstep = false) {
         entry_prices: [entryPrice]
     };
 
-    // Validation for prices
-    if ([trade.entry, trade.stoploss, trade.target].some(val => isNaN(val) || val === null)) {
+    if ([tradeBase.entry, tradeBase.stoploss, tradeBase.target].some(val => isNaN(val))) {
         return alert('Please fill all price fields correctly.');
     }
 
+    // --- EXECUTION LOGIC ---
     if (isTopstep) {
-        // 1. Find all CHECKED checkboxes
+        // Multi-Account logic for Funded Tab
         const selectedCheckboxes = document.querySelectorAll('input[name="funded-account-target"]:checked');
-        
-        if (selectedCheckboxes.length === 0) {
-            return alert('Please select at least one account to execute the trade.');
-        }
-        
-        // 2. Map the checkbox values into an array (e.g., ["Lucid 1", "Lucid 3"])
-        const accountsToExecute = Array.from(selectedCheckboxes).map(cb => cb.value);
+        if (selectedCheckboxes.length === 0) return alert('Please select at least one account.');
 
-        // 3. Get Funded specific fields
-        trade.contracts = parseFloat(document.getElementById(`ts-contracts`).value);
-        trade.size = trade.contracts; // Map size to contracts for consistency
-        trade.commissions = parseFloat(document.getElementById(`ts-commissions`).value);
-        trade.exchange = "Futures";
-        trade.entryFeeType = "fixed";
+        const contracts = parseFloat(document.getElementById(`ts-contracts`).value);
+        const comms = parseFloat(document.getElementById(`ts-commissions`).value);
+        if (isNaN(contracts)) return alert('Please enter contract quantity.');
 
-        if (isNaN(trade.contracts)) return alert('Please enter contract quantity.');
-
-        // 4. Create a unique trade in Firebase for EVERY selected account
-        const promises = accountsToExecute.map(acc => {
-            const specificTrade = { 
-                ...trade, 
-                evalAccount: acc 
+        const promises = Array.from(selectedCheckboxes).map(cb => {
+            const accTrade = { 
+                ...tradeBase, 
+                evalAccount: cb.value,
+                contracts: contracts,
+                size: contracts,
+                commissions: comms,
+                exchange: "Futures",
+                entryFeeType: "fixed"
             };
-            // Calculate specific metrics (PnL per 100 etc) for this instance
-            const metrics = calculateFuturesMetrics(specificTrade);
-            return dbRefs.tsTrades.push({ ...specificTrade, ...metrics });
+            const metrics = calculateFuturesMetrics(accTrade);
+            return dbRefs.tsTrades.push({ ...accTrade, ...metrics });
         });
 
-        // 5. Cleanup UI after all trades are sent
         Promise.all(promises).then(() => {
+            // Success Cleanup
             document.getElementById(`ts-entry-price`).value = '';
             document.getElementById(`ts-stop-loss`).value = '';
             document.getElementById(`ts-target`).value = '';
-            // Reset contracts to 1 or keep same? Usually reset:
-            document.getElementById(`ts-contracts`).value = '1';
-            
-            // Optional: Uncheck all boxes after submission
-            // document.querySelectorAll('input[name="funded-account-target"]').forEach(cb => cb.checked = false);
-            
-            console.log(`Successfully executed trades for: ${accountsToExecute.join(', ')}`);
-        }).catch(error => {
-            alert(`Error adding trades: ${error.message}`);
-        });
-        
-    } else {
-        // --- STANDARD CRYPTO TRACKER LOGIC ---
-        trade.size = parseFloat(document.getElementById(`position-value`).value);
-        trade.exchange = document.getElementById(`trade-exchange`).value;
-        trade.entryFeeType = document.getElementById(`entry-fee-type`).value;
+            console.log(`Executed ${generatedGroupId} for: ${Array.from(selectedCheckboxes).map(c=>c.value).join(', ')}`);
+        }).catch(err => alert("Error: " + err.message));
 
-        if (isNaN(trade.size)) return alert('Please fill position value correctly.');
-        
-        const metrics = calculateTradeMetrics(trade);
-        const tradeWithMetrics = { ...trade, ...metrics };
-        
-        dbRefs.trades.push(tradeWithMetrics).then(() => {
+    } else {
+        // Single trade logic for Crypto Tab
+        const size = parseFloat(document.getElementById(`position-value`).value);
+        if (isNaN(size)) return alert('Please enter position value.');
+
+        const cryptoTrade = {
+            ...tradeBase,
+            size: size,
+            exchange: document.getElementById(`trade-exchange`).value,
+            entryFeeType: document.getElementById(`entry-fee-type`).value
+        };
+
+        const metrics = calculateTradeMetrics(cryptoTrade);
+        dbRefs.trades.push({ ...cryptoTrade, ...metrics }).then(() => {
             document.getElementById(`entry-price`).value = '';
             document.getElementById(`stop-loss`).value = '';
             document.getElementById(`target`).value = '';
             document.getElementById(`position-value`).value = '';
-        }).catch(error => alert(`Error adding trade: ${error.message}`));
+        });
     }
 }
         function handleCompletedTradeUpdate(cell) {
@@ -4057,7 +4146,17 @@ const netResult = (points * MULT * contracts) - fees;
                     renderFilteredEvalData();
                 }
             });
+dbRefs.tsTrades.on('value', s => { 
+    STATE.allTsTrades = s.val() || {}; 
+    renderFilteredEvalData(); 
+    updateAutoSessionUI(); // <--- ADD THIS
+});
 
+dbRefs.tsCompletedTrades.on('value', s => {
+    STATE.allTsCompletedTrades = s.val() || {};
+    renderFilteredEvalData();
+    updateAutoSessionUI(); // <--- ADD THIS
+});
             dbRefs.tsSetups1.on('value', (s) => { 
                 const val = s.val() || "";
                 const el = document.getElementById('ts-primary-setups-notes');
@@ -4280,39 +4379,63 @@ const netResult = (points * MULT * contracts) - fees;
             }
         }
 
-        async function initializeApp() {
+           async function initializeApp() {
             checkMasterMode(); 
             getViewerId();
             await fetchLiveConversionRate();
 
-            // Initialize multi-account radios
+            // 1. Initialize Funded Account UI Components
             renderFundedAccountRadios();
             
-            // Set initial stats cache defaults to render immediately
+            // Set initial stats cache defaults to render immediately before data loads
             CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
-                FUNDED_STATS_CACHE[acc] = { balance: CONFIG.FUNDED_START, hwm: CONFIG.FUNDED_START, maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN };
+                FUNDED_STATS_CACHE[acc] = { 
+                    balance: CONFIG.FUNDED_START, 
+                    hwm: CONFIG.FUNDED_START, 
+                    maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN 
+                };
             });
             renderFundedBanners();
             updateTargetCalculator();
 
+            // 2. Handle Theme Selection
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) { 
                 document.documentElement.setAttribute('data-theme', savedTheme); 
                 DOM.themeToggle.checked = savedTheme === 'dark'; 
             }
             
+            // 3. Initialize Date State (UTC Midnights for Journaling)
             const today = new Date(); 
             today.setUTCHours(0, 0, 0, 0);
             STATE.selectedDate = new Date(today); 
             STATE.centerDate = new Date(today);
             
+            // 4. Connect Event Listeners and Data Streams
             setupEventListeners(); 
             subscribeToData();
             renderDateNavigation(); 
             checkMarketAlerts(); 
 
+            // 5. Show Performance Stats Toggle
             DOM.statsPanelContainer.style.display = 'block';
 
+            // 6. AUTO-SESSION & VARIANT (TRADE #) LOGIC
+            // Set session/variant immediately on load
+            updateAutoSessionUI();
+            
+            // Check every minute to see if the NY clock has moved into a new session
+            setInterval(updateAutoSessionUI, 60000);
+
+            // Force update when clicking into the Funded Tab to ensure latest # is shown
+            DOM.tabs.addEventListener('click', (e) => {
+                if (e.target.dataset.tab === 'topstep') {
+                    updateAutoSessionUI();
+                }
+            });
+
+            // 7. UI REFINEMENT DELAY
+            // This ensures data has started rendering before we calculate heights for collapsibles
             setTimeout(() => {
                 const activeTabContent = document.querySelector('.tab-content.active');
                 if (activeTabContent) {
@@ -4325,9 +4448,10 @@ const netResult = (points * MULT * contracts) - fees;
                     if (tsPrimary && tsPrimary.value) autoResizeTextarea(tsPrimary);
                     if (tsSecondary && tsSecondary.value) autoResizeTextarea(tsSecondary);
                     
+                    // Force open default sections and ensure they aren't height-capped
                     activeTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
                         const content = section.querySelector('.collapsible-content');
-                        if (content) content.style.maxHeight = 'none'; // Guarantee no layout cut-offs
+                        if (content) content.style.maxHeight = 'none'; 
                     });
                 }
             }, 700); 
