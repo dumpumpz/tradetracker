@@ -3110,26 +3110,12 @@ if (tsTradeSymbolSelect && tsCommissionsInput) {
                     const totalDays = new Set(Object.values(STATE.allSetupsImages).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
                     if (STATE.setupsImagesCurrentPage < totalDays) { STATE.setupsImagesCurrentPage++; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
                 }
-          
-
+        
 else if (e.target.id === 'ts-toggle-all-setups-images') {
     STATE.tsSetupsImagesShowAll = true; 
     STATE.tsSetupsImagesCurrentPage = 1;
-    
-    const container = document.getElementById('ts-setups-image-container');
-    // Force the re-render with showAll = true
-    renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
-    
-    // FORCE the collapsible to expand to fit the new images
-    const section = container.closest('.collapsible-section');
-    if (section) {
-        const content = section.querySelector('.collapsible-content');
-        if (content) {
-            content.style.maxHeight = 'none'; // Clear the height restriction
-        }
-    }
-}
-
+    renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
+} 
 else if (e.target.id === 'ts-setups-images-prev-page') {
     if (STATE.tsSetupsImagesCurrentPage > 1) { 
         STATE.tsSetupsImagesCurrentPage--; 
@@ -3138,13 +3124,11 @@ else if (e.target.id === 'ts-setups-images-prev-page') {
 } 
 else if (e.target.id === 'ts-setups-images-next-page') {
     const uniqueDatesTS = new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp)));
-    const totalPagesTS = uniqueDatesTS.size;
-    if (STATE.tsSetupsImagesCurrentPage < totalPagesTS) { 
+    if (STATE.tsSetupsImagesCurrentPage < uniqueDatesTS.size) { 
         STATE.tsSetupsImagesCurrentPage++; 
         renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
     }
 }
-
             });
 
             // 10. General Note Modals
@@ -3908,14 +3892,21 @@ function handleTradeAction(e) {
         });
     }
 }
+// Helper for date headers in the gallery
+const formatDisplayDate = (dateString) => {
+    if (!dateString || dateString === 'Unknown') return 'Date Unknown';
+    try {
+        const date = new Date(dateString + 'T12:00:00'); 
+        return date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
+    } catch (e) { return dateString; }
+};
+
 function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     const images = imagesData || {};
     if (!containerElement) return;
 
     const isTS = (libraryType === 'ts_setups_images');
     const prefix = isTS ? 'ts-' : '';
-
-    // Correctly pull the state based on which library we are in
     const showAll = isTS ? STATE.tsSetupsImagesShowAll : STATE.setupsImagesShowAll;
     const currentPage = isTS ? STATE.tsSetupsImagesCurrentPage : STATE.setupsImagesCurrentPage;
 
@@ -3930,65 +3921,58 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     const allImageIds = Object.keys(images).sort((a, b) => (images[b].timestamp || 0) - (images[a].timestamp || 0));
     let imagesHtml = '';
 
-    const createImageHtml = (id, extraClasses = '', extraStyle = '') => {
+    const createImageHtml = (id) => {
         const imgData = images[id];
         if (!imgData?.url) return '';
         const caption = imgData.caption || (imgData.timestamp ? new Date(imgData.timestamp).toLocaleString() : ' ');
-        return `<div class="library-image-wrapper ${extraClasses}" ${extraStyle}>${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption" title="${caption}">${caption}</div></div>`;
+        return `<div class="library-image-wrapper">${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption">${caption}</div></div>`;
     };
 
     if (showAll) {
         // --- HISTORY MODE ---
-        const uniqueDatesSet = new Set();
-        allImageIds.forEach(id => {
-            if(images[id].timestamp) uniqueDatesSet.add(getTradingDayString(images[id].timestamp, images[id].timestamp));
-        });
+        const uniqueDates = Array.from(new Set(allImageIds.map(id => getTradingDayString(images[id].timestamp, images[id].timestamp)))).sort((a, b) => b.localeCompare(a));
+        const totalPages = uniqueDates.length;
+        const targetDate = uniqueDates[currentPage - 1];
 
-        const sortedUniqueDates = Array.from(uniqueDatesSet).sort((a, b) => b.localeCompare(a));
-        const totalPages = sortedUniqueDates.length;
-        const dateToDisplay = sortedUniqueDates[currentPage - 1];
-
-        if (dateToDisplay) {
-            const idsForThisDate = allImageIds.filter(id => getTradingDayString(images[id].timestamp, images[id].timestamp) === dateToDisplay);
-            imagesHtml = idsForThisDate.map(id => createImageHtml(id)).join('');
-            imagesHtml += `<h3 class="daily-image-footer">${formatDisplayDate(dateToDisplay)}</h3>`; 
+        if (targetDate) {
+            const idsForDate = allImageIds.filter(id => getTradingDayString(images[id].timestamp, images[id].timestamp) === targetDate);
+            imagesHtml = idsForDate.map(id => createImageHtml(id)).join('');
+            imagesHtml += `<h3 class="daily-image-footer">${formatDisplayDate(targetDate)}</h3>`;
         }
 
         if (showAllButton) showAllButton.style.display = 'none';
         if (paginationControls) {
             paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
-            if (pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
-            if (prevBtn) prevBtn.disabled = (currentPage === 1);
-            if (nextBtn) nextBtn.disabled = (currentPage >= totalPages);
+            pageInfo.textContent = `Day ${currentPage} of ${totalPages}`;
+            prevBtn.disabled = (currentPage === 1);
+            nextBtn.disabled = (currentPage >= totalPages);
         }
     } else {
         // --- TODAY ONLY MODE ---
-        const todayTradingDay = getTradingDayString(Date.now(), Date.now());
+        const todayStr = getTradingDayString(Date.now(), Date.now());
         let hasHistory = false;
-        
-        imagesHtml = allImageIds.map(id => {
-            const imgData = images[id];
-            // If timestamp missing, assume today so it shows up
-            const imgDateKey = imgData.timestamp ? getTradingDayString(imgData.timestamp, imgData.timestamp) : todayTradingDay;
-            const isHistorical = imgDateKey !== todayTradingDay;
-            
-            if (isHistorical) hasHistory = true;
-            
-            // Only render if today or if we want to show all (handled above)
-            if (!isHistorical) {
-                return createImageHtml(id);
-            }
-            return ''; 
+
+        const todayImagesHtml = allImageIds.map(id => {
+            const date = getTradingDayString(images[id].timestamp, images[id].timestamp);
+            if (date === todayStr) return createImageHtml(id);
+            hasHistory = true;
+            return '';
         }).join('');
 
+        imagesHtml = todayImagesHtml || '<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 20px;">No images for today.</div>';
+        
         if (showAllButton) showAllButton.style.display = hasHistory ? 'block' : 'none';
         if (paginationControls) paginationControls.style.display = 'none';
     }
 
-    containerElement.innerHTML = imagesHtml || '<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 20px;"></div>';
-
-    // IMPORTANT: Recalculate heights for the collapsible container
-    resizeParentCollapsible(containerElement);
+    containerElement.innerHTML = imagesHtml;
+    
+    // Fix for the height cutting off
+    const section = containerElement.closest('.collapsible-section');
+    if (section && section.classList.contains('is-open')) {
+        const content = section.querySelector('.collapsible-content');
+        if (content) content.style.maxHeight = 'none'; 
+    }
 }
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); 
