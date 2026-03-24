@@ -3110,28 +3110,34 @@ if (tsTradeSymbolSelect && tsCommissionsInput) {
                     const totalDays = new Set(Object.values(STATE.allSetupsImages).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
                     if (STATE.setupsImagesCurrentPage < totalDays) { STATE.setupsImagesCurrentPage++; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
                 }
-               else if (e.target.id === 'ts-toggle-all-setups-images') {
+          
+else if (e.target.id === 'ts-toggle-all-setups-images') {
     STATE.tsSetupsImagesShowAll = true; 
     STATE.tsSetupsImagesCurrentPage = 1;
     
     const container = document.getElementById('ts-setups-image-container');
+    // Re-render the library with history mode active
     renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
     
-    // THE FIX: Force the section to expand
+    // FIX: Force the collapsible container to expand to show the new content
     const section = container.closest('.collapsible-section');
     if (section) {
         section.classList.add('is-open');
         const content = section.querySelector('.collapsible-content');
         const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-        if (content) content.style.maxHeight = 'none'; // Remove the height limit
+        if (content) {
+            content.style.maxHeight = 'none'; // Remove the height restriction
+        }
         if (toggleBtn) toggleBtn.textContent = '−';
     }
-}else if (e.target.id === 'ts-setups-images-prev-page') {
+}
+
+else if (e.target.id === 'ts-setups-images-prev-page') {
     if (STATE.tsSetupsImagesCurrentPage > 1) { 
         STATE.tsSetupsImagesCurrentPage--; 
         const container = document.getElementById('ts-setups-image-container');
         renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
-        resizeParentCollapsible(container); // Recalculate height
+        resizeParentCollapsible(container); 
     }
 } 
 else if (e.target.id === 'ts-setups-images-next-page') {
@@ -3140,7 +3146,7 @@ else if (e.target.id === 'ts-setups-images-next-page') {
         STATE.tsSetupsImagesCurrentPage++; 
         const container = document.getElementById('ts-setups-image-container');
         renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
-        resizeParentCollapsible(container); // Recalculate height
+        resizeParentCollapsible(container);
     }
 }
 
