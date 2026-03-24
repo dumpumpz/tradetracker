@@ -328,26 +328,25 @@
 /* --- Funded Tab Column Cleanup --- */
 /* --- Funded Tab Column Cleanup --- */
 
+/* --- Optimized Funded Tab Column Clea
 /* --- Optimized Funded Tab Column Cleanup --- */
 /* --- FINAL FIX FOR TABLE ALIGNMENT --- */
 
-/* 1. Target ONLY the Live Trades Table Data */
-#ts-trades-tbody tr td:nth-child(1),  /* Sym */
-#ts-trades-tbody tr td:nth-child(5),  /* BE */
-#ts-trades-tbody tr td:nth-child(6),  /* Entries List */
-#ts-trades-tbody tr td:nth-child(10), /* RR-M */
-#ts-trades-tbody tr td:nth-child(12), /* Qty */
-#ts-trades-tbody tr td:nth-child(13), /* /100 */
-#ts-trades-tbody tr td:nth-child(14), /* Fees */
-#ts-trades-tbody tr td:nth-child(16), /* Pr-M */
-#ts-trades-tbody tr td:nth-child(18)  /* Ls-M */
+/* 1. Target ONLY the individual trade rows (NOT the group headers) */
+#ts-trades-tbody tr.child-row td:nth-child(1),  /* Sym */
+#ts-trades-tbody tr.child-row td:nth-child(5),  /* BE */
+#ts-trades-tbody tr.child-row td:nth-child(6),  /* Entries List */
+#ts-trades-tbody tr.child-row td:nth-child(10), /* RR-M */
+#ts-trades-tbody tr.child-row td:nth-child(12), /* Qty */
+#ts-trades-tbody tr.child-row td:nth-child(13), /* /100 */
+#ts-trades-tbody tr.child-row td:nth-child(14), /* Fees */
+#ts-trades-tbody tr.child-row td:nth-child(16), /* Pr-M */
+#ts-trades-tbody tr.child-row td:nth-child(18)  /* Ls-M */
 {
     display: none !important;
 }
 
 /* 2. Target ONLY the Live Trades Table Headers */
-/* We find the header that sits exactly above our Live Tbody */
-#ts-trades-tbody ~ thead th:nth-child(1), 
 table:has(#ts-trades-tbody) thead th:nth-child(1),
 table:has(#ts-trades-tbody) thead th:nth-child(5),
 table:has(#ts-trades-tbody) thead th:nth-child(6),
@@ -360,9 +359,13 @@ table:has(#ts-trades-tbody) thead th:nth-child(18) {
     display: none !important;
 }
 
-/* 3. ENSURE Completed Trades table shows EVERYTHING */
+/* 3. ENSURE Group Headers (colspan rows) remain visible */
+#ts-trades-tbody tr:not(.child-row) td {
+    display: table-cell !important;
+}
+
+/* 4. ENSURE Completed Trades table shows EVERYTHING */
 #ts-completed-trades-tbody tr td, 
-#ts-completed-trades-tbody ~ thead th,
 table:has(#ts-completed-trades-tbody) thead th {
     display: table-cell !important;
 }
