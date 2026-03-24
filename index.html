@@ -1271,14 +1271,17 @@ table:has(#ts-completed-trades-tbody) thead th {
             resizeParentCollapsible(textarea);
         }
 
-        function resizeParentCollapsible(elementInside) {
-            if (!elementInside) return;
-            const section = elementInside.closest('.collapsible-section');
-            if (section && section.classList.contains('is-open')) {
-                const content = section.querySelector('.collapsible-content');
-                if (content) content.style.maxHeight = 'none';
-            }
+    function resizeParentCollapsible(elementInside) {
+    if (!elementInside) return;
+    const section = elementInside.closest('.collapsible-section');
+    if (section && section.classList.contains('is-open')) {
+        const content = section.querySelector('.collapsible-content');
+        if (content) {
+            // Setting to 'none' allows the section to grow naturally with its content
+            content.style.maxHeight = 'none'; 
         }
+    }
+}
 
         const formatCurrency = (num, symbol = '$') => { 
             if (typeof num !== 'number' || isNaN(num)) { return '--'; } 
@@ -3124,11 +3127,23 @@ if (tsTradeSymbolSelect && tsCommissionsInput) {
         if (toggleBtn) toggleBtn.textContent = '−';
     }
 }else if (e.target.id === 'ts-setups-images-prev-page') {
-                    if (STATE.tsSetupsImagesCurrentPage > 1) { STATE.tsSetupsImagesCurrentPage--; renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images'); }
-                } else if (e.target.id === 'ts-setups-images-next-page') {
-                    const totalDaysTS = new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
-                    if (STATE.tsSetupsImagesCurrentPage < totalDaysTS) { STATE.tsSetupsImagesCurrentPage++; renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images'); }
-                }
+    if (STATE.tsSetupsImagesCurrentPage > 1) { 
+        STATE.tsSetupsImagesCurrentPage--; 
+        const container = document.getElementById('ts-setups-image-container');
+        renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
+        resizeParentCollapsible(container); // Recalculate height
+    }
+} 
+else if (e.target.id === 'ts-setups-images-next-page') {
+    const totalDaysTS = new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
+    if (STATE.tsSetupsImagesCurrentPage < totalDaysTS) { 
+        STATE.tsSetupsImagesCurrentPage++; 
+        const container = document.getElementById('ts-setups-image-container');
+        renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
+        resizeParentCollapsible(container); // Recalculate height
+    }
+}
+
             });
 
             // 10. General Note Modals
