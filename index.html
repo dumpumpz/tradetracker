@@ -3107,10 +3107,23 @@ if (tsTradeSymbolSelect && tsCommissionsInput) {
                     const totalDays = new Set(Object.values(STATE.allSetupsImages).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
                     if (STATE.setupsImagesCurrentPage < totalDays) { STATE.setupsImagesCurrentPage++; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
                 }
-                else if (e.target.id === 'ts-toggle-all-setups-images') {
-                    STATE.tsSetupsImagesShowAll = true; STATE.tsSetupsImagesCurrentPage = 1;
-                    renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
-                } else if (e.target.id === 'ts-setups-images-prev-page') {
+               else if (e.target.id === 'ts-toggle-all-setups-images') {
+    STATE.tsSetupsImagesShowAll = true; 
+    STATE.tsSetupsImagesCurrentPage = 1;
+    
+    const container = document.getElementById('ts-setups-image-container');
+    renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
+    
+    // THE FIX: Force the section to expand
+    const section = container.closest('.collapsible-section');
+    if (section) {
+        section.classList.add('is-open');
+        const content = section.querySelector('.collapsible-content');
+        const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+        if (content) content.style.maxHeight = 'none'; // Remove the height limit
+        if (toggleBtn) toggleBtn.textContent = '−';
+    }
+}else if (e.target.id === 'ts-setups-images-prev-page') {
                     if (STATE.tsSetupsImagesCurrentPage > 1) { STATE.tsSetupsImagesCurrentPage--; renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images'); }
                 } else if (e.target.id === 'ts-setups-images-next-page') {
                     const totalDaysTS = new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
