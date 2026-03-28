@@ -974,20 +974,7 @@ table:has(#ts-completed-trades-tbody) thead th {
             </div>
         </div>
 
-        <!-- Funded Session Analytics (Master Only) -->
-<div class="collapsible-section master-only">
-    <div class="collapsible-header">
-        <h2>Funded Session Analytics</h2>
-        <button class="collapsible-toggle-btn">+</button>
-    </div>
-    <div class="collapsible-content">
-        <div class="collapsible-content-inner">
-            <div id="ts-session-stats-grid" class="summary-split-container">
-                <!-- Data will be injected here -->
-            </div>
-        </div>
-    </div>
-</div>
+        
 
         <!-- Tab 2: Journal -->
         <div id="journal-tab" class="tab-content">
@@ -1378,17 +1365,15 @@ table:has(#ts-completed-trades-tbody) thead th {
             return mapped;
         }
 
-       function renderFilteredEvalData() {
-    const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
-    renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
-    
-    const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
-    renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
-    calculateTopstepStats(completedMapped);
-    
-    // ADD THIS LINE BELOW:
-    renderTsSessionAnalytics(completedMapped);
-}
+        function renderFilteredEvalData() {
+            const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
+            renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
+            
+            const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
+            renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
+            calculateTopstepStats(completedMapped);
+        }
+
         // --- RENDERING FUNCTIONS ---
         function toggleHistoricalRows(tbodyId, button) {
             const tbody = document.getElementById(tbodyId);
@@ -1744,73 +1729,6 @@ function getFuturesMultiplier(symbol) {
     document.getElementById('btn-deselect-all-acc').onclick = () => {
         container.querySelectorAll('.acc-checkbox').forEach(cb => cb.checked = false);
     };
-}
-
-        
-function renderTsSessionAnalytics(data) {
-    const container = document.getElementById('ts-session-stats-grid');
-    if (!container) return;
-
-    const trades = data || {};
-    const stats = {};
-    const sessions = ["Asia", "London", "NY_AM", "NYL", "NY_PM", "Pre_Asia", "Pre_London", "Pre_NY_AM", "Pre_NYL", "Pre_NY_PM"];
-
-    // Initialize stats object
-    sessions.forEach(s => {
-        stats[s] = { wins: 0, losses: 0, totalNet: 0, count: 0 };
-    });
-    stats["Other"] = { wins: 0, losses: 0, totalNet: 0, count: 0 };
-
-    // Aggregate data
-    Object.values(trades).forEach(t => {
-        let session = "Other";
-        
-        // Extract session from groupId (e.g., "NY_AM_1" -> "NY_AM")
-        if (t.groupId) {
-            const parts = t.groupId.split('_');
-            // Reconstruct session name if it has underscores (like NY_AM)
-            // This logic assumes the last part is always the variant number
-            session = parts.slice(0, -1).join('_');
-        }
-
-        if (!stats[session]) session = "Other";
-
-        const net = parseFloat(t.net_result || 0);
-        stats[session].count++;
-        stats[session].totalNet += net;
-        if (net > 0) stats[session].wins++;
-        else stats[session].losses++;
-    });
-
-    // Generate HTML
-    let html = '';
-    
-    // Sort sessions by totalNet profit descending
-    const sortedSessions = Object.keys(stats).sort((a, b) => stats[b].totalNet - stats[a].totalNet);
-
-    sortedSessions.forEach(s => {
-        const d = stats[s];
-        if (d.count === 0) return; // Skip empty sessions
-
-        const winRate = ((d.wins / d.count) * 100).toFixed(1);
-        const colorClass = d.totalNet >= 0 ? 'val-green' : 'val-red';
-
-        html += `
-        <div class="summary-card" style="min-width: 200px; flex: 1 1 200px;">
-            <h5 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">${s.replace(/_/g, ' ')}</h5>
-            <div class="summary-grid-row">
-                <div><span class="sum-label">Trades</span><span class="sum-val">${d.count}</span></div>
-                <div><span class="sum-label">Win Rate</span><span class="sum-val">${winRate}%</span></div>
-            </div>
-            <div class="summary-grid-row">
-                <div><span class="sum-label">W / L</span><span class="sum-val"><span class="val-green">${d.wins}</span> / <span class="val-red">${d.losses}</span></span></div>
-                <div><span class="sum-label">Net P/L</span><span class="sum-val ${colorClass}">$${d.totalNet.toFixed(2)}</span></div>
-            </div>
-        </div>
-        `;
-    });
-
-    container.innerHTML = html || '<p style="text-align:center; width:100%; color:var(--subtle-text);">No completed data available.</p>';
 }
 
 function renderLiveTable(data, tbodyId = 'trades-tbody', summaryId = 'live-trades-summary-container') {
