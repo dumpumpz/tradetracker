@@ -596,44 +596,38 @@ table:has(#ts-completed-trades-tbody) thead th {
 
         <!-- Stats Panel -->
     
-<div id="stats-panel-container">
+  <div id="stats-panel-container">
+            <div id="stats-panel">
+                <div class="stats-header">
+                    <h3 id="stats-panel-title">Performance Stats</h3>
+                    <button id="close-stats-btn" title="Close Panel">×</button>
+                </div>
+                <div class="stats-grid">
+                    <!-- CRYPTO ONLY -->
+                    <div class="crypto-stat stat-item"><span class="stat-label">Current Balance</span><span id="stat-balance" class="stat-value">$0.00</span></div>
+                    <div class="crypto-stat stat-item"><span class="stat-label">AUD Value (est.)</span><span id="stat-balance-aud" class="stat-value">--</span></div>
+                    <div class="crypto-stat stat-item"><span class="stat-label">Total P/L</span><span id="stat-total-pl" class="stat-value">$0.00</span></div>
+                    <div class="crypto-stat stat-item"><span class="stat-label">Total P/L (AUD)</span><span id="stat-total-pl-aud" class="stat-value">A$0.00</span></div>
+                    
+                    <!-- FUNDED ONLY -->
+                    <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Combined Net P/L</span><span id="stat-funded-total-pl" class="stat-value">$0.00</span></div>
+                    <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Funded Win Rate</span><span id="stat-funded-win-rate" class="stat-value">0.0%</span></div>
+                    <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Funded PF</span><span id="stat-funded-pf" class="stat-value">0.00</span></div>
+                    <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Avg Win/Loss</span><span id="stat-funded-avg-wl" class="stat-value">--</span></div>
 
-<div id="stats-panel">
-    <div class="stats-header">
-        <h3 id="stats-panel-title">Crypto Stats</h3>
-        <button id="close-stats-btn" title="Close Panel">×</button>
-    </div>
-    <div class="stats-grid">
-        <!-- CRYPTO ONLY STATS -->
-        <div class="crypto-stat stat-item"><span class="stat-label">Current Balance</span><span id="stat-balance" class="stat-value">$0.00</span></div>
-        <div class="crypto-stat stat-item"><span class="stat-label">AUD Value (est.)</span><span id="stat-balance-aud" class="stat-value">--</span></div>
-        <div class="crypto-stat stat-item"><span class="stat-label">Total P/L</span><span id="stat-total-pl" class="stat-value">$0.00</span></div>
-        <div class="crypto-stat stat-item"><span class="stat-label">Total P/L (AUD)</span><span id="stat-total-pl-aud" class="stat-value">A$0.00</span></div>
-        
-        <!-- FUNDED ONLY STATS -->
-        <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Combined Net P/L</span><span id="stat-funded-total-pl" class="stat-value">$0.00</span></div>
-        <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Funded Win Rate</span><span id="stat-funded-win-rate" class="stat-value">0.0%</span></div>
-        <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Funded Profit Factor</span><span id="stat-funded-pf" class="stat-value">0.00</span></div>
-        <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Avg Win/Loss</span><span id="stat-funded-avg-wl" class="stat-value">--</span></div>
-
-        <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
-        
-        <!-- SHARED VISUALS (Labels change via JS) -->
-        <div class="stat-item">
-            <span class="stat-label" id="label-wins-losses">Wins / Losses</span>
-            <div><span id="stat-wins" class="stat-value" style="color: var(--green-text);">0</span> / <span id="stat-losses" class="stat-value" style="color: var(--red-text);">0</span></div>
+                    <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
+                    
+                    <!-- SHARED (Labels/Values update via JS) -->
+                    <div class="stat-item"><span class="stat-label">Wins / Losses</span><div><span id="stat-wins" class="stat-value" style="color: var(--green-text);">0</span> / <span id="stat-losses" class="stat-value" style="color: var(--red-text);">0</span></div></div>
+                    <div class="crypto-stat stat-item"><span class="stat-label">Win Rate</span><span id="stat-win-rate" class="stat-value">0.0%</span></div>
+                    <div class="crypto-stat stat-item"><span class="stat-label">Profit Factor</span><span id="stat-profit-factor" class="stat-value">N/A</span></div>
+                    <div class="stat-item"><span class="stat-label">Open Trades</span><span id="stat-open-trades" class="stat-value">0</span></div>
+                </div>
+            </div>
+            <button id="stats-fab" title="Show Stats">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M32 32c17.7 0 32 14.3 32 32V400c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V64C32 46.3 46.3 32 64 32H160c17.7 0 32 14.3 32 32s-14.3 32-32 32H96v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96H64V64zM256 224c0-17.7-14.3-32-32-32H160c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7-14.3 32 32 32s32-14.3 32-32V224zM352 288c-17.7 0-32 14.3-32 32v64H256c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32zM480 32c17.7 0 32 14.3 32 32s-14.3 32-32 32H416v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96h-1.5c-16.3 0-30.8-12.4-32-28.5c-.2-2.1-.2-4.2-.2-6.4V64c0-17.7 14.3-32 32-32H480z"/></svg>
+            </button>
         </div>
-        
-        <div class="crypto-stat stat-item"><span class="stat-label">Win Rate</span><span id="stat-win-rate" class="stat-value">0.0%</span></div>
-        <div class="crypto-stat stat-item"><span class="stat-label">Profit Factor</span><span id="stat-profit-factor" class="stat-value">N/A</span></div>
-        <div class="stat-item"><span class="stat-label">Open Trades</span><span id="stat-open-trades" class="stat-value">0</span></div>
-    </div>
-</div>
-    <button id="stats-fab" title="Show Stats">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M32 32c17.7 0 32 14.3 32 32V400c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V64C32 46.3 46.3 32 64 32H160c17.7 0 32 14.3 32 32s-14.3 32-32 32H96v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96H64V64zM256 224c0-17.7-14.3-32-32-32H160c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7-14.3 32 32 32s32-14.3 32-32V224zM352 288c-17.7 0-32 14.3-32 32v64H256c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32zM480 32c17.7 0 32 14.3 32 32s-14.3 32-32 32H416v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96h-1.5c-16.3 0-30.8-12.4-32-28.5c-.2-2.1-.2-4.2-.2-6.4V64c0-17.7 14.3-32 32-32H480z"/></svg>
-    </button>
-</div>
-
         <!-- Navigation Tabs -->
         <div class="tabs">
             <button class="tab-link" data-tab="tracker">Trade Tracker</button>
