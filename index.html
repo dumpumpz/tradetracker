@@ -597,39 +597,38 @@ table:has(#ts-completed-trades-tbody) thead th {
         <!-- Stats Panel -->
     
 <div id="stats-panel-container">
-    <div id="stats-panel">
-        <div class="stats-header">
-            <h3 id="stats-panel-title">Crypto Stats</h3>
-            <button id="close-stats-btn" title="Close Panel">×</button>
-        </div>
-        <div class="stats-grid">
-            <!-- CRYPTO ONLY STATS -->
-            <div class="crypto-stat stat-item"><span class="stat-label">Current Balance</span><span id="stat-balance" class="stat-value">$0.00</span></div>
-            <div class="crypto-stat stat-item"><span class="stat-label">AUD Value (est.)</span><span id="stat-balance-aud" class="stat-value">--</span></div>
-            <div class="crypto-stat stat-item"><span class="stat-label">Total P/L</span><span id="stat-total-pl" class="stat-value">$0.00</span></div>
-            <div class="crypto-stat stat-item"><span class="stat-label">Total P/L (AUD)</span><span id="stat-total-pl-aud" class="stat-value">A$0.00</span></div>
-            
-            <!-- FUNDED ONLY STATS (Hidden by default) -->
-            <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Combined P/L</span><span id="stat-funded-total-pl" class="stat-value">$0.00</span></div>
-            <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Win Rate</span><span id="stat-funded-win-rate" class="stat-value">0.0%</span></div>
-            <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Profit Factor</span><span id="stat-funded-pf" class="stat-value">0.00</span></div>
-            <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Avg Win/Loss</span><span id="stat-funded-avg-wl" class="stat-value">--</span></div>
 
-            <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
-            
-            <!-- SHARED DYNAMIC STATS (Updates labels based on tab) -->
-            <div class="stat-item">
-                <span class="stat-label" id="label-wins-losses">Wins / Losses</span>
-                <div><span id="stat-wins" class="stat-value" style="color: var(--green-text);">0</span> / <span id="stat-losses" class="stat-value" style="color: var(--red-text);">0</span></div>
-            </div>
-            
-            <!-- Items that look the same on both but pull different data -->
-            <div class="crypto-stat stat-item"><span class="stat-label">Win Rate</span><span id="stat-win-rate" class="stat-value">0.0%</span></div>
-            <div class="crypto-stat stat-item"><span class="stat-label">Profit Factor</span><span id="stat-profit-factor" class="stat-value">N/A</span></div>
-            
-            <div class="stat-item"><span class="stat-label">Open Trades</span><span id="stat-open-trades" class="stat-value">0</span></div>
-        </div>
+<div id="stats-panel">
+    <div class="stats-header">
+        <h3 id="stats-panel-title">Crypto Stats</h3>
+        <button id="close-stats-btn" title="Close Panel">×</button>
     </div>
+    <div class="stats-grid">
+        <!-- CRYPTO ONLY STATS -->
+        <div class="crypto-stat stat-item"><span class="stat-label">Current Balance</span><span id="stat-balance" class="stat-value">$0.00</span></div>
+        <div class="crypto-stat stat-item"><span class="stat-label">AUD Value (est.)</span><span id="stat-balance-aud" class="stat-value">--</span></div>
+        <div class="crypto-stat stat-item"><span class="stat-label">Total P/L</span><span id="stat-total-pl" class="stat-value">$0.00</span></div>
+        <div class="crypto-stat stat-item"><span class="stat-label">Total P/L (AUD)</span><span id="stat-total-pl-aud" class="stat-value">A$0.00</span></div>
+        
+        <!-- FUNDED ONLY STATS -->
+        <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Combined Net P/L</span><span id="stat-funded-total-pl" class="stat-value">$0.00</span></div>
+        <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Funded Win Rate</span><span id="stat-funded-win-rate" class="stat-value">0.0%</span></div>
+        <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Funded Profit Factor</span><span id="stat-funded-pf" class="stat-value">0.00</span></div>
+        <div class="funded-stat stat-item" style="display:none;"><span class="stat-label">Avg Win/Loss</span><span id="stat-funded-avg-wl" class="stat-value">--</span></div>
+
+        <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
+        
+        <!-- SHARED VISUALS (Labels change via JS) -->
+        <div class="stat-item">
+            <span class="stat-label" id="label-wins-losses">Wins / Losses</span>
+            <div><span id="stat-wins" class="stat-value" style="color: var(--green-text);">0</span> / <span id="stat-losses" class="stat-value" style="color: var(--red-text);">0</span></div>
+        </div>
+        
+        <div class="crypto-stat stat-item"><span class="stat-label">Win Rate</span><span id="stat-win-rate" class="stat-value">0.0%</span></div>
+        <div class="crypto-stat stat-item"><span class="stat-label">Profit Factor</span><span id="stat-profit-factor" class="stat-value">N/A</span></div>
+        <div class="stat-item"><span class="stat-label">Open Trades</span><span id="stat-open-trades" class="stat-value">0</span></div>
+    </div>
+</div>
     <button id="stats-fab" title="Show Stats">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M32 32c17.7 0 32 14.3 32 32V400c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V64C32 46.3 46.3 32 64 32H160c17.7 0 32 14.3 32 32s-14.3 32-32 32H96v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96H64V64zM256 224c0-17.7-14.3-32-32-32H160c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7-14.3 32 32 32s32-14.3 32-32V224zM352 288c-17.7 0-32 14.3-32 32v64H256c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32zM480 32c17.7 0 32 14.3 32 32s-14.3 32-32 32H416v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96h-1.5c-16.3 0-30.8-12.4-32-28.5c-.2-2.1-.2-4.2-.2-6.4V64c0-17.7 14.3-32 32-32H480z"/></svg>
     </button>
@@ -2924,318 +2923,215 @@ fixHistoricalFundedMath();
             renderNotes(STATE.generalNotes);
         }
 
-        function setupEventListeners() {
-            // 1. Theme Toggle
-            DOM.themeToggle.addEventListener('change', (e) => {
-                const theme = e.target.checked ? 'dark' : 'light';
-                document.documentElement.setAttribute('data-theme', theme);
-                localStorage.setItem('theme', theme);
-            });
-            
-            // Evaluation Target Calculator Events
-            ['calc-risk-usd', 'calc-risk-ticks', 'calc-reward-ticks'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.addEventListener('input', updateTargetCalculator);
-            });
+      
+function setupEventListeners() {
+    // 1. Theme Toggle
+    DOM.themeToggle.addEventListener('change', (e) => {
+        const theme = e.target.checked ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    });
 
-            // 2. Independent Evaluation Trading Setups (Text Areas)
-            const tsPrimary = document.getElementById('ts-primary-setups-notes');
-            const tsSecondary = document.getElementById('ts-secondary-setups-notes');
+    // Evaluation Target Calculator Events
+    ['calc-risk-usd', 'calc-risk-ticks', 'calc-reward-ticks'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateTargetCalculator);
+    });
 
-            if (tsPrimary) {
-                tsPrimary.addEventListener('input', (e) => {
-                    autoResizeTextarea(e.target);
-                    resizeParentCollapsible(e.target);
-                    if (!STATE.isMasterUser) return;
-                    clearTimeout(STATE.tsSetups1Timer);
-                    STATE.tsSetups1Timer = setTimeout(() => {
-                        dbRefs.tsSetups1.set(e.target.value);
-                    }, 1000);
-                });
+    // 2. Independent Evaluation Trading Setups (Text Areas)
+    const tsPrimary = document.getElementById('ts-primary-setups-notes');
+    const tsSecondary = document.getElementById('ts-secondary-setups-notes');
+
+    if (tsPrimary) {
+        tsPrimary.addEventListener('input', (e) => {
+            autoResizeTextarea(e.target);
+            resizeParentCollapsible(e.target);
+            if (!STATE.isMasterUser) return;
+            clearTimeout(STATE.tsSetups1Timer);
+            STATE.tsSetups1Timer = setTimeout(() => {
+                dbRefs.tsSetups1.set(e.target.value);
+            }, 1000);
+        });
+    }
+
+    if (tsSecondary) {
+        tsSecondary.addEventListener('input', (e) => {
+            autoResizeTextarea(e.target);
+            resizeParentCollapsible(e.target);
+            if (!STATE.isMasterUser) return;
+            clearTimeout(STATE.tsSetups2Timer);
+            STATE.tsSetups2Timer = setTimeout(() => {
+                dbRefs.tsSetups2.set(e.target.value);
+            }, 1000);
+        });
+    }
+
+    // Auto-update default commission based on symbol selection
+    const tsTradeSymbolSelect = document.getElementById('ts-trade-symbol');
+    const tsCommissionsInput = document.getElementById('ts-commissions');
+
+    if (tsTradeSymbolSelect && tsCommissionsInput) {
+        tsTradeSymbolSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'NQ' || e.target.value === 'ES') {
+                tsCommissionsInput.value = '8.10'; // Tradovate/Topstep flat Mini RT fee
+            } else if (e.target.value === 'MNQ' || e.target.value === 'MES') {
+                tsCommissionsInput.value = '1.00'; // Tradovate/Topstep flat Micro RT fee
             }
+        });
+    }
 
-            if (tsSecondary) {
-                tsSecondary.addEventListener('input', (e) => {
-                    autoResizeTextarea(e.target);
-                    resizeParentCollapsible(e.target);
-                    if (!STATE.isMasterUser) return;
-                    clearTimeout(STATE.tsSetups2Timer);
-                    STATE.tsSetups2Timer = setTimeout(() => {
-                        dbRefs.tsSetups2.set(e.target.value);
-                    }, 1000);
-                });
+    // 3. Image Uploads (Generic Libraries)
+    DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
+    
+    const tsSetupsUpload = document.getElementById('ts-setups-image-upload');
+    if (tsSetupsUpload) {
+        tsSetupsUpload.addEventListener('change', (e) => {
+            handleGenericLibraryUpload(
+                e.target.files, 
+                'ts_setups_images', 
+                document.getElementById('ts-setups-upload-progress'), 
+                dbRefs.tsSetupsImages 
+            );
+        });
+    }
+
+    // 4. Tab Navigation Logic (Contextual Stats Toggle)
+    DOM.tabs.addEventListener('click', (e) => {
+        if (!e.target.matches('.tab-link')) return;
+        document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
+        e.target.classList.add('active');
+        const tabId = e.target.dataset.tab;
+        const newTabContent = document.getElementById(`${tabId}-tab`);
+
+        // --- CONTEXTUAL STATS PANEL SWAP ---
+        const isFundedTab = (tabId === 'topstep');
+        
+        // Toggle Panel Item Visibility
+        document.querySelectorAll('.crypto-stat').forEach(el => el.style.display = isFundedTab ? 'none' : 'flex');
+        document.querySelectorAll('.funded-stat').forEach(el => el.style.display = isFundedTab ? 'flex' : 'none');
+        
+        // Update Panel Title
+        const panelTitle = document.getElementById('stats-panel-title');
+        if (panelTitle) panelTitle.textContent = isFundedTab ? "Funded Stats" : "Crypto Stats";
+
+        // Refresh stats specifically for the tab clicked
+        if (isFundedTab) {
+            updateFundedPerformanceStats();
+            updateAutoSessionUI();
+        } else {
+            // Re-trigger global stats refresh for crypto
+            if (Object.keys(STATE.allCompletedTrades || {}).length > 0) {
+                dbRefs.completedTrades.once('value', s => { /* This re-runs the listener logic */ });
             }
-// Auto-update default commission based on symbol selection
-const tsTradeSymbolSelect = document.getElementById('ts-trade-symbol');
-const tsCommissionsInput = document.getElementById('ts-commissions');
+        }
 
-if (tsTradeSymbolSelect && tsCommissionsInput) {
-    tsTradeSymbolSelect.addEventListener('change', (e) => {
-        if (e.target.value === 'NQ' || e.target.value === 'ES') {
-            tsCommissionsInput.value = '8.10'; // Tradovate/Topstep flat Mini RT fee
-        } else if (e.target.value === 'MNQ' || e.target.value === 'MES') {
-            tsCommissionsInput.value = '1.00'; // Tradovate/Topstep flat Micro RT fee
+        if (newTabContent) {
+            newTabContent.classList.add('active');
+            setTimeout(() => {
+                if (tabId === 'strategy') {
+                    const stratNote = document.getElementById('strategy-notes-entry');
+                    if (stratNote) { autoResizeTextarea(stratNote); resizeParentCollapsible(stratNote); }
+                }
+                newTabContent.querySelectorAll('textarea').forEach(ta => autoResizeTextarea(ta));
+                newTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
+                    const content = section.querySelector('.collapsible-content');
+                    if(content) content.style.maxHeight = "none"; 
+                });
+            }, 100); 
+
+            if (!newTabContent.dataset.sectionsInitialized) { 
+                openDefaultSectionsInContainer(newTabContent); 
+                newTabContent.dataset.sectionsInitialized = 'true'; 
+            }
+        }
+        DOM.statsPanelContainer.style.display = 'block';
+        if (tabId === 'journal') { updateJournalView(); renderDateNavigation(); }
+    });
+
+    // 5. Performance Stats Toggle (FAB)
+    DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
+    DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
+    document.addEventListener('click', (e) => {
+        if (!DOM.statsPanel.contains(e.target) && !DOM.statsFab.contains(e.target) && DOM.statsPanel.classList.contains('active')) {
+            DOM.statsPanel.classList.remove('active');
         }
     });
+
+    // 6. Main Table Actions (Win/Loss/Del/Attach)
+    if (DOM.tradesTbody) DOM.tradesTbody.addEventListener('click', handleTradeAction);
+    if (DOM.completedTradesTbody) DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
+    if (DOM.tsTradesTbody) DOM.tsTradesTbody.addEventListener('click', handleTradeAction);
+    if (DOM.tsCompletedTradesTbody) DOM.tsCompletedTradesTbody.addEventListener('click', handleTradeAction);
+
+    // 7. Inline Editing Handlers
+    document.body.addEventListener('blur', (e) => {
+        if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target);
+        if (e.target.matches('.editable-live-note')) handleLiveNoteUpdate(e.target);
+        if (e.target.matches('.editable-completed-cell')) handleCompletedTradeUpdate(e.target);
+        if (e.target.matches('.editable-daily-note')) {
+            if (!STATE.isMasterUser) return;
+            dbRefs.dailyNotes.child(e.target.dataset.dateKey).set(e.target.innerText.trim()).then(() => {
+                e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                setTimeout(() => e.target.style.backgroundColor = '', 500);
+            });
+        }
+    }, true);
+
+    // 8. Form Submit Handlers
+    if (DOM.addTradeForm) DOM.addTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, false));
+    if (DOM.tsAddTradeForm) DOM.tsAddTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, true));
+
+    // 9. Global Click Dispatcher (Collapsibles and Libraries)
+    document.body.addEventListener('click', (e) => {
+        const header = e.target.closest('.collapsible-header');
+        if (header) {
+            const section = header.parentElement;
+            const content = section.querySelector('.collapsible-content');
+            const toggleBtn = section.querySelector('.collapsible-toggle-btn');
+            section.classList.toggle('is-open');
+            const isOpen = section.classList.contains('is-open');
+            toggleBtn.textContent = isOpen ? '−' : '+';
+            if (isOpen) {
+                content.style.maxHeight = content.scrollHeight + "px";
+                setTimeout(() => { if (section.classList.contains('is-open')) content.style.maxHeight = "none"; }, 450);
+            } else { 
+                content.style.maxHeight = content.scrollHeight + "px";
+                setTimeout(() => { content.style.maxHeight = '0px'; }, 10);
+            }
+        }
+        if (handleAttachmentActions(e)) return;
+        if (e.target.closest('#setups-image-container, #ts-setups-image-container, #image-library-container, #strategy-image-container')) {
+            handleGenericImageLibraryClick(e);
+        }
+    });
+
+    // 10. Auto-Fill SL & TP logic
+    const tsEntryInput = document.getElementById('ts-entry-price');
+    const tsTypeSelect = document.getElementById('ts-trade-type');
+    if (tsEntryInput) tsEntryInput.addEventListener('input', updateFundedSLTP);
+    if (tsTypeSelect) tsTypeSelect.addEventListener('change', updateFundedSLTP);
+
+    const cryptoEntryInput = document.getElementById('entry-price');
+    const cryptoTypeSelect = document.getElementById('trade-type');
+    if (cryptoEntryInput) cryptoEntryInput.addEventListener('input', updateCryptoSLTP);
+    if (cryptoTypeSelect) cryptoTypeSelect.addEventListener('change', updateCryptoSLTP);
+
+    // 11. Journal & Misc
+    DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); saveJournalEntry(); });
+    DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
+    
+    DOM.strategyNotesEntry.addEventListener('input', (e) => {
+        autoResizeTextarea(e.target); resizeParentCollapsible(e.target);
+        clearTimeout(STATE.strategySaveTimer);
+        STATE.strategySaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.strategyNotes.set(e.target.value); }, 1000);
+    });
+
+    // 12. Modal & Upload Handlers
+    DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
+    DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
+    DOM.strategyImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'strategy_images', DOM.strategyUploadProgress, dbRefs.strategyImages));
+    DOM.modalClose.addEventListener('click', closeModal);
 }
-            // 3. Independent Evaluation Image Upload
-            const tsSetupsUpload = document.getElementById('ts-setups-image-upload');
-            if (tsSetupsUpload) {
-                tsSetupsUpload.addEventListener('change', (e) => {
-                    handleGenericLibraryUpload(
-                        e.target.files, 
-                        'ts_setups_images', 
-                        document.getElementById('ts-setups-upload-progress'), 
-                        dbRefs.tsSetupsImages 
-                    );
-                });
-            }
-
-            // 4. Tab Navigation Logic
-            DOM.tabs.addEventListener('click', (e) => {
-                if (!e.target.matches('.tab-link')) return;
-                document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
-                e.target.classList.add('active');
-                const tabId = e.target.dataset.tab;
-                const newTabContent = document.getElementById(`${tabId}-tab`);
-                
-                if (newTabContent) {
-                    newTabContent.classList.add('active');
-                    setTimeout(() => {
-                        if (tabId === 'strategy') {
-                            const stratNote = document.getElementById('strategy-notes-entry');
-                            if (stratNote) { autoResizeTextarea(stratNote); resizeParentCollapsible(stratNote); }
-                        }
-                        newTabContent.querySelectorAll('textarea').forEach(ta => autoResizeTextarea(ta));
-                        newTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
-                            const content = section.querySelector('.collapsible-content');
-                            if(content) content.style.maxHeight = content.scrollHeight + 'px'; 
-                        });
-                    }, 100); 
-
-                    if (!newTabContent.dataset.sectionsInitialized) { 
-                        openDefaultSectionsInContainer(newTabContent); 
-                        newTabContent.dataset.sectionsInitialized = 'true'; 
-                    }
-                }
-                DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'topstep') ? 'block' : 'none';
-                if (tabId === 'journal') { updateJournalView(); renderDateNavigation(); }
-            });
-
-            // 5. Performance Stats Toggle
-            DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
-            DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
-            document.addEventListener('click', (e) => {
-                if (!DOM.statsPanel.contains(e.target) && !DOM.statsFab.contains(e.target) && DOM.statsPanel.classList.contains('active')) {
-                    DOM.statsPanel.classList.remove('active');
-                }
-            });
-
-            // 6. Main Table Actions (Win/Loss/Del/Attach)
-            if (DOM.tradesTbody) DOM.tradesTbody.addEventListener('click', handleTradeAction);
-            if (DOM.completedTradesTbody) DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
-            if (DOM.tsTradesTbody) DOM.tsTradesTbody.addEventListener('click', handleTradeAction);
-            if (DOM.tsCompletedTradesTbody) DOM.tsCompletedTradesTbody.addEventListener('click', handleTradeAction);
-
-            // 7. --- INLINE EDITING (Saves Notes/Prices on Blur) ---
-            document.body.addEventListener('blur', (e) => {
-                if (e.target.matches('.editable-cell')) {
-                    handleLiveTradeUpdate(e.target);
-                }
-                if (e.target.matches('.editable-live-note')) handleLiveNoteUpdate(e.target);
-                
-                if (e.target.matches('.editable-completed-cell')) {
-                    handleCompletedTradeUpdate(e.target);
-                }
-
-                if (e.target.matches('.editable-daily-note')) {
-                    if (!STATE.isMasterUser) return;
-                    dbRefs.dailyNotes.child(e.target.dataset.dateKey).set(e.target.innerText.trim()).then(() => {
-                        e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
-                        setTimeout(() => e.target.style.backgroundColor = '', 500);
-                    });
-                }
-            }, true);
-
-            // 8. Form Submit Handlers
-            if (DOM.addTradeForm) DOM.addTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, false));
-            if (DOM.tsAddTradeForm) DOM.tsAddTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, true));
-
-            // 9. Global Click Handler
-            document.body.addEventListener('click', (e) => {
-                const header = e.target.closest('.collapsible-header');
-                if (header) {
-                    const section = header.parentElement;
-                    const content = section.querySelector('.collapsible-content');
-                    const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-                    
-                    section.classList.toggle('is-open');
-                    const isOpen = section.classList.contains('is-open');
-                    toggleBtn.textContent = isOpen ? '−' : '+';
-                    
-                    if (isOpen) {
-                        content.style.maxHeight = content.scrollHeight + "px";
-                        setTimeout(() => {
-                            if (section.classList.contains('is-open')) {
-                                content.style.maxHeight = "none";
-                            }
-                        }, 450);
-                    } else { 
-                        content.style.maxHeight = content.scrollHeight + "px";
-                        setTimeout(() => {
-                            content.style.maxHeight = '0px';
-                        }, 10);
-                    }
-                }
-                if (handleAttachmentActions(e)) return;
-// Inside the Tab Navigation Event Listener
-const isFundedTab = (tabId === 'topstep');
-
-// Toggle element visibility
-document.querySelectorAll('.crypto-stat').forEach(el => el.style.display = isFundedTab ? 'none' : 'flex');
-document.querySelectorAll('.funded-stat').forEach(el => el.style.display = isFundedTab ? 'flex' : 'none');
-
-// Update UI Titles/Labels
-document.getElementById('stats-panel-title').textContent = isFundedTab ? "Funded Stats" : "Crypto Stats";
-
-// Force recalculate open trades for the correct context
-if (isFundedTab) {
-    DOM.statOpenTrades.textContent = Object.keys(STATE.allTsTrades || {}).length;
-    updateFundedPerformanceStats(); // Call calculation
-} else {
-    DOM.statOpenTrades.textContent = Object.keys(STATE.allTrades || {}).length;
-}
-                if (e.target.closest('#setups-image-container, #ts-setups-image-container, #image-library-container, #strategy-image-container')) {
-                    handleGenericImageLibraryClick(e);
-                }
-
-                else if (e.target.id === 'toggle-all-completed-trades') {
-                    STATE.completedTradesShowAll = true; STATE.completedTradesCurrentPage = 1;
-                    renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
-                } else if (e.target.id === 'completed-trades-prev-page') {
-                    if (STATE.completedTradesCurrentPage > 1) { STATE.completedTradesCurrentPage--; renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); }
-                } else if (e.target.id === 'completed-trades-next-page') {
-                    const tPages = Math.ceil(Object.keys(STATE.allCompletedTrades).length / STATE.completedTradesItemsPerPage);
-                    if (STATE.completedTradesCurrentPage < tPages) { STATE.completedTradesCurrentPage++; renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); }
-                } 
-
-                else if (e.target.id === 'ts-toggle-all-completed-trades') {
-                    STATE.tsCompletedTradesShowAll = true; STATE.tsCompletedTradesCurrentPage = 1;
-                    renderFilteredEvalData();
-                } else if (e.target.id === 'ts-completed-trades-prev-page') {
-                    if (STATE.tsCompletedTradesCurrentPage > 1) { STATE.tsCompletedTradesCurrentPage--; renderFilteredEvalData(); }
-                } else if (e.target.id === 'ts-completed-trades-next-page') {
-                    const tPagesTS = Math.ceil(Object.keys(STATE.allTsCompletedTrades).length / 5);
-                    if (STATE.tsCompletedTradesCurrentPage < tPagesTS) { STATE.tsCompletedTradesCurrentPage++; renderFilteredEvalData(); }
-                }
-
-                else if (e.target.id === 'toggle-all-setups-images') {
-                    STATE.setupsImagesShowAll = true; STATE.setupsImagesCurrentPage = 1;
-                    renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-                } else if (e.target.id === 'setups-images-prev-page') {
-                    if (STATE.setupsImagesCurrentPage > 1) { STATE.setupsImagesCurrentPage--; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
-                } else if (e.target.id === 'setups-images-next-page') {
-                    const totalDays = new Set(Object.values(STATE.allSetupsImages).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
-                    if (STATE.setupsImagesCurrentPage < totalDays) { STATE.setupsImagesCurrentPage++; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
-                }
-        
-else if (e.target.id === 'ts-toggle-all-setups-images') {
-    STATE.tsSetupsImagesShowAll = true; 
-    STATE.tsSetupsImagesCurrentPage = 1;
-    renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
-} 
-else if (e.target.id === 'ts-setups-images-prev-page') {
-    if (STATE.tsSetupsImagesCurrentPage > 1) { 
-        STATE.tsSetupsImagesCurrentPage--; 
-        renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
-    }
-} 
-else if (e.target.id === 'ts-setups-images-next-page') {
-    const uniqueDatesTS = new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp)));
-    if (STATE.tsSetupsImagesCurrentPage < uniqueDatesTS.size) { 
-        STATE.tsSetupsImagesCurrentPage++; 
-        renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
-    }
-}
-            });
-
-            // 10. General Note Modals
-            if (DOM.createNewNoteBtn) {
-                DOM.createNewNoteBtn.addEventListener('click', () => {
-                    if (!STATE.isMasterUser) return;
-                    const title = prompt("New note title:");
-                    if (title?.trim()) dbRefs.generalNotes.push({ title: title.trim(), content: '', timestamp: firebase.database.ServerValue.TIMESTAMP });
-                });
-            }
-            if (DOM.notesContainer) {
-                DOM.notesContainer.addEventListener('click', (e) => {
-                    const header = e.target.closest('.note-item-header');
-                    const del = e.target.closest('.note-delete-btn');
-                    if (del && STATE.isMasterUser) { e.stopPropagation(); if (confirm(`Delete?`)) dbRefs.generalNotes.child(del.dataset.noteId).remove(); return; }
-                    if (header) openNoteForEditing(header.dataset.noteId); 
-                });
-            }
-            DOM.noteModalClose.addEventListener('click', closeNoteModal);
-            DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
-            DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
-
-            // 11. Tracker Playbook Notes
-            DOM.primarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); });
-            DOM.secondarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); });
-            DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
-            DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
-
-            // 12. Uploads & Modals
-            DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
-            DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
-            DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
-            DOM.strategyImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'strategy_images', DOM.strategyUploadProgress, dbRefs.strategyImages));
-            DOM.modalClose.addEventListener('click', closeModal);
-            DOM.modalPrevBtn.addEventListener('click', () => { if (STATE.modalImageIndex > 0) { STATE.modalImageIndex--; displayModalImage(); } });
-            DOM.modalNextBtn.addEventListener('click', () => { if (STATE.modalImageIndex < STATE.modalImageGallery.length - 1) { STATE.modalImageIndex++; displayModalImage(); } });
-
-            // 13. Journal Specific
-            [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => { updateJournalView(false); renderDateNavigation(); }));
-            DOM.dateButtonsContainer.addEventListener('click', (e) => { 
-                if (e.target.matches('.date-nav-btn')) { 
-                    const parts = e.target.dataset.date.split('-'); 
-                    STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); 
-                    STATE.centerDate = new Date(STATE.selectedDate); updateJournalView(); renderDateNavigation(); 
-                } 
-            });
-            DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); saveJournalEntry(); });
-            DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
-            
-            // 14. Strategy Notes
-            DOM.strategyNotesEntry.addEventListener('input', (e) => {
-                autoResizeTextarea(e.target); resizeParentCollapsible(e.target);
-                clearTimeout(STATE.strategySaveTimer);
-                STATE.strategySaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.strategyNotes.set(e.target.value); }, 1000);
-            });
-
-            // 15. --- EVAL TAB SPECIFIC (For zooms/bins) ---
-            const tsTabEl = document.getElementById('topstep-tab');
-            if (tsTabEl) {
-                tsTabEl.addEventListener('click', (e) => {
-                    if (e.target.closest('.delete-library-image')) { handleLibraryActions(e, 'ts_setups_images', dbRefs.tsSetupsImages); return; }
-                    if (e.target.closest('.edit-caption-btn')) { handleLibraryActions(e, 'ts_setups_images', dbRefs.tsSetupsImages); return; }
-                    const img = e.target.closest('#ts-setups-image-container img');
-                    if (img) {
-                        const container = document.getElementById('ts-setups-image-container');
-                        const allImg = container.querySelectorAll('img');
-                        openImageModal(Array.from(allImg).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })), Array.from(allImg).indexOf(img));
-                    }
-                });
-            }
-
-            // ==========================================
-// AUTO-FILL SL & TP BASED ON ENTRY PRICE
-// ==========================================
-
-// 1. Funded Tab (MNQ/NQ) - Uses Target Calculator Ticks
-const tsEntryInput = document.getElementById('ts-entry-price');
-const tsTypeSelect = document.getElementById('ts-trade-type');
-
 function updateFundedSLTP() {
     const entry = parseFloat(tsEntryInput.value);
     if (isNaN(entry)) return;
@@ -3330,18 +3226,25 @@ function updateFundedPerformanceStats() {
     const avgWin = wins > 0 ? (grossProfit / wins) : 0;
     const avgLoss = losses > 0 ? (grossLoss / losses) : 0;
 
-    // Only update these if we are currently looking at the funded tab
-    if (document.querySelector('.tab-link[data-tab="topstep"]').classList.contains('active')) {
+    // Is Funded Tab Active?
+    const isFundedTab = document.querySelector('.tab-link[data-tab="topstep"]').classList.contains('active');
+    
+    if (isFundedTab) {
+        // 1. Update Funded specific lines
         const plEl = document.getElementById('stat-funded-total-pl');
-        plEl.textContent = (totalNet >= 0 ? '+' : '') + formatCurrency(totalNet);
-        plEl.style.color = totalNet >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-        
-        document.getElementById('stat-wins').textContent = wins;
-        document.getElementById('stat-losses').textContent = losses;
+        if (plEl) {
+            plEl.textContent = (totalNet >= 0 ? '+' : '') + formatCurrency(totalNet);
+            plEl.style.color = totalNet >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+        }
         document.getElementById('stat-funded-win-rate').textContent = winRate + "%";
         document.getElementById('stat-funded-pf').textContent = pf;
         document.getElementById('stat-funded-avg-wl').innerHTML = 
             `<span style="color:var(--green-text)">$${avgWin.toFixed(0)}</span> / <span style="color:var(--red-text)">$${avgLoss.toFixed(0)}</span>`;
+
+        // 2. Update Shared lines with Funded Data
+        document.getElementById('stat-wins').textContent = wins;
+        document.getElementById('stat-losses').textContent = losses;
+        document.getElementById('stat-open-trades').textContent = Object.keys(STATE.allTsTrades || {}).length;
     }
 }
         function setupSpinbox(inputElement) {
