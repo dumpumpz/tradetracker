@@ -612,6 +612,18 @@ table:has(#ts-completed-trades-tbody) thead th {
     border: 2px solid var(--link-color);
     font-weight: bold;
 }
+
+        
+.funded-calc-card {
+    flex: 1;
+    min-width: 150px;
+    background: var(--bg-color);
+    padding: 12px; /* Increased padding slightly */
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
+    text-align: center;
+    height: auto; /* Ensure it grows with content */
+}
     </style>
 </head>
 <body>
@@ -1657,50 +1669,73 @@ function getFuturesMultiplier(symbol) {
 
     return 2; // Default fallback
 }
-        function updateTargetCalculator() {
-            const riskUsd = parseFloat(document.getElementById('calc-risk-usd').value) || 0;
-            const riskTicks = parseFloat(document.getElementById('calc-risk-ticks').value) || 0;
-            const rewardTicks = parseFloat(document.getElementById('calc-reward-ticks').value) || 0;
+function updateTargetCalculator() {
+    const riskUsd = parseFloat(document.getElementById('calc-risk-usd').value) || 0;
+    const riskTicks = parseFloat(document.getElementById('calc-risk-ticks').value) || 0;
+    const rewardTicks = parseFloat(document.getElementById('calc-reward-ticks').value) || 0;
 
-            let tickValue = 0, rewardUsd = 0, rr = 0;
-            if (riskUsd > 0 && riskTicks > 0) {
-                tickValue = riskUsd / riskTicks;
-                rewardUsd = rewardTicks * tickValue;
-                rr = rewardUsd / riskUsd;
-            }
+    let tickValue = 0, rewardUsd = 0, rr = 0;
+    if (riskUsd > 0 && riskTicks > 0) {
+        tickValue = riskUsd / riskTicks;
+        rewardUsd = rewardTicks * tickValue;
+        rr = (rewardUsd / riskUsd);
+    }
 
-            document.getElementById('calc-reward-usd').textContent = rewardUsd > 0 ? formatCurrency(rewardUsd) : '--';
-            document.getElementById('calc-rr').textContent = rr > 0 ? rr.toFixed(2) + "R" : '--';
+    document.getElementById('calc-reward-usd').textContent = rewardUsd > 0 ? formatCurrency(rewardUsd) : '--';
+    document.getElementById('calc-rr').textContent = rr > 0 ? rr.toFixed(2) + "R" : '--';
 
-            const container = document.getElementById('funded-calculator-results');
-            if (!container) return;
+    const container = document.getElementById('funded-calculator-results');
+    if (!container) return;
 
-            let html = '';
-            CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
-                const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START };
-                const distanceLeft = CONFIG.FUNDED_TARGET - stats.balance;
+    let html = '';
+    CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
+        const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN };
+        
+        // Target Calculations
+        const distanceToTarget = CONFIG.FUNDED_TARGET - stats.balance;
+        let targetHtml = `<span class="sum-val">${formatCurrency(distanceToTarget)}</span>`;
+        if (distanceToTarget <= 0) targetHtml = `<span class="sum-val val-green">PASSED!</span>`;
 
-                let distHtml = `<span class="sum-val">${formatCurrency(distanceLeft)}</span>`;
-                if (distanceLeft <= 0) distHtml = `<span class="sum-val val-green">PASSED!</span>`;
+        let winsNeeded = '--';
+        if (distanceToTarget <= 0) winsNeeded = '0';
+        else if (rewardUsd > 0) winsNeeded = Math.ceil(distanceToTarget / rewardUsd);
 
-                let winsHtml = '--';
-                if (distanceLeft <= 0) winsHtml = '0';
-                else if (rewardUsd > 0) winsHtml = Math.ceil(distanceLeft / rewardUsd);
-
-                html += `
-                <div class="funded-calc-card">
-                    <div style="font-weight:bold; color:var(--link-color); margin-bottom:5px;">${acc}</div>
-                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
-                        <span class="sum-label">Distance:</span> ${distHtml}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:12px;">
-                        <span class="sum-label">Wins Needed:</span> <span class="sum-val" style="font-size:14px;">${winsHtml}</span>
-                    </div>
-                </div>
-                `;
-            });
-            container.innerHTML = html;
+        // Drawdown/Blow Calculations
+        const bufferLeft = stats.balance - stats.maxLoss;
+        let lossesLeft = '--';
+        if (riskUsd > 0) {
+            lossesLeft = Math.floor(bufferLeft / riskUsd);
         }
+
+        // Color coding for buffer safety
+        let bufferColor = 'var(--text-color)';
+        if (bufferLeft < 500) bufferColor = 'var(--red-text)';
+        else if (bufferLeft < 1000) bufferColor = 'orange';
+
+        html += `
+        <div class="funded-calc-card">
+            <div style="font-weight:bold; color:var(--link-color); margin-bottom:8px; border-bottom:1px solid var(--border-color); padding-bottom:4px;">${acc}</div>
+            
+            <!-- Distance to Passing -->
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+                <span class="sum-label">To Target:</span> ${targetHtml}
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:8px;">
+                <span class="sum-label">Wins Needed:</span> <span class="sum-val" style="color:var(--green-text)">${winsNeeded}</span>
+            </div>
+
+            <!-- Distance to Blowing -->
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px; border-top: 1px dashed var(--border-color); padding-top:8px;">
+                <span class="sum-label">Buffer Left:</span> <span class="sum-val" style="color:${bufferColor}">${formatCurrency(bufferLeft)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:11px;">
+                <span class="sum-label">Losses Left:</span> <span class="sum-val" style="color:var(--red-text)">${lossesLeft}</span>
+            </div>
+        </div>
+        `;
+    });
+    container.innerHTML = html;
+}
 
    function renderFundedBanners() {
     const container = document.getElementById('funded-accounts-banners');
