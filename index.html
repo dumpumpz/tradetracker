@@ -1680,7 +1680,7 @@ function updateTargetCalculator() {
     if (riskUsd > 0 && riskTicks > 0) {
         tickValue = riskUsd / riskTicks;
         rewardUsd = rewardTicks * tickValue;
-        rr = rewardUsd / riskUsd;
+        rr = (rewardUsd / riskUsd);
     }
 
     document.getElementById('calc-reward-usd').textContent = rewardUsd > 0 ? formatCurrency(rewardUsd) : '--';
@@ -1691,52 +1691,74 @@ function updateTargetCalculator() {
 
     let html = '';
     CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
-        const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000 };
+        const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, hwm: CONFIG.FUNDED_START, maxLoss: 48000 };
         
+        const currentBal = stats.balance;
+        const currentMLL = stats.maxLoss;
+        const liveBuffer = currentBal - currentMLL;
+
+        // --- FORECAST LOGIC: What happens at tonight's close? ---
+        let projectedMLL = currentMLL;
+        // If your current balance is higher than the previous EOD High Water Mark, the trail moves
+        if (currentBal > stats.hwm) {
+            if (currentBal >= 52100) {
+                projectedMLL = 50100; // Lock rule
+            } else {
+                projectedMLL = currentBal - 2000; // Trail up rule
+            }
+        }
+        const nextDayBuffer = currentBal - projectedMLL;
+
         // Target Calc
-        const distanceToTarget = CONFIG.FUNDED_TARGET - stats.balance;
+        const distanceToTarget = CONFIG.FUNDED_TARGET - currentBal;
         let targetHtml = `<span class="sum-val">${formatCurrency(distanceToTarget)}</span>`;
         if (distanceToTarget <= 0) targetHtml = `<span class="sum-val val-green">PASSED!</span>`;
 
-        let winsNeeded = '--';
-        if (distanceToTarget <= 0) winsNeeded = '0';
-        else if (rewardUsd > 0) winsNeeded = Math.ceil(distanceToTarget / rewardUsd);
-
-        // LOSSES UNTIL BLOWN CALC
-        const bufferLeft = stats.balance - stats.maxLoss;
-        let lossesLeft = '--';
-        if (riskUsd > 0) {
-            lossesLeft = Math.floor(bufferLeft / riskUsd);
-        }
-
-        // Color coding the danger zone
-        let bufferColor = 'var(--text-color)';
-        if (bufferLeft <= 500) bufferColor = 'var(--red-text)';
-        else if (bufferLeft <= 1000) bufferColor = 'orange';
+        // Survival Calcs
+        let liveLosses = riskUsd > 0 ? Math.floor(liveBuffer / riskUsd) : '--';
+        let nextDayLosses = riskUsd > 0 ? Math.floor(nextDayBuffer / riskUsd) : '--';
 
         html += `
         <div class="funded-calc-card">
             <div style="font-weight:bold; color:var(--link-color); margin-bottom:8px; border-bottom:1px solid var(--border-color); padding-bottom:4px;">${acc}</div>
             
+            <!-- Goal Section -->
             <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
                 <span class="sum-label">To Target:</span> ${targetHtml}
             </div>
             <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:8px;">
-                <span class="sum-label">Wins @ ${rr.toFixed(1)}R:</span> <span class="sum-val" style="color:var(--green-text);">${winsNeeded}</span>
+                <span class="sum-label">Wins Needed:</span> <span class="sum-val" style="color:var(--green-text);">${distanceToTarget <= 0 ? '0' : Math.ceil(distanceToTarget / rewardUsd)}</span>
             </div>
 
-            <div style="display:flex; justify-content:space-between; font-size:11px; border-top:1px dashed var(--border-color); padding-top:8px; margin-bottom:4px;">
-                <span class="sum-label">Buffer:</span> <span class="sum-val" style="color:${bufferColor}">${formatCurrency(bufferLeft)}</span>
+            <!-- LIVE STATUS (Today) -->
+            <div style="background: rgba(0,0,0,0.03); padding: 5px; border-radius: 4px; margin-bottom: 8px; border: 1px solid var(--border-color);">
+                <div class="sum-label" style="font-size:9px; text-align:center; margin-bottom:3px;">LIVE STATUS (TODAY)</div>
+                <div style="display:flex; justify-content:space-between; font-size:11px;">
+                    <span class="sum-label">Buffer:</span> <span class="sum-val">${formatCurrency(liveBuffer)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:11px;">
+                    <span class="sum-label">Losses Left:</span> <span class="sum-val" style="color:var(--red-text);">${liveLosses}</span>
+                </div>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:11px;">
-                <span class="sum-label">Losses Left:</span> <span class="sum-val" style="color:var(--red-text); font-size:14px;">${lossesLeft}</span>
+
+            <!-- FORECAST (Tomorrow) -->
+            <div style="background: var(--purple-bg); padding: 5px; border-radius: 4px; border: 1px solid var(--border-color); opacity: 0.9;">
+                <div class="sum-label" style="font-size:9px; text-align:center; margin-bottom:3px; color:var(--text-color);">NEXT DAY FORECAST (EOD)</div>
+                <div style="display:flex; justify-content:space-between; font-size:11px;">
+                    <span class="sum-label">Proj. MLL:</span> <span class="sum-val">${formatCurrency(projectedMLL)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:11px;">
+                    <span class="sum-label">Proj. Buffer:</span> <span class="sum-val" style="font-weight:900;">${formatCurrency(nextDayBuffer)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:2px; border-top:1px dotted rgba(0,0,0,0.1);">
+                    <span class="sum-label">Next Day Losses:</span> <span class="sum-val" style="color:var(--red-text);">${nextDayLosses}</span>
+                </div>
             </div>
         </div>
         `;
     });
     container.innerHTML = html;
 }
-
    function renderFundedBanners() {
     const container = document.getElementById('funded-accounts-banners');
     if (!container) return;
