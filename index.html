@@ -1131,11 +1131,13 @@ table:has(#ts-completed-trades-tbody) thead th {
 
         // --- CONFIGURATION ---
         const CONFIG = {
-            FUNDED_ACCOUNTS: ['Lucid 1', 'Lucid 2', 'Lucid 3', 'Lucid 4 - scalp', 'Apex 1a', 'Apex 2'],
-            FUNDED_START: 50000,
-            FUNDED_TARGET: 53000,
-            FUNDED_DRAWDOWN: 2000,
-    MNQ_MULTIPLIER: 2, // <--- ADD THIS LINE
+          FUNDED_ACCOUNTS: ['Lucid 1', 'Lucid 2', 'Lucid 3', 'Lucid 4 - scalp', 'Apex 1a', 'Apex 2'],
+    FUNDED_START: 50000,
+    FUNDED_TARGET: 53000,
+    FUNDED_DRAWDOWN: 2000,
+    FUNDED_TRAIL_LOCK_TRIGGER: 52100, // New: When DD stops trailing
+    FUNDED_LOCKED_MLL: 50100,         // New: The final locked Max Loss Limit
+    MNQ_MULTIPLIER: 2,
 
             FIREBASE: {
                 apiKey: "AIzaSyCQ4vHqGiv_yRkA0zZaaOU24gxhqBkxnv4",
@@ -1678,7 +1680,7 @@ function updateTargetCalculator() {
     if (riskUsd > 0 && riskTicks > 0) {
         tickValue = riskUsd / riskTicks;
         rewardUsd = rewardTicks * tickValue;
-        rr = (rewardUsd / riskUsd);
+        rr = rewardUsd / riskUsd;
     }
 
     document.getElementById('calc-reward-usd').textContent = rewardUsd > 0 ? formatCurrency(rewardUsd) : '--';
@@ -1689,9 +1691,9 @@ function updateTargetCalculator() {
 
     let html = '';
     CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
-        const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN };
+        const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000 };
         
-        // Target Calculations
+        // Target Calc
         const distanceToTarget = CONFIG.FUNDED_TARGET - stats.balance;
         let targetHtml = `<span class="sum-val">${formatCurrency(distanceToTarget)}</span>`;
         if (distanceToTarget <= 0) targetHtml = `<span class="sum-val val-green">PASSED!</span>`;
@@ -1700,36 +1702,34 @@ function updateTargetCalculator() {
         if (distanceToTarget <= 0) winsNeeded = '0';
         else if (rewardUsd > 0) winsNeeded = Math.ceil(distanceToTarget / rewardUsd);
 
-        // Drawdown/Blow Calculations
+        // LOSSES UNTIL BLOWN CALC
         const bufferLeft = stats.balance - stats.maxLoss;
         let lossesLeft = '--';
         if (riskUsd > 0) {
             lossesLeft = Math.floor(bufferLeft / riskUsd);
         }
 
-        // Color coding for buffer safety
+        // Color coding the danger zone
         let bufferColor = 'var(--text-color)';
-        if (bufferLeft < 500) bufferColor = 'var(--red-text)';
-        else if (bufferLeft < 1000) bufferColor = 'orange';
+        if (bufferLeft <= 500) bufferColor = 'var(--red-text)';
+        else if (bufferLeft <= 1000) bufferColor = 'orange';
 
         html += `
         <div class="funded-calc-card">
             <div style="font-weight:bold; color:var(--link-color); margin-bottom:8px; border-bottom:1px solid var(--border-color); padding-bottom:4px;">${acc}</div>
             
-            <!-- Distance to Passing -->
             <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
                 <span class="sum-label">To Target:</span> ${targetHtml}
             </div>
             <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:8px;">
-                <span class="sum-label">Wins Needed:</span> <span class="sum-val" style="color:var(--green-text)">${winsNeeded}</span>
+                <span class="sum-label">Wins @ ${rr.toFixed(1)}R:</span> <span class="sum-val" style="color:var(--green-text);">${winsNeeded}</span>
             </div>
 
-            <!-- Distance to Blowing -->
-            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px; border-top: 1px dashed var(--border-color); padding-top:8px;">
-                <span class="sum-label">Buffer Left:</span> <span class="sum-val" style="color:${bufferColor}">${formatCurrency(bufferLeft)}</span>
+            <div style="display:flex; justify-content:space-between; font-size:11px; border-top:1px dashed var(--border-color); padding-top:8px; margin-bottom:4px;">
+                <span class="sum-label">Buffer:</span> <span class="sum-val" style="color:${bufferColor}">${formatCurrency(bufferLeft)}</span>
             </div>
             <div style="display:flex; justify-content:space-between; font-size:11px;">
-                <span class="sum-label">Losses Left:</span> <span class="sum-val" style="color:var(--red-text)">${lossesLeft}</span>
+                <span class="sum-label">Losses Left:</span> <span class="sum-val" style="color:var(--red-text); font-size:14px;">${lossesLeft}</span>
             </div>
         </div>
         `;
@@ -4299,57 +4299,56 @@ if (targetDate) {
             });
         }
 
-        function calculateFundedStats(tsCompletedData) {
-            const stats = {};
-            CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
-                stats[acc] = {
-                    balance: CONFIG.FUNDED_START,
-                    hwm: CONFIG.FUNDED_START,
-                    maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN,
-                    tradesByDay: {}
-                };
-            });
+function calculateFundedStats(tsCompletedData) {
+    const stats = {};
+    CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
+        stats[acc] = {
+            balance: CONFIG.FUNDED_START,
+            hwm: CONFIG.FUNDED_START, // High Water Mark (EOD Closing)
+            maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN, // Initial MLL: 48,000
+            tradesByDay: {}
+        };
+    });
 
-            // 1. Group all completed net results by Trading Day
-            Object.values(tsCompletedData).forEach(t => {
-                if (!t.closed_date) return;
-                const acc = getEvalAccount(t);
-                if (!stats[acc]) return; 
-                const dayStr = getTradingDayString(t.closed_date, t.date);
-                if (!stats[acc].tradesByDay[dayStr]) stats[acc].tradesByDay[dayStr] = 0;
-                stats[acc].tradesByDay[dayStr] += parseFloat(t.net_result || 0);
-            });
+    Object.values(tsCompletedData).forEach(t => {
+        if (!t.closed_date) return;
+        const acc = getEvalAccount(t);
+        if (!stats[acc]) return; 
+        const dayStr = getTradingDayString(t.closed_date, t.date);
+        if (!stats[acc].tradesByDay[dayStr]) stats[acc].tradesByDay[dayStr] = 0;
+        stats[acc].tradesByDay[dayStr] += parseFloat(t.net_result || 0);
+    });
 
-            // 2. Identify the current active trading session (EST close / Perth morning)
-            const currentTradingDay = getTradingDayString(Date.now(), Date.now());
+    const currentTradingDay = getPerthDateString(); // Don't trail based on today's open trades
 
-            CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
-                const sortedDays = Object.keys(stats[acc].tradesByDay).sort((a,b) => new Date(a) - new Date(b));
-                
-                sortedDays.forEach(day => {
-                    // Always add to the balance so your live PnL and total buffer are completely accurate
-                    stats[acc].balance += stats[acc].tradesByDay[day];
+    CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
+        const sortedDays = Object.keys(stats[acc].tradesByDay).sort((a,b) => new Date(a) - new Date(b));
+        
+        sortedDays.forEach(day => {
+            stats[acc].balance += stats[acc].tradesByDay[day];
+            
+            // LUCID EOD RULE: Update MLL only after the session closes
+            if (day !== currentTradingDay) {
+                if (stats[acc].balance > stats[acc].hwm) {
+                    stats[acc].hwm = stats[acc].balance;
                     
-                    // LUCID EOD MAX LOSS RULE:
-                    // Only update the High Water Mark (HWM) and Trailing Max Loss if the trading day has completely CLOSED.
-                    // Intraday profits for 'currentTradingDay' will NOT pull the Max Loss up until tomorrow.
-                    if (day !== currentTradingDay) {
-                        if (stats[acc].balance > stats[acc].hwm) {
-                            stats[acc].hwm = stats[acc].balance;
-                            
-                            let trailingLimit = stats[acc].hwm - CONFIG.FUNDED_DRAWDOWN;
-                            
-                            // Only pull max loss up, never let it drop, and cap it at the starting balance
-                            if (trailingLimit > stats[acc].maxLoss) {
-                                stats[acc].maxLoss = Math.min(trailingLimit, CONFIG.FUNDED_START); 
-                            }
+                    // Rule: If Balance reaches 52,100, lock MLL at 50,100
+                    if (stats[acc].hwm >= CONFIG.FUNDED_TRAIL_LOCK_TRIGGER) {
+                        stats[acc].maxLoss = CONFIG.FUNDED_LOCKED_MLL;
+                    } 
+                    // Otherwise, trail $2,000 behind the highest EOD closing balance
+                    else {
+                        let trailingLimit = stats[acc].hwm - CONFIG.FUNDED_DRAWDOWN;
+                        if (trailingLimit > stats[acc].maxLoss) {
+                            stats[acc].maxLoss = trailingLimit;
                         }
                     }
-                });
-            });
-            return stats;
-        }
-
+                }
+            }
+        });
+    });
+    return stats;
+}
         function calculateTopstepStats(tsCompletedData) {
             FUNDED_STATS_CACHE = calculateFundedStats(tsCompletedData);
             renderFundedBanners();
