@@ -4026,11 +4026,20 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
         const totalPages = uniqueDates.length;
         const targetDate = uniqueDates[currentPage - 1];
 
-        if (targetDate) {
-            const idsForDate = allImageIds.filter(id => getTradingDayString(images[id].timestamp, images[id].timestamp) === targetDate);
-            imagesHtml = idsForDate.map(id => createImageHtml(id)).join('');
-            imagesHtml += `<h3 class="daily-image-footer">${formatDisplayDate(targetDate)}</h3>`;
+if (targetDate) {
+    const idsForDate = allImageIds.filter(id => getTradingDayString(images[id].timestamp, images[id].timestamp) === targetDate);
+    imagesHtml = idsForDate.map(id => createImageHtml(id)).join('');
+    imagesHtml += `<h3 class="daily-image-footer">${formatDisplayDate(targetDate)}</h3>`;
+
+    // --- NEW LOGIC: Sync Date Picker with Gallery Navigation ---
+    if (isTS) { // Only do this for the Funded Setups section
+        const reviewDateEl = document.getElementById('ts-setup-review-date');
+        // Ensure targetDate is a valid YYYY-MM-DD string before assigning
+        if (reviewDateEl && /^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+            reviewDateEl.value = targetDate;
         }
+    }
+}
 
         if (showAllButton) showAllButton.style.display = 'none';
         if (paginationControls) {
