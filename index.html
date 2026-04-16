@@ -1237,7 +1237,7 @@ table:has(#ts-completed-trades-tbody) thead th {
 
         // --- APPLICATION STATE ---
         const STATE = {
-            isMasterUser: false, isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {}, favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null, isTopstep: false },
+            isMasterUser: false, isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {},  favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null, isTopstep: false },
             allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,
             
             // Evaluated Account Global Variables
@@ -2679,12 +2679,20 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
     if (!STATE.isMasterUser || !files || files.length === 0) return;
     
-    // Check if there's a specific review date selected (for Funded Setups)
     let customTimestamp = Date.now();
+    let isReviewMode = false; // Flag to track if this is a review image
+    
     const reviewDateEl = document.getElementById('ts-setup-review-date');
+    
     if (libraryType === 'ts_setups_images' && reviewDateEl && reviewDateEl.value) {
-        // Set timestamp to midday UTC of the selected date to ensure it lands on the right day in the gallery
+        // Set timestamp to midday UTC of the selected date
         customTimestamp = new Date(reviewDateEl.value + 'T12:00:00').getTime();
+        
+        // Permanent logic: If the selected date is NOT today, mark it as a review permanently
+        const todayStr = getPerthDateString();
+        if (reviewDateEl.value !== todayStr) {
+            isReviewMode = true;
+        }
     }
 
     progressElement.style.display = 'block';
@@ -2705,14 +2713,17 @@ function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) 
                     url, 
                     fileName, 
                     timestamp: customTimestamp, 
-                    uploadTimestamp: Date.now(), // Store actual upload time for the yellow highlight
-                    caption: reviewDateEl ? `Post-Trade Review: ${reviewDateEl.value}` : '' 
+                    uploadTimestamp: Date.now(),
+                    isReview: isReviewMode, // STORE PERMANENT FLAG IN DATABASE
+                    caption: isReviewMode ? `Review: ${reviewDateEl.value}` : '' 
                 };
-                dbRef.push(imageData);
-                if (index === files.length - 1) { 
-                    progressElement.textContent = 'Upload Complete!'; 
-                    setTimeout(() => { progressElement.textContent = ''; }, 2000); 
-                }
+                
+                dbRef.push(imageData).then(() => {
+                    if (index === files.length - 1) { 
+                        progressElement.textContent = 'Upload Complete!'; 
+                        setTimeout(() => { progressElement.textContent = ''; }, 2000); 
+                    }
+                });
             });
         });
     });
@@ -4003,21 +4014,21 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     const allImageIds = Object.keys(images).sort((a, b) => (images[b].timestamp || 0) - (images[a].timestamp || 0));
     let imagesHtml = '';
 
-   const createImageHtml = (id) => {
+   
+const createImageHtml = (id) => {
     const imgData = images[id];
     if (!imgData?.url) return '';
     
-    // Logic for Yellow Highlight: Was this uploaded in the last 10 minutes?
-    const isNew = imgData.uploadTimestamp && (Date.now() - imgData.uploadTimestamp < 600000);
-    const highlightClass = isNew ? 'newly-added-highlight' : '';
+    // PERMANENT LOGIC: Apply highlight if the database flag 'isReview' is true
+    const highlightClass = imgData.isReview ? 'newly-added-highlight' : '';
 
     const caption = imgData.caption || (imgData.timestamp ? new Date(imgData.timestamp).toLocaleString() : ' ');
     
     return `
-        <div class="library-image-wrapper ${highlightClass}">
+        <div class="library-image-wrapper ${highlightClass}" data-id="${id}">
             ${masterButtonsHtml(id, imgData.fileName)}
             <img src="${imgData.url}" alt="Image" data-full-src="${imgData.url}" data-caption="${caption}">
-            <div class="library-image-caption ${isNew ? 'is-today' : ''}">${caption}</div>
+            <div class="library-image-caption ${imgData.isReview ? 'is-today' : ''}">${caption}</div>
         </div>`;
 };
     if (showAll) {
