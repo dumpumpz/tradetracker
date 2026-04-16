@@ -594,6 +594,24 @@ table:has(#ts-completed-trades-tbody) thead th {
     outline: 2px solid var(--link-color);
     background-color: var(--header-bg);
 }
+
+        /* Highlight for images added in the current session */
+.newly-added-highlight {
+    border: 3px solid #ffc107 !important; /* Yellow border */
+    background-color: rgba(255, 193, 7, 0.15) !important; /* Faint yellow glow */
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
+    animation: pulseHighlight 2s infinite alternate;
+}
+
+@keyframes pulseHighlight {
+    from { box-shadow: 0 0 5px rgba(255, 193, 7, 0.4); }
+    to { box-shadow: 0 0 15px rgba(255, 193, 7, 0.7); }
+}
+
+#ts-setup-review-date {
+    border: 2px solid var(--link-color);
+    font-weight: bold;
+}
     </style>
 </head>
 <body>
@@ -947,11 +965,16 @@ table:has(#ts-completed-trades-tbody) thead th {
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
-                        <div id="ts-setups-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px;">
-                            <label for="ts-setups-image-upload" class="image-upload-label">Add MNQ Setup Image</label>
-                            <input type="file" id="ts-setups-image-upload" accept="image/*" multiple style="display:none;">
-                            <div id="ts-setups-upload-progress"></div>
-                        </div>
+                       <div id="ts-setups-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; background: var(--bg-color);">
+    <div style="margin-bottom: 10px; font-weight: bold; font-size: 14px;">Review Mode: Add Setup to Specific Day</div>
+    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
+        <input type="date" id="ts-setup-review-date" style="width: auto; padding: 8px;">
+        <label for="ts-setups-image-upload" class="image-upload-label" style="margin: 0;">Upload Setup Image</label>
+        <input type="file" id="ts-setups-image-upload" accept="image/*" multiple style="display:none;">
+    </div>
+    <div id="ts-setups-upload-progress" style="margin-top: 10px;"></div>
+</div>
+
                         <div id="ts-setups-image-container"></div>
                         <button id="ts-toggle-all-setups-images" class="toggle-history-btn">Show All history</button>
                         <div id="ts-setups-images-pagination-controls" class="pagination-controls" style="display: none;">
@@ -2652,23 +2675,48 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             });
         }
 
-        function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
-            if (!STATE.isMasterUser || !files || files.length === 0) return;
-            progressElement.style.display = 'block';
-            Array.from(files).forEach((file, index) => {
-                if (!file.type.startsWith('image/')) return;
-                const fileName = `${Date.now()}_${file.name}`;
-                const storagePath = `${libraryType}/${fileName}`;
-                const uploadTask = storage.ref(storagePath).put(file);
-                uploadTask.on('state_changed', (s) => { progressElement.textContent = `Uploading ${index + 1}/${files.length}: ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; }, (e) => { console.error(`${libraryType} Upload Failed:`, e); progressElement.textContent = `Upload Failed: ${e.code}`; }, () => {
-                    uploadTask.snapshot.ref.getDownloadURL().then((url) => {
-                        const imageData = { url, fileName, timestamp: firebase.database.ServerValue.TIMESTAMP, caption: '' };
-                        dbRef.push(imageData);
-                        if (index === files.length - 1) { progressElement.textContent = 'Upload Complete!'; setTimeout(() => { progressElement.textContent = ''; }, 2000); }
-                    });
-                });
+      
+function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
+    if (!STATE.isMasterUser || !files || files.length === 0) return;
+    
+    // Check if there's a specific review date selected (for Funded Setups)
+    let customTimestamp = Date.now();
+    const reviewDateEl = document.getElementById('ts-setup-review-date');
+    if (libraryType === 'ts_setups_images' && reviewDateEl && reviewDateEl.value) {
+        // Set timestamp to midday UTC of the selected date to ensure it lands on the right day in the gallery
+        customTimestamp = new Date(reviewDateEl.value + 'T12:00:00').getTime();
+    }
+
+    progressElement.style.display = 'block';
+    Array.from(files).forEach((file, index) => {
+        if (!file.type.startsWith('image/')) return;
+        const fileName = `${Date.now()}_${file.name}`;
+        const storagePath = `${libraryType}/${fileName}`;
+        const uploadTask = storage.ref(storagePath).put(file);
+        
+        uploadTask.on('state_changed', (s) => { 
+            progressElement.textContent = `Uploading ${index + 1}/${files.length}: ${Math.round((s.bytesTransferred / s.totalBytes) * 100)}%`; 
+        }, (e) => { 
+            console.error(`${libraryType} Upload Failed:`, e); 
+            progressElement.textContent = `Upload Failed: ${e.code}`; 
+        }, () => {
+            uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+                const imageData = { 
+                    url, 
+                    fileName, 
+                    timestamp: customTimestamp, 
+                    uploadTimestamp: Date.now(), // Store actual upload time for the yellow highlight
+                    caption: reviewDateEl ? `Post-Trade Review: ${reviewDateEl.value}` : '' 
+                };
+                dbRef.push(imageData);
+                if (index === files.length - 1) { 
+                    progressElement.textContent = 'Upload Complete!'; 
+                    setTimeout(() => { progressElement.textContent = ''; }, 2000); 
+                }
             });
-        }
+        });
+    });
+}
 
         function calculateNetResult(trade, exitPrice, exitFeeType) {
             const entry = parseFloat(trade.entry);
@@ -3955,13 +4003,23 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     const allImageIds = Object.keys(images).sort((a, b) => (images[b].timestamp || 0) - (images[a].timestamp || 0));
     let imagesHtml = '';
 
-    const createImageHtml = (id) => {
-        const imgData = images[id];
-        if (!imgData?.url) return '';
-        const caption = imgData.caption || (imgData.timestamp ? new Date(imgData.timestamp).toLocaleString() : ' ');
-        return `<div class="library-image-wrapper">${masterButtonsHtml(id, imgData.fileName)}<img src="${imgData.url}" alt="Image" data-full-src="${imgData.url}" data-caption="${caption}"><div class="library-image-caption">${caption}</div></div>`;
-    };
+   const createImageHtml = (id) => {
+    const imgData = images[id];
+    if (!imgData?.url) return '';
+    
+    // Logic for Yellow Highlight: Was this uploaded in the last 10 minutes?
+    const isNew = imgData.uploadTimestamp && (Date.now() - imgData.uploadTimestamp < 600000);
+    const highlightClass = isNew ? 'newly-added-highlight' : '';
 
+    const caption = imgData.caption || (imgData.timestamp ? new Date(imgData.timestamp).toLocaleString() : ' ');
+    
+    return `
+        <div class="library-image-wrapper ${highlightClass}">
+            ${masterButtonsHtml(id, imgData.fileName)}
+            <img src="${imgData.url}" alt="Image" data-full-src="${imgData.url}" data-caption="${caption}">
+            <div class="library-image-caption ${isNew ? 'is-today' : ''}">${caption}</div>
+        </div>`;
+};
     if (showAll) {
         // --- HISTORY MODE ---
         const uniqueDates = Array.from(new Set(allImageIds.map(id => getTradingDayString(images[id].timestamp, images[id].timestamp)))).sort((a, b) => b.localeCompare(a));
@@ -4492,7 +4550,8 @@ dbRefs.tsCompletedTrades.on('value', s => {
             }
         }
 
-           async function initializeApp() {
+     
+        async function initializeApp() {
             checkMasterMode(); 
             getViewerId();
             await fetchLiveConversionRate();
@@ -4510,6 +4569,12 @@ dbRefs.tsCompletedTrades.on('value', s => {
             });
             renderFundedBanners();
             updateTargetCalculator();
+
+            // 1.5 NEW: Initialize Review Mode Date Picker (Defaults to Today)
+            const reviewDateInput = document.getElementById('ts-setup-review-date');
+            if (reviewDateInput) {
+                reviewDateInput.value = getPerthDateString(); // Sets it to the current trading day
+            }
 
             // 2. Handle Theme Selection
             const savedTheme = localStorage.getItem('theme');
@@ -4564,14 +4629,17 @@ dbRefs.tsCompletedTrades.on('value', s => {
                     // Force open default sections and ensure they aren't height-capped
                     activeTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
                         const content = section.querySelector('.collapsible-content');
-                        if (content) content.style.maxHeight = 'none'; 
+                        if (content) {
+                            content.style.maxHeight = 'none'; 
+                        }
                     });
+
+                    // Ensure the Review Mode date picker area is correctly sized
+                    const setupSection = document.getElementById('ts-setups-upload-section');
+                    if (setupSection) resizeParentCollapsible(setupSection);
                 }
             }, 700); 
         } 
-
-        initializeApp();
-    }); 
 </script>
 </body>
 </html>
