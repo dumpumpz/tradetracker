@@ -980,8 +980,12 @@ table:has(#ts-completed-trades-tbody) thead th {
                        <div id="ts-setups-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; background: var(--bg-color);">
     <div style="margin-bottom: 10px; font-weight: bold; font-size: 14px;">Review Mode: Add Setup to Specific Day</div>
     <div style="display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
-        <input type="date" id="ts-setup-review-date" style="width: auto; padding: 8px;">
-        <label for="ts-setups-image-upload" class="image-upload-label" style="margin: 0;">Upload Setup Image</label>
+   
+<input type="date" id="ts-setup-review-date" style="width: auto; padding: 8px;">
+<!-- Add the Jump Button here -->
+<button type="button" id="ts-jump-to-date-btn" style="width: auto; padding: 8px 15px; background-color: var(--purple-bg); color: var(--text-color); border: 1px solid var(--border-color); font-weight: bold; cursor: pointer; border-radius: 4px;">Jump to Date</button>
+
+<label for="ts-setups-image-upload" class="image-upload-label" style="margin: 0;">Upload Setup Image</label>
         <input type="file" id="ts-setups-image-upload" accept="image/*" multiple style="display:none;">
     </div>
     <div id="ts-setups-upload-progress" style="margin-top: 10px;"></div>
@@ -1582,6 +1586,43 @@ function getNextTradeVariant(session) {
     const maxVariant = Math.max(...variants);
     return maxVariant + 1;
 }
+
+
+        function jumpToFundedSetupDate() {
+    const dateInput = document.getElementById('ts-setup-review-date');
+    const targetDate = dateInput.value; // Format: YYYY-MM-DD
+    
+    if (!targetDate) {
+        alert("Please select a date first.");
+        return;
+    }
+
+    const images = STATE.allTsSetupsImages || {};
+    const allImageIds = Object.keys(images).sort((a, b) => (images[b].timestamp || 0) - (images[a].timestamp || 0));
+    
+    // Get unique trading days in the same order as the gallery (newest to oldest)
+    const uniqueDates = Array.from(new Set(allImageIds.map(id => 
+        getTradingDayString(images[id].timestamp, images[id].timestamp)
+    ))).sort((a, b) => b.localeCompare(a));
+
+    const targetIndex = uniqueDates.indexOf(targetDate);
+
+    if (targetIndex !== -1) {
+        // Switch to "Show All" mode
+        STATE.tsSetupsImagesShowAll = true;
+        // Set page (targetIndex is 0-based, pages are 1-based)
+        STATE.tsSetupsImagesCurrentPage = targetIndex + 1;
+        
+        // Render the gallery
+        renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
+        
+        // Visual feedback: scroll to the gallery
+        document.getElementById('ts-setups-image-container').scrollIntoView({ behavior: 'smooth' });
+    } else {
+        alert("No images found in the gallery for " + targetDate);
+    }
+}
+
 
 // Function to update the UI selects so you can see what it's choosing
 function updateAutoSessionUI() {
@@ -3088,7 +3129,11 @@ fixHistoricalFundedMath();
 // Auto-update default commission based on symbol selection
 const tsTradeSymbolSelect = document.getElementById('ts-trade-symbol');
 const tsCommissionsInput = document.getElementById('ts-commissions');
-
+// Jump to Date Listener
+const jumpBtn = document.getElementById('ts-jump-to-date-btn');
+if (jumpBtn) {
+    jumpBtn.addEventListener('click', jumpToFundedSetupDate);
+}
 if (tsTradeSymbolSelect && tsCommissionsInput) {
     tsTradeSymbolSelect.addEventListener('change', (e) => {
         if (e.target.value === 'NQ' || e.target.value === 'ES') {
