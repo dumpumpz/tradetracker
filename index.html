@@ -849,6 +849,55 @@ table:has(#ts-completed-trades-tbody) thead th {
 .dash-val-minus { color: var(--red-text); }
 .dash-buffer { font-weight: 900; background: rgba(0,0,0,0.03); border-radius: 2px; }
 [data-theme="dark"] .dash-buffer { background: rgba(255,255,255,0.05); }
+
+
+        
+#funded-dashboard-container {
+    background: var(--container-bg);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+.dashboard-grid {
+    display: grid;
+    /* Account gets double the space of the numbers */
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr; 
+    column-gap: 2px;
+    padding: 5px 2px;
+    font-family: 'Courier New', monospace;
+    font-size: 9.5px; /* Slightly smaller to accommodate full names */
+}
+
+.dashboard-header {
+    background-color: var(--header-bg);
+    font-weight: 800;
+    color: var(--subtle-text);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-row {
+    border-bottom: 1px solid var(--bg-color);
+    align-items: center;
+}
+
+.dashboard-row div {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.dashboard-row div:first-child {
+    text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-weight: 600;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis; /* Safely handles extremely long names */
+}
+
+.dash-val-plus { color: var(--green-text); }
+.dash-val-minus { color: var(--red-text); }
+.dash-buffer { font-weight: 900; }
     </style>
 </head>
 <body>
@@ -1067,33 +1116,7 @@ table:has(#ts-completed-trades-tbody) thead th {
     </div>
 </div>
 <!-- NEW: Tradovate Style Live Dashboard -->
-<div class="collapsible-section is-open" style="border: 2px solid var(--link-color);">
-    <div class="collapsible-header" style="background-color: var(--link-color); color: white;">
-        <h2 style="color: white;">Live Account Dashboard (Current Session)</h2>
-        <button class="collapsible-toggle-btn" style="color: white; border-color: white;">−</button>
-    </div>
-    <div class="collapsible-content">
-        <div class="collapsible-content-inner" style="padding: 0;">
-            <div class="table-wrapper" style="margin-bottom: 0;">
-                <table style="margin-top: 0; border: none;">
-                    <thead>
-                        <tr style="background-color: var(--header-bg);">
-                            <th>Account</th>
-                            <th style="text-align: right;">Total P/L Today</th>
-                            <th style="text-align: right;">Live Balance</th>
-                            <th style="text-align: right;">Max Loss Limit (MLL)</th>
-                            <th style="text-align: right;">Dist. to Drawdown</th>
-                            <th style="text-align: center;">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="funded-dashboard-tbody">
-                        <!-- Loaded via JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
+
      <div class="collapsible-section">
     <div class="collapsible-header">
         <h2>Account Summaries</h2>
@@ -1697,7 +1720,8 @@ function renderFilteredEvalData() {
     calculateTopstepStats(completedMapped);
     renderFundedDashboard(); 
 }
-        function renderFundedDashboard() {
+     
+function renderFundedDashboard() {
     const container = document.getElementById('funded-dashboard-rows');
     if (!container) return;
 
@@ -1705,23 +1729,21 @@ function renderFilteredEvalData() {
     let html = '';
 
     CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
+        // Fetch stats from cache (calculated in calculateFundedStats)
         const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000, tradesByDay: {} };
         
         const plToday = stats.tradesByDay[todayStr] || 0;
         const buffer = stats.balance - stats.maxLoss;
-        
-        // Shorten account names for mobile (e.g., "Lucid 1" -> "L1")
-        const shortName = acc.replace('Lucid ', 'L').replace('Apex ', 'A').replace(' - scalp', 's');
 
-        // Number formatting to keep it tight (removes decimals if possible)
+        // Round all numbers to integers to save horizontal screen real estate
         const fmt = (num) => Math.round(num).toLocaleString();
 
         html += `
         <div class="dashboard-grid dashboard-row">
-            <div>${shortName}</div>
+            <div>${acc}</div>
             <div class="${plToday >= 0 ? 'dash-val-plus' : 'dash-val-minus'}">${plToday >= 0 ? '+' : ''}${fmt(plToday)}</div>
             <div>${fmt(stats.balance)}</div>
-            <div style="opacity: 0.6;">${fmt(stats.maxLoss)}</div>
+            <div style="opacity: 0.5;">${fmt(stats.maxLoss)}</div>
             <div class="dash-buffer ${buffer < 500 ? 'dash-val-minus' : ''}">${fmt(buffer)}</div>
         </div>`;
     });
