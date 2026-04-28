@@ -798,6 +798,57 @@ table:has(#ts-completed-trades-tbody) thead th {
 }
 .status-active { background-color: var(--green-bg); color: var(--green-text); }
 .status-danger { background-color: var(--red-bg); color: var(--red-text); animation: pulseHighlight 1s infinite alternate; }
+
+
+        
+#funded-dashboard-container {
+    background: var(--container-bg);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.dashboard-grid {
+    display: grid;
+    /* Columns: Acc(wider), Day P/L, Bal, MLL, Buffer */
+    grid-template-columns: 1.2fr 1fr 1.1fr 1.1fr 1fr;
+    gap: 2px;
+    padding: 6px 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px; /* Smaller text for iPhone */
+    line-height: 1.2;
+}
+
+.dashboard-header {
+    background-color: var(--header-bg);
+    font-weight: 800;
+    color: var(--subtle-text);
+    border-bottom: 1px solid var(--border-color);
+    text-transform: uppercase;
+}
+
+.dashboard-row {
+    border-bottom: 1px dotted var(--border-color);
+    align-items: center;
+}
+
+.dashboard-row div {
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.dashboard-row div:first-child {
+    text-align: left;
+    font-family: inherit;
+    font-weight: bold;
+    color: var(--link-color);
+}
+
+.dash-val-plus { color: var(--green-text); }
+.dash-val-minus { color: var(--red-text); }
+.dash-buffer { font-weight: 900; background: rgba(0,0,0,0.03); border-radius: 2px; }
+[data-theme="dark"] .dash-buffer { background: rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
@@ -1002,6 +1053,19 @@ table:has(#ts-completed-trades-tbody) thead th {
         <!-- Tab 1.5: Funded Accounts -->
         <div id="topstep-tab" class="tab-content active">
             
+<!-- Mini Dashboard Section -->
+<div id="funded-dashboard-container" style="margin-bottom: 15px;">
+    <div class="dashboard-grid dashboard-header">
+        <div style="text-align: left;">ACC</div>
+        <div>DAY P/L</div>
+        <div>BAL</div>
+        <div>MLL</div>
+        <div style="color: var(--text-color);">BUFFER</div>
+    </div>
+    <div id="funded-dashboard-rows">
+        <!-- JS will inject rows here -->
+    </div>
+</div>
 <!-- NEW: Tradovate Style Live Dashboard -->
 <div class="collapsible-section is-open" style="border: 2px solid var(--link-color);">
     <div class="collapsible-header" style="background-color: var(--link-color); color: white;">
@@ -1629,50 +1693,42 @@ function renderFilteredEvalData() {
     const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
     renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
     
-    // NEW: Render the live dashboard
+    // Update the stats and the new dashboard
     calculateTopstepStats(completedMapped);
     renderFundedDashboard(); 
 }
+        function renderFundedDashboard() {
+    const container = document.getElementById('funded-dashboard-rows');
+    if (!container) return;
 
-        
-function renderFundedDashboard() {
-    const tbody = document.getElementById('funded-dashboard-tbody');
-    if (!tbody) return;
-
-    const todayStr = getPerthDateString(); // Current trading session date
+    const todayStr = getPerthDateString();
     let html = '';
 
     CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
         const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000, tradesByDay: {} };
         
-        // 1. Calculate P/L for TODAY ONLY
         const plToday = stats.tradesByDay[todayStr] || 0;
+        const buffer = stats.balance - stats.maxLoss;
         
-        // 2. Calculate Distance to Liquidation
-        const distToLiq = stats.balance - stats.maxLoss;
-        
-        // Formatting
-        const plColor = plToday >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-        const statusClass = distToLiq < 500 ? 'status-danger' : 'status-active';
-        const statusText = distToLiq < 500 ? 'CRITICAL' : 'ACTIVE';
+        // Shorten account names for mobile (e.g., "Lucid 1" -> "L1")
+        const shortName = acc.replace('Lucid ', 'L').replace('Apex ', 'A').replace(' - scalp', 's');
+
+        // Number formatting to keep it tight (removes decimals if possible)
+        const fmt = (num) => Math.round(num).toLocaleString();
 
         html += `
-        <tr>
-            <td style="font-family: inherit; font-weight: bold; color: var(--link-color);">${acc}</td>
-            <td style="text-align: right; color: ${plColor};">${plToday >= 0 ? '+' : ''}${formatCurrency(plToday)}</td>
-            <td style="text-align: right;">${formatCurrency(stats.balance)}</td>
-            <td style="text-align: right; color: var(--red-text); opacity: 0.8;">${formatCurrency(stats.maxLoss)}</td>
-            <td style="text-align: right; font-weight: 800; font-size: 15px;">
-                ${formatCurrency(distToLiq)}
-            </td>
-            <td style="text-align: center;">
-                <span class="status-pill ${statusClass}">${statusText}</span>
-            </td>
-        </tr>`;
+        <div class="dashboard-grid dashboard-row">
+            <div>${shortName}</div>
+            <div class="${plToday >= 0 ? 'dash-val-plus' : 'dash-val-minus'}">${plToday >= 0 ? '+' : ''}${fmt(plToday)}</div>
+            <div>${fmt(stats.balance)}</div>
+            <div style="opacity: 0.6;">${fmt(stats.maxLoss)}</div>
+            <div class="dash-buffer ${buffer < 500 ? 'dash-val-minus' : ''}">${fmt(buffer)}</div>
+        </div>`;
     });
 
-    tbody.innerHTML = html;
+    container.innerHTML = html;
 }
+
         // --- RENDERING FUNCTIONS ---
         function toggleHistoricalRows(tbodyId, button) {
             const tbody = document.getElementById(tbodyId);
