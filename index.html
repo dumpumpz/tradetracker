@@ -916,24 +916,17 @@ table:has(#ts-completed-trades-tbody) thead th {
 
 
         
-/* Container: Full width on mobile, capped at 600px on PC */
+/* --- FUNDED DASHBOARD --- */
+
+/* MOBILE FIRST: This is your exact mobile code you liked */
 #funded-dashboard-container {
     background: var(--container-bg);
     border-radius: 4px;
     border: 1px solid var(--border-color);
     margin-bottom: 15px;
-    width: 100%;
-    box-sizing: border-box;
+    width: 100%; /* Full width for mobile */
 }
 
-/* This is the magic part for PC only */
-@media (min-width: 800px) {
-    #funded-dashboard-container {
-        max-width: 600px; 
-    }
-}
-
-/* EXACT GRID FROM THE VERSION YOU LIKED */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr 1fr; 
@@ -953,7 +946,7 @@ table:has(#ts-completed-trades-tbody) thead th {
 .dashboard-row {
     border-bottom: 1px solid var(--bg-color);
     align-items: center;
-    height: 30px; /* Keeps rows compact */
+    height: 30px;
 }
 
 .dashboard-row div {
@@ -974,6 +967,18 @@ table:has(#ts-completed-trades-tbody) thead th {
 .dash-val-minus { color: var(--red-text); }
 .dash-buffer { font-weight: 900; }
 
+/* --- PC OVERRIDE --- */
+/* When screen is wider than a tablet, force the container to be small */
+@media (min-width: 769px) {
+    #funded-dashboard-container {
+        width: 500px !important; /* Forces the box to be small on PC */
+        margin-right: auto; /* Keeps it on the left */
+    }
+    .dashboard-grid {
+        font-size: 11px; /* Slightly easier to read on PC monitors */
+        padding: 5px 10px; /* Give it a bit more breathing room on PC */
+    }
+}
 
     </style>
 </head>
