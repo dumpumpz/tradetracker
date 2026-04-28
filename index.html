@@ -915,16 +915,21 @@ table:has(#ts-completed-trades-tbody) thead th {
 
 
 
-        
-/* --- FUNDED DASHBOARD --- */
-
-/* MOBILE FIRST: This is your exact mobile code you liked */
+/* --- FUNDED DASHBOARD: EXACT MOBILE SPECS --- */
 #funded-dashboard-container {
     background: var(--container-bg);
     border-radius: 4px;
     border: 1px solid var(--border-color);
     margin-bottom: 15px;
-    width: 100%; /* Full width for mobile */
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ONLY Limit width on PC, touch nothing else */
+@media (min-width: 800px) {
+    #funded-dashboard-container {
+        max-width: 550px;
+    }
 }
 
 .dashboard-grid {
@@ -966,19 +971,6 @@ table:has(#ts-completed-trades-tbody) thead th {
 .dash-val-plus { color: var(--green-text); }
 .dash-val-minus { color: var(--red-text); }
 .dash-buffer { font-weight: 900; }
-
-/* --- PC OVERRIDE --- */
-/* When screen is wider than a tablet, force the container to be small */
-@media (min-width: 769px) {
-    #funded-dashboard-container {
-        width: 500px !important; /* Forces the box to be small on PC */
-        margin-right: auto; /* Keeps it on the left */
-    }
-    .dashboard-grid {
-        font-size: 11px; /* Slightly easier to read on PC monitors */
-        padding: 5px 10px; /* Give it a bit more breathing room on PC */
-    }
-}
 
     </style>
 </head>
