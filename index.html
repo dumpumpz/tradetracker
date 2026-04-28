@@ -624,6 +624,86 @@ table:has(#ts-completed-trades-tbody) thead th {
     text-align: center;
     height: auto; /* Ensure it grows with content */
 }
+
+        
+/* --- Optimized Summary Cards Fix for PC/Mobile --- */
+.summary-split-container { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 15px; 
+    width: 100%; 
+    box-sizing: border-box;
+    justify-content: flex-start; /* Ensures cards align nicely on PC */
+}
+
+.summary-card { 
+    flex: 1 1 380px; /* Increased base width from 300px to 380px to prevent text overlap */
+    max-width: 100%;
+    min-width: 350px; 
+    border-radius: 8px; 
+    padding: 15px 10px; 
+    border: 1px solid var(--border-color); 
+    background-color: var(--bg-color); 
+    box-sizing: border-box;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+/* Specific grid for the 5-column funded accounts */
+.funded-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    text-align: center;
+    width: 100%;
+}
+
+.funded-grid > div {
+    min-width: 0; /* Prevents flex/grid items from overflowing */
+    overflow: hidden;
+}
+
+.sum-val {
+    font-size: 13px; /* Slightly smaller on PC to ensure $50,000.00 fits */
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    display: block;
+    white-space: nowrap; /* Prevents dollar amounts from wrapping to two lines */
+}
+
+.sum-label {
+    font-size: 9px;
+    color: var(--subtle-text);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+    white-space: nowrap;
+}
+
+/* Mobile Overrides (Keep existing logic but refine) */
+@media (max-width: 768px) {
+    .summary-card {
+        min-width: 100% !important;
+        width: 100%;
+    }
+
+    /* Stack to 2 columns on phones so text stays readable */
+    .funded-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px;
+    }
+
+    /* Make Total P/L span full width on phone */
+    .funded-grid > div:last-child {
+        grid-column: span 2;
+        border-top: 1px dashed var(--border-color);
+        padding-top: 8px;
+        margin-top: 5px;
+    }
+
+    .sum-val {
+        font-size: 14px !important; /* Larger on phone because we have 2 columns */
+    }
+}
     </style>
 </head>
 <body>
