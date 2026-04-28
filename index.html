@@ -704,6 +704,82 @@ table:has(#ts-completed-trades-tbody) thead th {
         font-size: 14px !important; /* Larger on phone because we have 2 columns */
     }
 }
+
+        
+/* --- Optimized Summary Cards Grid --- */
+.summary-split-container { 
+    display: grid; 
+    /* This creates a grid where cards are at least 340px, but no more than 4 per row */
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); 
+    gap: 15px; 
+    width: 100%; 
+    box-sizing: border-box;
+}
+
+.summary-card { 
+    /* Remove flex properties that cause the 'squeezing' */
+    width: 100%;
+    border-radius: 8px; 
+    padding: 15px 10px; 
+    border: 1px solid var(--border-color); 
+    background-color: var(--bg-color); 
+    box-sizing: border-box;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    border-top: 3px solid var(--link-color); /* Added a top border for style */
+}
+
+/* 5-column layout inside each card */
+.funded-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    text-align: center;
+    align-items: end;
+}
+
+.sum-val {
+    font-size: 12px; /* Precision font size for 5-column fit */
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    white-space: nowrap; 
+    display: block;
+}
+
+.sum-label {
+    font-size: 9px;
+    color: var(--subtle-text);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+}
+
+/* PC adjustment: Prevent the 8th card from expanding weirdly */
+@media (min-width: 1200px) {
+    .summary-split-container {
+        grid-template-columns: repeat(4, 1fr); /* Forces exactly 4 per row on large screens */
+    }
+}
+
+/* Mobile Overrides */
+@media (max-width: 768px) {
+    .summary-split-container {
+        grid-template-columns: 1fr; /* Stack cards vertically on phones */
+    }
+
+    .funded-grid {
+        grid-template-columns: repeat(2, 1fr) !important; /* 2 columns on phone */
+    }
+
+    .funded-grid > div:last-child {
+        grid-column: span 2;
+        border-top: 1px dashed var(--border-color);
+        padding-top: 8px;
+    }
+
+    .sum-val {
+        font-size: 14px !important;
+    }
+}
     </style>
 </head>
 <body>
