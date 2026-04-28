@@ -914,8 +914,7 @@ table:has(#ts-completed-trades-tbody) thead th {
 
 
 
-
-/* --- FUNDED DASHBOARD: EXACT MOBILE SPECS --- */
+/* Container: Full width on mobile, capped at 600px on PC */
 #funded-dashboard-container {
     background: var(--container-bg);
     border-radius: 4px;
@@ -925,13 +924,14 @@ table:has(#ts-completed-trades-tbody) thead th {
     box-sizing: border-box;
 }
 
-/* ONLY Limit width on PC, touch nothing else */
+/* This is the magic part for PC only */
 @media (min-width: 800px) {
     #funded-dashboard-container {
-        max-width: 550px;
+        max-width: 600px; 
     }
 }
 
+/* EXACT GRID FROM THE VERSION YOU LIKED */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr 1fr; 
@@ -951,7 +951,7 @@ table:has(#ts-completed-trades-tbody) thead th {
 .dashboard-row {
     border-bottom: 1px solid var(--bg-color);
     align-items: center;
-    height: 30px;
+    height: 30px; /* Keeps rows compact */
 }
 
 .dashboard-row div {
