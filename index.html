@@ -2702,6 +2702,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     
     let rowsHtml = '';
     
+    // Pagination and Toggle Logic
     const showAll = isTopstep ? STATE.tsCompletedTradesShowAll : STATE.completedTradesShowAll;
     const currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
     const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
@@ -2712,9 +2713,10 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
 
+    // Table Headers (Entries is set to display:none)
     const headers = isTopstep 
         ? `<tr>
-            <th>Acc / Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th>
+            <th>Acc / Sym</th><th>Type</th><th>Avg Entry</th><th style="display:none;">Entries</th>
             <th>SL</th><th>TP</th><th>Contr.</th><th>Proj Pr</th>
             <th>Proj Ls</th><th>RR</th><th>Exit Price</th><th>Raw PnL</th>
             <th>Comms</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th>
@@ -2722,7 +2724,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             <th>Pics</th><th class="master-only">Actions</th>
            </tr>`
         : `<tr>
-            <th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th>
+            <th>Sym</th><th>Type</th><th>Avg Entry</th><th style="display:none;">Entries</th>
             <th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th>
             <th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th>
             <th>RR(M)</th><th>Exit Price</th><th>Raw PnL</th><th>Fees</th>
@@ -2732,6 +2734,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
            </tr>`;
     thead.innerHTML = headers;
 
+    // Grouping by Date
     const tradesByDayAndGroup = {};
     const uniqueTradingDates = [];
     tradeIds.forEach(id => {
@@ -2746,6 +2749,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     let visibleDates = uniqueTradingDates;
     const todayStr = getTradingDayString(Date.now(), Date.now());
+    
     if (showAll) {
         visibleDates = uniqueTradingDates.slice(currentPage - 1, currentPage);
         if (pageInfoSpan) pageInfoSpan.textContent = `Page ${currentPage} of ${uniqueTradingDates.length}`;
@@ -2760,6 +2764,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     visibleDates.forEach(dateStr => {
         const groups = tradesByDayAndGroup[dateStr];
         let dPnL = 0, dWins = 0, dLosses = 0;
+        
         Object.values(groups).forEach(g => g.forEach(t => {
             const net = parseFloat(t.net_result || 0);
             dPnL += net;
@@ -2781,7 +2786,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
         Object.keys(groups).forEach(groupId => {
             const groupTrades = groups[groupId];
-            let gNet = 0, gVol = 0, gQty = 0, gEntryW = 0, gExitW = 0, gPnL100 = 0;
+            let gNet = 0, gVol = 0, gQty = 0, gEntryW = 0, gExitW = 0;
 
             groupTrades.forEach(t => {
                 const net = parseFloat(t.net_result || 0);
@@ -2789,19 +2794,17 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 const exit = parseFloat(t.exit_price || 0);
                 const size = isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
                 const qty = isTopstep ? size : (size / entry);
-                const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
 
                 gNet += net; gVol += size; gQty += qty;
                 gEntryW += (entry * qty); gExitW += (exit * qty);
-                gPnL100 += parseFloat(m.pnl_per_100_move || 0);
             });
 
-            const avgEntry = gQty > 0 ? (gEntryW / gQty) : 0;
-            const avgExit = gQty > 0 ? (gExitW / gQty) : 0;
-            const diff = avgExit - avgEntry;
+            const avgEntryGroup = gQty > 0 ? (gEntryW / gQty) : 0;
+            const avgExitGroup = gQty > 0 ? (gExitW / gQty) : 0;
+            const diff = avgExitGroup - avgEntryGroup;
             const gType = groupTrades[0].type || 'Long';
             const gSymbol = groupTrades[0].symbol.split('/')[0];
-            const gPct = isTopstep ? (((avgExit - avgEntry) / avgEntry) * 100 * (gType === 'Short' ? -1 : 1)) : (gNet / gVol * 100);
+            const gPct = isTopstep ? (((avgExitGroup - avgEntryGroup) / avgEntryGroup) * 100 * (gType === 'Short' ? -1 : 1)) : (gNet / gVol * 100);
 
             let diffColor = 'var(--subtle-text)';
             if (gType === 'Long') diffColor = diff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
@@ -2815,11 +2818,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                         <span style="color:var(--border-color);">|</span>
                         <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)} (${gPct.toFixed(2)}%)</span></span>
                         <span style="color:var(--border-color);">|</span>
-                        <span>Avg: ${avgEntry.toFixed(2)} ➔ ${avgExit.toFixed(2)} <span style="color:${diffColor}; font-weight:bold; font-family:monospace;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
-                        <span style="color:var(--border-color);">|</span>
-                     <span style="color:var(--subtle-text);">Vol: ${isTopstep ? gVol + ' ' + gSymbol : '$'+gVol.toLocaleString()}</span>
-                        <span style="color:var(--border-color);">|</span>
-                        <span title="PnL per 100 point/percent move">$/100: <span style="font-family:monospace; color:var(--link-color)">$${gPnL100.toFixed(2)}</span></span>
+                        <span>Avg: ${avgEntryGroup.toFixed(2)} ➔ ${avgExitGroup.toFixed(2)} <span style="color:${diffColor}; font-weight:bold; font-family:monospace;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
                     </div>
                 </td>
             </tr>`;
@@ -2827,7 +2826,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             groupTrades.forEach(t => {
                 const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
                 const fees = isTopstep 
-                    ? ((parseFloat(t.commissions) || 0.78) * (parseFloat(t.contracts || t.size || 1))) 
+                    ? ((parseFloat(t.commissions) || 1.00) * (parseFloat(t.contracts || t.size || 1))) 
                     : (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0));
                 
                 const net = parseFloat(t.net_result || 0);
@@ -2836,7 +2835,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 const entryTime = t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
                 const closedTime = t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
 
-                // --- UPDATED THIS SECTION TO MAKE ACCOUNT BADGE EDITABLE ---
                 const accBadge = isTopstep 
                     ? `<span class="acc-badge editable-completed-cell" data-id="${t.dbId}" data-field="evalAccount" contenteditable="${STATE.isMasterUser}">${getEvalAccount(t)}</span>` 
                     : '';
@@ -2844,10 +2842,19 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 rowsHtml += `<tr style="font-size: 0.9em;">
                     <td>${accBadge} ${t.symbol}</td>
                     <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${t.type}</td>
-                    <td>${parseFloat(t.entry).toFixed(2)}</td>
-                    <td class="note-cell" style="font-size:10px;">${(t.entry_prices || [t.entry]).map(p => parseFloat(p).toFixed(2)).join(', ')}</td>
-                    <td>${parseFloat(t.stoploss || 0).toFixed(2)}</td>
-                    <td>${parseFloat(t.target || 0).toFixed(2)}</td>
+                    
+                    <!-- Editable Entry -->
+                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(t.entry).toFixed(2)}</td>
+                    
+                    <!-- Hidden Entries -->
+                    <td style="display:none;">${(t.entry_prices || [t.entry]).map(p => parseFloat(p).toFixed(2)).join(', ')}</td>
+                    
+                    <!-- Editable SL -->
+                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
+                    
+                    <!-- Editable TP -->
+                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(t.target || 0).toFixed(2)}</td>
+                    
                     <td>${isTopstep ? (t.contracts || t.size) : parseFloat(t.size).toFixed(2)}</td>
                     
                     <td style="color:var(--green-text); opacity:0.6;">$${parseFloat(m.expected_profit_taker).toFixed(2)}</td>
@@ -4020,10 +4027,10 @@ function handleAddTradeSubmit(e, isTopstep = false) {
         });
     }
 }
+
 function handleCompletedTradeUpdate(cell) {
     if (!STATE.isMasterUser) return;
 
-    // Determine if this is a Topstep (Funded) or Standard (Crypto) trade
     const isTopstep = cell.closest('#topstep-tab') !== null;
     const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
 
@@ -4033,12 +4040,11 @@ function handleCompletedTradeUpdate(cell) {
 
     if (!tradeId || !field) return;
 
-    // LOGIC 1: Handling Exit Price changes (Requires P/L Recalculation)
-    if (field === 'exit_price') {
-        const newPrice = parseFloat(newValue.replace(/[^0-9.-]/g, ''));
-        if (isNaN(newPrice)) {
-            // Revert text if invalid number entered
-            compRef.child(tradeId).child('exit_price').once('value', s => cell.innerText = s.val());
+    // Logic for numeric fields that affect P/L (Entry, SL, TP, Exit)
+    if (['entry', 'stoploss', 'target', 'exit_price'].includes(field)) {
+        const newNum = parseFloat(newValue.replace(/[^0-9.-]/g, ''));
+        if (isNaN(newNum)) {
+            compRef.child(tradeId).child(field).once('value', s => cell.innerText = s.val());
             return;
         }
 
@@ -4046,40 +4052,42 @@ function handleCompletedTradeUpdate(cell) {
             const trade = snapshot.val();
             if (!trade) return;
 
-            let updates;
+            // Apply the new value to our temporary object
+            const updatedTrade = { ...trade, [field]: newNum };
+            let updates = { [field]: newNum };
+
             if (isTopstep) {
-                // Futures Math for Funded Accounts
-                const MULT = getFuturesMultiplier(trade.symbol);
-                const contracts = parseFloat(trade.contracts || trade.size || 1);
-                const fees = parseFloat(trade.commissions || 1.00); // RT Fee
-                const points = trade.type === "Long" ? (newPrice - trade.entry) : (trade.entry - newPrice);
-                const netResult = (points * MULT * contracts) - (fees * contracts);
-                updates = { exit_price: newPrice, net_result: netResult };
+                // 1. Recalculate Futures Projections (Proj Pr, Proj Ls, RR)
+                const metrics = calculateFuturesMetrics(updatedTrade);
+                
+                // 2. Recalculate Final Result (Net P/L)
+                const MULT = getFuturesMultiplier(updatedTrade.symbol);
+                const contracts = parseFloat(updatedTrade.contracts || updatedTrade.size || 1);
+                const commsPerContract = parseFloat(updatedTrade.commissions || 1.00);
+                const totalFees = commsPerContract * contracts;
+                
+                const entry = parseFloat(updatedTrade.entry);
+                const exit = parseFloat(updatedTrade.exit_price || entry);
+                
+                const points = updatedTrade.type === "Long" ? (exit - entry) : (entry - exit);
+                const netResult = (points * MULT * contracts) - totalFees;
+
+                // Merge all calculated updates
+                Object.assign(updates, metrics, { net_result: netResult });
             } else {
                 // Standard Crypto Math
-                const res = calculateNetResult(trade, newPrice, trade.exitFeeType || 'taker');
-                updates = { ...res, exit_price: newPrice };
+                const res = calculateNetResult(updatedTrade, updatedTrade.exit_price, updatedTrade.exitFeeType || 'taker');
+                Object.assign(updates, res);
             }
 
+            // Push all changes to Firebase
             compRef.child(tradeId).update(updates).then(() => {
                 cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
                 setTimeout(() => cell.style.backgroundColor = '', 500);
             });
         });
     } 
-    // LOGIC 2: Handling Account Name changes (Eval Account)
-    else if (field === 'evalAccount') {
-        // Ensure the account name is valid or exists in your config if you want strictness,
-        // otherwise, it just saves what you typed.
-        compRef.child(tradeId).update({ evalAccount: newValue }).then(() => {
-            cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
-            setTimeout(() => cell.style.backgroundColor = '', 500);
-        }).catch(err => {
-            console.error("Firebase Account Update Error:", err);
-            alert("Failed to update account: " + err.message);
-        });
-    }
-    // LOGIC 3: Handling generic text fields (Notes, etc.)
+    // Logic for other fields (Notes, Account Badge, etc.)
     else {
         const updateObj = {};
         updateObj[field] = newValue;
@@ -4087,11 +4095,10 @@ function handleCompletedTradeUpdate(cell) {
         compRef.child(tradeId).update(updateObj).then(() => {
             cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
             setTimeout(() => cell.style.backgroundColor = '', 500);
-        }).catch(err => {
-            console.error("Firebase Save Error:", err);
         });
     }
 }
+
 
         function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
