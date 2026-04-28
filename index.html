@@ -780,6 +780,24 @@ table:has(#ts-completed-trades-tbody) thead th {
         font-size: 14px !important;
     }
 }
+
+
+        
+#funded-dashboard-tbody tr td {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 10px;
+}
+#funded-dashboard-tbody .status-pill {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+.status-active { background-color: var(--green-bg); color: var(--green-text); }
+.status-danger { background-color: var(--red-bg); color: var(--red-text); animation: pulseHighlight 1s infinite alternate; }
     </style>
 </head>
 <body>
@@ -984,6 +1002,34 @@ table:has(#ts-completed-trades-tbody) thead th {
         <!-- Tab 1.5: Funded Accounts -->
         <div id="topstep-tab" class="tab-content active">
             
+<!-- NEW: Tradovate Style Live Dashboard -->
+<div class="collapsible-section is-open" style="border: 2px solid var(--link-color);">
+    <div class="collapsible-header" style="background-color: var(--link-color); color: white;">
+        <h2 style="color: white;">Live Account Dashboard (Current Session)</h2>
+        <button class="collapsible-toggle-btn" style="color: white; border-color: white;">−</button>
+    </div>
+    <div class="collapsible-content">
+        <div class="collapsible-content-inner" style="padding: 0;">
+            <div class="table-wrapper" style="margin-bottom: 0;">
+                <table style="margin-top: 0; border: none;">
+                    <thead>
+                        <tr style="background-color: var(--header-bg);">
+                            <th>Account</th>
+                            <th style="text-align: right;">Total P/L Today</th>
+                            <th style="text-align: right;">Live Balance</th>
+                            <th style="text-align: right;">Max Loss Limit (MLL)</th>
+                            <th style="text-align: right;">Dist. to Drawdown</th>
+                            <th style="text-align: center;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="funded-dashboard-tbody">
+                        <!-- Loaded via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
      <div class="collapsible-section">
     <div class="collapsible-header">
         <h2>Account Summaries</h2>
@@ -1575,15 +1621,58 @@ table:has(#ts-completed-trades-tbody) thead th {
             return mapped;
         }
 
-        function renderFilteredEvalData() {
-            const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
-            renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
-            
-            const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
-            renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
-            calculateTopstepStats(completedMapped);
-        }
+    
+function renderFilteredEvalData() {
+    const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
+    renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
+    
+    const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
+    renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
+    
+    // NEW: Render the live dashboard
+    calculateTopstepStats(completedMapped);
+    renderFundedDashboard(); 
+}
 
+        
+function renderFundedDashboard() {
+    const tbody = document.getElementById('funded-dashboard-tbody');
+    if (!tbody) return;
+
+    const todayStr = getPerthDateString(); // Current trading session date
+    let html = '';
+
+    CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
+        const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000, tradesByDay: {} };
+        
+        // 1. Calculate P/L for TODAY ONLY
+        const plToday = stats.tradesByDay[todayStr] || 0;
+        
+        // 2. Calculate Distance to Liquidation
+        const distToLiq = stats.balance - stats.maxLoss;
+        
+        // Formatting
+        const plColor = plToday >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+        const statusClass = distToLiq < 500 ? 'status-danger' : 'status-active';
+        const statusText = distToLiq < 500 ? 'CRITICAL' : 'ACTIVE';
+
+        html += `
+        <tr>
+            <td style="font-family: inherit; font-weight: bold; color: var(--link-color);">${acc}</td>
+            <td style="text-align: right; color: ${plColor};">${plToday >= 0 ? '+' : ''}${formatCurrency(plToday)}</td>
+            <td style="text-align: right;">${formatCurrency(stats.balance)}</td>
+            <td style="text-align: right; color: var(--red-text); opacity: 0.8;">${formatCurrency(stats.maxLoss)}</td>
+            <td style="text-align: right; font-weight: 800; font-size: 15px;">
+                ${formatCurrency(distToLiq)}
+            </td>
+            <td style="text-align: center;">
+                <span class="status-pill ${statusClass}">${statusText}</span>
+            </td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html;
+}
         // --- RENDERING FUNCTIONS ---
         function toggleHistoricalRows(tbodyId, button) {
             const tbody = document.getElementById(tbodyId);
