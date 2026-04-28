@@ -2702,7 +2702,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     
     let rowsHtml = '';
     
-    // Pagination and Toggle Logic
     const showAll = isTopstep ? STATE.tsCompletedTradesShowAll : STATE.completedTradesShowAll;
     const currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
     const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
@@ -2713,10 +2712,10 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
 
-    // Table Headers (Entries is set to display:none)
+    // Column headers - Entries is now visible
     const headers = isTopstep 
         ? `<tr>
-            <th>Acc / Sym</th><th>Type</th><th>Avg Entry</th><th style="display:none;">Entries</th>
+            <th>Acc / Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th>
             <th>SL</th><th>TP</th><th>Contr.</th><th>Proj Pr</th>
             <th>Proj Ls</th><th>RR</th><th>Exit Price</th><th>Raw PnL</th>
             <th>Comms</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th>
@@ -2724,7 +2723,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             <th>Pics</th><th class="master-only">Actions</th>
            </tr>`
         : `<tr>
-            <th>Sym</th><th>Type</th><th>Avg Entry</th><th style="display:none;">Entries</th>
+            <th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th>
             <th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th>
             <th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th>
             <th>RR(M)</th><th>Exit Price</th><th>Raw PnL</th><th>Fees</th>
@@ -2734,7 +2733,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
            </tr>`;
     thead.innerHTML = headers;
 
-    // Grouping by Date
     const tradesByDayAndGroup = {};
     const uniqueTradingDates = [];
     tradeIds.forEach(id => {
@@ -2749,7 +2747,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     let visibleDates = uniqueTradingDates;
     const todayStr = getTradingDayString(Date.now(), Date.now());
-    
     if (showAll) {
         visibleDates = uniqueTradingDates.slice(currentPage - 1, currentPage);
         if (pageInfoSpan) pageInfoSpan.textContent = `Page ${currentPage} of ${uniqueTradingDates.length}`;
@@ -2764,7 +2761,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     visibleDates.forEach(dateStr => {
         const groups = tradesByDayAndGroup[dateStr];
         let dPnL = 0, dWins = 0, dLosses = 0;
-        
         Object.values(groups).forEach(g => g.forEach(t => {
             const net = parseFloat(t.net_result || 0);
             dPnL += net;
@@ -2794,7 +2790,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 const exit = parseFloat(t.exit_price || 0);
                 const size = isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
                 const qty = isTopstep ? size : (size / entry);
-
                 gNet += net; gVol += size; gQty += qty;
                 gEntryW += (entry * qty); gExitW += (exit * qty);
             });
@@ -2803,7 +2798,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             const avgExitGroup = gQty > 0 ? (gExitW / gQty) : 0;
             const diff = avgExitGroup - avgEntryGroup;
             const gType = groupTrades[0].type || 'Long';
-            const gSymbol = groupTrades[0].symbol.split('/')[0];
             const gPct = isTopstep ? (((avgExitGroup - avgEntryGroup) / avgEntryGroup) * 100 * (gType === 'Short' ? -1 : 1)) : (gNet / gVol * 100);
 
             let diffColor = 'var(--subtle-text)';
@@ -2835,31 +2829,21 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 const entryTime = t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
                 const closedTime = t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
 
-                const accBadge = isTopstep 
-                    ? `<span class="acc-badge editable-completed-cell" data-id="${t.dbId}" data-field="evalAccount" contenteditable="${STATE.isMasterUser}">${getEvalAccount(t)}</span>` 
-                    : '';
-
                 rowsHtml += `<tr style="font-size: 0.9em;">
-                    <td>${accBadge} ${t.symbol}</td>
+                    <td><span class="acc-badge editable-completed-cell" data-id="${t.dbId}" data-field="evalAccount" contenteditable="${STATE.isMasterUser}">${getEvalAccount(t)}</span> ${t.symbol}</td>
                     <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${t.type}</td>
                     
-                    <!-- Editable Entry -->
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(t.entry).toFixed(2)}</td>
                     
-                    <!-- Hidden Entries -->
-                    <td style="display:none;">${(t.entry_prices || [t.entry]).map(p => parseFloat(p).toFixed(2)).join(', ')}</td>
+                    <!-- EDITABLE ENTRIES LIST -->
+                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${(t.entry_prices || [t.entry]).map(p => parseFloat(p).toFixed(2)).join(', ')}</td>
                     
-                    <!-- Editable SL -->
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
-                    
-                    <!-- Editable TP -->
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(t.target || 0).toFixed(2)}</td>
                     
                     <td>${isTopstep ? (t.contracts || t.size) : parseFloat(t.size).toFixed(2)}</td>
-                    
                     <td style="color:var(--green-text); opacity:0.6;">$${parseFloat(m.expected_profit_taker).toFixed(2)}</td>
                     <td style="color:var(--red-text); opacity:0.6;">$${parseFloat(m.expected_loss_taker).toFixed(2)}</td>
-                    
                     ${!isTopstep ? `<td>${m.rr_maker}</td>` : `<td>${m.rr_taker}</td>`} 
 
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}">${parseFloat(t.exit_price).toFixed(2)}</td>
@@ -2885,12 +2869,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     });
 
     tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px;"></td></tr>';
-
-    const section = tbodyElement.closest('.collapsible-section');
-    if (section && section.classList.contains('is-open')) {
-        const content = section.querySelector('.collapsible-content');
-        if (content) { content.style.maxHeight = 'none'; }
-    }
 }
 
         function renderDateNavigation() {
@@ -4036,70 +4014,60 @@ function handleCompletedTradeUpdate(cell) {
 
     const tradeId = cell.dataset.id;
     const field = cell.dataset.field; 
-    let newValue = cell.innerText.trim(); 
+    let rawValue = cell.innerText.trim(); 
 
     if (!tradeId || !field) return;
 
-    // Logic for numeric fields that affect P/L (Entry, SL, TP, Exit)
-    if (['entry', 'stoploss', 'target', 'exit_price'].includes(field)) {
-        const newNum = parseFloat(newValue.replace(/[^0-9.-]/g, ''));
-        if (isNaN(newNum)) {
-            compRef.child(tradeId).child(field).once('value', s => cell.innerText = s.val());
-            return;
+    compRef.child(tradeId).once('value', snapshot => {
+        const trade = snapshot.val();
+        if (!trade) return;
+
+        let updates = {};
+
+        // Special Case: Editing the comma-separated Entries list
+        if (field === 'entry_prices') {
+            const newPrices = rawValue.split(',').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+            if (newPrices.length === 0) return;
+            
+            // Calculate new average from the list
+            const newAvg = newPrices.reduce((a, b) => a + b, 0) / newPrices.length;
+            updates.entry_prices = newPrices;
+            updates.entry = newAvg;
+        } 
+        // Case: Editing numeric fields (Entry, SL, TP, Exit)
+        else if (['entry', 'stoploss', 'target', 'exit_price'].includes(field)) {
+            const num = parseFloat(rawValue.replace(/[^0-9.-]/g, ''));
+            if (isNaN(num)) return;
+            updates[field] = num;
+        } 
+        // Case: Generic text (Notes, Account)
+        else {
+            updates[field] = rawValue;
         }
 
-        compRef.child(tradeId).once('value', snapshot => {
-            const trade = snapshot.val();
-            if (!trade) return;
+        // Apply temporary logic to calculate resulting P/L
+        const tempTrade = { ...trade, ...updates };
+        
+        if (isTopstep) {
+            const MULT = getFuturesMultiplier(tempTrade.symbol);
+            const contracts = parseFloat(tempTrade.contracts || 1);
+            const fees = (parseFloat(tempTrade.commissions || 1.00)) * contracts;
+            const points = tempTrade.type === "Long" ? (tempTrade.exit_price - tempTrade.entry) : (tempTrade.entry - tempTrade.exit_price);
+            
+            const metrics = calculateFuturesMetrics(tempTrade);
+            updates = { ...updates, ...metrics, net_result: (points * MULT * contracts) - fees };
+        } else {
+            const res = calculateNetResult(tempTrade, tempTrade.exit_price, tempTrade.exitFeeType || 'taker');
+            updates = { ...updates, ...res };
+        }
 
-            // Apply the new value to our temporary object
-            const updatedTrade = { ...trade, [field]: newNum };
-            let updates = { [field]: newNum };
-
-            if (isTopstep) {
-                // 1. Recalculate Futures Projections (Proj Pr, Proj Ls, RR)
-                const metrics = calculateFuturesMetrics(updatedTrade);
-                
-                // 2. Recalculate Final Result (Net P/L)
-                const MULT = getFuturesMultiplier(updatedTrade.symbol);
-                const contracts = parseFloat(updatedTrade.contracts || updatedTrade.size || 1);
-                const commsPerContract = parseFloat(updatedTrade.commissions || 1.00);
-                const totalFees = commsPerContract * contracts;
-                
-                const entry = parseFloat(updatedTrade.entry);
-                const exit = parseFloat(updatedTrade.exit_price || entry);
-                
-                const points = updatedTrade.type === "Long" ? (exit - entry) : (entry - exit);
-                const netResult = (points * MULT * contracts) - totalFees;
-
-                // Merge all calculated updates
-                Object.assign(updates, metrics, { net_result: netResult });
-            } else {
-                // Standard Crypto Math
-                const res = calculateNetResult(updatedTrade, updatedTrade.exit_price, updatedTrade.exitFeeType || 'taker');
-                Object.assign(updates, res);
-            }
-
-            // Push all changes to Firebase
-            compRef.child(tradeId).update(updates).then(() => {
-                cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
-                setTimeout(() => cell.style.backgroundColor = '', 500);
-            });
-        });
-    } 
-    // Logic for other fields (Notes, Account Badge, etc.)
-    else {
-        const updateObj = {};
-        updateObj[field] = newValue;
-
-        compRef.child(tradeId).update(updateObj).then(() => {
+        // Save to Firebase
+        compRef.child(tradeId).update(updates).then(() => {
             cell.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
             setTimeout(() => cell.style.backgroundColor = '', 500);
         });
-    }
+    });
 }
-
-
         function handleLiveTradeUpdate(cell) {
             if (!STATE.isMasterUser) return;
             
