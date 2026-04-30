@@ -1725,7 +1725,7 @@ function renderApexExpiry() {
     let rowsHtml = '';
     let inputsHtml = '';
 
-    // Only look for accounts that have "Apex" in the name
+    // Filter accounts that include "Apex"
     const apexAccounts = CONFIG.FUNDED_ACCOUNTS.filter(acc => acc.toLowerCase().includes('apex'));
 
     apexAccounts.forEach(acc => {
@@ -1733,11 +1733,12 @@ function renderApexExpiry() {
         let daysLeft = '--';
         let statusClass = '';
         let statusText = 'WAITING';
+        let statusStyle = '';
 
         if (purchaseDateStr) {
             const purchaseDate = new Date(purchaseDateStr + 'T00:00:00');
             const expiryDate = new Date(purchaseDate);
-            expiryDate.setDate(purchaseDate.getDate() + 30); // 30 Day Rule
+            expiryDate.setDate(purchaseDate.getDate() + 30);
             
             const today = new Date();
             today.setHours(0,0,0,0);
@@ -1750,50 +1751,56 @@ function renderApexExpiry() {
                 statusClass = 'dash-val-plus';
             } else if (daysLeft <= 7 && daysLeft > 0) {
                 statusText = 'URGENT';
-                statusClass = 'val-red'; // Orange/Yellow logic
                 statusStyle = 'color: #ffc107; font-weight: bold;';
             } else {
                 statusText = 'EXPIRED';
-                statusClass = 'status-danger'; // Pulses red
+                statusClass = 'status-danger'; 
                 daysLeft = 0;
             }
         }
 
-        // Display Row
         rowsHtml += `
         <div class="dashboard-grid dashboard-row" style="grid-template-columns: 2fr 1.5fr 1fr 1fr; height: 28px;">
             <div style="text-align: left; font-weight: bold;">${acc}</div>
             <div style="font-size: 8.5px; opacity: 0.8;">${purchaseDateStr || 'Not Set'}</div>
-            <div class="${daysLeft <= 5 ? 'val-red' : ''}" style="font-weight: 900;">${daysLeft}d</div>
+            <div class="${daysLeft <= 7 ? 'val-red' : ''}" style="font-weight: 900;">${daysLeft}d</div>
             <div style="text-align: center;">
-                <span class="${statusClass}" style="font-size: 8px; padding: 2px 4px; border-radius: 3px; ${daysLeft <= 7 && daysLeft > 0 ? 'color: #ffc107;' : ''}">
+                <span class="${statusClass}" style="font-size: 8px; padding: 2px 4px; border-radius: 3px; ${statusStyle}">
                     ${statusText}
                 </span>
             </div>
         </div>`;
 
-        // Master Input
-        inputsHtml += `
-        <div>
-            <label style="font-size: 9px; display: block; margin-bottom: 2px;">${acc}</label>
-            <input type="date" class="apex-date-setter" data-acc="${acc}" value="${purchaseDateStr}" 
-                   style="font-size: 10px; padding: 4px; height: 24px;">
-        </div>`;
+        if (STATE.isMasterUser && inputsContainer) {
+            inputsHtml += `
+            <div style="margin-bottom: 5px;">
+                <label style="font-size: 9px; display: block; color: var(--subtle-text);">${acc}</label>
+                <input type="date" class="apex-date-setter" data-acc="${acc}" value="${purchaseDateStr}" 
+                       style="font-size: 11px; padding: 2px; height: 22px; width: 100%;">
+            </div>`;
+        }
     });
 
     rowsContainer.innerHTML = rowsHtml;
-    if (inputsContainer) inputsContainer.innerHTML = inputsHtml;
-
-    // Attach listeners to new inputs
-    document.querySelectorAll('.apex-date-setter').forEach(input => {
-        input.addEventListener('change', (e) => {
-            if (!STATE.isMasterUser) return;
-            const account = e.target.dataset.acc;
-            const date = e.target.value;
-            dbRefs.apexExpiry.child(account).set(date);
+    
+    if (STATE.isMasterUser && inputsContainer) {
+        inputsContainer.innerHTML = inputsHtml;
+        // ATTACH LISTENERS AFTER INJECTING HTML
+        inputsContainer.querySelectorAll('.apex-date-setter').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const account = e.target.dataset.acc;
+                const date = e.target.value;
+                console.log("Saving Apex Date:", account, date); // Debug log
+                dbRefs.apexExpiry.child(account).set(date)
+                    .then(() => {
+                        e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+                        setTimeout(() => e.target.style.backgroundColor = '', 500);
+                    });
+            });
         });
-    });
+    }
 }
+
         function autoResizeTextarea(textarea) { 
             if (!textarea || textarea.tagName !== 'TEXTAREA') return; 
             if (textarea.offsetParent === null) return;
@@ -5129,6 +5136,10 @@ dbRefs.tsCompletedTrades.on('value', s => {
                     
                     document.body.classList.add('is-master');
                     
+                    // Show Apex Date Entry Panel
+                    const apexControls = document.getElementById('apex-expiry-master-controls');
+                    if (apexControls) apexControls.style.display = 'block';
+
                     if (DOM.journalEntryEl) DOM.journalEntryEl.readOnly = false;
                     if (DOM.strategyNotesEntry) DOM.strategyNotesEntry.readOnly = false;
                     if (DOM.primarySetupsNotes) DOM.primarySetupsNotes.readOnly = false; 
@@ -5146,6 +5157,11 @@ dbRefs.tsCompletedTrades.on('value', s => {
             
             if (!STATE.isMasterUser) {
                 document.body.classList.remove('is-master');
+                
+                // Hide Apex Date Entry Panel
+                const apexControls = document.getElementById('apex-expiry-master-controls');
+                if (apexControls) apexControls.style.display = 'none';
+
                 if (DOM.journalEntryEl) DOM.journalEntryEl.readOnly = true;
                 if (DOM.primarySetupsNotes) DOM.primarySetupsNotes.readOnly = true; 
                 if (DOM.secondarySetupsNotes) DOM.secondarySetupsNotes.readOnly = true;
@@ -5157,9 +5173,8 @@ dbRefs.tsCompletedTrades.on('value', s => {
                 if (tsSecondary) tsSecondary.readOnly = true;
             }
         }
-
      
-        async function initializeApp() {
+         async function initializeApp() {
             checkMasterMode(); 
             getViewerId();
             await fetchLiveConversionRate();
@@ -5167,7 +5182,7 @@ dbRefs.tsCompletedTrades.on('value', s => {
             // 1. Initialize Funded Account UI Components
             renderFundedAccountRadios();
             
-            // Set initial stats cache defaults to render immediately before data loads
+            // Set initial stats cache defaults 
             CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
                 FUNDED_STATS_CACHE[acc] = { 
                     balance: CONFIG.FUNDED_START, 
@@ -5175,13 +5190,15 @@ dbRefs.tsCompletedTrades.on('value', s => {
                     maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN 
                 };
             });
+            
             renderFundedBanners();
             updateTargetCalculator();
+            renderApexExpiry(); // <--- NEW: Initialize Expiry Tracker
 
-            // 1.5 NEW: Initialize Review Mode Date Picker (Defaults to Today)
+            // 1.5 Initialize Review Mode Date Picker
             const reviewDateInput = document.getElementById('ts-setup-review-date');
             if (reviewDateInput) {
-                reviewDateInput.value = getPerthDateString(); // Sets it to the current trading day
+                reviewDateInput.value = getPerthDateString(); 
             }
 
             // 2. Handle Theme Selection
@@ -5191,7 +5208,7 @@ dbRefs.tsCompletedTrades.on('value', s => {
                 DOM.themeToggle.checked = savedTheme === 'dark'; 
             }
             
-            // 3. Initialize Date State (UTC Midnights for Journaling)
+            // 3. Initialize Date State
             const today = new Date(); 
             today.setUTCHours(0, 0, 0, 0);
             STATE.selectedDate = new Date(today); 
@@ -5207,21 +5224,17 @@ dbRefs.tsCompletedTrades.on('value', s => {
             DOM.statsPanelContainer.style.display = 'block';
 
             // 6. AUTO-SESSION & VARIANT (TRADE #) LOGIC
-            // Set session/variant immediately on load
             updateAutoSessionUI();
-            
-            // Check every minute to see if the NY clock has moved into a new session
             setInterval(updateAutoSessionUI, 60000);
 
-            // Force update when clicking into the Funded Tab to ensure latest # is shown
             DOM.tabs.addEventListener('click', (e) => {
                 if (e.target.dataset.tab === 'topstep') {
                     updateAutoSessionUI();
+                    renderApexExpiry(); // Ensure expiry UI is fresh when clicking tab
                 }
             });
 
             // 7. UI REFINEMENT DELAY
-            // This ensures data has started rendering before we calculate heights for collapsibles
             setTimeout(() => {
                 const activeTabContent = document.querySelector('.tab-content.active');
                 if (activeTabContent) {
@@ -5234,22 +5247,18 @@ dbRefs.tsCompletedTrades.on('value', s => {
                     if (tsPrimary && tsPrimary.value) autoResizeTextarea(tsPrimary);
                     if (tsSecondary && tsSecondary.value) autoResizeTextarea(tsSecondary);
                     
-                    // Force open default sections and ensure they aren't height-capped
                     activeTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
                         const content = section.querySelector('.collapsible-content');
-                        if (content) {
-                            content.style.maxHeight = 'none'; 
-                        }
+                        if (content) content.style.maxHeight = 'none'; 
                     });
 
-                    // Ensure the Review Mode date picker area is correctly sized
                     const setupSection = document.getElementById('ts-setups-upload-section');
                     if (setupSection) resizeParentCollapsible(setupSection);
                 }
             }, 700); 
         } 
 
-        // CRITICAL: Actually run the initialization!
+        // Run the app
         initializeApp();
 
     }); // This closes the document.addEventListener('DOMContentLoaded', ... block
