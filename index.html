@@ -1206,14 +1206,16 @@ table:has(#ts-completed-trades-tbody) thead th {
 
     <!-- Public Display Grid -->
 <!-- Public Display Grid -->
-<div id="apex-expiry-dashboard" ...>
-    <div class="dashboard-grid dashboard-header" style="grid-template-columns: 2fr 1.5fr 1fr 1fr;">
+<div id="apex-expiry-dashboard" style="background: var(--container-bg); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; box-shadow: 0 1px 3px var(--shadow-color);">
+    <div class="dashboard-grid dashboard-header" style="grid-template-columns: 2fr 1.5fr 1fr 1.2fr;">
         <div style="text-align: left;">APEX ACCOUNT</div>
-        <div>EXPIRY DATE</div> <!-- UPDATED THIS -->
-        <div>DAYS LEFT</div>
-        <div style="text-align: center;">STATUS</div>
+        <div>EXPIRY</div>
+        <div>CAL. DAYS</div>
+        <div style="text-align: right; padding-right: 5px;">TRADE DAYS</div>
     </div>
-    <div id="apex-expiry-rows"></div>
+    <div id="apex-expiry-rows">
+        <!-- JS will inject rows here -->
+    </div>
 </div>
 </div>
 <!-- Mini Dashboard Section -->
@@ -1735,52 +1737,48 @@ function renderApexExpiry() {
     let rowsHtml = '';
     let inputsHtml = '';
 
-    // Filter for accounts with "Apex" in the name
     const apexAccounts = CONFIG.FUNDED_ACCOUNTS.filter(acc => acc.toLowerCase().includes('apex'));
 
     apexAccounts.forEach(acc => {
-        const expiryDateStr = STATE.apexDates[acc] || ''; // This is now the Expiry Date
-        let daysLeft = '--';
-        let statusClass = '';
-        let statusText = 'WAITING';
-        let statusStyle = '';
+        const expiryDateStr = STATE.apexDates[acc] || '';
+        let calDays = '--';
+        let tradeDays = '--';
 
         if (expiryDateStr && expiryDateStr !== "") {
-            const expiryDate = new Date(expiryDateStr + 'T23:59:59'); // Set to end of the day
+            const expiryDate = new Date(expiryDateStr + 'T23:59:59');
             const today = new Date();
             
-            // Calculate difference in milliseconds
+            // 1. Calculate Calendar Days
             const diffTime = expiryDate - today;
-            // Convert to full days
-            daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            calDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (calDays < 0) calDays = 0;
 
-            if (daysLeft > 7) {
-                statusText = 'HEALTHY';
-                statusClass = 'dash-val-plus';
-            } else if (daysLeft <= 7 && daysLeft > 0) {
-                statusText = 'URGENT';
-                statusStyle = 'color: #ffc107; font-weight: bold; font-size: 10px;';
-            } else {
-                statusText = 'EXPIRED';
-                statusClass = 'status-danger'; 
-                daysLeft = 0;
+            // 2. Calculate Trading Days (Mon-Fri only)
+            let tradingCount = 0;
+            let tempIter = new Date(today);
+            // We loop from today until the expiry date
+            while (tempIter <= expiryDate) {
+                const dayOfWeek = tempIter.getDay();
+                if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Skip Sunday (0) and Saturday (6)
+                    tradingCount++;
+                }
+                tempIter.setDate(tempIter.getDate() + 1);
             }
+            tradeDays = tradingCount;
         }
 
-        // 1. Dashboard Row (Updated Column Label)
+        // 1. Dashboard Row
         rowsHtml += `
-        <div class="dashboard-grid dashboard-row" style="grid-template-columns: 2fr 1.5fr 1fr 1fr; height: 32px; align-items: center; border-bottom: 1px solid var(--bg-color);">
+        <div class="dashboard-grid dashboard-row" style="grid-template-columns: 2fr 1.5fr 1fr 1.2fr; height: 32px; align-items: center; border-bottom: 1px solid var(--bg-color);">
             <div style="text-align: left; font-weight: bold; color: var(--text-color);">${acc}</div>
             <div style="font-size: 9px; opacity: 0.7; font-family: monospace;">${expiryDateStr || '---'}</div>
-            <div class="${daysLeft <= 7 ? 'val-red' : ''}" style="font-weight: 900; font-family: monospace;">${daysLeft}${daysLeft !== '--' ? 'd' : ''}</div>
-            <div style="text-align: center;">
-                <span class="${statusClass}" style="font-size: 9px; padding: 2px 5px; border-radius: 3px; display: inline-block; min-width: 50px; ${statusStyle}">
-                    ${statusText}
-                </span>
+            <div style="font-weight: bold; font-family: monospace; color: var(--subtle-text);">${calDays}d</div>
+            <div style="text-align: right; padding-right: 10px; font-weight: 900; font-family: monospace; color: ${tradeDays <= 3 ? 'var(--red-text)' : 'var(--green-text)'};">
+                ${tradeDays} <span style="font-size: 8px; font-weight: normal; opacity: 0.7;">LEFT</span>
             </div>
         </div>`;
 
-        // 2. Master Input (Updated Label)
+        // 2. Master Input
         if (STATE.isMasterUser && inputsContainer) {
             inputsHtml += `
             <div style="background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1);">
@@ -1792,10 +1790,7 @@ function renderApexExpiry() {
     });
 
     rowsContainer.innerHTML = rowsHtml || '<div style="padding: 10px; text-align: center; font-size: 11px; color: var(--subtle-text);">No Apex Accounts Found</div>';
-    
-    if (STATE.isMasterUser && inputsContainer) {
-        inputsContainer.innerHTML = inputsHtml;
-    }
+    if (STATE.isMasterUser && inputsContainer) inputsContainer.innerHTML = inputsHtml;
 }
 
         function autoResizeTextarea(textarea) { 
