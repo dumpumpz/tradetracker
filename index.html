@@ -969,6 +969,17 @@ table:has(#ts-completed-trades-tbody) thead th {
 .dash-val-plus { color: var(--green-text); }
 .dash-val-minus { color: var(--red-text); }
 .dash-buffer { font-weight: 900; }
+
+
+
+        
+.val-warning { color: #ffc107; font-weight: bold; }
+/* Ensure the expired ones pulse just like danger accounts */
+.status-danger { 
+    background-color: var(--red-bg); 
+    color: var(--red-text); 
+    animation: pulseHighlight 1s infinite alternate; 
+}
     </style>
 </head>
 <body>
@@ -1172,7 +1183,29 @@ table:has(#ts-completed-trades-tbody) thead th {
 
         <!-- Tab 1.5: Funded Accounts -->
         <div id="topstep-tab" class="tab-content active">
-            
+            <!-- Apex Expiry Tracker Section -->
+<div id="apex-expiry-section" style="margin-bottom: 15px;">
+    <!-- Master Input Area (Only visible to Master) -->
+    <div id="apex-expiry-master-controls" class="master-only" style="background: var(--purple-bg); border: 1px solid var(--border-color); border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+        <h4 style="margin: 0 0 10px 0; font-size: 11px; text-transform: uppercase;">Set Apex Purchase Dates</h4>
+        <div id="apex-date-inputs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px;">
+            <!-- JS will inject date inputs here -->
+        </div>
+    </div>
+
+    <!-- Public Display Grid -->
+    <div id="apex-expiry-dashboard" style="background: var(--container-bg); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; box-shadow: 0 1px 3px var(--shadow-color);">
+        <div class="dashboard-grid dashboard-header" style="grid-template-columns: 2fr 1.5fr 1fr 1fr;">
+            <div style="text-align: left;">APEX ACCOUNT</div>
+            <div>PURCHASED</div>
+            <div>DAYS LEFT</div>
+            <div style="text-align: center;">STATUS</div>
+        </div>
+        <div id="apex-expiry-rows">
+            <!-- JS will inject rows here -->
+        </div>
+    </div>
+</div>
 <!-- Mini Dashboard Section -->
 <div id="funded-dashboard-container" style="margin-bottom: 15px;">
     <div class="dashboard-grid dashboard-header">
@@ -1532,7 +1565,9 @@ table:has(#ts-completed-trades-tbody) thead th {
                 TS_COMPLETED_TRADES: 'ts_completed_trades',
                 TS_SETUPS_1: 'ts_setups_1',
                 TS_SETUPS_2: 'ts_setups_2',
-                TS_SETUPS_IMAGES: 'ts_setups_images'
+                TS_SETUPS_IMAGES: 'ts_setups_images',
+                                APEX_EXPIRY: 'apex_expiry_dates' // <--- ADD THIS LINE HERE
+
             },
             TRADE_SETTINGS: {
                 MAKER_FEE_RATE: 0.0000, 
@@ -1616,7 +1651,8 @@ table:has(#ts-completed-trades-tbody) thead th {
         // --- APPLICATION STATE ---
         const STATE = {
             isMasterUser: false, isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {},  favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null, isTopstep: false },
-            allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,
+            allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,             apexDates: {}, // <--- ADD THIS LINE HERE
+
             
             // Evaluated Account Global Variables
             allTsTrades: {}, allTsCompletedTrades: {}, 
@@ -1659,7 +1695,9 @@ table:has(#ts-completed-trades-tbody) thead th {
             tsCompletedTrades: database.ref(CONFIG.DB_PATHS.TS_COMPLETED_TRADES),
             tsSetups1: database.ref(CONFIG.DB_PATHS.TS_SETUPS_1),
             tsSetups2: database.ref(CONFIG.DB_PATHS.TS_SETUPS_2),
-            tsSetupsImages: database.ref(CONFIG.DB_PATHS.TS_SETUPS_IMAGES)
+            tsSetupsImages: database.ref(CONFIG.DB_PATHS.TS_SETUPS_IMAGES),
+                        apexExpiry: database.ref(CONFIG.DB_PATHS.APEX_EXPIRY) // <--- ADD THIS LINE HERE
+
         };
 
         // --- HELPER FUNCTIONS ---
@@ -1679,6 +1717,83 @@ table:has(#ts-completed-trades-tbody) thead th {
             else return entry * (1 - entryFeeRate) / (1 + exitFeeRate);
         }
 
+function renderApexExpiry() {
+    const rowsContainer = document.getElementById('apex-expiry-rows');
+    const inputsContainer = document.getElementById('apex-date-inputs-grid');
+    if (!rowsContainer) return;
+
+    let rowsHtml = '';
+    let inputsHtml = '';
+
+    // Only look for accounts that have "Apex" in the name
+    const apexAccounts = CONFIG.FUNDED_ACCOUNTS.filter(acc => acc.toLowerCase().includes('apex'));
+
+    apexAccounts.forEach(acc => {
+        const purchaseDateStr = STATE.apexDates[acc] || '';
+        let daysLeft = '--';
+        let statusClass = '';
+        let statusText = 'WAITING';
+
+        if (purchaseDateStr) {
+            const purchaseDate = new Date(purchaseDateStr + 'T00:00:00');
+            const expiryDate = new Date(purchaseDate);
+            expiryDate.setDate(purchaseDate.getDate() + 30); // 30 Day Rule
+            
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            const diffTime = expiryDate - today;
+            daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (daysLeft > 7) {
+                statusText = 'HEALTHY';
+                statusClass = 'dash-val-plus';
+            } else if (daysLeft <= 7 && daysLeft > 0) {
+                statusText = 'URGENT';
+                statusClass = 'val-red'; // Orange/Yellow logic
+                statusStyle = 'color: #ffc107; font-weight: bold;';
+            } else {
+                statusText = 'EXPIRED';
+                statusClass = 'status-danger'; // Pulses red
+                daysLeft = 0;
+            }
+        }
+
+        // Display Row
+        rowsHtml += `
+        <div class="dashboard-grid dashboard-row" style="grid-template-columns: 2fr 1.5fr 1fr 1fr; height: 28px;">
+            <div style="text-align: left; font-weight: bold;">${acc}</div>
+            <div style="font-size: 8.5px; opacity: 0.8;">${purchaseDateStr || 'Not Set'}</div>
+            <div class="${daysLeft <= 5 ? 'val-red' : ''}" style="font-weight: 900;">${daysLeft}d</div>
+            <div style="text-align: center;">
+                <span class="${statusClass}" style="font-size: 8px; padding: 2px 4px; border-radius: 3px; ${daysLeft <= 7 && daysLeft > 0 ? 'color: #ffc107;' : ''}">
+                    ${statusText}
+                </span>
+            </div>
+        </div>`;
+
+        // Master Input
+        inputsHtml += `
+        <div>
+            <label style="font-size: 9px; display: block; margin-bottom: 2px;">${acc}</label>
+            <input type="date" class="apex-date-setter" data-acc="${acc}" value="${purchaseDateStr}" 
+                   style="font-size: 10px; padding: 4px; height: 24px;">
+        </div>`;
+    });
+
+    rowsContainer.innerHTML = rowsHtml;
+    if (inputsContainer) inputsContainer.innerHTML = inputsHtml;
+
+    // Attach listeners to new inputs
+    document.querySelectorAll('.apex-date-setter').forEach(input => {
+        input.addEventListener('change', (e) => {
+            if (!STATE.isMasterUser) return;
+            const account = e.target.dataset.acc;
+            const date = e.target.value;
+            dbRefs.apexExpiry.child(account).set(date);
+        });
+    });
+}
         function autoResizeTextarea(textarea) { 
             if (!textarea || textarea.tagName !== 'TEXTAREA') return; 
             if (textarea.offsetParent === null) return;
@@ -4797,7 +4912,10 @@ function calculateFundedStats(tsCompletedData) {
                 renderLiveTable(trades, 'trades-tbody', 'live-trades-summary-container'); 
                 DOM.statOpenTrades.textContent = Object.keys(trades).length; 
             });
-
+dbRefs.apexExpiry.on('value', (s) => {
+    STATE.apexDates = s.val() || {};
+    renderApexExpiry();
+});
             dbRefs.dailyNotes.on('value', (s) => {
                 STATE.dailyNotes = s.val() || {};
                 if (Object.keys(STATE.allCompletedTrades).length > 0) {
