@@ -1205,17 +1205,16 @@ table:has(#ts-completed-trades-tbody) thead th {
     </div>
 
     <!-- Public Display Grid -->
-    <div id="apex-expiry-dashboard" style="background: var(--container-bg); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; box-shadow: 0 1px 3px var(--shadow-color);">
-        <div class="dashboard-grid dashboard-header" style="grid-template-columns: 2fr 1.5fr 1fr 1fr;">
-            <div style="text-align: left;">APEX ACCOUNT</div>
-            <div>PURCHASED</div>
-            <div>DAYS LEFT</div>
-            <div style="text-align: center;">STATUS</div>
-        </div>
-        <div id="apex-expiry-rows">
-            <!-- JS will inject rows here -->
-        </div>
+<!-- Public Display Grid -->
+<div id="apex-expiry-dashboard" ...>
+    <div class="dashboard-grid dashboard-header" style="grid-template-columns: 2fr 1.5fr 1fr 1fr;">
+        <div style="text-align: left;">APEX ACCOUNT</div>
+        <div>EXPIRY DATE</div> <!-- UPDATED THIS -->
+        <div>DAYS LEFT</div>
+        <div style="text-align: center;">STATUS</div>
     </div>
+    <div id="apex-expiry-rows"></div>
+</div>
 </div>
 <!-- Mini Dashboard Section -->
 <div id="funded-dashboard-container" style="margin-bottom: 15px;">
@@ -1740,21 +1739,19 @@ function renderApexExpiry() {
     const apexAccounts = CONFIG.FUNDED_ACCOUNTS.filter(acc => acc.toLowerCase().includes('apex'));
 
     apexAccounts.forEach(acc => {
-        const purchaseDateStr = STATE.apexDates[acc] || '';
+        const expiryDateStr = STATE.apexDates[acc] || ''; // This is now the Expiry Date
         let daysLeft = '--';
         let statusClass = '';
         let statusText = 'WAITING';
         let statusStyle = '';
 
-        if (purchaseDateStr && purchaseDateStr !== "") {
-            const purchaseDate = new Date(purchaseDateStr + 'T00:00:00');
-            const expiryDate = new Date(purchaseDate);
-            expiryDate.setDate(purchaseDate.getDate() + 30);
-            
+        if (expiryDateStr && expiryDateStr !== "") {
+            const expiryDate = new Date(expiryDateStr + 'T23:59:59'); // Set to end of the day
             const today = new Date();
-            today.setHours(0,0,0,0);
             
+            // Calculate difference in milliseconds
             const diffTime = expiryDate - today;
+            // Convert to full days
             daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
             if (daysLeft > 7) {
@@ -1770,11 +1767,11 @@ function renderApexExpiry() {
             }
         }
 
-        // 1. Dashboard Row
+        // 1. Dashboard Row (Updated Column Label)
         rowsHtml += `
         <div class="dashboard-grid dashboard-row" style="grid-template-columns: 2fr 1.5fr 1fr 1fr; height: 32px; align-items: center; border-bottom: 1px solid var(--bg-color);">
             <div style="text-align: left; font-weight: bold; color: var(--text-color);">${acc}</div>
-            <div style="font-size: 9px; opacity: 0.7; font-family: monospace;">${purchaseDateStr || '---'}</div>
+            <div style="font-size: 9px; opacity: 0.7; font-family: monospace;">${expiryDateStr || '---'}</div>
             <div class="${daysLeft <= 7 ? 'val-red' : ''}" style="font-weight: 900; font-family: monospace;">${daysLeft}${daysLeft !== '--' ? 'd' : ''}</div>
             <div style="text-align: center;">
                 <span class="${statusClass}" style="font-size: 9px; padding: 2px 5px; border-radius: 3px; display: inline-block; min-width: 50px; ${statusStyle}">
@@ -1783,12 +1780,12 @@ function renderApexExpiry() {
             </div>
         </div>`;
 
-        // 2. Master Input (Only generate if Master)
+        // 2. Master Input (Updated Label)
         if (STATE.isMasterUser && inputsContainer) {
             inputsHtml += `
             <div style="background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1);">
                 <label style="font-size: 10px; font-weight: bold; display: block; margin-bottom: 3px; color: var(--text-color);">${acc}</label>
-                <input type="date" class="apex-date-setter" data-acc="${acc}" value="${purchaseDateStr}" 
+                <input type="date" class="apex-date-setter" data-acc="${acc}" value="${expiryDateStr}" 
                        style="font-size: 11px; padding: 4px; height: 28px; width: 100%; cursor: pointer;">
             </div>`;
         }
