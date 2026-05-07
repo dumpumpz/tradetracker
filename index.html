@@ -1038,6 +1038,19 @@ table:has(#ts-completed-trades-tbody) thead th {
     font-family: 'Courier New', monospace;
     font-size: 9.5px; 
 }
+
+
+
+
+
+
+
+
+
+        .collapsible-section.is-open .collapsible-content {
+    max-height: none !important;
+    overflow: visible !important;
+}
     </style>
 </head>
 <body>
@@ -2016,6 +2029,7 @@ function renderFundedDashboard() {
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 
+
 function handleCloseGroup(groupId, isTopstep) {
     if (STATE.isProcessing) return;
     
@@ -2026,69 +2040,60 @@ function handleCloseGroup(groupId, isTopstep) {
         const allTrades = snapshot.val();
         if (!allTrades) return;
 
-        // Filter for only trades in this specific group
         const groupEntries = Object.entries(allTrades).filter(([id, t]) => t.groupId === groupId);
-        
         if (groupEntries.length === 0) return;
 
         const defaultExit = groupEntries[0][1].target;
-        const exitPriceStr = prompt(`Closing Group: ${groupId}\nEnter exit price for ALL accounts:`, defaultExit);
+        const exitPriceStr = prompt(`Closing Group: ${groupId}\nEnter exit price:`, defaultExit);
         if (exitPriceStr === null) return; 
 
         const exitPrice = parseFloat(exitPriceStr);
         if (isNaN(exitPrice)) return alert("Invalid price.");
 
         STATE.isProcessing = true;
-        const updates = {};
-        const completedPromises = [];
+        
+        // We create one single object for all updates to prevent multiple render triggers
+        const liveUpdates = {};
+        const completedUpdates = {};
 
         groupEntries.forEach(([id, trade]) => {
-            let completedTrade;
-
+            let completedData;
             if (isTopstep) {
-                // --- FUTURES CALCULATIONS ---
                 const MULT = getFuturesMultiplier(trade.symbol);
                 const contracts = parseFloat(trade.contracts || 1);
                 const feePerContract = parseFloat(trade.commissions || 1.00);
                 const totalFees = feePerContract * contracts;
-                
                 const points = trade.type === "Long" ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
-                const netResult = (points * MULT * contracts) - totalFees;
-
-                completedTrade = {
+                
+                completedData = {
                     ...trade,
                     exit_price: exitPrice,
-                    net_result: netResult,
+                    net_result: (points * MULT * contracts) - totalFees,
                     entry_fee: totalFees / 2,
                     exit_fee: totalFees / 2,
-                    exitFeeType: 'fixed',
-                    closed_date: firebase.database.ServerValue.TIMESTAMP,
-                    note: (trade.note || '') + ``
+                    closed_date: firebase.database.ServerValue.TIMESTAMP
                 };
             } else {
-                // --- CRYPTO CALCULATIONS ---
                 const result = calculateNetResult(trade, exitPrice, 'taker');
-                completedTrade = {
-                    ...trade,
-                    ...result,
-                    exit_price: exitPrice,
-                    exitFeeType: 'taker',
-                    closed_date: firebase.database.ServerValue.TIMESTAMP,
-                    note: (trade.note || '') + ``
-                };
+                completedData = { ...trade, ...result, exit_price: exitPrice, closed_date: firebase.database.ServerValue.TIMESTAMP };
             }
-
-            completedPromises.push(compRef.push(completedTrade));
-            updates[id] = null; // Mark for deletion from live trades
+            
+            // Create a unique key for the push manually so we can do it in one "update" call
+            const newKey = compRef.push().key;
+            completedUpdates[newKey] = completedData;
+            liveUpdates[id] = null; // null deletes the entry in an update() call
         });
 
-        Promise.all(completedPromises)
-            .then(() => liveRef.update(updates))
-            .then(() => alert(`Closed ${groupEntries.length} trades.`))
-            .finally(() => { STATE.isProcessing = false; });
+        // EXECUTE EVERYTHING AT ONCE
+        Promise.all([
+            compRef.update(completedUpdates),
+            liveRef.update(liveUpdates)
+        ]).then(() => {
+            console.log("Group closed atomically.");
+        }).catch(err => alert("Error: " + err.message))
+          .finally(() => { STATE.isProcessing = false; });
     });
 }
-
         function getNYTime() {
     const options = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false };
     const formatter = new Intl.DateTimeFormat('en-US', options);
