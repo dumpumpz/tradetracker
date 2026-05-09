@@ -1867,6 +1867,19 @@ function renderApexExpiry() {
         }
     }
 }
+        // 1. Find this helper function at the top of your script (around line 950)
+const formatFriendlyDate = (dateStr) => {
+    if (!dateStr || dateStr === 'Unknown') return dateStr;
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    // Create date object (Month is 0-indexed)
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    return date.toLocaleDateString('en-GB', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long' 
+    });
+};
 
         const formatCurrency = (num, symbol = '$') => { 
             if (typeof num !== 'number' || isNaN(num)) { return '--'; } 
@@ -2929,6 +2942,19 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
 
+    // Helper for friendly date formatting
+    const formatFriendlyDate = (dateStr) => {
+        if (!dateStr || dateStr === 'Unknown') return dateStr;
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        const date = new Date(parts[0], parts[1] - 1, parts[2]);
+        return date.toLocaleDateString('en-GB', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long' 
+        });
+    };
+
     const trades = data || {};
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
@@ -2944,7 +2970,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
 
-    // Column headers - Entries is now visible
     const headers = isTopstep 
         ? `<tr>
             <th>Acc / Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th>
@@ -3001,10 +3026,11 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
         const safeDateKey = isTopstep ? `ts-${dateStr.replace(/[\/\s,]/g, '-')}` : dateStr.replace(/[\/\s,]/g, '-');
 
+        // UPDATED LINE BELOW: Added formatFriendlyDate
         rowsHtml += `
         <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
             <td colspan="11" style="text-align: left; padding: 10px 20px;">
-                <strong>Date: ${dateStr}</strong> | <span style="color:var(--green-text)">${dWins} Wins</span> / <span style="color:var(--red-text)">${dLosses} Losses</span>
+                <strong style="text-transform: capitalize;">${formatFriendlyDate(dateStr)}</strong> | <span style="color:var(--green-text)">${dWins} Wins</span> / <span style="color:var(--red-text)">${dLosses} Losses</span>
             </td>
             <td colspan="4" style="font-weight:bold; font-size: 1.1em;">
                 Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
@@ -3067,7 +3093,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                     
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(t.entry).toFixed(2)}</td>
                     
-                    <!-- EDITABLE ENTRIES LIST -->
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${(t.entry_prices || [t.entry]).map(p => parseFloat(p).toFixed(2)).join(', ')}</td>
                     
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
