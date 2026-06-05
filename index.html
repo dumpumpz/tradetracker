@@ -1050,14 +1050,27 @@
 
 
 
-        /* Prevent layout shifting during table render */
-.table-wrapper {
-    min-height: 100px;
-    contain: content; /* Tells browser to optimize this block's painting */
-}
+
 
 .tab-content:not(.active) {
     display: none !important; /* Force browser to ignore inactive tab styles */
+}
+
+
+        
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    /* Prevents the container from collapsing to 0px height before data hits */
+    min-height: 200px; 
+    background: var(--container-bg);
+}
+
+table {
+    /* Helps the browser calculate the table layout in one pass */
+    table-layout: auto; 
+    border-collapse: separate; 
+    border-spacing: 0;
 }
     </style>
 </head>
@@ -1718,28 +1731,18 @@
             strategyUploadProgress: document.getElementById('strategy-upload-progress'),
             strategyImageContainer: document.getElementById('strategy-image-container'),
         };
-
-        // --- APPLICATION STATE ---
+    // --- APPLICATION STATE ---
         const STATE = {
-            isMasterUser: false, isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {},  favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null, isTopstep: false },
-            allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,             apexDates: {}, 
-  renderTimer: null,
-    statsTimer: null,
-            // Evaluated Account Global Variables
-            allTsTrades: {}, allTsCompletedTrades: {}, 
-            tsCompletedTradesShowAll: false, tsCompletedTradesCurrentPage: 1,
-            
-// Change from false to true
-allSetupsImages: {}, setupsImagesShowAll: true, setupsImagesCurrentPage: 1, 
-// Change from false to true
-allTsSetupsImages: {}, tsSetupsImagesShowAll: true, tsSetupsImagesCurrentPage: 1,
-
-            chartInstances: {}, dailyNotes: {}, 
-            calendarViewDate: new Date(),
-            strategyImages: {}, strategySaveTimer: null 
-            renderQueue: {}, 
-    isInitialLoad: true,
-    activeTab: 'topstep' // Track which tab is open
+            isMasterUser: false, isProcessing: false, usdToAudRate: 1.53, journalText: {}, journalImages: {}, 
+            favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, 
+            centerDate: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, 
+            imageUploadContext: { id: null, type: null, isTopstep: false },
+            allTrades: {}, allCompletedTrades: {}, completedTradesCurrentPage: 1, apexDates: {}, 
+            allTsTrades: {}, allTsCompletedTrades: {}, tsCompletedTradesCurrentPage: 1,
+            allSetupsImages: {}, setupsImagesShowAll: true, setupsImagesCurrentPage: 1,
+            allTsSetupsImages: {}, tsSetupsImagesShowAll: true, tsSetupsImagesCurrentPage: 1,
+            dailyNotes: {}, strategyImages: {}, 
+            renderQueue: {}, isInitialLoad: true, activeTab: 'topstep', statsTimer: null
         };
 
         let FUNDED_STATS_CACHE = {}; 
@@ -2394,22 +2397,28 @@ function renderFilteredEvalData() {
             });
             container.innerHTML = html;
         }
-    function requestSmartUpdate(key, callback) {
+
+function requestSmartUpdate(key, callback) {
+    const tabMap = {
+        'crypto-live': 'tracker', 'crypto-comp': 'tracker',
+        'ts-live': 'topstep', 'ts-comp': 'topstep', 'ts-images': 'topstep',
+        'journal': 'journal', 'strategy': 'strategy'
+    };
+    
+    const targetTab = tabMap[key];
+
+    // INSTANT RENDER: If we are looking at the tab right now, don't wait.
+    if (STATE.activeTab === targetTab || STATE.isInitialLoad) {
+        callback(); 
+        return;
+    }
+
+    // DEFERRED RENDER: If it's a background tab, wait for the browser to be idle.
     if (STATE.renderQueue[key]) cancelAnimationFrame(STATE.renderQueue[key]);
     STATE.renderQueue[key] = requestAnimationFrame(() => {
-        // ONLY render if the tab is actually visible or if it's the first load
-        const tabMap = {
-            'crypto-live': 'tracker', 'crypto-comp': 'tracker',
-            'ts-live': 'topstep', 'ts-comp': 'topstep', 'ts-images': 'topstep',
-            'journal': 'journal', 'strategy': 'strategy'
-        };
-        
-        if (STATE.isInitialLoad || !tabMap[key] || STATE.activeTab === tabMap[key]) {
-            callback();
-        }
+        callback();
     });
 }
-
 
         function renderFundedBanners() {
             const container = document.getElementById('funded-accounts-banners');
@@ -3845,7 +3854,8 @@ function setupEventListeners() {
             const toggleBtn = section.querySelector('.collapsible-toggle-btn');
             const isOpen = section.classList.toggle('is-open');
             toggleBtn.textContent = isOpen ? '−' : '+';
-            content.style.maxHeight = isOpen ? (content.scrollHeight + 1000) + "px" : "0px";
+           content.style.maxHeight = isOpen ? "none" : "0px";
+
             return;
         }
 
