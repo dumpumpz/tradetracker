@@ -959,6 +959,46 @@
             max-height: none !important;
             overflow: visible !important;
         }
+
+
+
+
+
+
+
+        
+/* Re-entry Sequence Styling */
+.reentry-row {
+    background-color: rgba(0, 123, 255, 0.03); /* Subtle tint for the sequence */
+}
+
+.reentry-connector {
+    border-left: 3px solid var(--link-color) !important;
+    padding-left: 12px !important;
+    position: relative;
+}
+
+.reentry-hook {
+    color: var(--link-color);
+    font-weight: bold;
+    margin-right: 5px;
+    font-size: 1.2em;
+}
+
+.sequence-badge {
+    font-size: 9px;
+    background: var(--header-bg);
+    color: var(--text-color);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--border-color);
+    margin-left: 5px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.seq-plus { border-color: var(--green-border); color: var(--green-text); }
+.seq-minus { border-color: var(--red-border); color: var(--red-text); }
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -2801,198 +2841,141 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
 
-    const trades = data || {};
-    // Sort by closed date descending
-    const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
-    
-    let rowsHtml = '';
-    
-    const showAll = isTopstep ? STATE.tsCompletedTradesShowAll : STATE.completedTradesShowAll;
-    const currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
-    const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
-    const showAllButton = document.getElementById(isTopstep ? 'ts-toggle-all-completed-trades' : 'toggle-all-completed-trades');
-    const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
-
-    const table = tbodyElement.closest('table');
-    let thead = table.querySelector('thead');
-    if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
-
-    // Table Headers
-    const headers = isTopstep 
-        ? `<tr>
-            <th>Acc / Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th>
-            <th>SL</th><th>TP</th><th>Contr.</th><th>Proj Pr</th>
-            <th>Proj Ls</th><th>RR</th><th>Exit Price</th><th>Raw PnL</th>
-            <th>Comms</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th>
-            <th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th>
-            <th>Pics</th><th class="master-only">Actions</th>
-           </tr>`
-        : `<tr>
-            <th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th>
-            <th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th>
-            <th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th>
-            <th>RR(M)</th><th>Exit Price</th><th>Raw PnL</th><th>Fees</th>
-            <th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th>
-            <th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>
-            <th class="master-only">Actions</th>
-           </tr>`;
-    thead.innerHTML = headers;
-
-    // Grouping by Trading Day and Group ID
-    const tradesByDayAndGroup = {};
-    const uniqueTradingDates = [];
-    tradeIds.forEach(id => {
-        const t = trades[id];
-        const dayStr = getTradingDayString(t.closed_date, t.date);
-        if (!tradesByDayAndGroup[dayStr]) { 
-            tradesByDayAndGroup[dayStr] = {}; 
-            uniqueTradingDates.push(dayStr); 
-        }
-        const gid = t.groupId || 'Ungrouped';
-        if (!tradesByDayAndGroup[dayStr][gid]) { tradesByDayAndGroup[dayStr][gid] = []; }
-        tradesByDayAndGroup[dayStr][gid].push({ ...t, dbId: id });
-    });
-    uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
-
-    // Handle Pagination
-    let visibleDates = uniqueTradingDates;
-    const todayStr = getTradingDayString(Date.now(), Date.now());
-    if (showAll) {
-        visibleDates = uniqueTradingDates.slice(currentPage - 1, currentPage);
-        if (pageInfoSpan) pageInfoSpan.textContent = `Page ${currentPage} of ${uniqueTradingDates.length}`;
-        if (showAllButton) showAllButton.style.display = 'none';
-        if (paginationControls) paginationControls.style.display = 'flex';
-    } else {
-        visibleDates = uniqueTradingDates.filter(d => d === todayStr);
-        if (showAllButton) showAllButton.style.display = uniqueTradingDates.some(d => d !== todayStr) ? 'block' : 'none';
-        if (paginationControls) paginationControls.style.display = 'none';
-    }
-
-    // Build Rows
-    visibleDates.forEach(dateStr => {
-        const groups = tradesByDayAndGroup[dateStr];
-        let dPnL = 0, dWins = 0, dLosses = 0;
+    try {
+        const trades = data || {};
+        const tradeIds = Object.keys(trades);
+        let rowsHtml = '';
         
-        // Sum the day
-        Object.values(groups).forEach(g => g.forEach(t => {
-            const net = parseFloat(t.net_result || 0);
-            dPnL += net;
-            if (net >= 0) dWins++; else dLosses++;
-        }));
+        const showAll = isTopstep ? STATE.tsCompletedTradesShowAll : STATE.completedTradesShowAll;
+        const currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
+        const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
+        const showAllButton = document.getElementById(isTopstep ? 'ts-toggle-all-completed-trades' : 'toggle-all-completed-trades');
+        const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
 
-        const safeDateKey = isTopstep ? `ts-${dateStr.replace(/[\/\s,]/g, '-')}` : dateStr.replace(/[\/\s,]/g, '-');
+        const table = tbodyElement.closest('table');
+        let thead = table.querySelector('thead');
+        if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
 
-        // Render Day Header
-        rowsHtml += `
-        <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
-            <td colspan="11" style="text-align: left; padding: 10px 20px;">
-                <strong style="text-transform: capitalize;">${formatFriendlyDate(dateStr)}</strong> | <span style="color:var(--green-text)">${dWins} Wins</span> / <span style="color:var(--red-text)">${dLosses} Losses</span>
-            </td>
-            <td colspan="4" style="font-weight:bold; font-size: 1.1em;">
-                Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
-            </td>
-            <td colspan="10" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
-        </tr>`;
+        thead.innerHTML = isTopstep 
+            ? `<tr><th>Acc / Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Contr.</th><th>Proj Pr</th><th>Proj Ls</th><th>RR</th><th>Exit Price</th><th>Raw PnL</th><th>Comms</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th><th>Notes</th><th>Notes 2</th><th>Notes 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`
+            : `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th><th>RR(M)</th><th>Exit Price</th><th>Raw PnL</th><th>Fees</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th><th>Notes</th><th>Notes 2</th><th>Notes 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
 
-        // Render Groups
-        Object.keys(groups).forEach(groupId => {
-            const groupTrades = groups[groupId];
-            let gNet = 0, gQty = 0, gEntryW = 0, gExitW = 0;
+        // 1. Group by Trading Day
+        const tradesByDay = {};
+        tradeIds.forEach(id => {
+            const t = trades[id];
+            const dayStr = getTradingDayString(t.closed_date, t.date);
+            if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
+            tradesByDay[dayStr].push({ ...t, dbId: id });
+        });
 
-            groupTrades.forEach(t => {
-                const net = parseFloat(t.net_result || 0);
-                const entry = parseFloat(t.entry || 1);
-                const exit = parseFloat(t.exit_price || 0);
-                const size = isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
-                const qty = isTopstep ? size : (size / entry);
-                gNet += net; 
-                gQty += qty;
-                gEntryW += (entry * qty); 
-                gExitW += (exit * qty);
+        const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
+        let visibleDates = showAll ? uniqueTradingDates.slice(currentPage - 1, currentPage) : uniqueTradingDates.filter(d => d === getTradingDayString(Date.now(), Date.now()));
+
+        if (showAll && pageInfoSpan) pageInfoSpan.textContent = `Page ${currentPage} of ${uniqueTradingDates.length}`;
+        if (showAllButton) showAllButton.style.display = showAll ? 'none' : 'block';
+        if (paginationControls) paginationControls.style.display = showAll ? 'flex' : 'none';
+
+        visibleDates.forEach(dateStr => {
+            const dayTrades = tradesByDay[dateStr];
+            
+            // Render Day Header
+            let dPnL = dayTrades.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
+            const safeDateKey = isTopstep ? `ts-${dateStr.replace(/[\/\s,]/g, '-')}` : dateStr.replace(/[\/\s,]/g, '-');
+            
+            rowsHtml += `<tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);"><td colspan="13"><strong>${formatFriendlyDate(dateStr)}</strong></td><td colspan="3">Daily: <span style="color:${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${dPnL.toFixed(2)}</span></td><td colspan="9" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}">${STATE.dailyNotes[safeDateKey] || ''}</td></tr>`;
+
+            // 2. Process Group IDs within the day
+            const groupsInDay = {};
+            dayTrades.forEach(t => {
+                const gid = t.groupId || 'Ungrouped';
+                if (!groupsInDay[gid]) groupsInDay[gid] = [];
+                groupsInDay[gid].push(t);
             });
 
-            const avgEntryGroup = gQty > 0 ? (gEntryW / gQty) : 0;
-            const avgExitGroup = gQty > 0 ? (gExitW / gQty) : 0;
-            const diff = avgExitGroup - avgEntryGroup;
-            const gType = groupTrades[0].type || 'Long';
-            const gPct = isTopstep ? (((avgExitGroup - avgEntryGroup) / avgEntryGroup) * 100 * (gType === 'Short' ? -1 : 1)) : (gNet / (gEntryW||1) * 100);
-
-            let diffColor = 'var(--subtle-text)';
-            if (gType === 'Long') diffColor = diff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-            else if (gType === 'Short') diffColor = diff <= 0 ? 'var(--green-text)' : 'var(--red-text)';
-
-            rowsHtml += `
-            <tr class="completed-group-header">
-                <td colspan="25" style="padding: 8px 15px; font-size: 0.95em;">
-                    <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
-                        <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
-                        <span style="color:var(--border-color);">|</span>
-                        <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)} (${gPct.toFixed(2)}%)</span></span>
-                        <span style="color:var(--border-color);">|</span>
-                        <span>Avg: ${avgEntryGroup.toFixed(2)} ➔ ${avgExitGroup.toFixed(2)} <span style="color:${diffColor}; font-weight:bold; font-family:monospace;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
-                    </div>
-                </td>
-            </tr>`;
-
-            // Render Trade Rows
-            groupTrades.forEach(t => {
-                const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
+            Object.keys(groupsInDay).forEach(gid => {
+                // IMPORTANT: Sort trades inside the group CHRONOLOGICALLY for sequence detection
+                const sortedTrades = groupsInDay[gid].sort((a, b) => (a.date || 0) - (b.date || 0));
                 
-                // Recalculate fees based on stored contract size and stored rate
-                const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
-                const commRate = parseFloat(t.commissions || 1.00);
-                const totalFees = isTopstep ? (commRate * contr) : (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0));
-                
-                const net = parseFloat(t.net_result || 0);
-                const rawPnL = net + totalFees; 
-                const tPct = (((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1));
-                const entryTime = t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
-                const closedTime = t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                let lastCloseTime = 0;
+                let lastAccount = "";
+                let runningSeqPnL = 0;
+                let inSequence = false;
 
-                rowsHtml += `<tr style="font-size: 0.9em;">
-                    <td><span class="acc-badge editable-completed-cell" data-id="${t.dbId}" data-field="evalAccount" contenteditable="${STATE.isMasterUser}">${getEvalAccount(t)}</span> ${t.symbol}</td>
-                    <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${t.type}</td>
+                sortedTrades.forEach((t, idx) => {
+                    const openTime = t.date ? new Date(t.date).getTime() : 0;
+                    const closeTime = t.closed_date ? new Date(t.closed_date).getTime() : 0;
+                    const acc = getEvalAccount(t);
+                    const net = parseFloat(t.net_result || 0);
                     
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(t.entry).toFixed(2)}</td>
-                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${(t.entry_prices || [t.entry]).map(p => parseFloat(p).toFixed(2)).join(', ')}</td>
-                    
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(t.target || 0).toFixed(2)}</td>
-                    
-                    <!-- EDITABLE CONTRACTS / SIZE -->
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}" style="background: rgba(0, 123, 255, 0.05); font-weight: bold;">
-                        ${isTopstep ? (t.contracts || t.size) : parseFloat(t.size).toFixed(2)}
-                    </td>
+                    // Logic: Gap < 15 mins AND same account = Re-entry
+                    const timeGapMins = lastCloseTime > 0 ? (openTime - lastCloseTime) / (1000 * 60) : 999;
+                    const isReentry = (idx > 0 && timeGapMins < 15 && acc === lastAccount);
 
-                    <td style="color:var(--green-text); opacity:0.6;">$${parseFloat(m.expected_profit_taker).toFixed(2)}</td>
-                    <td style="color:var(--red-text); opacity:0.6;">$${parseFloat(m.expected_loss_taker).toFixed(2)}</td>
-                    <td>${isTopstep ? m.rr_taker : m.rr_maker}</td> 
+                    if (isReentry) {
+                        runningSeqPnL += net;
+                        inSequence = true;
+                    } else {
+                        runningSeqPnL = net;
+                        inSequence = false;
+                    }
 
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}">${parseFloat(t.exit_price).toFixed(2)}</td>
-                    <td style="color:var(--subtle-text)">${rawPnL.toFixed(2)}</td>
-                    <td>${totalFees.toFixed(2)}</td>
-                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${net.toFixed(2)}</td>
-                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">${tPct.toFixed(2)}%</td>
-                    
-                    <td style="font-size:11px; font-weight:bold; color:var(--link-color);">${entryTime}</td> 
-                    <td style="font-size:11px;">${closedTime}</td> 
-                    
-                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}">${t.note || ''}</td>
-                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${t.note2 || ''}</td>
-                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${t.note3 || ''}</td>
-                    ${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}
-                    <td class="action-buttons master-only">
-                        <button class="attach-image-btn" data-id="${t.dbId}" data-type="completed">Pic</button>
-                        <button class="delete-btn-completed" data-id="${t.dbId}">Del</button>
-                        <button class="merge-btn-completed" data-id="${t.dbId}">Merg</button>
-                    </td>
-                </tr>`;
+                    const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
+                    const entryTime = t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
+                    const closedTime = t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
+
+                    // Build the Sequence Badge
+                    let seqBadge = "";
+                    if (inSequence || (idx < sortedTrades.length - 1 && (new Date(sortedTrades[idx+1].date).getTime() - closeTime)/(1000*60) < 15 && getEvalAccount(sortedTrades[idx+1]) === acc)) {
+                        const badgeClass = runningSeqPnL >= 0 ? 'seq-plus' : 'seq-minus';
+                        seqBadge = `<span class="sequence-badge ${badgeClass}">Seq: $${runningSeqPnL.toFixed(0)}</span>`;
+                    }
+
+                    rowsHtml += `
+                    <tr class="${isReentry ? 'reentry-row' : ''}">
+                        <td class="${isReentry ? 'reentry-connector' : ''}">
+                            ${isReentry ? '<span class="reentry-hook">↪</span>' : ''}
+                            <span class="acc-badge">${acc}</span> ${t.symbol} ${seqBadge}
+                        </td>
+                        <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${t.type}</td>
+                        <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry">${parseFloat(t.entry).toFixed(2)}</td>
+                        <td class="note-cell">${(t.entry_prices || [t.entry]).map(p => parseFloat(p).toFixed(1)).join(', ')}</td>
+                        <td>${parseFloat(t.stoploss || 0).toFixed(1)}</td>
+                        <td>${parseFloat(t.target || 0).toFixed(1)}</td>
+                        <td>${isTopstep ? (t.contracts || t.size) : parseFloat(t.size).toFixed(0)}</td>
+                        <td style="opacity:0.5">$${parseFloat(m.expected_profit_taker).toFixed(0)}</td>
+                        <td style="opacity:0.5">$${parseFloat(m.expected_loss_taker).toFixed(0)}</td>
+                        <td>${isTopstep ? m.rr_taker : m.rr_maker}</td>
+                        <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price">${parseFloat(t.exit_price).toFixed(2)}</td>
+                        <td>${(net + (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0))).toFixed(2)}</td>
+                        <td>${(parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0)).toFixed(2)}</td>
+                        <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${net.toFixed(2)}</td>
+                        <td style="font-size:10px">${(((parseFloat(t.exit_price)-t.entry)/t.entry)*100*(t.type==='Short'?-1:1)).toFixed(2)}%</td>
+                        <td style="color:var(--link-color); font-weight:bold">${entryTime}</td>
+                        <td>${closedTime}</td>
+                        <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}">${t.note || ''}</td>
+                        <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${t.note2 || ''}</td>
+                        <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${t.note3 || ''}</td>
+                        ${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}
+                        <td class="master-only">
+                            <button class="attach-image-btn" data-id="${t.dbId}" data-type="completed">Pic</button>
+                            <button class="delete-btn-completed" data-id="${t.dbId}">Del</button>
+                        </td>
+                    </tr>`;
+
+                    lastCloseTime = closeTime;
+                    lastAccount = acc;
+                });
             });
         });
-    });
 
-    tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px; color:var(--subtle-text);">No data.</td></tr>';
+        tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px;">No records.</td></tr>';
+    } catch (e) {
+        console.error("Critical Error in renderCompletedTable:", e);
+        tbodyElement.innerHTML = `<tr><td colspan="25" style="color:red; text-align:center;">Error loading table. Check console.</td></tr>`;
+    }
 }
+
         function renderDateNavigation() {
             const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
             const timeframe = DOM.journalTimeframeEl.value;
