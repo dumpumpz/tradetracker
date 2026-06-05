@@ -988,30 +988,32 @@
 
         <!-- Stats Panel -->
         <div id="stats-panel-container">
-            <div id="stats-panel">
-                <div class="stats-header">
-                    <h3>Performance Stats</h3>
-                    <button id="close-stats-btn" title="Close Panel">×</button>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-item"><span class="stat-label">Current Balance</span><span id="stat-balance" class="stat-value">$0.00</span></div>
-                    <div class="stat-item"><span class="stat-label">AUD Value (est.)</span><span id="stat-balance-aud" class="stat-value">--</span></div>
-                    <div class="stat-item"><span class="stat-label">Total P/L</span><span id="stat-total-pl" class="stat-value">$0.00</span></div>
-                    <div class="stat-item"><span class="stat-label">Total P/L (AUD)</span><span id="stat-total-pl-aud" class="stat-value">A$0.00</span></div>
-                    <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
-                    <div class="stat-item"><span class="stat-label">Completed Trades</span><span id="stat-completed-trades" class="stat-value">0</span></div>
-                    <div class="stat-item">
-                        <span class="stat-label">Wins / Losses</span>
-                        <div><span id="stat-wins" class="stat-value" style="color: var(--green-text);">0</span> / <span id="stat-losses" class="stat-value" style="color: var(--red-text);">0</span></div>
-                    </div>
-                    <div class="stat-item"><span class="stat-label">Win Rate</span><span id="stat-win-rate" class="stat-value">0.0%</span></div>
-                    <div class="stat-item"><span class="stat-label">Profit Factor</span><span id="stat-profit-factor" class="stat-value">N/A</span></div>
-                    <div class="stat-item"><span class="stat-label">Avg. Win</span><span id="stat-avg-win" class="stat-value" style="color: var(--green-text);">$0.00</span></div>
-                    <div class="stat-item"><span class="stat-label">Avg. Loss</span><span id="stat-avg-loss" class="stat-value" style="color: var(--red-text);">$0.00</span></div>
-                    <div class="stat-item"><span class="stat-label">Reward:Risk Ratio</span><span id="stat-reward-risk" class="stat-value">N/A</span></div>
-                    <div class="stat-item"><span class="stat-label">Open Trades</span><span id="stat-open-trades" class="stat-value">0</span></div>
-                </div>
-            </div>
+           
+<div id="stats-panel">
+    <div class="stats-header">
+        <h3>Funded Performance</h3>
+        <button id="close-stats-btn" title="Close Panel">×</button>
+    </div>
+    <div class="stats-grid">
+        <!-- Hidden financial rows as they don't apply to multi-account -->
+        <div class="stat-item" style="display:none;"><span class="stat-label">Current Balance</span><span id="stat-balance" class="stat-value">$0.00</span></div>
+        <div class="stat-item" style="display:none;"><span class="stat-label">AUD Value (est.)</span><span id="stat-balance-aud" class="stat-value">--</span></div>
+        <div class="stat-item" style="display:none;"><span class="stat-label">Total P/L</span><span id="stat-total-pl" class="stat-value">$0.00</span></div>
+        <div class="stat-item" style="display:none;"><span class="stat-label">Total P/L (AUD)</span><span id="stat-total-pl-aud" class="stat-value">A$0.00</span></div>
+        
+        <div class="stat-item"><span class="stat-label">Completed Trades</span><span id="stat-completed-trades" class="stat-value">0</span></div>
+        <div class="stat-item">
+            <span class="stat-label">Wins / Losses</span>
+            <div><span id="stat-wins" class="stat-value" style="color: var(--green-text);">0</span> / <span id="stat-losses" class="stat-value" style="color: var(--red-text);">0</span></div>
+        </div>
+        <div class="stat-item"><span class="stat-label">Win Rate</span><span id="stat-win-rate" class="stat-value">0.0%</span></div>
+        <div class="stat-item"><span class="stat-label">Profit Factor</span><span id="stat-profit-factor" class="stat-value">N/A</span></div>
+        <div class="stat-item"><span class="stat-label">Avg. Win</span><span id="stat-avg-win" class="stat-value" style="color: var(--green-text);">$0.00</span></div>
+        <div class="stat-item"><span class="stat-label">Avg. Loss</span><span id="stat-avg-loss" class="stat-value" style="color: var(--red-text);">$0.00</span></div>
+        <div class="stat-item"><span class="stat-label">Reward:Risk Ratio</span><span id="stat-reward-risk" class="stat-value">N/A</span></div>
+        <div class="stat-item"><span class="stat-label">Open Trades</span><span id="stat-open-trades" class="stat-value">0</span></div>
+    </div>
+</div>
             <button id="stats-fab" title="Show Stats">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M32 32c17.7 0 32 14.3 32 32V400c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V64C32 46.3 46.3 32 64 32H160c17.7 0 32 14.3 32 32s-14.3 32-32 32H96v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96H64V64zM256 224c0-17.7-14.3-32-32-32H160c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7-14.3 32 32 32s32-14.3 32-32V224zM352 288c-17.7 0-32 14.3-32 32v64H256c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32zM480 32c17.7 0 32 14.3 32 32s-14.3 32-32 32H416v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96h-1.5c-16.3 0-30.8-12.4-32-28.5c-.2-2.1-.2-4.2-.2-6.4V64c0-17.7 14.3-32 32-32H480z"/></svg>
             </button>
@@ -1177,8 +1179,8 @@
         <!-- Tab 1.5: Funded Accounts -->
         <div id="topstep-tab" class="tab-content active">
         
-            <!-- Apex Expiry Tracker Section -->
-            <div id="apex-expiry-section" style="margin-bottom: 5px;">
+        <!-- Apex Expiry Tracker Section -->
+<div id="apex-expiry-section" class="master-only" style="margin-bottom: 5px;">
                 <!-- Master Input Area -->
                 <div id="apex-expiry-master-controls" class="master-only" style="background: var(--purple-bg); border: 1px solid var(--border-color); border-radius: 4px; padding: 10px; margin-bottom: 10px; display:none;">
                     <h4 style="margin: 0 0 10px 0; font-size: 11px; text-transform: uppercase; color: var(--text-color);">Set Apex Expiry Dates</h4>
@@ -3193,6 +3195,46 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             });
         }
 
+        function updateFundedPerformanceStats() {
+    const completedData = STATE.allTsCompletedTrades || {};
+    const openData = STATE.allTsTrades || {};
+
+    let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
+
+    // Calculate from Completed Trades
+    Object.values(completedData).forEach(trade => {
+        const netResult = parseFloat(trade.net_result || 0);
+        if (netResult > 0) {
+            wins++;
+            grossProfit += netResult;
+        } else if (netResult < 0) {
+            losses++;
+            grossLoss += Math.abs(netResult);
+        }
+    });
+
+    const totalCompleted = wins + losses;
+    const winRate = totalCompleted > 0 ? (wins / totalCompleted) * 100 : 0;
+    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
+    const avgWin = wins > 0 ? grossProfit / wins : 0;
+    const avgLoss = losses > 0 ? grossLoss / losses : 0;
+    const rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
+
+    // Update UI
+    DOM.statCompletedTrades.textContent = totalCompleted;
+    DOM.statWins.textContent = wins;
+    DOM.statLosses.textContent = losses;
+    DOM.statWinRate.textContent = `${winRate.toFixed(1)}%`;
+    DOM.statProfitFactor.textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
+    DOM.statAvgWin.textContent = formatCurrency(avgWin);
+    DOM.statAvgLoss.textContent = formatCurrency(avgLoss);
+    DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
+    
+    // Update Open Trades Count
+    DOM.statOpenTrades.textContent = Object.keys(openData).length;
+}
+
+
         function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
             if (!STATE.isMasterUser || !files || files.length === 0) return;
             
@@ -4787,184 +4829,136 @@ function handleCompletedTradeUpdate(cell) {
             updateTargetCalculator();
         }
 
-        function subscribeToData() {
-            dbRefs.trades.on('value', s => { 
-                const trades = s.val() || {}; 
-                renderLiveTable(trades, 'trades-tbody', 'live-trades-summary-container'); 
-                DOM.statOpenTrades.textContent = Object.keys(trades).length; 
-            });
-            dbRefs.apexExpiry.on('value', (s) => {
-                STATE.apexDates = s.val() || {};
-                renderApexExpiry();
-            });
-            dbRefs.dailyNotes.on('value', (s) => {
-                STATE.dailyNotes = s.val() || {};
-                if (Object.keys(STATE.allCompletedTrades).length > 0) {
-                    renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
-                }
-                if (Object.keys(STATE.allTsCompletedTrades).length > 0) {
-                    renderFilteredEvalData();
-                }
-            });
-            dbRefs.tsTrades.on('value', s => { 
-                STATE.allTsTrades = s.val() || {}; 
-                renderFilteredEvalData(); 
-                updateAutoSessionUI(); 
-            });
+function subscribeToData() {
+    // 1. Live Crypto Trades (Tracker Tab)
+    dbRefs.trades.on('value', s => { 
+        const trades = s.val() || {}; 
+        renderLiveTable(trades, 'trades-tbody', 'live-trades-summary-container'); 
+        // We still track open trades count here, but updateFundedPerformanceStats will also update the count
+    });
 
-            dbRefs.tsCompletedTrades.on('value', s => {
-                STATE.allTsCompletedTrades = s.val() || {};
-                renderFilteredEvalData();
-                updateAutoSessionUI(); 
-            });
-            dbRefs.tsSetups1.on('value', (s) => { 
-                const val = s.val() || "";
-                const el = document.getElementById('ts-primary-setups-notes');
-                if (el && document.activeElement !== el) {
-                    el.value = val;
-                    setTimeout(() => {
-                        autoResizeTextarea(el);
-                        resizeParentCollapsible(el);
-                    }, 100);
-                }
-            });
+    // 2. Apex Expiry Dates
+    dbRefs.apexExpiry.on('value', (s) => {
+        STATE.apexDates = s.val() || {};
+        renderApexExpiry();
+    });
 
-            dbRefs.tsSetups2.on('value', (s) => { 
-                const val = s.val() || "";
-                const el = document.getElementById('ts-secondary-setups-notes');
-                if (el && document.activeElement !== el) {
-                    el.value = val;
-                    setTimeout(() => {
-                        autoResizeTextarea(el);
-                        resizeParentCollapsible(el);
-                    }, 100);
-                }
-            });
-
-            dbRefs.tsSetupsImages.on('value', (s) => {
-                STATE.allTsSetupsImages = s.val() || {};
-                const container = document.getElementById('ts-setups-image-container');
-                if (container) {
-                    renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
-                }
-            });
-
-            dbRefs.completedTrades.on('value', s => {
-                STATE.allCompletedTrades = s.val() || {};
-                const completedData = STATE.allCompletedTrades;
-                renderCompletedTable(completedData, 'completed-trades-tbody', false);
-
-                const resetDateStr = CONFIG.TRADE_SETTINGS.STATS_RESET_DATE;
-                const resetTimestamp = resetDateStr ? new Date(resetDateStr).getTime() : 0;
-
-                let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
-
-                Object.values(completedData).forEach(trade => {
-                    const tradeTimestamp = trade.closed_date ? new Date(trade.closed_date).getTime() : 0;
-
-                    if (tradeTimestamp >= resetTimestamp) {
-                        const netResult = trade.net_result || 0;
-                        if (netResult > 0) {
-                            wins++;
-                            grossProfit += netResult;
-                        } else {
-                            losses++;
-                            grossLoss += Math.abs(netResult);
-                        }
-                    }
-                });
-
-                const totalCompleted = wins + losses;
-                const winRate = totalCompleted > 0 ? (wins / totalCompleted) * 100 : 0;
-                const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
-                const avgWin = wins > 0 ? grossProfit / wins : 0;
-                const avgLoss = losses > 0 ? grossLoss / losses : 0;
-                const rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
-                const totalPL = grossProfit - grossLoss;
-                const newBalance = CONFIG.TRADE_SETTINGS.STARTING_BALANCE + totalPL;
-
-                DOM.statBalance.textContent = formatCurrency(newBalance);
-                DOM.statBalanceAud.textContent = formatCurrency(newBalance * STATE.usdToAudRate, 'A$');
-                DOM.statTotalPl.textContent = `${totalPL >= 0 ? '+' : ''}$${totalPL.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                DOM.statTotalPlAud.textContent = `${totalPL >= 0 ? '+' : ''}A$${(totalPL * STATE.usdToAudRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                DOM.statCompletedTrades.textContent = totalCompleted;
-                DOM.statWins.textContent = wins;
-                DOM.statLosses.textContent = losses;
-                DOM.statWinRate.textContent = `${winRate.toFixed(1)}%`;
-                DOM.statProfitFactor.textContent = profitFactor > 0 ? profitFactor.toFixed(2) : (wins > 0 ? '∞' : 'N/A');
-                DOM.statAvgWin.textContent = formatCurrency(avgWin);
-                DOM.statAvgLoss.textContent = formatCurrency(avgLoss);
-                DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
-
-                dbRefs.bank.set({ currentBalance: newBalance });
-            });
-
-            dbRefs.tsTrades.on('value', s => { 
-                STATE.allTsTrades = s.val() || {}; 
-                renderFilteredEvalData(); 
-            });
-
-            dbRefs.tsCompletedTrades.on('value', s => {
-                STATE.allTsCompletedTrades = s.val() || {};
-                renderFilteredEvalData();
-            });
-
-            dbRefs.journalText.on('value', (s) => { 
-                STATE.journalText = s.val() || {}; 
-                if (DOM.journalTab.classList.contains('active')) {
-                    if (document.activeElement === DOM.journalEntryEl) return;
-                    updateJournalView(true); 
-                }
-            });
-
-            dbRefs.journalImages.on('value', (s) => { 
-                STATE.journalImages = s.val() || {}; 
-                if (DOM.journalTab.classList.contains('active')) {
-                    updateJournalView(false); 
-                }
-            });
-
-            dbRefs.setupsImages.on('value', (s) => {
-                STATE.allSetupsImages = s.val() || {};
-                renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-            });
-
-            dbRefs.favourites.on('value', (s) => { 
-                STATE.favouriteEntries = s.val() || {}; 
-                if (DOM.journalTab.classList.contains('active')) updateJournalView(); 
-            });
-
-            dbRefs.setups1.on('value', (s) => { 
-                STATE.setupsData1 = s.val() || {}; 
-                renderSetupsTable(null, STATE.setupsData1, 'primary-setups-notes'); 
-            });
-
-            dbRefs.setups2.on('value', (s) => { 
-                STATE.setupsData2 = s.val() || {}; 
-                renderSetupsTable(null, STATE.setupsData2, 'secondary-setups-notes'); 
-            });
-
-            dbRefs.generalNotes.on('value', (s) => { 
-                STATE.generalNotes = s.val() || {}; 
-                if (DOM.noteEditModal.style.display === 'none') { 
-                    renderNotes(STATE.generalNotes); 
-                } 
-            });
-
-            dbRefs.strategyNotes.on('value', (s) => {
-                const text = s.val() || "";
-                if (document.activeElement !== DOM.strategyNotesEntry) {
-                    DOM.strategyNotesEntry.value = text;
-                    autoResizeTextarea(DOM.strategyNotesEntry);
-                }
-            });
-
-            dbRefs.strategyImages.on('value', (s) => {
-                STATE.strategyImages = s.val() || {};
-                renderGenericImageLibrary(STATE.strategyImages, DOM.strategyImageContainer, 'strategy_images');
-            });
+    // 3. Daily Notes (Calendar/Table headers)
+    dbRefs.dailyNotes.on('value', (s) => {
+        STATE.dailyNotes = s.val() || {};
+        if (Object.keys(STATE.allCompletedTrades).length > 0) {
+            renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
         }
+        if (Object.keys(STATE.allTsCompletedTrades).length > 0) {
+            renderFilteredEvalData();
+        }
+    });
 
+    // 4. Live Funded Trades (Funded Tab)
+    dbRefs.tsTrades.on('value', s => { 
+        STATE.allTsTrades = s.val() || {}; 
+        renderFilteredEvalData(); 
+        updateFundedPerformanceStats(); // Updates the Stats Panel
+    });
+
+    // 5. Completed Funded Trades (Funded Tab)
+    dbRefs.tsCompletedTrades.on('value', s => {
+        STATE.allTsCompletedTrades = s.val() || {};
+        renderFilteredEvalData();
+        updateAutoSessionUI(); 
+        updateFundedPerformanceStats(); // Updates the Stats Panel
+    });
+
+    // 6. Funded Notes & Setups
+    dbRefs.tsSetups1.on('value', (s) => { 
+        const val = s.val() || "";
+        const el = document.getElementById('ts-primary-setups-notes');
+        if (el && document.activeElement !== el) {
+            el.value = val;
+            setTimeout(() => { autoResizeTextarea(el); resizeParentCollapsible(el); }, 100);
+        }
+    });
+
+    dbRefs.tsSetups2.on('value', (s) => { 
+        const val = s.val() || "";
+        const el = document.getElementById('ts-secondary-setups-notes');
+        if (el && document.activeElement !== el) {
+            el.value = val;
+            setTimeout(() => { autoResizeTextarea(el); resizeParentCollapsible(el); }, 100);
+        }
+    });
+
+    dbRefs.tsSetupsImages.on('value', (s) => {
+        STATE.allTsSetupsImages = s.val() || {};
+        const container = document.getElementById('ts-setups-image-container');
+        if (container) {
+            renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
+        }
+    });
+
+    // 7. Completed Crypto Trades (Tracker Tab)
+    dbRefs.completedTrades.on('value', s => {
+        STATE.allCompletedTrades = s.val() || {};
+        // ONLY render the table. All stats logic removed from here.
+        renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
+    });
+
+    // 8. Journaling & Notes
+    dbRefs.journalText.on('value', (s) => { 
+        STATE.journalText = s.val() || {}; 
+        if (DOM.journalTab.classList.contains('active')) {
+            if (document.activeElement === DOM.journalEntryEl) return;
+            updateJournalView(true); 
+        }
+    });
+
+    dbRefs.journalImages.on('value', (s) => { 
+        STATE.journalImages = s.val() || {}; 
+        if (DOM.journalTab.classList.contains('active')) {
+            updateJournalView(false); 
+        }
+    });
+
+    dbRefs.setupsImages.on('value', (s) => {
+        STATE.allSetupsImages = s.val() || {};
+        renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+    });
+
+    dbRefs.favourites.on('value', (s) => { 
+        STATE.favouriteEntries = s.val() || {}; 
+        if (DOM.journalTab.classList.contains('active')) updateJournalView(); 
+    });
+
+    dbRefs.setups1.on('value', (s) => { 
+        STATE.setupsData1 = s.val() || {}; 
+        renderSetupsTable(null, STATE.setupsData1, 'primary-setups-notes'); 
+    });
+
+    dbRefs.setups2.on('value', (s) => { 
+        STATE.setupsData2 = s.val() || {}; 
+        renderSetupsTable(null, STATE.setupsData2, 'secondary-setups-notes'); 
+    });
+
+    dbRefs.generalNotes.on('value', (s) => { 
+        STATE.generalNotes = s.val() || {}; 
+        if (DOM.noteEditModal.style.display === 'none') { 
+            renderNotes(STATE.generalNotes); 
+        } 
+    });
+
+    dbRefs.strategyNotes.on('value', (s) => {
+        const text = s.val() || "";
+        if (document.activeElement !== DOM.strategyNotesEntry) {
+            DOM.strategyNotesEntry.value = text;
+            autoResizeTextarea(DOM.strategyNotesEntry);
+        }
+    });
+
+    dbRefs.strategyImages.on('value', (s) => {
+        STATE.strategyImages = s.val() || {};
+        renderGenericImageLibrary(STATE.strategyImages, DOM.strategyImageContainer, 'strategy_images');
+    });
+}
         function openCollapsibleSection(sectionElement) {
             if (!sectionElement || sectionElement.classList.contains('is-open')) return;
             const content = sectionElement.querySelector('.collapsible-content');
