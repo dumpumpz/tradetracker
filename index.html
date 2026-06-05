@@ -996,41 +996,48 @@
 
 
 
-
-        
-/* Styling for the new Toggle Button */
+/* Styling for the Toggle Button */
 #tabs-toggle-btn {
     background: none;
     border: none;
     color: var(--subtle-text);
-    font-size: 18px;
+    font-size: 22px; /* Slightly larger since it's the only thing there */
     cursor: pointer;
-    padding: 10px;
-    margin-right: 5px;
+    padding: 10px 15px;
     display: flex;
     align-items: center;
-    transition: color 0.2s;
+    transition: all 0.2s;
 }
 
-#tabs-toggle-btn:hover { color: var(--link-color); }
+#tabs-toggle-btn:hover { color: var(--link-color); transform: scale(1.1); }
 
-/* Hide all tabs EXCEPT 'Funded Accounts' by default */
-.tabs:not(.is-expanded) .tab-link:not([data-tab="topstep"]) {
+/* The Tab Bar container */
+.tabs {
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    min-height: 45px;
+}
+
+/* HIDE ALL TAB LINKS when not expanded */
+.tabs:not(.is-expanded) .tab-link {
     display: none;
 }
 
-/* Optional: Make the Funded Accounts tab look like a simple header when not expanded */
-.tabs:not(.is-expanded) .tab-link[data-tab="topstep"] {
-    border-bottom: none;
-    cursor: default;
-    pointer-events: none; /* Disable clicking it when it's the only one there */
-    color: var(--text-color);
+/* Show all tab links when expanded */
+.tabs.is-expanded {
+    flex-wrap: wrap;
 }
 
-/* When expanded, show everything and restore pointer events */
 .tabs.is-expanded .tab-link {
     display: block;
-    pointer-events: auto !important;
+    animation: fadeIn 0.3s forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
     </style>
 </head>
@@ -1081,7 +1088,7 @@
    
 <!-- Navigation Tabs -->
 <div class="tabs">
-    <button id="tabs-toggle-btn" title="Show all sections">☰</button>
+    <button id="tabs-toggle-btn" title="Menu">☰</button>
     <button class="tab-link" data-tab="tracker">Trade Tracker</button>
     <button class="tab-link active" data-tab="topstep">Funded Accounts</button>
     <button class="tab-link" data-tab="journal">Journal & Setups</button>
@@ -1745,17 +1752,19 @@
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
 
-// Tab Expansion Logic
+
+// Tab Menu Toggle Logic
 const toggleBtn = document.getElementById('tabs-toggle-btn');
 const tabsContainer = document.querySelector('.tabs');
 
 toggleBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     const isExpanded = tabsContainer.classList.toggle('is-expanded');
+    // Switch between hamburger and "X" icons
     toggleBtn.textContent = isExpanded ? '✕' : '☰';
 });
 
-// Close the tab menu if a user clicks a new tab
+// Close menu when a tab is selected
 tabsContainer.addEventListener('click', (e) => {
     if (e.target.classList.contains('tab-link')) {
         tabsContainer.classList.remove('is-expanded');
@@ -1763,10 +1772,12 @@ tabsContainer.addEventListener('click', (e) => {
     }
 });
 
-// Close the tab menu if user clicks anywhere else on the page
-document.addEventListener('click', () => {
-    tabsContainer.classList.remove('is-expanded');
-    toggleBtn.textContent = '☰';
+// Close menu if user clicks anywhere else on the page
+document.addEventListener('click', (e) => {
+    if (!tabsContainer.contains(e.target)) {
+        tabsContainer.classList.remove('is-expanded');
+        toggleBtn.textContent = '☰';
+    }
 });
         function calculateBreakevenPrice(trade) {
             const entry = parseFloat(trade.entry);
