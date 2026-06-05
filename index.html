@@ -964,41 +964,39 @@
 
         
 
-/* --- Chained Trade Visuals --- */
+/* --- Global Chain Visuals --- */
 .is-chained {
-    background-color: rgba(88, 166, 255, 0.05) !important; 
+    border-left: 3px solid var(--link-color) !important;
 }
 
-/* Ensure the first cell has room and the line */
-tr.is-chained td:first-child {
-    position: relative !important;
-    padding-left: 30px !important;
-    border-left: 2px solid var(--link-color) !important;
+/* Re-entry Hook */
+tr.is-re-entry td:first-child {
+    position: relative;
+    padding-left: 25px !important;
 }
 
-/* The "↪" Re-entry Hook */
 tr.is-re-entry td:first-child::after {
-    content: "↪" !important;
-    position: absolute !important;
-    left: 8px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    color: var(--link-color) !important;
-    font-weight: 900 !important;
-    font-size: 18px !important;
+    content: "↪";
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--link-color);
+    font-weight: bold;
+    font-size: 14px;
 }
 
-/* Sequence P/L Badge */
+/* Sequence Badge */
 .sequence-badge {
-    font-size: 10px !important;
-    background: #3c2a4d !important; /* Purpleish to match your theme */
-    color: #fff !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
-    margin-left: 8px !important;
-    border: 1px solid var(--border-color) !important;
-    display: inline-block !important;
-    font-family: 'Courier New', monospace;
+    font-size: 9px !important;
+    background: rgba(88, 166, 255, 0.15);
+    color: var(--link-color);
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 5px;
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    font-weight: bold;
+    display: inline-block;
 }
     </style>
 </head>
@@ -2843,7 +2841,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     if (!tbodyElement) return;
 
     const trades = data || {};
-    // Sort keys by closed date descending
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
     let rowsHtml = '';
@@ -2863,20 +2860,16 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         : `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th><th>RR(M)</th><th>Exit Price</th><th>Raw PnL</th><th>Fees</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
     thead.innerHTML = headers;
 
-    const tradesByDayAndGroup = {};
-    const uniqueTradingDates = [];
+    // Grouping structure
+    const tradesByDay = {}; 
     tradeIds.forEach(id => {
         const t = trades[id];
         const dayStr = getTradingDayString(t.closed_date, t.date);
-        if (!tradesByDayAndGroup[dayStr]) { 
-            tradesByDayAndGroup[dayStr] = {}; 
-            uniqueTradingDates.push(dayStr); 
-        }
-        const gid = t.groupId || 'Ungrouped';
-        if (!tradesByDayAndGroup[dayStr][gid]) { tradesByDayAndGroup[dayStr][gid] = []; }
-        tradesByDayAndGroup[dayStr][gid].push({ ...t, dbId: id });
+        if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
+        tradesByDay[dayStr].push({ ...t, dbId: id });
     });
-    uniqueTradingDates.sort((a, b) => b.localeCompare(a)); 
+
+    const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a)); 
 
     let visibleDates = uniqueTradingDates;
     const todayStr = getTradingDayString(Date.now(), Date.now());
@@ -2892,24 +2885,61 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     }
 
     visibleDates.forEach(dateStr => {
-        const groups = tradesByDayAndGroup[dateStr];
+        const dayArray = tradesByDay[dateStr];
+        
+        // 1. Sort all trades of the day by entry time
+        dayArray.sort((a, b) => (a.date || 0) - (b.date || 0));
+
+        // 2. Pre-calculate "Global Sequences" for the whole day
+        let seqRunningPnL = 0;
+        dayArray.forEach((t, idx) => {
+            const gapLimit = 12 * 60 * 1000; // 12 mins
+            if (idx > 0) {
+                const prev = dayArray[idx - 1];
+                const isQuick = (new Date(t.date).getTime() - new Date(prev.closed_date).getTime()) < gapLimit;
+                const sameAcc = getEvalAccount(t) === getEvalAccount(prev);
+                const sameSym = t.symbol === prev.symbol;
+
+                if (isQuick && sameAcc && sameSym) {
+                    t._isChained = true;
+                    seqRunningPnL += parseFloat(t.net_result || 0);
+                    t._seqPnL = seqRunningPnL;
+                } else {
+                    seqRunningPnL = parseFloat(t.net_result || 0);
+                    t._seqPnL = null;
+                }
+            } else {
+                seqRunningPnL = parseFloat(t.net_result || 0);
+                t._seqPnL = null;
+            }
+        });
+
+        // 3. Daily Totals
         let dPnL = 0, dWins = 0, dLosses = 0;
-        Object.values(groups).forEach(g => g.forEach(t => {
+        dayArray.forEach(t => {
             const net = parseFloat(t.net_result || 0);
             dPnL += net;
             if (net >= 0) dWins++; else dLosses++;
-        }));
+        });
 
         const safeDateKey = isTopstep ? `ts-${dateStr.replace(/[\/\s,]/g, '-')}` : dateStr.replace(/[\/\s,]/g, '-');
 
+        // Render Day Header
         rowsHtml += `<tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);"><td colspan="11" style="text-align: left; padding: 10px 20px;"><strong style="text-transform: capitalize;">${formatFriendlyDate(dateStr)}</strong> | <span style="color:var(--green-text)">${dWins} Wins</span> / <span style="color:var(--red-text)">${dLosses} Losses</span></td><td colspan="4" style="font-weight:bold; font-size: 1.1em;">Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span></td><td colspan="10" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td></tr>`;
 
-        Object.keys(groups).forEach(groupId => {
-            const groupTrades = groups[groupId];
-            
-            // SORT BY TIME OPENED
-            groupTrades.sort((a, b) => (a.date || 0) - (b.date || 0));
+        // 4. To keep your "Folder" UI, we now regroup the dayArray back into groups
+        const groupsInDay = {};
+        dayArray.forEach(t => {
+            const gid = t.groupId || 'Ungrouped';
+            if (!groupsInDay[gid]) groupsInDay[gid] = [];
+            groupsInDay[gid].push(t);
+        });
 
+        // Sort groups by time (using first trade in each group)
+        const sortedGids = Object.keys(groupsInDay).sort((a,b) => groupsInDay[b][0].date - groupsInDay[a][0].date);
+
+        sortedGids.forEach(gid => {
+            const groupTrades = groupsInDay[gid];
             let gNet = 0, gQty = 0, gEntryW = 0, gExitW = 0;
             groupTrades.forEach(t => {
                 const net = parseFloat(t.net_result || 0);
@@ -2930,39 +2960,15 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             if (gType === 'Long') diffColor = diff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
             else if (gType === 'Short') diffColor = diff <= 0 ? 'var(--green-text)' : 'var(--red-text)';
 
-            rowsHtml += `<tr class="completed-group-header"><td colspan="25" style="padding: 8px 15px; font-size: 0.95em;"><div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;"><span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span><span style="color:var(--border-color);">|</span><span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)} (${gPct.toFixed(2)}%)</span></span><span style="color:var(--border-color);">|</span><span>Avg: ${avgEntryGroup.toFixed(2)} ➔ ${avgExitGroup.toFixed(2)} <span style="color:${diffColor}; font-weight:bold; font-family:monospace;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span></div></td></tr>`;
+            rowsHtml += `<tr class="completed-group-header"><td colspan="25" style="padding: 8px 15px; font-size: 0.95em;"><div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;"><span style="font-weight:bold; color:var(--link-color);">📂 ${gid} (${gType})</span><span style="color:var(--border-color);">|</span><span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)} (${gPct.toFixed(2)}%)</span></span><span style="color:var(--border-color);">|</span><span>Avg: ${avgEntryGroup.toFixed(2)} ➔ ${avgExitGroup.toFixed(2)} <span style="color:${diffColor}; font-weight:bold; font-family:monospace;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span></div></td></tr>`;
 
-            let seqPnL = 0;
-
-            groupTrades.forEach((t, idx) => {
+            groupTrades.forEach(t => {
                 const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
                 const net = parseFloat(t.net_result || 0);
                 
-                // CHAIN LOGIC
-                let chainClass = "";
-                let seqBadge = "";
-                const gap = 12 * 60 * 1000; // 12 mins (wider for safety)
-
-                if (idx > 0) {
-                    const p = groupTrades[idx - 1];
-                    // Convert both to numbers to ensure math works
-                    const curOpen = new Date(t.date).getTime();
-                    const prevClose = new Date(p.closed_date).getTime();
-                    const isQuick = (curOpen - prevClose) < gap;
-                    const sameAcc = getEvalAccount(t) === getEvalAccount(p);
-                    const sameSym = t.symbol === p.symbol;
-
-                    if (isQuick && sameAcc && sameSym) {
-                        chainClass = "is-chained is-re-entry";
-                        seqPnL += net;
-                        const color = seqPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)';
-                        seqBadge = `<span class="sequence-badge" style="color:${color} !important">Seq: $${seqPnL.toFixed(0)}</span>`;
-                    } else {
-                        seqPnL = net; 
-                    }
-                } else {
-                    seqPnL = net;
-                }
+                // Chain Visuals
+                const chainClass = t._isChained ? "is-chained is-re-entry" : "";
+                const seqBadge = t._seqPnL !== null ? `<span class="sequence-badge">Seq: $${t._seqPnL.toFixed(0)}</span>` : "";
 
                 const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
                 const commRate = parseFloat(t.commissions || 1.00);
