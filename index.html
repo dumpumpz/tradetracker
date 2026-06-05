@@ -2848,6 +2848,8 @@
 
             container.innerHTML = messages.length > 0 ? messages.join('') : '';
         }
+
+        
 function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
@@ -2892,10 +2894,10 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
     
-    // THEAD with hide-mobile classes
+    // Headers: Removed Entries List, Fees, and Raw PnL
     thead.innerHTML = isTopstep 
-        ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th class="hide-mobile">Entries</th><th class="hide-mobile">SL</th><th class="hide-mobile">TP</th><th>Qty</th><th class="hide-mobile">Pr(T)</th><th class="hide-mobile">Ls(T)</th><th class="hide-mobile">RR</th><th>Exit</th><th class="hide-mobile">Raw</th><th class="hide-mobile">Fee</th><th>Net</th><th>%</th><th class="hide-mobile">In</th><th>Out</th><th>Note</th><th class="hide-mobile">N2</th><th class="hide-mobile">N3</th><th>Pics</th><th class="master-only">Act</th></tr>`
-        : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th class="hide-mobile">Entries</th><th class="hide-mobile">SL</th><th class="hide-mobile">TP</th><th>Size</th><th class="hide-mobile">Pr(T)</th><th class="hide-mobile">Pr(M)</th><th class="hide-mobile">Ls(T)</th><th class="hide-mobile">Ls(M)</th><th class="hide-mobile">RR(T)</th><th class="hide-mobile">RR(M)</th><th>Exit</th><th class="hide-mobile">Raw</th><th class="hide-mobile">Fee</th><th>Net</th><th>%</th><th class="hide-mobile">In</th><th>Out</th><th>Note</th><th class="hide-mobile">N2</th><th class="hide-mobile">N3</th><th>Pics</th><th class="master-only">Act</th></tr>`;
+        ? `<tr><th>Acc/Sym</th><th>Type</th><th>Entry</th><th class="hide-mobile">SL</th><th class="hide-mobile">TP</th><th>Qty</th><th class="hide-mobile">Pr(T)</th><th class="hide-mobile">Ls(T)</th><th class="hide-mobile">RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>Out</th><th>Note</th><th>Pics</th><th class="master-only">Act</th></tr>`
+        : `<tr><th>Sym</th><th>Type</th><th>Entry</th><th class="hide-mobile">SL</th><th class="hide-mobile">TP</th><th>Size</th><th class="hide-mobile">Pr(T)</th><th class="hide-mobile">Ls(T)</th><th class="hide-mobile">RR(T)</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>Out</th><th>Note</th><th>Pics</th><th class="master-only">Act</th></tr>`;
 
     let dPnL = 0, dWins = 0, dLosses = 0;
     dayTrades.forEach(t => {
@@ -2906,13 +2908,13 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
     rowsHtml += `
     <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
-        <td colspan="4" style="text-align: left; padding: 10px;">
-            <strong style="font-size:12px;">${formatFriendlyDate(targetDateStr)}</strong><br><span style="color:var(--green-text)">${dWins}W</span> / <span style="color:var(--red-text)">${dLosses}L</span>
+        <td colspan="3" style="text-align: left; padding: 10px 20px;">
+            <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--green-text)">${dWins}W</span> / <span style="color:var(--red-text)">${dLosses}L</span>
         </td>
-        <td colspan="3" style="font-weight:bold;">
-            Net:<br><span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
+        <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
+            Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
         </td>
-        <td colspan="18" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:11px;">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
+        <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
     </tr>`;
 
     const clusters = [];
@@ -2929,13 +2931,13 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     clusters.forEach(cluster => {
         const isActualCluster = cluster.length > 1;
         const clusterNet = cluster.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
-        const clusterBoxStyle = isActualCluster ? `border-left: 5px solid #6f42c1; background-color: rgba(111, 66, 193, 0.03);` : '';
+        const clusterBoxStyle = isActualCluster ? `border-left: 6px solid #6f42c1; background-color: rgba(111, 66, 193, 0.03);` : '';
 
         if (isActualCluster) {
             rowsHtml += `
             <tr style="${clusterBoxStyle} border-top: 2px solid #6f42c1;">
-                <td colspan="25" style="padding: 4px 10px; font-size: 9px; font-weight: bold; color: #a29bfe; text-transform: uppercase;">
-                 <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
+                <td colspan="25" style="padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
+                    ⚡ RE-ENTRY SEQUENCE (10m window) | Cluster Total: <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
                 </td>
             </tr>`;
         }
@@ -2957,42 +2959,47 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 gNet += n; gQty += q; gE += (e * q); gEx += (ex * q);
             });
             const gType = gTrades[0].type || 'Long';
+            const avgEntryGroup = gQty > 0 ? (gE / gQty) : 0;
+            const avgExitGroup = gQty > 0 ? (gEx / gQty) : 0;
+            const diff = avgExitGroup - avgEntryGroup;
+            
+            let diffColor = 'var(--subtle-text)';
+            if (gType === 'Long') diffColor = diff >= 0 ? 'var(--green-text)' : 'var(--red-text)';
+            else diffColor = diff <= 0 ? 'var(--green-text)' : 'var(--red-text)';
 
             rowsHtml += `
             <tr class="completed-group-header" style="${clusterBoxStyle}">
-                <td colspan="25" style="padding: 5px 10px; font-size: 11px;">
-                    <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId}</span> | 
-                    <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${gNet.toFixed(2)}</span></span>
+                <td colspan="25" style="padding: 8px 15px; font-size: 0.95em;">
+                    <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
+                        <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)}</span></span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span>Avg: ${avgEntryGroup.toFixed(2)} ➔ ${avgExitGroup.toFixed(2)} <span style="color:${diffColor}; font-weight:bold;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
+                    </div>
                 </td>
             </tr>`;
 
             gTrades.forEach(t => {
                 const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
                 const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
-                const totalFees = isTopstep ? (parseFloat(t.commissions || 1) * contr) : (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0));
                 const net = parseFloat(t.net_result || 0);
                 
-                rowsHtml += `<tr style="${clusterBoxStyle}">
+                rowsHtml += `<tr style="${clusterBoxStyle} font-size: 0.85em;">
                     <td class="cell-narrow"><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
-                    <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${t.type === 'Long' ? 'L' : 'S'}</td>
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry">${parseFloat(t.entry).toFixed(1)}</td>
-                    <td class="hide-mobile">${(t.entry_prices || [t.entry]).map(p => parseFloat(p).toFixed(1)).join(',')}</td>
-                    <td class="hide-mobile">${parseFloat(t.stoploss || 0).toFixed(1)}</td>
-                    <td class="hide-mobile">${parseFloat(t.target || 0).toFixed(1)}</td>
+                    <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${t.type}</td>
+                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry">${parseFloat(t.entry).toFixed(2)}</td>
+                    <td class="hide-mobile">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
+                    <td class="hide-mobile">${parseFloat(t.target || 0).toFixed(2)}</td>
                     <td>${isTopstep ? contr : contr.toFixed(0)}</td>
-                    <td class="hide-mobile">$${parseFloat(m.expected_profit_taker).toFixed(0)}</td>
-                    <td class="hide-mobile">$${parseFloat(m.expected_loss_taker).toFixed(0)}</td>
+                    <td class="hide-mobile" style="opacity:0.5;">$${parseFloat(m.expected_profit_taker).toFixed(0)}</td>
+                    <td class="hide-mobile" style="opacity:0.5;">$${parseFloat(m.expected_loss_taker).toFixed(0)}</td>
                     <td class="hide-mobile">${isTopstep ? m.rr_taker : m.rr_maker}</td> 
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price">${parseFloat(t.exit_price).toFixed(1)}</td>
-                    <td class="hide-mobile">${(net+totalFees).toFixed(1)}</td>
-                    <td class="hide-mobile">${totalFees.toFixed(1)}</td>
+                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price">${parseFloat(t.exit_price).toFixed(2)}</td>
                     <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${net.toFixed(2)}</td>
-                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(1)}%</td>
-                    <td class="hide-mobile">${t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--'}</td>
+                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
                     <td>${t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--'}</td>
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note">${t.note || ''}</td>
-                    <td class="hide-mobile note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2">${t.note2 || ''}</td>
-                    <td class="hide-mobile note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3">${t.note3 || ''}</td>
                     ${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}
                     <td class="master-only action-buttons">
                         <button class="delete-btn-completed" data-id="${t.dbId}">×</button>
