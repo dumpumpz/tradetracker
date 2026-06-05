@@ -1732,7 +1732,7 @@ table {
             strategyImageContainer: document.getElementById('strategy-image-container'),
         };
     // --- APPLICATION STATE ---
-        const STATE = {
+       const STATE = {
             isMasterUser: false, isProcessing: false, usdToAudRate: 1.53, journalText: {}, journalImages: {}, 
             favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, 
             centerDate: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, 
@@ -1742,7 +1742,7 @@ table {
             allSetupsImages: {}, setupsImagesShowAll: true, setupsImagesCurrentPage: 1,
             allTsSetupsImages: {}, tsSetupsImagesShowAll: true, tsSetupsImagesCurrentPage: 1,
             dailyNotes: {}, strategyImages: {}, 
-            renderQueue: {}, isInitialLoad: true, activeTab: 'topstep', statsTimer: null
+            renderQueue: {}, isInitialLoad: true, activeTab: 'topstep', statsTimer: null, renderTimer: null
         };
 
         let FUNDED_STATS_CACHE = {}; 
@@ -3725,188 +3725,73 @@ function updateFundedPerformanceStats() {
             renderNotes(STATE.generalNotes);
         }
 
-       
 function setupEventListeners() {
-    // 1. Calculator & Input Listeners
+    // Calculator inputs
     ['calc-risk-usd', 'calc-risk-ticks', 'calc-reward-ticks'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', updateTargetCalculator);
     });
 
-    // 2. Apex Date Setter (Master Only)
-    document.body.addEventListener('change', (e) => {
-        if (e.target.classList.contains('apex-date-setter')) {
-            if (!STATE.isMasterUser) return;
-            const account = e.target.dataset.acc;
-            const dateValue = e.target.value;
-            dbRefs.apexExpiry.child(account).set(dateValue).then(() => {
-                e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
-                setTimeout(() => e.target.style.backgroundColor = '', 500);
-            }).catch(err => alert("Firebase Save Error: " + err.message));
-        }
-    });
-
-    // 3. Notes & Strategy Auto-Save Logic (Debounced)
-    const setupDebouncedSave = (el, ref) => {
-        if (!el) return;
-        el.addEventListener('input', (e) => {
-            autoResizeTextarea(e.target);
-            if (!STATE.isMasterUser) return;
-            clearTimeout(STATE[el.id + 'Timer']);
-            STATE[el.id + 'Timer'] = setTimeout(() => {
-                ref.set(e.target.value);
-            }, 1000);
-        });
-    };
-
-    setupDebouncedSave(document.getElementById('ts-primary-setups-notes'), dbRefs.tsSetups1);
-    setupDebouncedSave(document.getElementById('ts-secondary-setups-notes'), dbRefs.tsSetups2);
-    setupDebouncedSave(DOM.strategyNotesEntry, dbRefs.strategyNotes);
-
-    // 4. Futures Auto-Config (Commissions/Symbols)
-    const tsTradeSymbolSelect = document.getElementById('ts-trade-symbol');
-    const tsCommissionsInput = document.getElementById('ts-commissions');
-    if (tsTradeSymbolSelect && tsCommissionsInput) {
-        tsTradeSymbolSelect.addEventListener('change', (e) => {
-            const val = e.target.value;
-            tsCommissionsInput.value = (val === 'NQ' || val === 'ES') ? '8.10' : '1.00';
-        });
-    }
-
-    // 5. Jump to Date Logic
-    const jumpBtn = document.getElementById('ts-jump-to-date-btn');
-    if (jumpBtn) jumpBtn.addEventListener('click', jumpToFundedSetupDate);
-
-    // 6. TABS LOGIC (The Performance Core)
+    // Menu and Tab Switching
     DOM.tabs.addEventListener('click', (e) => {
         if (!e.target.matches('.tab-link') && !e.target.closest('#tabs-toggle-btn')) return;
         
-        // Handle Hamburger Menu
         if (e.target.closest('#tabs-toggle-btn')) {
-            e.stopPropagation();
-            const isExpanded = DOM.tabs.classList.toggle('is-expanded');
-            e.target.closest('#tabs-toggle-btn').textContent = isExpanded ? '✕' : '☰';
+            const isExp = DOM.tabs.classList.toggle('is-expanded');
+            document.getElementById('tabs-toggle-btn').textContent = isExp ? '✕' : '☰';
             return;
         }
 
-        // Handle Actual Tab Switching
         const tabId = e.target.dataset.tab;
-        STATE.activeTab = tabId; // Track which tab is active for smart rendering
+        STATE.activeTab = tabId;
         
         document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
         e.target.classList.add('active');
-        const newTabContent = document.getElementById(`${tabId}-tab`);
-        
-        if (newTabContent) {
-            newTabContent.classList.add('active');
-            DOM.tabs.classList.remove('is-expanded'); // Auto-close menu
-            document.getElementById('tabs-toggle-btn').textContent = '☰';
+        document.getElementById(`${tabId}-tab`).classList.add('active');
+        DOM.tabs.classList.remove('is-expanded');
+        document.getElementById('tabs-toggle-btn').textContent = '☰';
 
-            // SMART RENDER: Only draw the tables for the tab we just opened
-            requestSmartUpdate(tabId === 'topstep' ? 'ts-live' : 'crypto-live', () => {
-                if (tabId === 'topstep') {
-                    renderFilteredEvalData();
-                    updateFundedPerformanceStats();
-                } else if (tabId === 'tracker') {
-                    renderLiveTable(STATE.allTrades, 'trades-tbody', 'live-trades-summary-container');
-                    renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
-                }
-            });
-
-            // Layout cleanup
-            setTimeout(() => {
-                newTabContent.querySelectorAll('textarea').forEach(ta => autoResizeTextarea(ta));
-            }, 50);
+        // Direct render for the newly active tab
+        if (tabId === 'topstep') renderFilteredEvalData();
+        if (tabId === 'tracker') {
+            renderLiveTable(STATE.allTrades, 'trades-tbody', 'live-trades-summary-container');
+            renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
         }
         DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'topstep') ? 'block' : 'none';
     });
 
-    // 7. Stats Panel Toggle
     DOM.statsFab.addEventListener('click', () => DOM.statsPanel.classList.toggle('active'));
     DOM.closeStatsBtn.addEventListener('click', () => DOM.statsPanel.classList.remove('active'));
 
-    // 8. Table Actions (Delegated)
-    [DOM.tradesTbody, DOM.completedTradesTbody, DOM.tsTradesTbody, DOM.tsCompletedTradesTbody].forEach(tbody => {
-        if (tbody) tbody.addEventListener('click', handleTradeAction);
-    });
-
-    // 9. Inline Editing (Blur)
-    document.body.addEventListener('blur', (e) => {
-        if (!STATE.isMasterUser) return;
-        if (e.target.matches('.editable-cell')) handleLiveTradeUpdate(e.target);
-        if (e.target.matches('.editable-live-note')) handleLiveNoteUpdate(e.target);
-        if (e.target.matches('.editable-completed-cell')) handleCompletedTradeUpdate(e.target);
-        if (e.target.matches('.editable-daily-note')) {
-            dbRefs.dailyNotes.child(e.target.dataset.dateKey).set(e.target.innerText.trim());
-        }
-    }, true);
-
-    // 10. Forms
-    if (DOM.addTradeForm) DOM.addTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, false));
-    if (DOM.tsAddTradeForm) DOM.tsAddTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, true));
-
-    // 11. Global Click Router (Collapsibles, Modals, Pagination)
+    // Global Click Handler for Collapsibles and Pagination
     document.body.addEventListener('click', (e) => {
-        const header = e.target.closest('.collapsible-header');
-        if (header) {
-            const section = header.parentElement;
-            const content = section.querySelector('.collapsible-content');
-            const toggleBtn = section.querySelector('.collapsible-toggle-btn');
-            const isOpen = section.classList.toggle('is-open');
-            toggleBtn.textContent = isOpen ? '−' : '+';
-           content.style.maxHeight = isOpen ? "none" : "0px";
-
+        const h = e.target.closest('.collapsible-header');
+        if (h) {
+            const sec = h.parentElement; const cont = sec.querySelector('.collapsible-content');
+            const isOpen = sec.classList.toggle('is-open');
+            sec.querySelector('.collapsible-toggle-btn').textContent = isOpen ? '−' : '+';
+            cont.style.maxHeight = isOpen ? "none" : "0px";
             return;
         }
 
-        if (handleAttachmentActions(e)) return;
-
-        // Pagination Router
         const id = e.target.id;
-        if (id.includes('prev-page') || id.includes('next-page')) {
-            const isTs = id.startsWith('ts-');
+        if (id && (id.includes('prev-page') || id.includes('next-page'))) {
+            const next = id.includes('next'); const isTs = id.startsWith('ts-');
             if (id.includes('completed-trades')) {
-                if (isTs) { STATE.tsCompletedTradesCurrentPage += id.includes('next') ? 1 : -1; renderFilteredEvalData(); }
-                else { STATE.completedTradesCurrentPage += id.includes('next') ? 1 : -1; renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); }
+                if (isTs) STATE.tsCompletedTradesCurrentPage += next ? 1 : -1;
+                else STATE.completedTradesCurrentPage += next ? 1 : -1;
+                isTs ? renderFilteredEvalData() : renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
             } else if (id.includes('setups-images')) {
-                if (isTs) { STATE.tsSetupsImagesCurrentPage += id.includes('next') ? 1 : -1; renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images'); }
-                else { STATE.setupsImagesCurrentPage += id.includes('next') ? 1 : -1; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
+                if (isTs) STATE.tsSetupsImagesCurrentPage += next ? 1 : -1;
+                else STATE.setupsImagesCurrentPage += next ? 1 : -1;
+                renderGenericImageLibrary(isTs?STATE.allTsSetupsImages:STATE.allSetupsImages, isTs?document.getElementById('ts-setups-image-container'):DOM.setupsImageContainer, isTs?'ts_setups_images':'setups_images');
             }
         }
     });
 
-    // 12. Uploads
-    DOM.tsSetupsImageUpload = document.getElementById('ts-setups-image-upload');
-    if (DOM.tsSetupsImageUpload) {
-        DOM.tsSetupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'ts_setups_images', document.getElementById('ts-setups-upload-progress'), dbRefs.tsSetupsImages));
-    }
-    DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
-    DOM.strategyImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'strategy_images', DOM.strategyUploadProgress, dbRefs.strategyImages));
-    DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
-    DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
-
-    // 13. Modals
-    DOM.modalClose.addEventListener('click', closeModal);
-    DOM.modalPrevBtn.addEventListener('click', () => { if (STATE.modalImageIndex > 0) { STATE.modalImageIndex--; displayModalImage(); } });
-    DOM.modalNextBtn.addEventListener('click', () => { if (STATE.modalImageIndex < STATE.modalImageGallery.length - 1) { STATE.modalImageIndex++; displayModalImage(); } });
-    DOM.noteModalClose.addEventListener('click', closeNoteModal);
-
-    // 14. Journal Specifics
-    [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => { updateJournalView(false); renderDateNavigation(); }));
-    DOM.dateButtonsContainer.addEventListener('click', (e) => { 
-        if (e.target.matches('.date-nav-btn')) { 
-            const parts = e.target.dataset.date.split('-'); 
-            STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); 
-            STATE.centerDate = new Date(STATE.selectedDate); updateJournalView(); renderDateNavigation(); 
-        } 
-    });
-    DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveJournalEntry(); });
-    DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
-
-    // 15. Auto-Fill SL/TP logic
+    // Auto-fill levels
     const updateAutoLevels = (entryEl, typeEl, slEl, tpEl, isFunded) => {
-        const entry = parseFloat(entryEl.value);
-        if (isNaN(entry)) return;
+        const entry = parseFloat(entryEl.value); if (isNaN(entry)) return;
         const isLong = typeEl.value === 'Long';
         const risk = isFunded ? (parseFloat(document.getElementById('calc-risk-ticks').value) / 4 || 12.5) : (entry * 0.01);
         const reward = isFunded ? (parseFloat(document.getElementById('calc-reward-ticks').value) / 4 || 50) : (entry * 0.04);
@@ -3922,7 +3807,6 @@ function setupEventListeners() {
     const crypType = document.getElementById('trade-type');
     if (crypEntry) crypEntry.addEventListener('input', () => updateAutoLevels(crypEntry, crypType, document.getElementById('stop-loss'), document.getElementById('target'), false));
 }
-
             function updateFundedSLTP() {
                 const entry = parseFloat(tsEntryInput.value);
                 if (isNaN(entry)) return;
