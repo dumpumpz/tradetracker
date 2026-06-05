@@ -968,6 +968,17 @@
 
 
 
+        
+@media (max-width: 768px) {
+    /* Shrink the entire table footprint */
+    #completed-trades-tbody td, 
+    #ts-completed-trades-tbody td,
+    table thead th {
+        font-size: 10px !important; /* Smaller text to fit more columns */
+   
+    }
+
+}
 
 
     </style>
@@ -2830,7 +2841,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
     if (uniqueTradingDates.length === 0) {
-        tbodyElement.innerHTML = '<tr><td colspan="25" style="text-align:center; padding:20px;">No trades.</td></tr>';
+        tbodyElement.innerHTML = '<tr><td colspan="25" style="text-align:center; padding:20px;">No history found.</td></tr>';
         return;
     }
 
@@ -2851,10 +2862,11 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
     
-    // THEAD with all columns visible
+    // Header Column Setup
+    const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
     thead.innerHTML = isTopstep 
-        ? `<tr><th>Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit</th><th>Net</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Act</th></tr>`
-        : `<tr><th>Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit</th><th>Net</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Act</th></tr>`;
+        ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
+        : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
 
     let dPnL = 0, dWins = 0, dLosses = 0;
     dayTrades.forEach(t => {
@@ -2864,16 +2876,16 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
     
-    // Original Header Style
+    // Day Summary Header (Original Style)
     rowsHtml += `
     <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
-        <td colspan="3" style="text-align: left; padding: 10px 15px;">
+        <td colspan="3" style="text-align: left; padding: 10px 20px;">
             <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--green-text)">${dWins} Wins</span> / <span style="color:var(--red-text)">${dLosses} Losses</span>
         </td>
         <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
             Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
         </td>
-        <td colspan="15" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:11px;">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
+        <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
     </tr>`;
 
     const clusters = [];
@@ -2895,8 +2907,8 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         if (isActualCluster) {
             rowsHtml += `
             <tr style="${clusterBoxStyle} border-top: 2px solid #6f42c1;">
-                <td colspan="25" style="padding: 4px 10px; font-size: 9px; font-weight: bold; color: #a29bfe; text-transform: uppercase;">
-                    <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
+                <td colspan="25" style="padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
+               <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
                 </td>
             </tr>`;
         }
@@ -2925,10 +2937,14 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
             rowsHtml += `
             <tr class="completed-group-header" style="${clusterBoxStyle}">
-                <td colspan="25" style="padding: 6px 12px; font-size: 11px;">
-                    <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span> | 
-                    <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${gNet.toFixed(2)}</span></span> |
-                    <span style="font-size:10px;">Avg: ${avgEntryG.toFixed(2)}➔${avgExitG.toFixed(2)} <span style="color:${diffColor}; font-weight:bold;">(${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
+                <td colspan="25" style="padding: 8px 15px; font-size: 0.95em;">
+                    <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
+                        <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)}</span></span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span>Avg: ${avgEntryG.toFixed(2)} ➔ ${avgExitG.toFixed(2)} <span style="color:${diffColor}; font-weight:bold;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
+                    </div>
                 </td>
             </tr>`;
 
@@ -2937,8 +2953,15 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
                 const net = parseFloat(t.net_result || 0);
                 
-                rowsHtml += `<tr style="${clusterBoxStyle}">
-                    <td><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
+                // ONLY Render Action Buttons if Master
+                const masterActionButtons = STATE.isMasterUser ? `
+                    <td class="master-only">
+                        <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#dc3545; color:white; border:none; border-radius:3px;">Del</button>
+                        <button class="merge-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#6f42c1; color:white; border:none; border-radius:3px;">M</button>
+                    </td>` : '';
+
+                rowsHtml += `<tr style="${clusterBoxStyle} font-size: 0.85em;">
+                    <td class="cell-narrow"><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
                     <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${t.type}</td>
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(t.entry).toFixed(2)}</td>
                     <td>${parseFloat(t.stoploss || 0).toFixed(2)}</td>
@@ -2954,9 +2977,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${t.note2 || ''}</td>
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${t.note3 || ''}</td>
                     ${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}
-                    <td class="master-only">
-                        <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px;">Del</button>
-                    </td>
+                    ${masterActionButtons}
                 </tr>`;
             });
         });
