@@ -959,6 +959,32 @@
             max-height: none !important;
             overflow: visible !important;
         }
+
+
+         .toggle-history-btn { 
+            font-size: 14px; /* Larger for mobile tap */
+            padding: 12px 20px; /* Bigger hit area */
+            margin: 20px auto; 
+            cursor: pointer; 
+            background-color: var(--link-color); /* Make it stand out more */
+            border: none;
+            color: white; 
+            border-radius: 6px; 
+            display: none; /* Controlled by JS */
+            width: 90%; /* Wide for mobile */
+            max-width: 300px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            -webkit-appearance: none; /* Prevents iOS styling overrides */
+        }
+        
+        /* Ensure the container has enough space at the bottom for the button to be seen */
+        .collapsible-content-inner {
+            padding-bottom: 40px !important;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -2800,13 +2826,28 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     if (!tbodyElement) return;
 
     const trades = data || {};
+    // Sort all trades by closed date descending for processing
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     
     let rowsHtml = '';
+    
+    // State references
     const showAll = isTopstep ? STATE.tsCompletedTradesShowAll : STATE.completedTradesShowAll;
     const currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
-    
-    // Day Grouping
+    const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
+    const showAllButton = document.getElementById(isTopstep ? 'ts-toggle-all-completed-trades' : 'toggle-all-completed-trades');
+    const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
+
+    const table = tbodyElement.closest('table');
+    let thead = table.querySelector('thead');
+    if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
+
+    // Set Table Headers based on tab type
+    thead.innerHTML = isTopstep 
+        ? `<tr><th>Acc / Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Contr.</th><th>Proj Pr</th><th>Proj Ls</th><th>RR</th><th>Exit Price</th><th>Raw PnL</th><th>Comms</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`
+        : `<tr><th>Sym</th><th>Type</th><th>Avg Entry</th><th>Entries</th><th>SL</th><th>TP</th><th>Value ($)</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th>RR(T)</th><th>RR(M)</th><th>Exit Price</th><th>Raw PnL</th><th>Fees</th><th>Net PnL</th><th>% (Net)</th><th>Entered</th><th>Closed</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
+
+    // 1. Group Trades by Day
     const tradesByDay = {};
     tradeIds.forEach(id => {
         const t = { ...trades[id], dbId: id };
@@ -2818,25 +2859,59 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
     const todayStr = getTradingDayString(Date.now(), Date.now());
 
+    // 2. Handle Pagination & Button Visibility (Fix for iPhone)
     let visibleDates = uniqueTradingDates;
     if (showAll) {
         visibleDates = uniqueTradingDates.slice(currentPage - 1, currentPage);
+        if (pageInfoSpan) pageInfoSpan.textContent = `Day ${currentPage} of ${uniqueTradingDates.length}`;
+        if (showAllButton) showAllButton.style.display = 'none';
+        if (paginationControls) paginationControls.style.display = 'flex';
     } else {
         visibleDates = uniqueTradingDates.filter(d => d === todayStr);
+        // Show button if there is ANY history older than today
+        const hasHistory = uniqueTradingDates.some(d => d !== todayStr);
+        if (showAllButton) {
+            showAllButton.style.display = hasHistory ? 'block' : 'none';
+            showAllButton.textContent = `Show History (${uniqueTradingDates.length} Days)`;
+        }
+        if (paginationControls) paginationControls.style.display = 'none';
     }
 
+    // 3. Render each day
     visibleDates.forEach(dateStr => {
         const dayTrades = tradesByDay[dateStr].sort((a, b) => b.closed_date - a.closed_date);
+        let dPnL = 0, dWins = 0, dLosses = 0;
         
-        // --- CLUSTERING LOGIC ---
+        dayTrades.forEach(t => {
+            const net = parseFloat(t.net_result || 0);
+            dPnL += net;
+            if (net >= 0) dWins++; else dLosses++;
+        });
+
+        const safeDateKey = isTopstep ? `ts-${dateStr.replace(/[\/\s,]/g, '-')}` : dateStr.replace(/[\/\s,]/g, '-');
+
+        // Render Original Daily Summary Row
+        rowsHtml += `
+        <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
+            <td colspan="11" style="text-align: left; padding: 10px 20px;">
+                <strong style="text-transform: capitalize;">${formatFriendlyDate(dateStr)}</strong> | <span style="color:var(--green-text)">${dWins} Wins</span> / <span style="color:var(--red-text)">${dLosses} Losses</span>
+            </td>
+            <td colspan="4" style="font-weight:bold; font-size: 1.1em;">
+                Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
+            </td>
+            <td colspan="10" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
+        </tr>`;
+
+        // 4. Cluster Trades within the day (10-minute gap logic)
         const clusters = [];
         if (dayTrades.length > 0) {
             let currentCluster = [dayTrades[0]];
             for (let i = 1; i < dayTrades.length; i++) {
                 const prevTrade = dayTrades[i - 1];
                 const currTrade = dayTrades[i];
-                // Gap less than 10 mins?
-                if (Math.abs(prevTrade.closed_date - currTrade.closed_date) <= 10 * 60 * 1000) {
+                const timeDiff = Math.abs(prevTrade.closed_date - currTrade.closed_date);
+                
+                if (timeDiff <= 10 * 60 * 1000) { // 10 minutes in ms
                     currentCluster.push(currTrade);
                 } else {
                     clusters.push(currentCluster);
@@ -2846,34 +2921,24 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             clusters.push(currentCluster);
         }
 
-        // Daily Header
-        let dPnL = 0;
-        dayTrades.forEach(t => dPnL += parseFloat(t.net_result || 0));
-        rowsHtml += `
-        <tr style="background-color: #1a1a1a; border-top: 4px solid #444;">
-            <td colspan="25" style="padding: 12px; font-weight: bold; color: #fff; font-size: 14px;">
-                📅 ${formatFriendlyDate(dateStr)} | Day Net: <span style="color:${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${dPnL.toFixed(2)}</span>
-            </td>
-        </tr>`;
-
-        // --- RENDER CLUSTERS ---
+        // 5. Render Clusters
         clusters.forEach(cluster => {
             const isActualCluster = cluster.length > 1;
             const clusterNet = cluster.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
             
-            // Cluster Styling: A purple "Box" effect
-            const clusterStyle = isActualCluster ? `border-left: 5px solid #6f42c1; border-right: 2px solid #6f42c1; background-color: rgba(111, 66, 193, 0.04);` : '';
+            // Visual "Purple Box" styling
+            const clusterBoxStyle = isActualCluster ? `border-left: 6px solid #6f42c1; background-color: rgba(111, 66, 193, 0.03);` : '';
 
             if (isActualCluster) {
                 rowsHtml += `
-                <tr style="${clusterStyle} border-top: 2px solid #6f42c1;">
-                    <td colspan="25" style="padding: 6px 15px; font-size: 11px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
-                         Sequence Net: <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
+                <tr style="${clusterBoxStyle} border-top: 2px solid #6f42c1;">
+                    <td colspan="25" style="padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase; letter-spacing: 1px;">
+                    Group Total: <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
                     </td>
                 </tr>`;
             }
 
-            // Sub-grouping by GroupId inside Cluster
+            // Organize by GroupId inside Cluster
             const groupsInCluster = {};
             cluster.forEach(t => {
                 const gid = t.groupId || 'Ungrouped';
@@ -2883,54 +2948,71 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
             Object.keys(groupsInCluster).forEach(gid => {
                 const gTrades = groupsInCluster[gid];
-                const gNet = gTrades.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
+                let gNet = 0, gQty = 0, gEntryW = 0, gExitW = 0;
+
+                gTrades.forEach(t => {
+                    const n = parseFloat(t.net_result || 0);
+                    const e = parseFloat(t.entry || 1);
+                    const ex = parseFloat(t.exit_price || 0);
+                    const s = isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
+                    const q = isTopstep ? s : (s / e);
+                    gNet += n; gQty += q; gEntryW += (e * q); gExitW += (ex * q);
+                });
+
+                const avgE = gQty > 0 ? (gEntryW / gQty) : 0;
+                const avgEx = gQty > 0 ? (gExitW / gQty) : 0;
                 const gType = gTrades[0].type || 'Long';
 
-                // Group Header
+                // Render Group Header
                 rowsHtml += `
-                <tr style="${clusterStyle} background-color: rgba(0, 123, 255, 0.08);">
-                    <td colspan="25" style="padding: 6px 15px; border-top: 1px solid rgba(255,255,255,0.05);">
-                        <div style="display:flex; align-items:center; gap:10px; font-size: 12px;">
-                            <span style="color:var(--link-color); font-weight:bold;">📂 ${gid}</span>
-                            <span style="font-weight:bold; color:${gType === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${gType}</span>
-                            <span style="color:#888;">|</span>
-                            <span style="font-weight:bold;">Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${gNet.toFixed(2)}</span></span>
+                <tr class="completed-group-header" style="${clusterBoxStyle}">
+                    <td colspan="25" style="padding: 8px 15px; font-size: 0.95em;">
+                        <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
+                            <span style="font-weight:bold; color:var(--link-color);">📂 ${gid} (${gType})</span>
+                            <span style="color:var(--border-color);">|</span>
+                            <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)}</span></span>
+                            <span style="color:var(--border-color);">|</span>
+                            <span style="opacity:0.7; font-size:11px;">Avg: ${avgE.toFixed(2)} ➔ ${avgEx.toFixed(2)}</span>
                         </div>
                     </td>
                 </tr>`;
 
-                // Individual Trade Rows
-                gTrades.forEach((t, idx) => {
+                // Render Individual Trade Rows
+                gTrades.forEach(t => {
                     const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
+                    const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
+                    const totalFees = isTopstep ? (parseFloat(t.commissions || 1) * contr) : (parseFloat(t.entry_fee || 0) + parseFloat(t.exit_fee || 0));
                     const net = parseFloat(t.net_result || 0);
-                    const isLastInCluster = (idx === gTrades.length - 1) && (gid === Object.keys(groupsInCluster).pop());
-                    const rowBottomBorder = isLastInCluster && isActualCluster ? 'border-bottom: 3px solid #6f42c1;' : 'border-bottom: 1px solid rgba(255,255,255,0.03);';
+                    const rawPnL = net + totalFees;
+                    const inT = t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                    const outT = t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
 
-                    rowsHtml += `<tr style="${clusterStyle} ${rowBottomBorder} font-size: 12px;">
-                        <td style="padding-left: 25px;"><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
+                    rowsHtml += `<tr style="${clusterBoxStyle} font-size: 0.85em;">
+                        <td><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
                         <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}">${t.type}</td>
-                        <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry">${parseFloat(t.entry).toFixed(2)}</td>
-                        <td style="font-size: 10px; opacity: 0.6;">${(t.entry_prices || [t.entry]).map(p => parseFloat(p).toFixed(1)).join(', ')}</td>
-                        <td>${parseFloat(t.stoploss || 0).toFixed(2)}</td>
-                        <td>${parseFloat(t.target || 0).toFixed(2)}</td>
-                        <td style="font-weight:bold;">${isTopstep ? t.contracts : t.size}</td>
-                        <td style="opacity:0.4;">$${parseFloat(m.expected_profit_taker).toFixed(0)}</td>
-                        <td style="opacity:0.4;">$${parseFloat(m.expected_loss_taker).toFixed(0)}</td>
-                        <td>${isTopstep ? m.rr_taker : m.rr_maker}</td>
-                        <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" style="font-weight:bold; color:var(--link-color)">${parseFloat(t.exit_price).toFixed(2)}</td>
-                        <td style="opacity:0.6;">${(net + (isTopstep ? (parseFloat(t.commissions || 1) * parseFloat(t.contracts || 1)) : 0)).toFixed(2)}</td>
-                        <td style="opacity:0.6;">${(isTopstep ? (parseFloat(t.commissions || 1) * parseFloat(t.contracts || 1)) : 0).toFixed(2)}</td>
-                        <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; background: rgba(255,255,255,0.02);">$${net.toFixed(2)}</td>
+                        <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(t.entry).toFixed(2)}</td>
+                        <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${(t.entry_prices || [t.entry]).map(p => parseFloat(p).toFixed(2)).join(', ')}</td>
+                        <td class="editable-completed-cell" data-id="${t.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
+                        <td class="editable-completed-cell" data-id="${t.dbId}" data-field="target" contenteditable="${STATE.isMasterUser}">${parseFloat(t.target || 0).toFixed(2)}</td>
+                        <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}">${isTopstep ? contr : contr.toFixed(2)}</td>
+                        <td style="opacity:0.5;">$${parseFloat(m.expected_profit_taker).toFixed(2)}</td>
+                        <td style="opacity:0.5;">$${parseFloat(m.expected_loss_taker).toFixed(2)}</td>
+                        <td>${isTopstep ? m.rr_taker : m.rr_maker}</td> 
+                        <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}">${parseFloat(t.exit_price).toFixed(2)}</td>
+                        <td style="color:var(--subtle-text)">${rawPnL.toFixed(2)}</td>
+                        <td>${totalFees.toFixed(2)}</td>
+                        <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${net.toFixed(2)}</td>
                         <td>${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
-                        <td style="color:#888;">${t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--'}</td>
-                        <td style="color:#888;">${t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--'}</td>
-                        <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note">${t.note || ''}</td>
-                        <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2">${t.note2 || ''}</td>
-                        <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3">${t.note3 || ''}</td>
+                        <td style="color:var(--link-color); font-weight:bold;">${inT}</td>
+                        <td style="opacity:0.8;">${outT}</td>
+                        <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}">${t.note || ''}</td>
+                        <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${t.note2 || ''}</td>
+                        <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${t.note3 || ''}</td>
                         ${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}
                         <td class="action-buttons master-only">
+                            <button class="attach-image-btn" data-id="${t.dbId}" data-type="completed">Pic</button>
                             <button class="delete-btn-completed" data-id="${t.dbId}">Del</button>
-                            <button class="merge-btn-completed" data-id="${t.dbId}">Merge</button>
+                            <button class="merge-btn-completed" data-id="${t.dbId}">Merg</button>
                         </td>
                     </tr>`;
                 });
@@ -2938,7 +3020,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         });
     });
 
-    tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px;">No trades found.</td></tr>';
+    tbodyElement.innerHTML = rowsHtml || '<tr><td colspan="25" style="text-align:center; padding:20px; color:var(--subtle-text);">No data found.</td></tr>';
 }
 
         function renderDateNavigation() {
