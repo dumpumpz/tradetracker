@@ -1703,7 +1703,8 @@
         const STATE = {
             isMasterUser: false, isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {},  favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null, isTopstep: false },
             allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,             apexDates: {}, 
-
+  renderTimer: null,
+    statsTimer: null,
             // Evaluated Account Global Variables
             allTsTrades: {}, allTsCompletedTrades: {}, 
             tsCompletedTradesShowAll: false, tsCompletedTradesCurrentPage: 1,
@@ -1962,17 +1963,20 @@ document.addEventListener('click', (e) => {
             return mapped;
         }
 
-        function renderFilteredEvalData() {
-            const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
-            renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
-            
-            const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
-            renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
-            
-            calculateTopstepStats(completedMapped);
-            renderFundedDashboard(); 
-        }
      
+function renderFilteredEvalData() {
+    // Only render if we aren't currently waiting on a debounce
+    // This prevents the page from flickering/freezing during high-speed data intake
+    const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
+    renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
+    
+    const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
+    renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
+    
+    // Calculate stats in the background
+    calculateTopstepStats(completedMapped);
+    renderFundedDashboard(); 
+}
         function renderFundedDashboard() {
             const container = document.getElementById('funded-dashboard-rows');
             if (!container) return;
@@ -4973,11 +4977,10 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
         }
 
 function subscribeToData() {
-    // 1. Live Crypto Trades (Tracker Tab)
+    // 1. Live Crypto Trades
     dbRefs.trades.on('value', s => { 
         const trades = s.val() || {}; 
         renderLiveTable(trades, 'trades-tbody', 'live-trades-summary-container'); 
-        // We still track open trades count here, but updateFundedPerformanceStats will also update the count
     });
 
     // 2. Apex Expiry Dates
@@ -4986,80 +4989,53 @@ function subscribeToData() {
         renderApexExpiry();
     });
 
-    // 3. Daily Notes (Calendar/Table headers)
+    // 3. Daily Notes
     dbRefs.dailyNotes.on('value', (s) => {
         STATE.dailyNotes = s.val() || {};
-        if (Object.keys(STATE.allCompletedTrades).length > 0) {
+        // Use a small delay to prevent flickering
+        clearTimeout(STATE.renderTimer);
+        STATE.renderTimer = setTimeout(() => {
             renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
-        }
-        if (Object.keys(STATE.allTsCompletedTrades).length > 0) {
             renderFilteredEvalData();
-        }
+        }, 100);
     });
 
-    // 4. Live Funded Trades (Funded Tab)
+    // 4. Live Funded Trades
     dbRefs.tsTrades.on('value', s => { 
         STATE.allTsTrades = s.val() || {}; 
         renderFilteredEvalData(); 
-        updateFundedPerformanceStats(); // Updates the Stats Panel
+        debouncedPerformanceUpdate(); 
     });
 
-    // 5. Completed Funded Trades (Funded Tab)
+    // 5. Completed Funded Trades
     dbRefs.tsCompletedTrades.on('value', s => {
         STATE.allTsCompletedTrades = s.val() || {};
-        renderFilteredEvalData();
         updateAutoSessionUI(); 
-        updateFundedPerformanceStats(); // Updates the Stats Panel
+        renderFilteredEvalData();
+        debouncedPerformanceUpdate(); 
     });
 
-    // 6. Funded Notes & Setups
-    dbRefs.tsSetups1.on('value', (s) => { 
-        const val = s.val() || "";
-        const el = document.getElementById('ts-primary-setups-notes');
-        if (el && document.activeElement !== el) {
-            el.value = val;
-            setTimeout(() => { autoResizeTextarea(el); resizeParentCollapsible(el); }, 100);
-        }
-    });
-
-    dbRefs.tsSetups2.on('value', (s) => { 
-        const val = s.val() || "";
-        const el = document.getElementById('ts-secondary-setups-notes');
-        if (el && document.activeElement !== el) {
-            el.value = val;
-            setTimeout(() => { autoResizeTextarea(el); resizeParentCollapsible(el); }, 100);
-        }
-    });
-
+    // 6. Setups/Images (Optimization: Only redraw if the tab is visible or data is new)
     dbRefs.tsSetupsImages.on('value', (s) => {
         STATE.allTsSetupsImages = s.val() || {};
         const container = document.getElementById('ts-setups-image-container');
-        if (container) {
-            renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
-        }
+        if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
     });
 
-    // 7. Completed Crypto Trades (Tracker Tab)
     dbRefs.completedTrades.on('value', s => {
         STATE.allCompletedTrades = s.val() || {};
-        // ONLY render the table. All stats logic removed from here.
         renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
     });
 
-    // 8. Journaling & Notes
+    // 7. Journaling & Notes (Standard listeners are fine here)
     dbRefs.journalText.on('value', (s) => { 
         STATE.journalText = s.val() || {}; 
-        if (DOM.journalTab.classList.contains('active')) {
-            if (document.activeElement === DOM.journalEntryEl) return;
-            updateJournalView(true); 
-        }
+        if (DOM.journalTab.classList.contains('active') && document.activeElement !== DOM.journalEntryEl) updateJournalView(true); 
     });
 
     dbRefs.journalImages.on('value', (s) => { 
         STATE.journalImages = s.val() || {}; 
-        if (DOM.journalTab.classList.contains('active')) {
-            updateJournalView(false); 
-        }
+        if (DOM.journalTab.classList.contains('active')) updateJournalView(false); 
     });
 
     dbRefs.setupsImages.on('value', (s) => {
@@ -5067,33 +5043,11 @@ function subscribeToData() {
         renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
     });
 
-    dbRefs.favourites.on('value', (s) => { 
-        STATE.favouriteEntries = s.val() || {}; 
-        if (DOM.journalTab.classList.contains('active')) updateJournalView(); 
-    });
-
-    dbRefs.setups1.on('value', (s) => { 
-        STATE.setupsData1 = s.val() || {}; 
-        renderSetupsTable(null, STATE.setupsData1, 'primary-setups-notes'); 
-    });
-
-    dbRefs.setups2.on('value', (s) => { 
-        STATE.setupsData2 = s.val() || {}; 
-        renderSetupsTable(null, STATE.setupsData2, 'secondary-setups-notes'); 
-    });
-
-    dbRefs.generalNotes.on('value', (s) => { 
-        STATE.generalNotes = s.val() || {}; 
-        if (DOM.noteEditModal.style.display === 'none') { 
-            renderNotes(STATE.generalNotes); 
-        } 
-    });
-
     dbRefs.strategyNotes.on('value', (s) => {
         const text = s.val() || "";
-        if (document.activeElement !== DOM.strategyNotesEntry) {
-            DOM.strategyNotesEntry.value = text;
-            autoResizeTextarea(DOM.strategyNotesEntry);
+        if (document.activeElement !== DOM.strategyNotesEntry) { 
+            DOM.strategyNotesEntry.value = text; 
+            autoResizeTextarea(DOM.strategyNotesEntry); 
         }
     });
 
@@ -5101,6 +5055,20 @@ function subscribeToData() {
         STATE.strategyImages = s.val() || {};
         renderGenericImageLibrary(STATE.strategyImages, DOM.strategyImageContainer, 'strategy_images');
     });
+
+    // Generic Notes
+    dbRefs.generalNotes.on('value', (s) => { 
+        STATE.generalNotes = s.val() || {}; 
+        if (DOM.noteEditModal.style.display === 'none') renderNotes(STATE.generalNotes); 
+    });
+}
+
+// Optimization Helper: Prevents the heavy math from freezing the UI
+function debouncedPerformanceUpdate() {
+    clearTimeout(STATE.statsTimer);
+    STATE.statsTimer = setTimeout(() => {
+        updateFundedPerformanceStats();
+    }, 250); // Wait for 250ms of silence before calculating
 }
         function openCollapsibleSection(sectionElement) {
             if (!sectionElement || sectionElement.classList.contains('is-open')) return;
