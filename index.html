@@ -991,7 +991,7 @@
            
 <div id="stats-panel">
     <div class="stats-header">
-        <h3>Funded Performance</h3>
+    <h3>Funded Performance (Since May 1st)</h3>
         <button id="close-stats-btn" title="Close Panel">×</button>
     </div>
     <div class="stats-grid">
@@ -1342,7 +1342,7 @@
             <!-- Independent Evaluation Trading Setups -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
-                    <h2>Funded Notes</h2>
+                    <h2></h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
@@ -1356,7 +1356,7 @@
             <!-- Independent Evaluation Setups Library -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
-                    <h2>Funded Setups</h2>
+                    <h2></h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
@@ -1386,7 +1386,7 @@
             <!-- Completed Trades -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
-                    <h2>Completed Trades</h2>
+                    <h2></h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
@@ -3195,21 +3195,30 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             });
         }
 
-        function updateFundedPerformanceStats() {
+    
+function updateFundedPerformanceStats() {
     const completedData = STATE.allTsCompletedTrades || {};
     const openData = STATE.allTsTrades || {};
 
+    // Define the cutoff: May 1st, 2025
+    const statsStartDate = new Date('2025-05-01T00:00:00').getTime();
+
     let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
 
-    // Calculate from Completed Trades
     Object.values(completedData).forEach(trade => {
-        const netResult = parseFloat(trade.net_result || 0);
-        if (netResult > 0) {
-            wins++;
-            grossProfit += netResult;
-        } else if (netResult < 0) {
-            losses++;
-            grossLoss += Math.abs(netResult);
+        // Get the timestamp of when the trade was closed
+        const tradeClosedDate = trade.closed_date ? new Date(trade.closed_date).getTime() : 0;
+
+        // ONLY count the trade if it was closed ON or AFTER May 1st
+        if (tradeClosedDate >= statsStartDate) {
+            const netResult = parseFloat(trade.net_result || 0);
+            if (netResult > 0) {
+                wins++;
+                grossProfit += netResult;
+            } else if (netResult < 0) {
+                losses++;
+                grossLoss += Math.abs(netResult);
+            }
         }
     });
 
@@ -3220,7 +3229,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const avgLoss = losses > 0 ? grossLoss / losses : 0;
     const rewardRisk = avgLoss > 0 ? avgWin / avgLoss : 0;
 
-    // Update UI
+    // Update UI elements
     DOM.statCompletedTrades.textContent = totalCompleted;
     DOM.statWins.textContent = wins;
     DOM.statLosses.textContent = losses;
@@ -3230,7 +3239,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     DOM.statAvgLoss.textContent = formatCurrency(avgLoss);
     DOM.statRewardRisk.textContent = rewardRisk > 0 ? `${rewardRisk.toFixed(2)} : 1` : 'N/A';
     
-    // Update Open Trades Count
+    // Open trades count remains global (since they are currently active)
     DOM.statOpenTrades.textContent = Object.keys(openData).length;
 }
 
