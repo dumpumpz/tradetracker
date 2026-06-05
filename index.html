@@ -3218,6 +3218,9 @@ function updateFundedPerformanceStats() {
     let fullTPCount = 0, fullSLCount = 0;
     let bestWin = 0, worstLoss = 0;
 
+    // Buffer: 2.5 points (covers slippage or closing "just before" the level)
+    const buffer = 2.5;
+
     Object.values(completedData).forEach(trade => {
         const tradeClosedDate = trade.closed_date ? trade.closed_date : 0;
 
@@ -3233,18 +3236,28 @@ function updateFundedPerformanceStats() {
                 grossProfit += netResult;
                 if (netResult > bestWin) bestWin = netResult;
 
-                // Check if held for full TP (allowing for 0.1% slippage/rounding)
-                if (isLong && exit >= (target - 0.25)) fullTPCount++;
-                else if (!isLong && exit <= (target + 0.25)) fullTPCount++;
+                // FULL TP LOGIC (Allows for exiting 2.5pts early OR anywhere beyond)
+                if (isLong) {
+                    // Long Win: Exit is 2.5pts below target or higher
+                    if (exit >= (target - buffer)) fullTPCount++;
+                } else {
+                    // Short Win: Exit is 2.5pts above target or lower
+                    if (exit <= (target + buffer)) fullTPCount++;
+                }
 
             } else if (netResult < 0) {
                 losses++;
                 grossLoss += Math.abs(netResult);
                 if (netResult < worstLoss) worstLoss = netResult;
 
-                // Check if held for full SL
-                if (isLong && exit <= (sl + 0.25)) fullSLCount++;
-                else if (!isLong && exit >= (sl - 0.25)) fullSLCount++;
+                // FULL SL LOGIC (Counts as Full SL if you let it get within 2.5pts of your stop)
+                if (isLong) {
+                    // Long Loss: Exit is within 2.5pts of the Stop Loss
+                    if (exit <= (sl + buffer)) fullSLCount++;
+                } else {
+                    // Short Loss: Exit is within 2.5pts of the Stop Loss
+                    if (exit >= (sl - buffer)) fullSLCount++;
+                }
             }
         }
     });
@@ -3254,29 +3267,33 @@ function updateFundedPerformanceStats() {
     const avgWin = wins > 0 ? grossProfit / wins : 0;
     const avgLoss = losses > 0 ? grossLoss / losses : 0;
     
-    // Expectancy: (Win% * AvgWin) - (Loss% * AvgLoss)
     const expectancy = total > 0 ? ((wins / total) * avgWin) - ((losses / total) * avgLoss) : 0;
     
     const fullTPRate = wins > 0 ? (fullTPCount / wins) * 100 : 0;
     const fullSLRate = losses > 0 ? (fullSLCount / losses) * 100 : 0;
 
-    // Update UI
-    document.getElementById('stat-completed-trades').textContent = total;
-    document.getElementById('stat-wins').textContent = wins;
-    document.getElementById('stat-losses').textContent = losses;
-    document.getElementById('stat-win-rate').textContent = winRate.toFixed(1) + '%';
-    document.getElementById('stat-expectancy').textContent = formatCurrency(expectancy);
-    document.getElementById('stat-profit-factor').textContent = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (wins > 0 ? '∞' : '0.00');
+    // Update UI elements
+    const updateEl = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    updateEl('stat-completed-trades', total);
+    updateEl('stat-wins', wins);
+    updateEl('stat-losses', losses);
+    updateEl('stat-win-rate', winRate.toFixed(1) + '%');
+    updateEl('stat-expectancy', formatCurrency(expectancy));
+    updateEl('stat-profit-factor', grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (wins > 0 ? '∞' : '0.00'));
     
-    document.getElementById('stat-full-tp').textContent = fullTPRate.toFixed(0) + '%';
-    document.getElementById('stat-full-sl').textContent = fullSLRate.toFixed(0) + '%';
+    // Display percentages
+    updateEl('stat-full-tp', fullTPRate.toFixed(0) + '%');
+    updateEl('stat-full-sl', fullSLRate.toFixed(0) + '%');
     
     const rr = avgLoss > 0 ? (avgWin / avgLoss).toFixed(2) : '0.00';
-    document.getElementById('stat-reward-risk').textContent = `${rr} : 1`;
-    document.getElementById('stat-best-win').textContent = formatCurrency(bestWin);
-    document.getElementById('stat-worst-loss').textContent = formatCurrency(worstLoss);
+    updateEl('stat-reward-risk', `${rr} : 1`);
+    updateEl('stat-best-win', formatCurrency(bestWin));
+    updateEl('stat-worst-loss', formatCurrency(worstLoss));
 }
-
         function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
             if (!STATE.isMasterUser || !files || files.length === 0) return;
             
