@@ -987,6 +987,51 @@
         .hide-title { opacity: 0; pointer-events: none; }
 
 
+
+
+
+
+
+
+
+
+
+
+        
+/* Styling for the new Toggle Button */
+#tabs-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--subtle-text);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 10px;
+    margin-right: 5px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+
+#tabs-toggle-btn:hover { color: var(--link-color); }
+
+/* Hide all tabs EXCEPT 'Funded Accounts' by default */
+.tabs:not(.is-expanded) .tab-link:not([data-tab="topstep"]) {
+    display: none;
+}
+
+/* Optional: Make the Funded Accounts tab look like a simple header when not expanded */
+.tabs:not(.is-expanded) .tab-link[data-tab="topstep"] {
+    border-bottom: none;
+    cursor: default;
+    pointer-events: none; /* Disable clicking it when it's the only one there */
+    color: var(--text-color);
+}
+
+/* When expanded, show everything and restore pointer events */
+.tabs.is-expanded .tab-link {
+    display: block;
+    pointer-events: auto !important;
+}
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -1033,15 +1078,16 @@
     </button>
 </div>
 
-        <!-- Navigation Tabs -->
-        <div class="tabs">
-            <button class="tab-link" data-tab="tracker">Trade Tracker</button>
-            <button class="tab-link active" data-tab="topstep">Funded Accounts</button>
-            <button class="tab-link" data-tab="journal">Journal & Setups</button>
-            <button class="tab-link" data-tab="strategy">Setups</button>
-            <button class="tab-link" data-tab="notes">Notes</button>
-        </div>
-
+   
+<!-- Navigation Tabs -->
+<div class="tabs">
+    <button id="tabs-toggle-btn" title="Show all sections">☰</button>
+    <button class="tab-link" data-tab="tracker">Trade Tracker</button>
+    <button class="tab-link active" data-tab="topstep">Funded Accounts</button>
+    <button class="tab-link" data-tab="journal">Journal & Setups</button>
+    <button class="tab-link" data-tab="strategy">Setups</button>
+    <button class="tab-link" data-tab="notes">Notes</button>
+</div>
         <!-- Tab 1: Tracker -->
         <div id="tracker-tab" class="tab-content">
             
@@ -1699,6 +1745,29 @@
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
 
+// Tab Expansion Logic
+const toggleBtn = document.getElementById('tabs-toggle-btn');
+const tabsContainer = document.querySelector('.tabs');
+
+toggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isExpanded = tabsContainer.classList.toggle('is-expanded');
+    toggleBtn.textContent = isExpanded ? '✕' : '☰';
+});
+
+// Close the tab menu if a user clicks a new tab
+tabsContainer.addEventListener('click', (e) => {
+    if (e.target.classList.contains('tab-link')) {
+        tabsContainer.classList.remove('is-expanded');
+        toggleBtn.textContent = '☰';
+    }
+});
+
+// Close the tab menu if user clicks anywhere else on the page
+document.addEventListener('click', () => {
+    tabsContainer.classList.remove('is-expanded');
+    toggleBtn.textContent = '☰';
+});
         function calculateBreakevenPrice(trade) {
             const entry = parseFloat(trade.entry);
             if (isNaN(entry) || entry <= 0) return 0;
