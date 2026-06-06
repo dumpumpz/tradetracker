@@ -3108,23 +3108,20 @@ function renderFundedDashboard() {
             container.innerHTML = messages.length > 0 ? messages.join('') : '';
         }
 
-        
+   
 function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
 
     const trades = data || {};
-    // Stable sort by date descending
-    const tradeIds = Object.keys(trades).sort((a, b) => (trades[b].closed_date || 0) - (trades[a].closed_date || 0));
-
+    const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     let rowsHtml = '';
-    const prefix = isTopstep ? 'ts-' : '';
-    const paginationControls = document.getElementById(`${prefix}completed-trades-pagination-controls`);
-    const pageInfoSpan = document.getElementById(`${prefix}completed-trades-page-info`);
-    const prevBtn = document.getElementById(`${prefix}completed-trades-prev-page`);
-    const nextBtn = document.getElementById(`${prefix}completed-trades-next-page`);
+    
+    const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
+    const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
+    const prevBtn = document.getElementById(isTopstep ? 'ts-completed-trades-prev-page' : 'completed-trades-prev-page');
+    const nextBtn = document.getElementById(isTopstep ? 'ts-completed-trades-next-page' : 'completed-trades-next-page');
 
-    // Grouping by Trading Day
     const tradesByDay = {};
     tradeIds.forEach(id => {
         const t = { ...trades[id], dbId: id };
@@ -3135,7 +3132,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
     if (uniqueTradingDates.length === 0) {
-        tbodyElement.innerHTML = '<tr><td colspan="25" style="text-align:center; padding:50px; color:var(--subtle-text);">No history found.</td></tr>';
+        tbodyElement.innerHTML = '<tr><td colspan="25" style="text-align:center; padding:20px;">No history found.</td></tr>';
         return;
     }
 
@@ -3144,9 +3141,9 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     if (paginationControls) {
         paginationControls.style.display = 'flex';
-        pageInfoSpan.textContent = `Day ${currentPage}/${uniqueTradingDates.length}`;
-        prevBtn.disabled = (currentPage === 1);
-        nextBtn.disabled = (currentPage === uniqueTradingDates.length);
+        if (pageInfoSpan) pageInfoSpan.textContent = `Day ${currentPage}/${uniqueTradingDates.length}`;
+        if (prevBtn) prevBtn.disabled = (currentPage === 1);
+        if (nextBtn) nextBtn.disabled = (currentPage === uniqueTradingDates.length);
     }
 
     const targetDateStr = uniqueTradingDates[currentPage - 1];
@@ -3156,10 +3153,11 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
     
+    // Header Column Setup - EXACT ORIGINAL COSMETICS
     const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
     thead.innerHTML = isTopstep 
-        ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th colspan="3">Notes</th><th>Pics</th>${actionHeader}</tr>`
-        : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th colspan="3">Notes</th><th>Pics</th>${actionHeader}</tr>`;
+        ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
+        : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
 
     let dPnL = 0, dWins = 0, dLosses = 0;
     dayTrades.forEach(t => {
@@ -3169,19 +3167,16 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
     
-    // Day Header
+    // Day Summary Header - EXACT ORIGINAL COSMETICS
     rowsHtml += `
-    <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color); height: 50px;">
-        <td colspan="3" style="text-align: left; padding-left: 20px;">
-            <strong style="text-transform: capitalize; font-size:1.1em;">${formatFriendlyDate(targetDateStr)}</strong>
+    <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
+        <td colspan="3" style="text-align: left; padding: 10px 20px;">
+            <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--green-text)">${dWins} Wins</span> / <span style="color:var(--red-text)">${dLosses} Losses</span>
         </td>
-        <td colspan="3" style="font-weight:bold;">
-            <span style="color:var(--green-text)">${dWins}W</span> / <span style="color:var(--red-text)">${dLosses}L</span>
+        <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
+            Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
         </td>
-        <td colspan="3" style="font-weight:bold; text-align:right; padding-right:15px;">
-            Day Total: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
-        </td>
-        <td colspan="15" class="editable-daily-note" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text); min-width:200px; padding-left:20px;">${STATE.dailyNotes[safeDateKey] || '...'}</td>
+        <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
     </tr>`;
 
     const clusters = [];
@@ -3198,14 +3193,13 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     clusters.forEach(cluster => {
         const isActualCluster = cluster.length > 1;
         const clusterNet = cluster.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
-        
-        // RESTORED: Heavy Purple Border and Shading
-        const clusterSideStyle = isActualCluster ? `border-left: 6px solid #6f42c1 !important; background-color: rgba(111, 66, 193, 0.04);` : '';
+        const clusterBoxStyle = isActualCluster ? `border-left: 6px solid #6f42c1; background-color: rgba(111, 66, 193, 0.03);` : '';
 
         if (isActualCluster) {
-            rowsHtml += `<tr style="${clusterSideStyle} border-top: 2px solid #6f42c1; height:28px;">
-                <td colspan="25" style="padding: 2px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
-                   <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
+            rowsHtml += `
+            <tr style="${clusterBoxStyle} border-top: 2px solid #6f42c1;">
+                <td colspan="25" style="padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
+               <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
                 </td>
             </tr>`;
         }
@@ -3232,14 +3226,15 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             const diff = avgExitG - avgEntryG;
             let diffColor = (gType === 'Long' ? (diff >= 0 ? 'var(--green-text)' : 'var(--red-text)') : (diff <= 0 ? 'var(--green-text)' : 'var(--red-text)'));
 
-            rowsHtml += `<tr class="completed-group-header" style="${clusterSideStyle} height:42px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                <td colspan="25" style="padding: 5px 15px;">
-                    <div style="display:flex; gap: 15px; align-items:center;">
-                        <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId}</span>
+            rowsHtml += `
+            <tr class="completed-group-header" style="${clusterBoxStyle}">
+                <td colspan="25" style="padding: 8px 15px; font-size: 0.95em;">
+                    <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
+                        <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
                         <span style="color:var(--border-color);">|</span>
-                        <span style="font-weight:bold; color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${gNet.toFixed(2)}</span>
+                        <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)}</span></span>
                         <span style="color:var(--border-color);">|</span>
-                        <span style="font-size:11px; opacity:0.8;">Avg: ${avgEntryG.toFixed(2)} ➔ ${avgExitG.toFixed(2)} (<span style="color:${diffColor}">${diff.toFixed(2)}</span>)</span>
+                        <span>Avg: ${avgEntryG.toFixed(2)} ➔ ${avgExitG.toFixed(2)} <span style="color:${diffColor}; font-weight:bold;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
                     </div>
                 </td>
             </tr>`;
@@ -3249,63 +3244,47 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
                 const net = parseFloat(t.net_result || 0);
                 
-                // IMAGE LOCKING: Width and Height attributes prevent scrollbar jumping
-                let picsHtml = '<td style="width:45px; vertical-align:middle;"><div style="display:flex; gap:3px; min-width:40px; min-height:40px;">';
-                if (t.attachedImages) {
-                    Object.keys(t.attachedImages).forEach(imgId => {
-                        const img = t.attachedImages[imgId];
-                        picsHtml += `
-                            <div class="thumbnail-wrapper" style="width:40px; height:40px; background:#1a1a1a; border-radius:4px; overflow:hidden; flex-shrink:0;">
-                                <img src="${img.url}" width="40" height="40" loading="lazy" style="width:40px; height:40px; object-fit:cover; display:block;" 
-                                     data-full-src="${img.url}" data-caption="Attachment">
-                            </div>`;
-                    });
-                } else {
-                    picsHtml += `<div style="width:40px; height:40px;"></div>`; 
-                }
-                picsHtml += '</div></td>';
+                // RESTORED ORIGINAL note columns and font-size (0.85em)
+                const masterActionButtons = STATE.isMasterUser ? `
+                    <td class="master-only">
+                        <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#dc3545; color:white; border:none; border-radius:3px;">Del</button>
+                        <button class="merge-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#6f42c1; color:white; border:none; border-radius:3px;">M</button>
+                    </td>` : '';
 
-                const masterBtns = STATE.isMasterUser ? `
-                    <td class="master-only"><div style="display:flex; gap:2px;">
-                        <button class="attach-image-btn" data-id="${t.dbId}" data-type="completed" style="padding:2px 5px; font-size:9px;">Pic</button>
-                        <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:var(--red-bg);">Del</button>
-                    </div></td>` : '';
-
-                rowsHtml += `<tr style="${clusterSideStyle} font-size: 0.9em; height:48px; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                rowsHtml += `<tr style="${clusterBoxStyle} font-size: 0.85em;">
                     <td class="cell-narrow"><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
                     <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${t.type}</td>
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(t.entry).toFixed(2)}</td>
-                    <td style="opacity:0.6;">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
-                    <td style="opacity:0.6;">${parseFloat(t.target || 0).toFixed(2)}</td>
+                    <td>${parseFloat(t.stoploss || 0).toFixed(2)}</td>
+                    <td>${parseFloat(t.target || 0).toFixed(2)}</td>
                     <td>${isTopstep ? contr : contr.toFixed(0)}</td>
-                    <td style="opacity:0.5;">${isTopstep ? (m.rr_taker || '0.0') : (m.rr_maker || '0.0')}</td> 
+                    <td>${isTopstep ? (m.rr_taker || '0.00') : (m.rr_maker || '0.00')}</td> 
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}">${parseFloat(t.exit_price).toFixed(2)}</td>
-                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; background:rgba(255,255,255,0.01);">$${net.toFixed(2)}</td>
-                    <td style="opacity:0.7;">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
-                    <td style="color:var(--subtle-text); font-size:10px;">${t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '--'}</td>
-                    <td style="color:var(--subtle-text); font-size:10px; font-weight:bold;">${t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '--'}</td>
+                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${net.toFixed(2)}</td>
+                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
+                    <td style="color:var(--link-color); font-weight:bold;">${t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '--'}</td>
+                    <td>${t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '--'}</td>
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}">${t.note || ''}</td>
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${t.note2 || ''}</td>
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${t.note3 || ''}</td>
-                    ${picsHtml}
-                    ${masterBtns}
+                    ${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}
+                    ${masterActionButtons}
                 </tr>`;
             });
         });
     });
 
-    // Use requestAnimationFrame for a smooth, single-pass DOM injection
+    // TECHNICAL FIX: Using requestAnimationFrame to prevent scroll stutter
     window.requestAnimationFrame(() => {
         tbodyElement.innerHTML = rowsHtml;
-        
-        // Overrides the sliding animations that cause the scrolling glitch
+
         const section = tbodyElement.closest('.collapsible-section');
         if (section && section.classList.contains('is-open')) {
             const content = section.querySelector('.collapsible-content');
-            content.style.transition = 'none'; 
-            content.style.maxHeight = 'none';
-            content.style.display = 'block';
-            content.style.overflow = 'visible';
+            if (content) {
+                content.style.maxHeight = 'none'; 
+                content.style.overflow = 'visible';
+            }
         }
     });
 }
