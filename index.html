@@ -3116,8 +3116,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     let rowsHtml = '';
     
-    // Dynamically calculate the total number of columns to prevent "ghost" columns
-    // 1(Sym) + 1(Type) + 1(Entry) + 1(SL) + 1(TP) + 1(Qty) + 1(RR) + 1(Exit) + 1(PnL) + 1(%) + 1(In) + 1(Out) + 3(Notes) + 1(Pics) = 16
+    // Exact column count: 16 columns for users, 17 for master
     const totalCols = STATE.isMasterUser ? 17 : 16;
 
     const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
@@ -3254,6 +3253,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 const isLastRowOfCluster = isLastGroupInCluster && (tIndex === gTrades.length - 1);
                 const clusterB = isLastRowOfCluster ? 'border-bottom: 3px solid #6f42c1 !important;' : '';
                 
+                // Constructing row using template literal for stability
                 rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
                     <td class="cell-narrow" style="${clusterL} ${clusterB}"><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
                     <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">${t.type}</td>
