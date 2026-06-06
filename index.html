@@ -1054,12 +1054,7 @@
             <button id="close-stats-btn" title="Close Panel">×</button>
         </div>
         <div class="stats-grid">
-            <!-- Financials (Hidden) -->
-            <div class="stat-item" style="display:none;">
-                <span id="stat-balance"></span><span id="stat-balance-aud"></span>
-                <span id="stat-total-pl"></span><span id="stat-total-pl-aud"></span>
-            </div>
-            
+            <!-- Basic Stats -->
             <div class="stat-item"><span class="stat-label">Completed Trades</span><span id="stat-completed-trades" class="stat-value">0</span></div>
             <div class="stat-item">
                 <span class="stat-label">Wins / Losses</span>
@@ -1067,19 +1062,18 @@
             </div>
             <div class="stat-item"><span class="stat-label">Win Rate</span><span id="stat-win-rate" class="stat-value">0.0%</span></div>
             <div class="stat-item"><span class="stat-label">Expectancy</span><span id="stat-expectancy" class="stat-value">$0.00</span></div>
-            <div class="stat-item"><span class="stat-label">Profit Factor</span><span id="stat-profit-factor" class="stat-value">N/A</span></div>
             
             <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
             
-            <!-- Breakeven Analysis -->
-            <div class="stat-item" title="Trades closed within +/- $10"><span class="stat-label">Breakevens (±$10)</span><span id="stat-be-count" class="stat-value">0</span></div>
+            <!-- Breakeven Analysis (The -$10 to +$10 zone) -->
+            <div class="stat-item" title="Trades between -$10 and +$10"><span class="stat-label">Breakevens (-$10 to +$10)</span><span id="stat-be-count" class="stat-value">0</span></div>
             <div class="stat-item"><span class="stat-label">BE % of Total</span><span id="stat-be-percent" class="stat-value">0%</span></div>
 
             <hr style="grid-column: 1 / -1; border: 0; border-top: 1px dashed var(--border-color); margin: 5px 0;">
 
-            <!-- True Signal Stats -->
-            <div class="stat-item" title="Win rate if breakevens are excluded"><span class="stat-label">Win Rate (No BE)</span><span id="stat-win-rate-excl" class="stat-value" style="color: var(--link-color);">0.0%</span></div>
-            <div class="stat-item" title="Expectancy if breakevens are excluded"><span class="stat-label">Expectancy (No BE)</span><span id="stat-expectancy-excl" class="stat-value">$0.00</span></div>
+            <!-- Performance excluding Breakevens -->
+            <div class="stat-item" title="Stats if -10 to +10 trades never happened"><span class="stat-label">Win Rate (No BE)</span><span id="stat-win-rate-excl" class="stat-value" style="color: var(--link-color);">0.0%</span></div>
+            <div class="stat-item"><span class="stat-label">Expectancy (No BE)</span><span id="stat-expectancy-excl" class="stat-value">$0.00</span></div>
 
             <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
             
@@ -3434,15 +3428,17 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 function updateFundedPerformanceStats() {
     const completedData = STATE.allTsCompletedTrades || {};
     const statsStartDate = new Date('2026-05-25T00:00:00').getTime();
-    const BE_THRESHOLD = 10; // Define Breakeven range
-
-    // Standard Counters
-    let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
     
-    // Breakeven Counters
+    // --- BREAKEVEN SETTINGS ---
+    const BE_UPPER_LIMIT = 10; 
+    const BE_LOWER_LIMIT = -10; // Any loss smaller than -$10 is a BE
+
+    let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
     let beCount = 0;
+    
+    // Counters for "True" trades (Excluding the BE zone)
     let winsExclBE = 0, lossesExclBE = 0;
-    let grossProfitExclBE = 0, grossLossExclBE = 0;
+    let profitExclBE = 0, lossExclBE = 0;
 
     let fullTPCount = 0, fullSLCount = 0;
     let bestWin = 0, worstLoss = 0;
@@ -3458,61 +3454,60 @@ function updateFundedPerformanceStats() {
             const sl = parseFloat(trade.stoploss || 0);
             const isLong = trade.type === 'Long';
 
-            // 1. Identify Breakevens
-            const isBreakeven = Math.abs(netResult) <= BE_THRESHOLD;
+            // 1. Identify if it falls in the Breakeven Zone (-$10 to +$10)
+            const isBreakeven = (netResult >= BE_LOWER_LIMIT && netResult <= BE_UPPER_LIMIT);
 
             if (isBreakeven) {
                 beCount++;
             }
 
-            // 2. Standard Logic
+            // 2. Standard Accounting
             if (netResult > 0) {
                 wins++;
                 grossProfit += netResult;
                 if (netResult > bestWin) bestWin = netResult;
                 
+                // If it's a "True Win" (Greater than $10)
                 if (!isBreakeven) {
                     winsExclBE++;
-                    grossProfitExclBE += netResult;
-                }
-
-                if (target > 0) {
-                    if (isLong && exit >= (target - buffer)) fullTPCount++;
-                    else if (!isLong && exit <= (target + buffer)) fullTPCount++;
+                    profitExclBE += netResult;
                 }
             } else if (netResult < 0) {
                 losses++;
                 grossLoss += Math.abs(netResult);
                 if (netResult < worstLoss) worstLoss = netResult;
 
+                // If it's a "True Loss" (Worse than -$10)
                 if (!isBreakeven) {
                     lossesExclBE++;
-                    grossLossExclBE += Math.abs(netResult);
+                    lossExclBE += Math.abs(netResult);
                 }
+            }
 
-                if (sl > 0) {
-                    if (isLong && exit <= (sl + buffer)) fullSLCount++;
-                    else if (!isLong && exit >= (sl - buffer)) fullSLCount++;
-                }
+            // 3. Full TP/SL Logic
+            if (netResult > 0 && target > 0) {
+                if (isLong && exit >= (target - buffer)) fullTPCount++;
+                else if (!isLong && exit <= (target + buffer)) fullTPCount++;
+            } else if (netResult < 0 && sl > 0) {
+                if (isLong && exit <= (sl + buffer)) fullSLCount++;
+                else if (!isLong && exit >= (sl - buffer)) fullSLCount++;
             }
         }
     });
 
+    // --- CALCULATIONS ---
     const total = wins + losses;
     const totalExclBE = winsExclBE + lossesExclBE;
 
-    // Standard Calcs
     const winRate = total > 0 ? (wins / total) * 100 : 0;
-    const avgWin = wins > 0 ? grossProfit / wins : 0;
-    const avgLoss = losses > 0 ? grossLoss / losses : 0;
     const expectancy = total > 0 ? (grossProfit - grossLoss) / total : 0;
 
-    // Adjusted Calcs (Excluding BE)
+    // "True" Performance (Ignoring the -$10 to +$10 noise)
     const winRateExcl = totalExclBE > 0 ? (winsExclBE / totalExclBE) * 100 : 0;
-    const expectancyExcl = totalExclBE > 0 ? (grossProfitExclBE - grossLossExclBE) / totalExclBE : 0;
+    const expectancyExcl = totalExclBE > 0 ? (profitExclBE - lossExclBE) / totalExclBE : 0;
     const bePercent = total > 0 ? (beCount / total) * 100 : 0;
 
-    // UI Updates Helper
+    // --- UI UPDATES ---
     const setT = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
 
     setT('stat-completed-trades', total);
@@ -3522,7 +3517,7 @@ function updateFundedPerformanceStats() {
     setT('stat-expectancy', formatCurrency(expectancy));
     setT('stat-profit-factor', grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (wins > 0 ? '∞' : '0.00'));
     
-    // New Stats UI update
+    // New Breakeven UI updates
     setT('stat-be-count', beCount);
     setT('stat-be-percent', bePercent.toFixed(1) + '%');
     setT('stat-win-rate-excl', winRateExcl.toFixed(1) + '%');
@@ -3531,7 +3526,10 @@ function updateFundedPerformanceStats() {
     setT('stat-full-tp', Math.round(wins > 0 ? (fullTPCount / wins) * 100 : 0) + '%');
     setT('stat-full-sl', Math.round(losses > 0 ? (fullSLCount / losses) * 100 : 0) + '%');
     
+    const avgWin = wins > 0 ? grossProfit / wins : 0;
+    const avgLoss = losses > 0 ? grossLoss / losses : 0;
     const rrRatio = avgLoss > 0 ? (avgWin / avgLoss).toFixed(2) : '0.00';
+    
     setT('stat-reward-risk', `${formatCurrency(avgWin)} / ${formatCurrency(avgLoss)} (${rrRatio}:1)`);
     setT('stat-best-win', formatCurrency(bestWin));
     setT('stat-worst-loss', formatCurrency(worstLoss));
