@@ -3191,14 +3191,16 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         const isActualCluster = cluster.length > 1;
         const clusterNet = cluster.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
         
-        // ADDED: Right Border for the cluster block
-        const clusterBoxStyle = isActualCluster ? `border-left: 6px solid #6f42c1; border-right: 2px solid #6f42c1; background-color: rgba(111, 66, 193, 0.03);` : '';
+        // Define Cluster Styles
+        const clusterL = isActualCluster ? 'border-left: 6px solid #6f42c1 !important;' : '';
+        const clusterR = isActualCluster ? 'border-right: 2px solid #6f42c1 !important;' : '';
+        const clusterBG = isActualCluster ? 'background-color: rgba(111, 66, 193, 0.03) !important;' : '';
 
         if (isActualCluster) {
             rowsHtml += `
-            <tr style="${clusterBoxStyle} border-top: 2px solid #6f42c1;">
-                <td colspan="25" style="padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
-               <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
+            <tr style="border-top: 2px solid #6f42c1;">
+                <td colspan="25" style="${clusterL} ${clusterR} ${clusterBG} padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
+                   <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
                 </td>
             </tr>`;
         }
@@ -3229,8 +3231,8 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             let diffColor = (gType === 'Long' ? (diff >= 0 ? 'var(--green-text)' : 'var(--red-text)') : (diff <= 0 ? 'var(--green-text)' : 'var(--red-text)'));
 
             rowsHtml += `
-            <tr class="completed-group-header" style="${clusterBoxStyle}">
-                <td colspan="25" style="padding: 8px 15px; font-size: 0.95em;">
+            <tr class="completed-group-header">
+                <td colspan="25" style="${clusterL} ${clusterR} ${clusterBG} padding: 8px 15px; font-size: 0.95em;">
                     <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
                         <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
                         <span style="color:var(--border-color);">|</span>
@@ -3246,35 +3248,45 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
                 const net = parseFloat(t.net_result || 0);
                 
-                // ADDED: Bottom Border logic for the very last row of a cluster
                 const isLastRowOfCluster = isLastGroupInCluster && (tIndex === gTrades.length - 1);
-                const rowBottomBorder = isLastRowOfCluster ? 'border-bottom: 3px solid #6f42c1 !important;' : '';
+                const clusterB = isLastRowOfCluster ? 'border-bottom: 3px solid #6f42c1 !important;' : '';
+                
+                // Construct cells with cluster borders manually to ensure they show up on all rows
+                const rowStyle = `style="${clusterBG} font-size: 0.85em;"`;
+                const firstCellST = `style="${clusterL} ${clusterB}"`;
+                const midCellST = `style="${clusterB}"`;
+                const lastVisibleCellST = `style="${clusterR} ${clusterB}"`;
 
-                const masterActionButtons = STATE.isMasterUser ? `
-                    <td class="master-only" style="${rowBottomBorder}">
+                let rowHtml = `<tr ${rowStyle}>`;
+                rowHtml += `<td class="cell-narrow" ${firstCellST}><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>`;
+                rowHtml += `<td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">${t.type}</td>`;
+                rowHtml += `<td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}" ${midCellST}>${parseFloat(t.entry).toFixed(2)}</td>`;
+                rowHtml += `<td ${midCellST}>${parseFloat(t.stoploss || 0).toFixed(2)}</td>`;
+                rowHtml += `<td ${midCellST}>${parseFloat(t.target || 0).toFixed(2)}</td>`;
+                rowHtml += `<td ${midCellST}>${isTopstep ? contr : contr.toFixed(0)}</td>`;
+                rowHtml += `<td ${midCellST}>${isTopstep ? (m.rr_taker || '0.00') : (m.rr_maker || '0.00')}</td>`;
+                rowHtml += `<td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}" ${midCellST}>${parseFloat(t.exit_price).toFixed(2)}</td>`;
+                rowHtml += `<td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">$${net.toFixed(2)}</td>`;
+                rowHtml += `<td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; ${clusterB}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>`;
+                rowHtml += `<td style="color:var(--link-color); font-weight:bold; ${clusterB}">${t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '--'}</td>`;
+                rowHtml += `<td ${midCellST}>${t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '--'}</td>`;
+                rowHtml += `<td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}" ${midCellST}>${t.note || ''}</td>`;
+                rowHtml += `<td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}" ${midCellST}>${t.note2 || ''}</td>`;
+                rowHtml += `<td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}" ${midCellST}>${t.note3 || ''}</td>`;
+                
+                // Attached Images Cell
+                const picsLast = !STATE.isMasterUser;
+                rowHtml += `<td class="trade-image-thumbnails" ${picsLast ? lastVisibleCellST : midCellST}>${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}</td>`;
+                
+                // Master Action Buttons Cell
+                if (STATE.isMasterUser) {
+                    rowHtml += `<td class="master-only" ${lastVisibleCellST}>
                         <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#dc3545; color:white; border:none; border-radius:3px;">Del</button>
                         <button class="merge-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#6f42c1; color:white; border:none; border-radius:3px;">M</button>
-                    </td>` : '';
-
-                rowsHtml += `<tr style="${clusterBoxStyle} ${rowBottomBorder} font-size: 0.85em;">
-                    <td class="cell-narrow"><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
-                    <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${t.type}</td>
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(t.entry).toFixed(2)}</td>
-                    <td>${parseFloat(t.stoploss || 0).toFixed(2)}</td>
-                    <td>${parseFloat(t.target || 0).toFixed(2)}</td>
-                    <td>${isTopstep ? contr : contr.toFixed(0)}</td>
-                    <td>${isTopstep ? (m.rr_taker || '0.00') : (m.rr_maker || '0.00')}</td> 
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}">${parseFloat(t.exit_price).toFixed(2)}</td>
-                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${net.toFixed(2)}</td>
-                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
-                    <td style="color:var(--link-color); font-weight:bold;">${t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '--'}</td>
-                    <td>${t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '--'}</td>
-                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}">${t.note || ''}</td>
-                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}">${t.note2 || ''}</td>
-                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}">${t.note3 || ''}</td>
-                    ${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}
-                    ${masterActionButtons}
-                </tr>`;
+                    </td>`;
+                }
+                rowHtml += `</tr>`;
+                rowsHtml += rowHtml;
             });
         });
     });
