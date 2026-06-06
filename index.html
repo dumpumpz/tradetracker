@@ -1776,11 +1776,11 @@
                 debouncedPerformanceUpdate(); 
             });
 
-            dbRefs.tsSetupsImages.on('value', (s) => {
-                STATE.allTsSetupsImages = s.val() || {};
-                const container = document.getElementById('ts-setups-image-container');
-                if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
-            });
+            dbRefs.tsSetupsImages.limitToLast(20).on('value', (s) => {
+    STATE.allTsSetupsImages = s.val() || {};
+    const container = document.getElementById('ts-setups-image-container');
+    if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
+});
 
             // Load Funded Setup Notes
             dbRefs.tsSetups1.on('value', s => { 
@@ -1807,10 +1807,10 @@
                     STATE.allCompletedTrades = s.val() || {};
                     renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
                 });
-                dbRefs.setupsImages.on('value', (s) => {
-                    STATE.allSetupsImages = s.val() || {};
-                    renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-                });
+               dbRefs.setupsImages.limitToLast(20).on('value', (s) => {
+    STATE.allSetupsImages = s.val() || {};
+    renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+});
             }
 
             if (tabId === 'journal') {
