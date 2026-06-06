@@ -1106,7 +1106,7 @@
      
 
 <!-- Stats Panel -->
-<div id="stats-panel-container">
+<div id="stats-panel-container" class="master-only">
     <div id="stats-panel">
         <div class="stats-header">
             <h3>Funded Performance (Since May 25th)</h3>
@@ -1938,7 +1938,8 @@
                 }, 50);
             }
 
-            DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'topstep') ? 'block' : 'none';
+           // Only show the stats panel if it's a master user AND they are on the correct tabs
+DOM.statsPanelContainer.style.display = (STATE.isMasterUser && (tabId === 'tracker' || tabId === 'topstep')) ? 'block' : 'none';
         });
 
         // Tab Menu Toggle Logic
@@ -5412,7 +5413,8 @@ function debouncedPerformanceUpdate() {
             renderDateNavigation(); 
             checkMarketAlerts(); 
 
-            DOM.statsPanelContainer.style.display = 'block';
+           // On initial load, only show if master
+DOM.statsPanelContainer.style.display = STATE.isMasterUser ? 'block' : 'none';
 
             updateAutoSessionUI();
             setInterval(updateAutoSessionUI, 60000);
