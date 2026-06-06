@@ -1098,87 +1098,6 @@
     flex-shrink: 0;
     background: #1a1a1a; /* Placeholder color while loading */
     border-radius: 4px;
-
-
-
-
-
-
-
-
-
-
-    
-/* Optimized Stats Panel */
-#stats-panel {
-    position: absolute;
-    bottom: 80px;
-    left: 0;
-    width: 320px; /* Slightly wider for 2 columns */
-    max-height: 75vh; /* Prevents going off the top of the screen */
-    overflow-y: auto; /* Adds scroll if content is too long */
-    background: var(--container-bg);
-    border-radius: 12px;
-    box-shadow: 0 6px 20px var(--shadow-color);
-    padding: 12px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.3s ease;
-    pointer-events: none;
-    border: 1px solid var(--border-color);
-}
-
-#stats-panel.active {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-}
-
-/* 2-Column Grid Layout */
-.stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* Two equal columns */
-    gap: 8px;
-}
-
-.stat-item {
-    display: flex;
-    flex-direction: column; /* Stack label over value for compactness */
-    justify-content: center;
-    padding: 6px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.05);
-}
-
-/* Make some items span full width if they are important or long */
-.stat-item.full-width {
-    grid-column: span 2;
-}
-
-.stat-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--subtle-text);
-    margin-bottom: 2px;
-}
-
-.stat-value {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-color);
-    font-family: 'Courier New', monospace;
-}
-
-/* Hide scrollbar for clean look but keep functionality */
-#stats-panel::-webkit-scrollbar {
-    width: 4px;
-}
-#stats-panel::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 10px;
-}
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -1193,64 +1112,40 @@
             <h3>Funded Performance (Since May 25th)</h3>
             <button id="close-stats-btn" title="Close Panel">×</button>
         </div>
-     
-<div class="stats-grid">
-    <!-- Row 1 -->
-    <div class="stat-item">
-        <span class="stat-label">Total Trades</span>
-        <span id="stat-completed-trades" class="stat-value">0</span>
-    </div>
-    <div class="stat-item">
-        <span class="stat-label">Win Rate</span>
-        <span id="stat-win-rate" class="stat-value">0.0%</span>
-    </div>
+        <div class="stats-grid">
+            <!-- Basic Stats -->
+            <div class="stat-item"><span class="stat-label">Completed Trades</span><span id="stat-completed-trades" class="stat-value">0</span></div>
+            <div class="stat-item">
+                <span class="stat-label">Wins / Losses</span>
+                <div><span id="stat-wins" class="stat-value" style="color: var(--green-text);">0</span> / <span id="stat-losses" class="stat-value" style="color: var(--red-text);">0</span></div>
+            </div>
+            <div class="stat-item"><span class="stat-label">Win Rate</span><span id="stat-win-rate" class="stat-value">0.0%</span></div>
+            <div class="stat-item"><span class="stat-label">Expectancy</span><span id="stat-expectancy" class="stat-value">$0.00</span></div>
+            
+            <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
+            
+            <!-- Breakeven Analysis (The -$10 to +$10 zone) -->
+            <div class="stat-item" title="Trades between -$10 and +$10"><span class="stat-label">Breakevens (-$10 to +$10)</span><span id="stat-be-count" class="stat-value">0</span></div>
+            <div class="stat-item"><span class="stat-label">BE % of Total</span><span id="stat-be-percent" class="stat-value">0%</span></div>
 
-    <!-- Row 2 -->
-    <div class="stat-item">
-        <span class="stat-label">Wins</span>
-        <span id="stat-wins" class="stat-value" style="color: var(--green-text);">0</span>
-    </div>
-    <div class="stat-item">
-        <span class="stat-label">Losses</span>
-        <span id="stat-losses" class="stat-value" style="color: var(--red-text);">0</span>
-    </div>
+            <hr style="grid-column: 1 / -1; border: 0; border-top: 1px dashed var(--border-color); margin: 5px 0;">
 
-    <!-- Row 3 (Important stuff - Full Width) -->
-    <div class="stat-item full-width">
-        <span class="stat-label">Expectancy (Avg Trade)</span>
-        <span id="stat-expectancy" class="stat-value" style="color: var(--link-color);">$0.00</span>
-    </div>
+            <!-- Performance excluding Breakevens -->
+            <div class="stat-item" title="Stats if -10 to +10 trades never happened"><span class="stat-label">Win Rate (No BE)</span><span id="stat-win-rate-excl" class="stat-value" style="color: var(--link-color);">0.0%</span></div>
+            <div class="stat-item"><span class="stat-label">Expectancy (No BE)</span><span id="stat-expectancy-excl" class="stat-value">$0.00</span></div>
 
-    <!-- Row 4 -->
-    <div class="stat-item">
-        <span class="stat-label">Profit Factor</span>
-        <span id="stat-profit-factor" class="stat-value">N/A</span>
-    </div>
-    <div class="stat-item">
-        <span class="stat-label">Avg W/L Ratio</span>
-        <span id="stat-reward-risk" class="stat-value">N/A</span>
-    </div>
+            <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
+            
+            <div class="stat-item"><span class="stat-label">Held for Full TP</span><span id="stat-full-tp" class="stat-value">0%</span></div>
+            <div class="stat-item"><span class="stat-label">Held for Full SL</span><span id="stat-full-sl" class="stat-value">0%</span></div>
+            
+            <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
 
-    <!-- Row 5 (Psychology Stats) -->
-    <div class="stat-item">
-        <span class="stat-label">Held Full TP</span>
-        <span id="stat-full-tp" class="stat-value">0%</span>
+            <div class="stat-item"><span class="stat-label">Avg Win / Loss</span><span id="stat-reward-risk" class="stat-value">N/A</span></div>
+            <div class="stat-item"><span class="stat-label">Best Win</span><span id="stat-best-win" class="stat-value" style="color: var(--green-text);">$0.00</span></div>
+            <div class="stat-item"><span class="stat-label">Worst Loss</span><span id="stat-worst-loss" class="stat-value" style="color: var(--red-text);">$0.00</span></div>
+        </div>
     </div>
-    <div class="stat-item">
-        <span class="stat-label">Held Full SL</span>
-        <span id="stat-full-sl" class="stat-value">0%</span>
-    </div>
-
-    <!-- Row 6 (Extremes) -->
-    <div class="stat-item">
-        <span class="stat-label">Best Win</span>
-        <span id="stat-best-win" class="stat-value" style="color: var(--green-text); font-size: 12px;">$0.00</span>
-    </div>
-    <div class="stat-item">
-        <span class="stat-label">Worst Loss</span>
-        <span id="stat-worst-loss" class="stat-value" style="color: var(--red-text); font-size: 12px;">$0.00</span>
-    </div>
-</div>
     <button id="stats-fab" title="Show Stats">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M32 32c17.7 0 32 14.3 32 32V400c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V64C32 46.3 46.3 32 64 32H160c17.7 0 32 14.3 32 32s-14.3 32-32 32H96v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96H64V64zM256 224c0-17.7-14.3-32-32-32H160c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7-14.3 32 32 32s32-14.3 32-32V224zM352 288c-17.7 0-32 14.3-32 32v64H256c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32zM480 32c17.7 0 32 14.3 32 32s-14.3 32-32 32H416v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V96h-1.5c-16.3 0-30.8-12.4-32-28.5c-.2-2.1-.2-4.2-.2-6.4V64c0-17.7 14.3-32 32-32H480z"/></svg>
     </button>
