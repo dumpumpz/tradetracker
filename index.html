@@ -3116,6 +3116,10 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
     let rowsHtml = '';
     
+    // Dynamically calculate the total number of columns to prevent "ghost" columns
+    // 1(Sym) + 1(Type) + 1(Entry) + 1(SL) + 1(TP) + 1(Qty) + 1(RR) + 1(Exit) + 1(PnL) + 1(%) + 1(In) + 1(Out) + 3(Notes) + 1(Pics) = 16
+    const totalCols = STATE.isMasterUser ? 17 : 16;
+
     const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
     const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
     const prevBtn = document.getElementById(isTopstep ? 'ts-completed-trades-prev-page' : 'completed-trades-prev-page');
@@ -3131,7 +3135,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
     if (uniqueTradingDates.length === 0) {
-        tbodyElement.innerHTML = '<tr><td colspan="25" style="text-align:center; padding:20px;">No history found.</td></tr>';
+        tbodyElement.innerHTML = `<tr><td colspan="${totalCols}" style="text-align:center; padding:20px;">No history found.</td></tr>`;
         return;
     }
 
@@ -3155,7 +3159,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
     thead.innerHTML = isTopstep 
         ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
-        : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
+        : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th></tr>`;
 
     let dPnL = 0, dWins = 0, dLosses = 0;
     dayTrades.forEach(t => {
@@ -3165,6 +3169,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
     
+    // Day Header
     rowsHtml += `
     <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
         <td colspan="3" style="text-align: left; padding: 10px 20px;">
@@ -3173,7 +3178,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
             Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
         </td>
-        <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
+        <td colspan="${totalCols - 6}" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
     </tr>`;
 
     const clusters = [];
@@ -3197,7 +3202,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         if (isActualCluster) {
             rowsHtml += `
             <tr style="border-top: 2px solid #6f42c1;">
-                <td colspan="25" style="${clusterL} ${clusterBG} padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
+                <td colspan="${totalCols}" style="${clusterL} ${clusterBG} padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
                    <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
                 </td>
             </tr>`;
@@ -3230,7 +3235,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
             rowsHtml += `
             <tr class="completed-group-header">
-                <td colspan="25" style="${clusterL} ${clusterBG} padding: 8px 15px; font-size: 0.95em;">
+                <td colspan="${totalCols}" style="${clusterL} ${clusterBG} padding: 8px 15px; font-size: 0.95em;">
                     <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
                         <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
                         <span style="color:var(--border-color);">|</span>
@@ -3288,22 +3293,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         }
     });
 }
-        function renderDateNavigation() {
-            const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
-            const timeframe = DOM.journalTimeframeEl.value;
-            let buttonsHtml = '';
-            for (let i = -2; i <= 2; i++) {
-                const date = new Date(STATE.centerDate); date.setUTCDate(STATE.centerDate.getUTCDate() + i);
-                const yyyymmdd = getYYYYMMDD(date);
-                const isActive = yyyymmdd === getYYYYMMDD(STATE.selectedDate);
-                const hasEntry = (STATE.journalText[safeSymbol]?.[yyyymmdd]?.[timeframe] || '').trim();
-                const btnClasses = `date-nav-btn ${isActive ? 'active' : ''} ${hasEntry ? 'has-entry' : ''}`;
-                const btnText = date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', timeZone: 'UTC' });
-                buttonsHtml += `<button class="${btnClasses}" data-date="${yyyymmdd}">${btnText}</button>`;
-            }
-            DOM.dateButtonsContainer.innerHTML = buttonsHtml;
-        }
-
         function updateJournalView(skipImages = false) { 
             const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
             const timeframe = DOM.journalTimeframeEl.value;
