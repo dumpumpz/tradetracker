@@ -1039,6 +1039,23 @@
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+
+
+        
+/* Hide non-essential sections until fully loaded */
+#tracker-tab, #journal-tab, #strategy-tab, #notes-tab {
+    display: none;
+}
+#topstep-tab.active {
+    display: block !important;
+}
+
+/* Prevent the table from jumping while loading */
+table {
+    table-layout: fixed; /* This makes tables render much faster */
+    width: 100%;
+}
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -1963,19 +1980,30 @@ document.addEventListener('click', (e) => {
             return mapped;
         }
 
-     
 function renderFilteredEvalData() {
-    // Only render if we aren't currently waiting on a debounce
-    // This prevents the page from flickering/freezing during high-speed data intake
-    const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
-    renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
-    
-    const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
-    renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
-    
-    // Calculate stats in the background
-    calculateTopstepStats(completedMapped);
-    renderFundedDashboard(); 
+    // Only render if the Funded Tab is actually visible to save CPU
+    if (!DOM.topstepTab.classList.contains('active')) return;
+
+    window.requestAnimationFrame(() => {
+        const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
+        renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
+        
+        const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
+        renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
+        
+        // Move heavy math to a "low priority" task
+        if (window.requestIdleCallback) {
+            window.requestIdleCallback(() => {
+                calculateTopstepStats(completedMapped);
+                renderFundedDashboard(); 
+            });
+        } else {
+            setTimeout(() => {
+                calculateTopstepStats(completedMapped);
+                renderFundedDashboard();
+            }, 100);
+        }
+    });
 }
         function renderFundedDashboard() {
             const container = document.getElementById('funded-dashboard-rows');
@@ -4977,90 +5005,48 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
         }
 
 function subscribeToData() {
-    // 1. Live Crypto Trades
-    dbRefs.trades.on('value', s => { 
-        const trades = s.val() || {}; 
-        renderLiveTable(trades, 'trades-tbody', 'live-trades-summary-container'); 
-    });
-
-    // 2. Apex Expiry Dates
-    dbRefs.apexExpiry.on('value', (s) => {
-        STATE.apexDates = s.val() || {};
-        renderApexExpiry();
-    });
-
-    // 3. Daily Notes
-    dbRefs.dailyNotes.on('value', (s) => {
-        STATE.dailyNotes = s.val() || {};
-        // Use a small delay to prevent flickering
-        clearTimeout(STATE.renderTimer);
-        STATE.renderTimer = setTimeout(() => {
-            renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
-            renderFilteredEvalData();
-        }, 100);
-    });
-
-    // 4. Live Funded Trades
+    // --- PRIORITY 1: FUNDED ACCOUNTS (LOAD IMMEDIATELY) ---
     dbRefs.tsTrades.on('value', s => { 
         STATE.allTsTrades = s.val() || {}; 
         renderFilteredEvalData(); 
         debouncedPerformanceUpdate(); 
     });
 
-    // 5. Completed Funded Trades
-    dbRefs.tsCompletedTrades.on('value', s => {
+    // Limit initial load of completed trades to the last 100 to prevent page freeze
+    dbRefs.tsCompletedTrades.limitToLast(100).on('value', s => {
         STATE.allTsCompletedTrades = s.val() || {};
         updateAutoSessionUI(); 
         renderFilteredEvalData();
         debouncedPerformanceUpdate(); 
     });
 
-    // 6. Setups/Images (Optimization: Only redraw if the tab is visible or data is new)
-    dbRefs.tsSetupsImages.on('value', (s) => {
-        STATE.allTsSetupsImages = s.val() || {};
-        const container = document.getElementById('ts-setups-image-container');
-        if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
+    dbRefs.apexExpiry.on('value', (s) => {
+        STATE.apexDates = s.val() || {};
+        renderApexExpiry();
     });
 
-    dbRefs.completedTrades.on('value', s => {
-        STATE.allCompletedTrades = s.val() || {};
-        renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
-    });
+    // --- PRIORITY 2: DEFERRED LOADING (LOAD ONLY WHEN NEEDED) ---
+    const loadSecondaryData = () => {
+        if (STATE.secondaryDataLoaded) return;
+        STATE.secondaryDataLoaded = true;
 
-    // 7. Journaling & Notes (Standard listeners are fine here)
-    dbRefs.journalText.on('value', (s) => { 
-        STATE.journalText = s.val() || {}; 
-        if (DOM.journalTab.classList.contains('active') && document.activeElement !== DOM.journalEntryEl) updateJournalView(true); 
-    });
+        // Load Crypto Tracker
+        dbRefs.trades.on('value', s => { 
+            const trades = s.val() || {}; 
+            renderLiveTable(trades, 'trades-tbody', 'live-trades-summary-container'); 
+        });
 
-    dbRefs.journalImages.on('value', (s) => { 
-        STATE.journalImages = s.val() || {}; 
-        if (DOM.journalTab.classList.contains('active')) updateJournalView(false); 
-    });
+        dbRefs.completedTrades.limitToLast(50).on('value', s => {
+            STATE.allCompletedTrades = s.val() || {};
+            renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
+        });
 
-    dbRefs.setupsImages.on('value', (s) => {
-        STATE.allSetupsImages = s.val() || {};
-        renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-    });
+        // Load Journal/Notes only when clicking those tabs (handled in Tab listener)
+        console.log("Secondary data initialized in background.");
+    };
 
-    dbRefs.strategyNotes.on('value', (s) => {
-        const text = s.val() || "";
-        if (document.activeElement !== DOM.strategyNotesEntry) { 
-            DOM.strategyNotesEntry.value = text; 
-            autoResizeTextarea(DOM.strategyNotesEntry); 
-        }
-    });
-
-    dbRefs.strategyImages.on('value', (s) => {
-        STATE.strategyImages = s.val() || {};
-        renderGenericImageLibrary(STATE.strategyImages, DOM.strategyImageContainer, 'strategy_images');
-    });
-
-    // Generic Notes
-    dbRefs.generalNotes.on('value', (s) => { 
-        STATE.generalNotes = s.val() || {}; 
-        if (DOM.noteEditModal.style.display === 'none') renderNotes(STATE.generalNotes); 
-    });
+    // Trigger secondary data after the main UI is interactive
+    setTimeout(loadSecondaryData, 2000);
 }
 
 // Optimization Helper: Prevents the heavy math from freezing the UI
