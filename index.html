@@ -1776,17 +1776,12 @@
                 debouncedPerformanceUpdate(); 
             });
 
-           dbRefs.tsSetupsImages.limitToLast(25).on('value', (s) => {
-    STATE.allTsSetupsImages = s.val() || {};
-    const container = document.getElementById('ts-setups-image-container');
-    if (container) {
-        // Use requestIdleCallback or setTimeout to ensure this doesn't 
-        // block the main dashboard rendering
-        window.requestAnimationFrame(() => {
-            renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
-        });
-    }
-});
+            dbRefs.tsSetupsImages.on('value', (s) => {
+                STATE.allTsSetupsImages = s.val() || {};
+                const container = document.getElementById('ts-setups-image-container');
+                if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
+            });
+
             // Load Funded Setup Notes
             dbRefs.tsSetups1.on('value', s => { 
                 const el = document.getElementById('ts-primary-setups-notes');
@@ -4832,7 +4827,7 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
         return `
             <div class="library-image-wrapper ${highlightClass}" data-id="${id}">
                 ${masterButtonsHtml(id, imgData.fileName)}
-                <img src="${imgData.url}" alt="Image" loading="lazy" data-full-src="${imgData.url}" data-caption="${caption}">
+                <img src="${imgData.url}" alt="Image" data-full-src="${imgData.url}" data-caption="${caption}">
                 <div class="library-image-caption ${imgData.isReview ? 'is-today' : ''}">${caption}</div>
             </div>`;
     };
@@ -5277,89 +5272,83 @@ function debouncedPerformanceUpdate() {
             }
         }
      
-     
-async function initializeApp() {
-    // 1. START DATA DOWNLOADS IMMEDIATELY
-    subscribeToData(); 
-    
-    // 2. Setup Security and Identity
-    checkMasterMode(); 
-    getViewerId();
+         async function initializeApp() {
+            checkMasterMode(); 
+            getViewerId();
+            await fetchLiveConversionRate();
 
-    // 3. Setup UI placeholders
-    renderFundedAccountRadios();
-    CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
-        FUNDED_STATS_CACHE[acc] = { 
-            balance: CONFIG.FUNDED_START, 
-            hwm: CONFIG.FUNDED_START, 
-            maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN 
-        };
-    });
-    renderFundedBanners();
-    updateTargetCalculator();
-    renderApexExpiry(); 
-
-    // 4. Handle non-critical async tasks
-    fetchLiveConversionRate(); 
-
-    const reviewDateInput = document.getElementById('ts-setup-review-date');
-    if (reviewDateInput) {
-        reviewDateInput.value = getPerthDateString(); 
-    }
-    
-    const today = new Date(); 
-    today.setUTCHours(0, 0, 0, 0);
-    STATE.selectedDate = new Date(today); 
-    STATE.centerDate = new Date(today);
-    
-    setupEventListeners(); 
-    renderDateNavigation(); 
-    checkMarketAlerts(); 
-
-    DOM.statsPanelContainer.style.display = 'block';
-
-    updateAutoSessionUI();
-    setInterval(updateAutoSessionUI, 60000);
-
-    DOM.tabs.addEventListener('click', (e) => {
-        if (e.target.dataset.tab === 'topstep') {
-            updateAutoSessionUI();
-            renderApexExpiry(); 
-        }
-    });
-
-    // 5. Faster section expansion
-    setTimeout(() => {
-        const activeTabContent = document.querySelector('.tab-content.active');
-        if (activeTabContent) {
-            openDefaultSectionsInContainer(activeTabContent);
-            activeTabContent.dataset.sectionsInitialized = 'true';
-
-            const tsPrimary = document.getElementById('ts-primary-setups-notes');
-            const tsSecondary = document.getElementById('ts-secondary-setups-notes');
+            renderFundedAccountRadios();
             
-            if (tsPrimary && tsPrimary.value) autoResizeTextarea(tsPrimary);
-            if (tsSecondary && tsSecondary.value) autoResizeTextarea(tsSecondary);
-            
-            activeTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
-                const content = section.querySelector('.collapsible-content');
-                if (content) content.style.maxHeight = 'none'; 
+            CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
+                FUNDED_STATS_CACHE[acc] = { 
+                    balance: CONFIG.FUNDED_START, 
+                    hwm: CONFIG.FUNDED_START, 
+                    maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN 
+                };
             });
-        }
-    }, 100); 
-}
+            
+            renderFundedBanners();
+            updateTargetCalculator();
+            renderApexExpiry(); 
 
-        // --- EXECUTE THE APP ---
+            const reviewDateInput = document.getElementById('ts-setup-review-date');
+            if (reviewDateInput) {
+                reviewDateInput.value = getPerthDateString(); 
+            }
+            
+            const today = new Date(); 
+            today.setUTCHours(0, 0, 0, 0);
+            STATE.selectedDate = new Date(today); 
+            STATE.centerDate = new Date(today);
+            
+            setupEventListeners(); 
+            subscribeToData();
+            renderDateNavigation(); 
+            checkMarketAlerts(); 
+
+            DOM.statsPanelContainer.style.display = 'block';
+
+            updateAutoSessionUI();
+            setInterval(updateAutoSessionUI, 60000);
+
+            DOM.tabs.addEventListener('click', (e) => {
+                if (e.target.dataset.tab === 'topstep') {
+                    updateAutoSessionUI();
+                    renderApexExpiry(); 
+                }
+            });
+
+            setTimeout(() => {
+                const activeTabContent = document.querySelector('.tab-content.active');
+                if (activeTabContent) {
+                    openDefaultSectionsInContainer(activeTabContent);
+                    activeTabContent.dataset.sectionsInitialized = 'true';
+
+                    const tsPrimary = document.getElementById('ts-primary-setups-notes');
+                    const tsSecondary = document.getElementById('ts-secondary-setups-notes');
+                    
+                    if (tsPrimary && tsPrimary.value) autoResizeTextarea(tsPrimary);
+                    if (tsSecondary && tsSecondary.value) autoResizeTextarea(tsSecondary);
+                    
+                    activeTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
+                        const content = section.querySelector('.collapsible-content');
+                        if (content) content.style.maxHeight = 'none'; 
+                    });
+
+                    const setupSection = document.getElementById('ts-setups-upload-section');
+                    if (setupSection) resizeParentCollapsible(setupSection);
+                }
+            }, 700); 
+        } 
+
         initializeApp();
 
-    }); // Closes DOMContentLoaded
+    }); 
 </script>
-
-    <!-- External Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
