@@ -4665,7 +4665,6 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     const isTS = (libraryType === 'ts_setups_images');
     const prefix = isTS ? 'ts-' : '';
     
-    // Force pagination logic to be active by default
     const currentPage = isTS ? STATE.tsSetupsImagesCurrentPage : STATE.setupsImagesCurrentPage;
 
     const paginationControls = document.getElementById(prefix + 'setups-images-pagination-controls');
@@ -4693,7 +4692,6 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     const uniqueDates = Array.from(new Set(allImageIds.map(id => getTradingDayString(images[id].timestamp, images[id].timestamp)))).sort((a, b) => b.localeCompare(a));
     const totalPages = uniqueDates.length;
     
-    // Safety check for current page index
     const targetPageIndex = Math.min(currentPage, totalPages) - 1;
     const targetDate = uniqueDates[targetPageIndex];
 
@@ -4710,39 +4708,42 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             </div>`;
     };
 
-    if (targetDate) {
-        const idsForDate = allImageIds.filter(id => getTradingDayString(images[id].timestamp, images[id].timestamp) === targetDate);
-        let imagesHtml = idsForDate.map(id => createImageHtml(id)).join('');
-        imagesHtml += `<h3 class="daily-image-footer">${formatDisplayDate(targetDate)}</h3>`;
-        containerElement.innerHTML = imagesHtml;
+    // SPEED OPTIMIZATION: Use requestAnimationFrame to prevent page "glitching"
+    window.requestAnimationFrame(() => {
+        if (targetDate) {
+            const idsForDate = allImageIds.filter(id => getTradingDayString(images[id].timestamp, images[id].timestamp) === targetDate);
+            let imagesHtml = idsForDate.map(id => createImageHtml(id)).join('');
+            imagesHtml += `<h3 class="daily-image-footer">${formatDisplayDate(targetDate)}</h3>`;
+            containerElement.innerHTML = imagesHtml;
 
-        // Auto-sync other parts of the UI to this date
-        if (isTS) { 
-            const reviewDateEl = document.getElementById('ts-setup-review-date');
-            if (reviewDateEl && /^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
-                reviewDateEl.value = targetDate;
+            if (isTS) { 
+                const reviewDateEl = document.getElementById('ts-setup-review-date');
+                if (reviewDateEl && /^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+                    reviewDateEl.value = targetDate;
+                }
+                syncCompletedTradesToDate(targetDate, true);
+            } else {
+                syncCompletedTradesToDate(targetDate, false);
             }
-            syncCompletedTradesToDate(targetDate, true);
-        } else {
-            syncCompletedTradesToDate(targetDate, false);
         }
-    }
 
-    // Update Navigation UI
-    if (showAllButton) showAllButton.style.display = 'none'; // Always hide the "Show History" button now
-    
-    if (paginationControls) {
-        paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
-        pageInfo.textContent = Day ${targetPageIndex + 1}/${totalPages};
-        prevBtn.disabled = (targetPageIndex === 0);
-        nextBtn.disabled = (targetPageIndex >= totalPages - 1);
-    }
+        if (showAllButton) showAllButton.style.display = 'none';
+        
+        if (paginationControls) {
+            paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
+            // FIXED LINE BELOW (Note the backticks around the whole string)
+            pageInfo.textContent = `Day ${targetPageIndex + 1}/${totalPages}`;
+            
+            prevBtn.disabled = (targetPageIndex === 0);
+            nextBtn.disabled = (targetPageIndex >= totalPages - 1);
+        }
 
-    const section = containerElement.closest('.collapsible-section');
-    if (section && section.classList.contains('is-open')) {
-        const content = section.querySelector('.collapsible-content');
-        if (content) content.style.maxHeight = 'none'; 
-    }
+        const section = containerElement.closest('.collapsible-section');
+        if (section && section.classList.contains('is-open')) {
+            const content = section.querySelector('.collapsible-content');
+            if (content) content.style.maxHeight = 'none'; 
+        }
+    });
 }
         function handleAttachmentActions(e) {
             const attachBtn = e.target.closest('.attach-image-btn'); 
