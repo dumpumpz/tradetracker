@@ -5279,14 +5279,14 @@ function debouncedPerformanceUpdate() {
      
      
 async function initializeApp() {
-    // 1. START DATA DOWNLOADS IMMEDIATELY (Highest Priority)
+    // 1. START DATA DOWNLOADS IMMEDIATELY
     subscribeToData(); 
     
     // 2. Setup Security and Identity
     checkMasterMode(); 
     getViewerId();
 
-    // 3. Setup UI placeholders so the page doesn't "jump"
+    // 3. Setup UI placeholders
     renderFundedAccountRadios();
     CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
         FUNDED_STATS_CACHE[acc] = { 
@@ -5328,8 +5328,7 @@ async function initializeApp() {
         }
     });
 
-    // 5. FASTER UI UNLOCK (Reduced from 700ms to 100ms)
-    // This makes the "is-open" sections snap into view much faster
+    // 5. Faster section expansion
     setTimeout(() => {
         const activeTabContent = document.querySelector('.tab-content.active');
         if (activeTabContent) {
@@ -5349,12 +5348,18 @@ async function initializeApp() {
         }
     }, 100); 
 }
-    }); 
+
+        // --- EXECUTE THE APP ---
+        initializeApp();
+
+    }); // Closes DOMContentLoaded
 </script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- External Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
