@@ -3108,7 +3108,6 @@ function renderFundedDashboard() {
             container.innerHTML = messages.length > 0 ? messages.join('') : '';
         }
 
-   
 function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
@@ -3153,7 +3152,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     let thead = table.querySelector('thead');
     if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
     
-    // Header Column Setup - EXACT ORIGINAL COSMETICS
     const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
     thead.innerHTML = isTopstep 
         ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
@@ -3167,7 +3165,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
     
-    // Day Summary Header - EXACT ORIGINAL COSMETICS
     rowsHtml += `
     <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
         <td colspan="3" style="text-align: left; padding: 10px 20px;">
@@ -3193,7 +3190,9 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     clusters.forEach(cluster => {
         const isActualCluster = cluster.length > 1;
         const clusterNet = cluster.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
-        const clusterBoxStyle = isActualCluster ? `border-left: 6px solid #6f42c1; background-color: rgba(111, 66, 193, 0.03);` : '';
+        
+        // ADDED: Right Border for the cluster block
+        const clusterBoxStyle = isActualCluster ? `border-left: 6px solid #6f42c1; border-right: 2px solid #6f42c1; background-color: rgba(111, 66, 193, 0.03);` : '';
 
         if (isActualCluster) {
             rowsHtml += `
@@ -3211,8 +3210,11 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             groupsInCluster[gid].push(t);
         });
 
-        Object.keys(groupsInCluster).forEach(groupId => {
+        const groupIds = Object.keys(groupsInCluster);
+        groupIds.forEach((groupId, gIndex) => {
             const gTrades = groupsInCluster[groupId];
+            const isLastGroupInCluster = gIndex === groupIds.length - 1;
+
             let gNet = 0, gQty = 0, gE = 0, gEx = 0;
             gTrades.forEach(t => {
                 const n = parseFloat(t.net_result || 0), e = parseFloat(t.entry || 1), ex = parseFloat(t.exit_price || 0);
@@ -3239,19 +3241,22 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 </td>
             </tr>`;
 
-            gTrades.forEach(t => {
+            gTrades.forEach((t, tIndex) => {
                 const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
                 const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
                 const net = parseFloat(t.net_result || 0);
                 
-                // RESTORED ORIGINAL note columns and font-size (0.85em)
+                // ADDED: Bottom Border logic for the very last row of a cluster
+                const isLastRowOfCluster = isLastGroupInCluster && (tIndex === gTrades.length - 1);
+                const rowBottomBorder = isLastRowOfCluster ? 'border-bottom: 3px solid #6f42c1 !important;' : '';
+
                 const masterActionButtons = STATE.isMasterUser ? `
-                    <td class="master-only">
+                    <td class="master-only" style="${rowBottomBorder}">
                         <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#dc3545; color:white; border:none; border-radius:3px;">Del</button>
                         <button class="merge-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#6f42c1; color:white; border:none; border-radius:3px;">M</button>
                     </td>` : '';
 
-                rowsHtml += `<tr style="${clusterBoxStyle} font-size: 0.85em;">
+                rowsHtml += `<tr style="${clusterBoxStyle} ${rowBottomBorder} font-size: 0.85em;">
                     <td class="cell-narrow"><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
                     <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">${t.type}</td>
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(t.entry).toFixed(2)}</td>
@@ -3274,10 +3279,8 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         });
     });
 
-    // TECHNICAL FIX: Using requestAnimationFrame to prevent scroll stutter
     window.requestAnimationFrame(() => {
         tbodyElement.innerHTML = rowsHtml;
-
         const section = tbodyElement.closest('.collapsible-section');
         if (section && section.classList.contains('is-open')) {
             const content = section.querySelector('.collapsible-content');
