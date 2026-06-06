@@ -1039,23 +1039,6 @@
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
-
-
-
-
-        
-.library-image-wrapper {
-    position: relative;
-    border: 1px solid var(--border-color);
-    padding: 5px;
-    background: var(--container-bg);
-    border-radius: 4px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    content-visibility: auto; /* <--- ADD THIS LINE */
-}
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -1769,13 +1752,6 @@
         // --- LAZY LOADING LOGIC ---
 
         function subscribeToFundedData() {
-
-                dbRefs.tsSetupsImages.on('value', (s) => {
-                STATE.allTsSetupsImages = s.val() || {};
-                const container = document.getElementById('ts-setups-image-container');
-                if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
-            });
-
             // This only loads what's needed for the "Funded Accounts" tab
             dbRefs.apexExpiry.on('value', (s) => {
                 STATE.apexDates = s.val() || {};
@@ -1800,7 +1776,12 @@
                 debouncedPerformanceUpdate(); 
             });
 
-        
+            dbRefs.tsSetupsImages.on('value', (s) => {
+                STATE.allTsSetupsImages = s.val() || {};
+                const container = document.getElementById('ts-setups-image-container');
+                if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
+            });
+
             // Load Funded Setup Notes
             dbRefs.tsSetups1.on('value', s => { 
                 const el = document.getElementById('ts-primary-setups-notes');
@@ -4846,8 +4827,7 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
         return `
             <div class="library-image-wrapper ${highlightClass}" data-id="${id}">
                 ${masterButtonsHtml(id, imgData.fileName)}
-             <img src="${imgData.url}" loading="lazy" decoding="async" alt="Image" data-full-src="${imgData.url}" data-caption="${caption}">
-
+                <img src="${imgData.url}" alt="Image" data-full-src="${imgData.url}" data-caption="${caption}">
                 <div class="library-image-caption ${imgData.isReview ? 'is-today' : ''}">${caption}</div>
             </div>`;
     };
