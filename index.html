@@ -1701,19 +1701,17 @@
 
         // --- APPLICATION STATE ---
         const STATE = {
-            isMasterUser: false, isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {},  favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null, isTopstep: false },
+            isMasterUser: false, 
+            activeTab: 'topstep', // Default tab
+            initializedTabs: { topstep: true }, // Tracker for what's been loaded
+            isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {},  favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null, isTopstep: false },
             allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,             apexDates: {}, 
-  renderTimer: null,
-    statsTimer: null,
-            // Evaluated Account Global Variables
+            renderTimer: null,
+            statsTimer: null,
             allTsTrades: {}, allTsCompletedTrades: {}, 
             tsCompletedTradesShowAll: false, tsCompletedTradesCurrentPage: 1,
-            
-// Change from false to true
-allSetupsImages: {}, setupsImagesShowAll: true, setupsImagesCurrentPage: 1, 
-// Change from false to true
-allTsSetupsImages: {}, tsSetupsImagesShowAll: true, tsSetupsImagesCurrentPage: 1,
-
+            allSetupsImages: {}, setupsImagesShowAll: true, setupsImagesCurrentPage: 1, 
+            allTsSetupsImages: {}, tsSetupsImagesShowAll: true, tsSetupsImagesCurrentPage: 1,
             chartInstances: {}, dailyNotes: {}, 
             calendarViewDate: new Date(),
             strategyImages: {}, strategySaveTimer: null 
@@ -1725,6 +1723,8 @@ allTsSetupsImages: {}, tsSetupsImagesShowAll: true, tsSetupsImagesCurrentPage: 1
         firebase.initializeApp(CONFIG.FIREBASE);
         const database = firebase.database();
         const storage = firebase.storage();
+        
+        // Define references
         const dbRefs = { 
             trades: database.ref(CONFIG.DB_PATHS.TRADES), 
             dailyNotes: database.ref(CONFIG.DB_PATHS.DAILY_NOTES),
@@ -1749,36 +1749,149 @@ allTsSetupsImages: {}, tsSetupsImagesShowAll: true, tsSetupsImagesCurrentPage: 1
             apexExpiry: database.ref(CONFIG.DB_PATHS.APEX_EXPIRY) 
         };
 
+        // --- LAZY LOADING LOGIC ---
+
+        function subscribeToFundedData() {
+            // This only loads what's needed for the "Funded Accounts" tab
+            dbRefs.apexExpiry.on('value', (s) => {
+                STATE.apexDates = s.val() || {};
+                renderApexExpiry();
+            });
+
+            dbRefs.dailyNotes.on('value', (s) => {
+                STATE.dailyNotes = s.val() || {};
+                renderFilteredEvalData();
+            });
+
+            dbRefs.tsTrades.on('value', s => { 
+                STATE.allTsTrades = s.val() || {}; 
+                renderFilteredEvalData(); 
+                debouncedPerformanceUpdate(); 
+            });
+
+            dbRefs.tsCompletedTrades.on('value', s => {
+                STATE.allTsCompletedTrades = s.val() || {};
+                updateAutoSessionUI(); 
+                renderFilteredEvalData();
+                debouncedPerformanceUpdate(); 
+            });
+
+            dbRefs.tsSetupsImages.on('value', (s) => {
+                STATE.allTsSetupsImages = s.val() || {};
+                const container = document.getElementById('ts-setups-image-container');
+                if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
+            });
+
+            // Load Funded Setup Notes
+            dbRefs.tsSetups1.on('value', s => { 
+                const el = document.getElementById('ts-primary-setups-notes');
+                if (el && document.activeElement !== el) { el.value = s.val() || ""; autoResizeTextarea(el); }
+            });
+            dbRefs.tsSetups2.on('value', s => { 
+                const el = document.getElementById('ts-secondary-setups-notes');
+                if (el && document.activeElement !== el) { el.value = s.val() || ""; autoResizeTextarea(el); }
+            });
+        }
+
+        function subscribeToOtherTabs(tabId) {
+            if (STATE.initializedTabs[tabId]) return;
+            STATE.initializedTabs[tabId] = true;
+
+            console.log("Lazy loading data for: " + tabId);
+
+            if (tabId === 'tracker') {
+                dbRefs.trades.on('value', s => { 
+                    renderLiveTable(s.val() || {}, 'trades-tbody', 'live-trades-summary-container'); 
+                });
+                dbRefs.completedTrades.on('value', s => {
+                    STATE.allCompletedTrades = s.val() || {};
+                    renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
+                });
+                dbRefs.setupsImages.on('value', (s) => {
+                    STATE.allSetupsImages = s.val() || {};
+                    renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+                });
+            }
+
+            if (tabId === 'journal') {
+                dbRefs.journalText.on('value', (s) => { 
+                    STATE.journalText = s.val() || {}; 
+                    updateJournalView(true); 
+                });
+                dbRefs.journalImages.on('value', (s) => { 
+                    STATE.journalImages = s.val() || {}; 
+                    updateJournalView(false); 
+                });
+            }
+
+            if (tabId === 'strategy') {
+                dbRefs.strategyNotes.on('value', (s) => {
+                    const text = s.val() || "";
+                    if (document.activeElement !== DOM.strategyNotesEntry) { 
+                        DOM.strategyNotesEntry.value = text; 
+                        autoResizeTextarea(DOM.strategyNotesEntry); 
+                    }
+                });
+                dbRefs.strategyImages.on('value', (s) => {
+                    STATE.strategyImages = s.val() || {};
+                    renderGenericImageLibrary(STATE.strategyImages, DOM.strategyImageContainer, 'strategy_images');
+                });
+            }
+
+            if (tabId === 'notes') {
+                dbRefs.generalNotes.on('value', (s) => { 
+                    STATE.generalNotes = s.val() || {}; 
+                    renderNotes(STATE.generalNotes); 
+                });
+            }
+        }
+
         // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
 
+        // Optimized Tab Switcher
+        DOM.tabs.addEventListener('click', (e) => {
+            if (!e.target.matches('.tab-link')) return;
+            
+            const tabId = e.target.dataset.tab;
+            STATE.activeTab = tabId;
 
-// Tab Menu Toggle Logic
-const toggleBtn = document.getElementById('tabs-toggle-btn');
-const tabsContainer = document.querySelector('.tabs');
+            document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            const newTabContent = document.getElementById(`${tabId}-tab`);
+            if (newTabContent) {
+                newTabContent.classList.add('active');
+                
+                // Trigger Lazy Load
+                subscribeToOtherTabs(tabId);
+                
+                // Adjust UI
+                setTimeout(() => {
+                    newTabContent.querySelectorAll('textarea').forEach(ta => autoResizeTextarea(ta));
+                    resizeParentCollapsible(newTabContent);
+                }, 50);
+            }
 
-toggleBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isExpanded = tabsContainer.classList.toggle('is-expanded');
-    // Switch between hamburger and "X" icons
-    toggleBtn.textContent = isExpanded ? '✕' : '☰';
-});
+            DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'topstep') ? 'block' : 'none';
+        });
 
-// Close menu when a tab is selected
-tabsContainer.addEventListener('click', (e) => {
-    if (e.target.classList.contains('tab-link')) {
-        tabsContainer.classList.remove('is-expanded');
-        toggleBtn.textContent = '☰';
-    }
-});
+        // Tab Menu Toggle Logic
+        const toggleBtn = document.getElementById('tabs-toggle-btn');
+        const tabsContainer = document.querySelector('.tabs');
 
-// Close menu if user clicks anywhere else on the page
-document.addEventListener('click', (e) => {
-    if (!tabsContainer.contains(e.target)) {
-        tabsContainer.classList.remove('is-expanded');
-        toggleBtn.textContent = '☰';
-    }
-});
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isExpanded = tabsContainer.classList.toggle('is-expanded');
+            toggleBtn.textContent = isExpanded ? '✕' : '☰';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!tabsContainer.contains(e.target)) {
+                tabsContainer.classList.remove('is-expanded');
+                toggleBtn.textContent = '☰';
+            }
+        });
         function calculateBreakevenPrice(trade) {
             const entry = parseFloat(trade.entry);
             if (isNaN(entry) || entry <= 0) return 0;
