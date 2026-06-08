@@ -1098,6 +1098,30 @@
     flex-shrink: 0;
     background: #1a1a1a; /* Placeholder color while loading */
     border-radius: 4px;
+
+
+
+
+
+
+
+
+
+    
+function openCollapsibleSection(sectionElement) {
+    if (!sectionElement || sectionElement.classList.contains('is-open')) return;
+    const content = sectionElement.querySelector('.collapsible-content');
+    const toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
+    if (content && toggleBtn) {
+        sectionElement.classList.add('is-open'); 
+        toggleBtn.textContent = '−'; 
+        
+        // Force height to be visible immediately
+        content.style.display = 'block';
+        content.style.maxHeight = 'none'; 
+        content.style.overflow = 'visible';
+    }
+}
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -3787,8 +3811,7 @@ function updateFundedPerformanceStats() {
                         newTabContent.dataset.sectionsInitialized = 'true'; 
                     }
                 }
-                DOM.statsPanelContainer.style.display = (tabId === 'tracker' || tabId === 'topstep') ? 'block' : 'none';
-                if (tabId === 'journal') { updateJournalView(); renderDateNavigation(); }
+             
             });
 
           
@@ -5079,25 +5102,39 @@ function debouncedPerformanceUpdate() {
             }
         }
 
-        function openDefaultSectionsInContainer(containerElement) {
-            if (!containerElement) return;
-            const sectionsToOpen = [
-                'Live Trades', 'Completed Trades', 'Setups', 'Trading Setups', 
-                'Add New Trade', 'Add New Funded Trade', 'Notes', 'My Notes', 
-                'Charts', 'Misc', 'EMA Snapshot', 'PnL Calendar', 
-                'Strategy & Setups', 'Funded Notes', 'Funded Setups'
-            ];
-            
-            containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
-                const title = h2.textContent.trim();
-                if (sectionsToOpen.includes(title)) {
-                    const section = h2.closest('.collapsible-section');
-                    if (section && !(section.classList.contains('master-only') && !STATE.isMasterUser)) {
-                        openCollapsibleSection(section);
-                    }
+    
+function openDefaultSectionsInContainer(containerElement) {
+    if (!containerElement) return;
+    
+    // Ensure these strings EXACTLY match the text between your <h2> </h2> tags
+    const sectionsToOpen = [
+        'Live Trades', 
+        'Completed Trades', 
+        'Setups', 
+        'Trading Setups', 
+        'Add New Trade', 
+        'Add New Funded Trade', 
+        'Notes', 
+        'My Notes', 
+        'Strategy & Setups', 
+        'Funded Notes', // Matches your new hidden title
+        'Funded Setups' // Matches your new hidden title
+    ];
+    
+    containerElement.querySelectorAll('.collapsible-header h2').forEach(h2 => {
+        const title = h2.textContent.trim();
+        if (sectionsToOpen.includes(title)) {
+            const section = h2.closest('.collapsible-section');
+            if (section) {
+                // If it's a master-only section, only expand if user is master
+                if (section.classList.contains('master-only') && !STATE.isMasterUser) {
+                    return; 
                 }
-            });
+                openCollapsibleSection(section);
+            }
         }
+    });
+}
 
         function checkMasterMode() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -5177,8 +5214,7 @@ function debouncedPerformanceUpdate() {
             renderDateNavigation(); 
             checkMarketAlerts(); 
 
-           // On initial load, only show if master
-DOM.statsPanelContainer.style.display = STATE.isMasterUser ? 'block' : 'none';
+
 
             updateAutoSessionUI();
             setInterval(updateAutoSessionUI, 60000);
