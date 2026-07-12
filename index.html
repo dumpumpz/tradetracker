@@ -2939,7 +2939,7 @@ function renderFundedDashboard() {
             container.innerHTML = messages.length > 0 ? messages.join('') : '';
         }
 
-// --- SAFELY TYPED COMPLETED TRADES RENDER FUNCTION ---
+// --- STABLE INTEGRATED COMPLETED TRADES RENDER FUNCTION ---
 function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
@@ -2953,8 +2953,8 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         return typeof dateVal === 'number' ? dateVal : new Date(dateVal).getTime() || 0;
     };
 
-    // Sort safely using the helper to handle older/differently structured database records
-    const tradeIds = Object.keys(trades).sort((a, b) => getSafeTimestamp(trades[b]) - getSafeTimestamp(trades[a]));
+    // Sort safely using the helper to handle older database records
+    const tradeIds = Object.keys(trades).sort((a, b) => getSafeTimestamp(trades[b]) - getSafeTimestamp(a));
     let rowsHtml = '';
     
     const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
@@ -2965,7 +2965,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const tradesByDay = {};
     tradeIds.forEach(id => {
         const t = { ...trades[id], dbId: id };
-        // Fall back to t.date if closed_date is missing on older records
         const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
         if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
         tradesByDay[dayStr].push(t);
@@ -2973,16 +2972,43 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
 
-    // Determine current target date
-    let targetDateStr;
+    // If Topstep, inject the currently selected review date so it is included in our daily loop
     if (isTopstep) {
         const dateInput = document.getElementById('ts-setup-review-date');
-        targetDateStr = dateInput ? dateInput.value : getPerthDateString();
-    } else {
-        let currentPage = STATE.completedTradesCurrentPage;
-        if (!currentPage || currentPage > uniqueTradingDates.length) currentPage = 1;
-        targetDateStr = uniqueTradingDates[currentPage - 1];
+        const selectedDateStr = dateInput ? dateInput.value : getPerthDateString();
+        if (selectedDateStr && !uniqueTradingDates.includes(selectedDateStr)) {
+            uniqueTradingDates.push(selectedDateStr);
+            uniqueTradingDates.sort((a, b) => b.localeCompare(a)); // Maintain descending order
+        }
     }
+
+    if (uniqueTradingDates.length === 0) {
+        tbodyElement.innerHTML = '<tr><td colspan="25" style="text-align:center; padding:20px;">No history found.</td></tr>';
+        return;
+    }
+
+    let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
+    if (!currentPage || currentPage > uniqueTradingDates.length) currentPage = 1;
+
+    if (paginationControls) {
+        paginationControls.style.display = 'flex';
+        if (pageInfoSpan) pageInfoSpan.textContent = `Day ${currentPage}/${uniqueTradingDates.length}`;
+        if (prevBtn) prevBtn.disabled = (currentPage === 1);
+        if (nextBtn) nextBtn.disabled = (currentPage === uniqueTradingDates.length);
+    }
+
+    const targetDateStr = uniqueTradingDates[currentPage - 1];
+    
+    // Sync the calendar input view to show the date currently displayed in the table
+    if (isTopstep) {
+        const dateInput = document.getElementById('ts-setup-review-date');
+        if (dateInput && dateInput.value !== targetDateStr) {
+            dateInput.value = targetDateStr;
+        }
+    }
+
+    const dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => getSafeTimestamp(b) - getSafeTimestamp(a));
+    const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
 
     const table = tbodyElement.closest('table');
     let thead = table.querySelector('thead');
@@ -2993,11 +3019,8 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
         : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
 
-    const dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => getSafeTimestamp(b) - getSafeTimestamp(a));
-    const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
-
-    // Handle empty state gracefully
-    if (isTopstep && dayTrades.length === 0) {
+    // Render empty day state if no trades took place on the selected calendar date
+    if (dayTrades.length === 0) {
         tbodyElement.innerHTML = `
         <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
             <td colspan="3" style="text-align: left; padding: 10px 20px;">
@@ -3013,42 +3036,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 No completed trades recorded for this day.
             </td>
         </tr>`;
-
-        if (paginationControls) {
-            paginationControls.style.display = 'flex';
-            const dateIndex = uniqueTradingDates.indexOf(targetDateStr);
-            if (dateIndex !== -1) {
-                if (pageInfoSpan) pageInfoSpan.textContent = `Day ${dateIndex + 1}/${uniqueTradingDates.length}`;
-                if (prevBtn) prevBtn.disabled = (dateIndex === 0);
-                if (nextBtn) nextBtn.disabled = (dateIndex === uniqueTradingDates.length - 1);
-            } else {
-                if (pageInfoSpan) pageInfoSpan.textContent = formatFriendlyDate(targetDateStr);
-                if (prevBtn) prevBtn.disabled = true;
-                if (nextBtn) nextBtn.disabled = true;
-            }
-        }
         return;
-    }
-
-    if (uniqueTradingDates.length === 0) {
-        tbodyElement.innerHTML = '<tr><td colspan="25" style="text-align:center; padding:20px;">No history found.</td></tr>';
-        return;
-    }
-
-    if (paginationControls) {
-        paginationControls.style.display = 'flex';
-        if (isTopstep) {
-            const dateIndex = uniqueTradingDates.indexOf(targetDateStr);
-            const displayIndex = dateIndex !== -1 ? dateIndex + 1 : 1;
-            if (pageInfoSpan) pageInfoSpan.textContent = `Day ${displayIndex}/${uniqueTradingDates.length}`;
-            if (prevBtn) prevBtn.disabled = (dateIndex === 0 || dateIndex === -1);
-            if (nextBtn) nextBtn.disabled = (dateIndex === uniqueTradingDates.length - 1 || dateIndex === -1);
-        } else {
-            let currentPage = STATE.completedTradesCurrentPage;
-            if (pageInfoSpan) pageInfoSpan.textContent = `Day ${currentPage}/${uniqueTradingDates.length}`;
-            if (prevBtn) prevBtn.disabled = (currentPage === 1);
-            if (nextBtn) nextBtn.disabled = (currentPage === uniqueTradingDates.length);
-        }
     }
 
     let dPnL = 0, dWins = 0, dLosses = 0;
@@ -3967,58 +3955,34 @@ if (reviewDateEl) {
                     STATE.tsCompletedTradesShowAll = true; STATE.tsCompletedTradesCurrentPage = 1;
                     renderFilteredEvalData();
                 } else if (e.target.id === 'ts-completed-trades-prev-page') {
-                    const dateInput = document.getElementById('ts-setup-review-date');
-                    if (dateInput) {
-                        const currentDate = dateInput.value;
-                        const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
-                        const tradeDates = Array.from(new Set(Object.keys(completedMapped).map(id => 
-                            getTradingDayString(completedMapped[id].closed_date || completedMapped[id].date || 0, completedMapped[id].date || 0)
-                        ))).sort((a, b) => b.localeCompare(a));
-                        
-                        const currentIndex = tradeDates.indexOf(currentDate);
-                        if (currentIndex > 0) {
-                            const newDate = tradeDates[currentIndex - 1];
-                            dateInput.value = newDate;
-                            renderFilteredEvalData();
-                            
-                            // Sync setup library
-                            const tsSetupsContainer = document.getElementById('ts-setups-image-container');
-                            if (tsSetupsContainer) {
-                                const uniqueImgDates = Array.from(new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp)))).sort((a, b) => b.localeCompare(a));
-                                const imgIndex = uniqueImgDates.indexOf(newDate);
-                                if (imgIndex !== -1) {
-                                    STATE.tsSetupsImagesCurrentPage = imgIndex + 1;
-                                    renderGenericImageLibrary(STATE.allTsSetupsImages, tsSetupsContainer, 'ts_setups_images');
-                                }
-                            }
-                        }
+                    if (STATE.tsCompletedTradesCurrentPage > 1) { 
+                        STATE.tsCompletedTradesCurrentPage--; 
+                        renderFilteredEvalData(); 
                     }
                 } else if (e.target.id === 'ts-completed-trades-next-page') {
+                    const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
                     const dateInput = document.getElementById('ts-setup-review-date');
-                    if (dateInput) {
-                        const currentDate = dateInput.value;
-                        const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
-                        const tradeDates = Array.from(new Set(Object.keys(completedMapped).map(id => 
-                            getTradingDayString(completedMapped[id].closed_date || completedMapped[id].date || 0, completedMapped[id].date || 0)
-                        ))).sort((a, b) => b.localeCompare(a));
-                        
-                        const currentIndex = tradeDates.indexOf(currentDate);
-                        if (currentIndex !== -1 && currentIndex < tradeDates.length - 1) {
-                            const newDate = tradeDates[currentIndex + 1];
-                            dateInput.value = newDate;
-                            renderFilteredEvalData();
-                            
-                            // Sync setup library
-                            const tsSetupsContainer = document.getElementById('ts-setups-image-container');
-                            if (tsSetupsContainer) {
-                                const uniqueImgDates = Array.from(new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp)))).sort((a, b) => b.localeCompare(a));
-                                const imgIndex = uniqueImgDates.indexOf(newDate);
-                                if (imgIndex !== -1) {
-                                    STATE.tsSetupsImagesCurrentPage = imgIndex + 1;
-                                    renderGenericImageLibrary(STATE.allTsSetupsImages, tsSetupsContainer, 'ts_setups_images');
-                                }
-                            }
-                        }
+                    const selectedDateStr = dateInput ? dateInput.value : getPerthDateString();
+                    
+                    const tradeIds = Object.keys(completedMapped);
+                    const tradesByDay = {};
+                    tradeIds.forEach(id => {
+                        const t = completedMapped[id];
+                        const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
+                        if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
+                        tradesByDay[dayStr].push(t);
+                    });
+                    const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
+                    
+                    // Inject selected review date to match table loop structure
+                    if (selectedDateStr && !uniqueTradingDates.includes(selectedDateStr)) {
+                        uniqueTradingDates.push(selectedDateStr);
+                        uniqueTradingDates.sort((a, b) => b.localeCompare(a));
+                    }
+
+                    if (STATE.tsCompletedTradesCurrentPage < uniqueTradingDates.length) { 
+                        STATE.tsCompletedTradesCurrentPage++; 
+                        renderFilteredEvalData(); 
                     }
                 }
                 else if (e.target.id === 'toggle-all-setups-images') {
