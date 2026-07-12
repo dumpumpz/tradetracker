@@ -321,17 +321,18 @@
         }
 
         /* 2. Target ONLY the Live Trades Table Headers */
-        table:has(#ts-trades-tbody) thead th:nth-child(1),
-        table:has(#ts-trades-tbody) thead th:nth-child(5),
-        table:has(#ts-trades-tbody) thead th:nth-child(6),
-        table:has(#ts-trades-tbody) thead th:nth-child(10),
-        table:has(#ts-trades-tbody) thead th:nth-child(12),
-        table:has(#ts-trades-tbody) thead th:nth-child(13),
-        table:has(#ts-trades-tbody) thead th:nth-child(14),
-        table:has(#ts-trades-tbody) thead th:nth-child(16),
-        table:has(#ts-trades-tbody) United thead th:nth-child(18) {
-            display: none !important;
-        }
+/* 2. Target ONLY the Live Trades Table Headers */
+table:has(#ts-trades-tbody) thead th:nth-child(1),
+table:has(#ts-trades-tbody) thead th:nth-child(5),
+table:has(#ts-trades-tbody) thead th:nth-child(6),
+table:has(#ts-trades-tbody) thead th:nth-child(10),
+table:has(#ts-trades-tbody) thead th:nth-child(12),
+table:has(#ts-trades-tbody) thead th:nth-child(13),
+table:has(#ts-trades-tbody) thead th:nth-child(14),
+table:has(#ts-trades-tbody) thead th:nth-child(16),
+table:has(#ts-trades-tbody) thead th:nth-child(18) {
+    display: none !important;
+}
 
         /* 3. ENSURE Group Headers (colspan rows) remain visible */
         #ts-trades-tbody tr:not(.child-row) td {
@@ -3410,7 +3411,24 @@ function updateFundedPerformanceStats() {
 
   
 }
-
+function renderApexExpiry() {
+    // Safe placeholder to prevent ReferenceError crashes
+    const container = document.getElementById('apex-expiry-dashboard');
+    if (!container) return;
+    
+    let html = '';
+    Object.keys(STATE.apexDates).forEach(key => {
+        const data = STATE.apexDates[key];
+        html += `
+        <div class="expiry-grid" style="border-bottom: 1px solid var(--border-color); padding: 5px 0;">
+            <div>${key}</div>
+            <div>${data.date || '--'}</div>
+            <div>${data.daysLeft || '--'}d</div>
+            <div>${data.status || '--'}</div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
 
         function getUnifiedDates(isTopstep) {
     const datesSet = new Set();
@@ -5052,7 +5070,6 @@ function handleCompletedTradeUpdate(cell) {
             FUNDED_STATS_CACHE = calculateFundedStats(tsCompletedData);
             updateTargetCalculator();
         }
-
 function subscribeToData() {
     // 1. Live Crypto Trades
     dbRefs.trades.on('value', s => { 
@@ -5066,45 +5083,13 @@ function subscribeToData() {
         renderApexExpiry();
     });
 
-    // 3. Daily Notes
-    dbRefs.dailyNotes.on('value', (s) => {
-        STATE.dailyNotes = s.val() || {};
-        // Use a small delay to prevent flickering
-        clearTimeout(STATE.renderTimer);
-        STATE.renderTimer = setTimeout(() => {
-            renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
-            renderFilteredEvalData();
-        }, 100);
-    });
-
-    // 4. Live Funded Trades
-    dbRefs.tsTrades.on('value', s => { 
-        STATE.allTsTrades = s.val() || {}; 
-        renderFilteredEvalData(); 
-        debouncedPerformanceUpdate(); 
-    });
-
-    // 5. Completed Funded Trades
-    dbRefs.tsCompletedTrades.on('value', s => {
-        STATE.allTsCompletedTrades = s.val() || {};
-        updateAutoSessionUI(); 
-        renderFilteredEvalData();
-        debouncedPerformanceUpdate(); 
-    });
-
-    // 6. Setups/Images (Optimization: Only redraw if the tab is visible or data is new)
-    dbRefs.tsSetupsImages.on('value', (s) => {
-        STATE.allTsSetupsImages = s.val() || {};
-        const container = document.getElementById('ts-setups-image-container');
-        if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
-    });
-
+    // 3. Completed Crypto Trades
     dbRefs.completedTrades.on('value', s => {
         STATE.allCompletedTrades = s.val() || {};
         renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
     });
 
-    // 7. Journaling & Notes (Standard listeners are fine here)
+    // 4. Journaling & Notes
     dbRefs.journalText.on('value', (s) => { 
         STATE.journalText = s.val() || {}; 
         if (DOM.journalTab.classList.contains('active') && document.activeElement !== DOM.journalEntryEl) updateJournalView(true); 
@@ -5139,7 +5124,6 @@ function subscribeToData() {
         if (DOM.noteEditModal.style.display === 'none') renderNotes(STATE.generalNotes); 
     });
 }
-
 // Optimization Helper: Prevents the heavy math from freezing the UI
 function debouncedPerformanceUpdate() {
     clearTimeout(STATE.statsTimer);
