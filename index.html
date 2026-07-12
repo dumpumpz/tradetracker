@@ -2951,6 +2951,7 @@ function renderFundedDashboard() {
             container.innerHTML = messages.length > 0 ? messages.join('') : '';
         }
 
+// --- UPDATED COMPLETED TRADES RENDER FUNCTION ---
 function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
@@ -2973,23 +2974,17 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     });
 
     const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
-    if (uniqueTradingDates.length === 0) {
-        tbodyElement.innerHTML = '<tr><td colspan="25" style="text-align:center; padding:20px;">No history found.</td></tr>';
-        return;
+
+    // Get the exact target date
+    let targetDateStr;
+    if (isTopstep) {
+        const dateInput = document.getElementById('ts-setup-review-date');
+        targetDateStr = dateInput ? dateInput.value : getPerthDateString();
+    } else {
+        let currentPage = STATE.completedTradesCurrentPage;
+        if (!currentPage || currentPage > uniqueTradingDates.length) currentPage = 1;
+        targetDateStr = uniqueTradingDates[currentPage - 1];
     }
-
-    let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
-    if (!currentPage || currentPage > uniqueTradingDates.length) currentPage = 1;
-
-    if (paginationControls) {
-        paginationControls.style.display = 'flex';
-        if (pageInfoSpan) pageInfoSpan.textContent = `Day ${currentPage}/${uniqueTradingDates.length}`;
-        if (prevBtn) prevBtn.disabled = (currentPage === 1);
-        if (nextBtn) nextBtn.disabled = (currentPage === uniqueTradingDates.length);
-    }
-
-    const targetDateStr = uniqueTradingDates[currentPage - 1];
-    const dayTrades = tradesByDay[targetDateStr].sort((a, b) => b.closed_date - a.closed_date);
 
     const table = tbodyElement.closest('table');
     let thead = table.querySelector('thead');
@@ -3000,14 +2995,70 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
         : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
 
+    const dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => b.closed_date - a.closed_date);
+    const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
+
+    // Handle empty state specifically for the selected date
+    if (isTopstep && dayTrades.length === 0) {
+        tbodyElement.innerHTML = `
+        <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
+            <td colspan="3" style="text-align: left; padding: 10px 20px;">
+                <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--subtle-text)">No Trades</span>
+            </td>
+            <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
+                Daily Net: <span style="color: var(--subtle-text);">$0.00</span>
+            </td>
+            <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
+        </tr>
+        <tr>
+            <td colspan="25" style="text-align:center; padding:30px; color:var(--subtle-text); font-style:italic;">
+                No completed trades recorded for this day.
+            </td>
+        </tr>`;
+
+        if (paginationControls) {
+            paginationControls.style.display = 'flex';
+            const dateIndex = uniqueTradingDates.indexOf(targetDateStr);
+            if (dateIndex !== -1) {
+                if (pageInfoSpan) pageInfoSpan.textContent = `Day ${dateIndex + 1}/${uniqueTradingDates.length}`;
+                if (prevBtn) prevBtn.disabled = (dateIndex === uniqueTradingDates.length - 1);
+                if (nextBtn) nextBtn.disabled = (dateIndex === 0);
+            } else {
+                if (pageInfoSpan) pageInfoSpan.textContent = formatFriendlyDate(targetDateStr);
+                if (prevBtn) prevBtn.disabled = true;
+                if (nextBtn) nextBtn.disabled = true;
+            }
+        }
+        return;
+    }
+
+    if (uniqueTradingDates.length === 0) {
+        tbodyElement.innerHTML = '<tr><td colspan="25" style="text-align:center; padding:20px;">No history found.</td></tr>';
+        return;
+    }
+
+    if (paginationControls) {
+        paginationControls.style.display = 'flex';
+        if (isTopstep) {
+            const dateIndex = uniqueTradingDates.indexOf(targetDateStr);
+            const displayIndex = dateIndex !== -1 ? dateIndex + 1 : 1;
+            if (pageInfoSpan) pageInfoSpan.textContent = `Day ${displayIndex}/${uniqueTradingDates.length}`;
+            if (prevBtn) prevBtn.disabled = (dateIndex === uniqueTradingDates.length - 1 || dateIndex === -1);
+            if (nextBtn) nextBtn.disabled = (dateIndex === 0 || dateIndex === -1);
+        } else {
+            let currentPage = STATE.completedTradesCurrentPage;
+            if (pageInfoSpan) pageInfoSpan.textContent = `Day ${currentPage}/${uniqueTradingDates.length}`;
+            if (prevBtn) prevBtn.disabled = (currentPage === uniqueTradingDates.length);
+            if (nextBtn) nextBtn.disabled = (currentPage === 1);
+        }
+    }
+
     let dPnL = 0, dWins = 0, dLosses = 0;
     dayTrades.forEach(t => {
         const net = parseFloat(t.net_result || 0);
         dPnL += net; if (net >= 0) dWins++; else dLosses++;
     });
 
-    const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
-    
     rowsHtml += `
     <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
         <td colspan="3" style="text-align: left; padding: 10px 20px;">
@@ -3762,6 +3813,14 @@ function updateFundedPerformanceStats() {
                     }, 1000);
                 });
             }
+            
+// --- AUTO REFRESH TABLE WHEN REVIEW DATE CHANGES ---
+const reviewDateEl = document.getElementById('ts-setup-review-date');
+if (reviewDateEl) {
+    reviewDateEl.addEventListener('change', () => {
+        renderFilteredEvalData();
+    });
+}
 
             const tsTradeSymbolSelect = document.getElementById('ts-trade-symbol');
             const tsCommissionsInput = document.getElementById('ts-commissions');
@@ -3896,11 +3955,6 @@ function updateFundedPerformanceStats() {
                     STATE.tsCompletedTradesShowAll = true; STATE.tsCompletedTradesCurrentPage = 1;
                     renderFilteredEvalData();
                 } else if (e.target.id === 'ts-completed-trades-prev-page') {
-                    if (STATE.tsCompletedTradesCurrentPage > 1) { STATE.tsCompletedTradesCurrentPage--; renderFilteredEvalData(); }
-                } else if (e.target.id === 'ts-completed-trades-next-page') {
-                    const tPagesTS = Math.ceil(Object.keys(STATE.allTsCompletedTrades).length / 5);
-                    if (STATE.tsCompletedTradesCurrentPage < tPagesTS) { STATE.tsCompletedTradesCurrentPage++; renderFilteredEvalData(); }
-                }
 
                 else if (e.target.id === 'toggle-all-setups-images') {
                     STATE.setupsImagesShowAll = true; STATE.setupsImagesCurrentPage = 1;
