@@ -1107,21 +1107,7 @@
 
 
 
-    
-function openCollapsibleSection(sectionElement) {
-    if (!sectionElement || sectionElement.classList.contains('is-open')) return;
-    const content = sectionElement.querySelector('.collapsible-content');
-    const toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
-    if (content && toggleBtn) {
-        sectionElement.classList.add('is-open'); 
-        toggleBtn.textContent = '−'; 
-        
-        // Force height to be visible immediately
-        content.style.display = 'block';
-        content.style.maxHeight = 'none'; 
-        content.style.overflow = 'visible';
-    }
-}
+
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -1790,7 +1776,21 @@ function openCollapsibleSection(sectionElement) {
                 if (el && document.activeElement !== el) { el.value = s.val() || ""; autoResizeTextarea(el); }
             });
         }
-
+    
+function openCollapsibleSection(sectionElement) {
+    if (!sectionElement || sectionElement.classList.contains('is-open')) return;
+    const content = sectionElement.querySelector('.collapsible-content');
+    const toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
+    if (content && toggleBtn) {
+        sectionElement.classList.add('is-open'); 
+        toggleBtn.textContent = '−'; 
+        
+        // Force height to be visible immediately
+        content.style.display = 'block';
+        content.style.maxHeight = 'none'; 
+        content.style.overflow = 'visible';
+    }
+}
         function subscribeToOtherTabs(tabId) {
             if (STATE.initializedTabs[tabId]) return;
             STATE.initializedTabs[tabId] = true;
