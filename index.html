@@ -2939,7 +2939,7 @@ function renderFundedDashboard() {
             container.innerHTML = messages.length > 0 ? messages.join('') : '';
         }
 
-// --- UPDATED COMPLETED TRADES RENDER FUNCTION ---
+// --- CORRECTED COMPLETED TRADES RENDER FUNCTION ---
 function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
@@ -2963,7 +2963,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
 
     const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
 
-    // Get the exact target date
+    // Get target date
     let targetDateStr;
     if (isTopstep) {
         const dateInput = document.getElementById('ts-setup-review-date');
@@ -3009,8 +3009,8 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             const dateIndex = uniqueTradingDates.indexOf(targetDateStr);
             if (dateIndex !== -1) {
                 if (pageInfoSpan) pageInfoSpan.textContent = `Day ${dateIndex + 1}/${uniqueTradingDates.length}`;
-                if (prevBtn) prevBtn.disabled = (dateIndex === uniqueTradingDates.length - 1);
-                if (nextBtn) nextBtn.disabled = (dateIndex === 0);
+                if (prevBtn) prevBtn.disabled = (dateIndex === 0);
+                if (nextBtn) nextBtn.disabled = (dateIndex === uniqueTradingDates.length - 1);
             } else {
                 if (pageInfoSpan) pageInfoSpan.textContent = formatFriendlyDate(targetDateStr);
                 if (prevBtn) prevBtn.disabled = true;
@@ -3031,13 +3031,13 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
             const dateIndex = uniqueTradingDates.indexOf(targetDateStr);
             const displayIndex = dateIndex !== -1 ? dateIndex + 1 : 1;
             if (pageInfoSpan) pageInfoSpan.textContent = `Day ${displayIndex}/${uniqueTradingDates.length}`;
-            if (prevBtn) prevBtn.disabled = (dateIndex === uniqueTradingDates.length - 1 || dateIndex === -1);
-            if (nextBtn) nextBtn.disabled = (dateIndex === 0 || dateIndex === -1);
+            if (prevBtn) prevBtn.disabled = (dateIndex === 0 || dateIndex === -1);
+            if (nextBtn) nextBtn.disabled = (dateIndex === uniqueTradingDates.length - 1 || dateIndex === -1);
         } else {
             let currentPage = STATE.completedTradesCurrentPage;
             if (pageInfoSpan) pageInfoSpan.textContent = `Day ${currentPage}/${uniqueTradingDates.length}`;
-            if (prevBtn) prevBtn.disabled = (currentPage === uniqueTradingDates.length);
-            if (nextBtn) nextBtn.disabled = (currentPage === 1);
+            if (prevBtn) prevBtn.disabled = (currentPage === 1);
+            if (nextBtn) nextBtn.disabled = (currentPage === uniqueTradingDates.length);
         }
     }
 
@@ -3929,14 +3929,27 @@ if (reviewDateEl) {
                     handleGenericImageLibraryClick(e);
                 }
 
+         
                 else if (e.target.id === 'toggle-all-completed-trades') {
                     STATE.completedTradesShowAll = true; STATE.completedTradesCurrentPage = 1;
                     renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
                 } else if (e.target.id === 'completed-trades-prev-page') {
-                    if (STATE.completedTradesCurrentPage > 1) { STATE.completedTradesCurrentPage--; renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); }
+                    // Standard Crypto: Move to newer days
+                    if (STATE.completedTradesCurrentPage > 1) { 
+                        STATE.completedTradesCurrentPage--; 
+                        renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); 
+                    }
                 } else if (e.target.id === 'completed-trades-next-page') {
-                    const tPages = Math.ceil(Object.keys(STATE.allCompletedTrades).length / STATE.completedTradesItemsPerPage);
-                    if (STATE.completedTradesCurrentPage < tPages) { STATE.completedTradesCurrentPage++; renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); }
+                    // Standard Crypto: Move to older days
+                    const completedMapped = STATE.allCompletedTrades || {};
+                    const totalTradeDays = new Set(Object.values(completedMapped).map(t => 
+                        getTradingDayString(t.closed_date, t.date)
+                    )).size;
+                    
+                    if (STATE.completedTradesCurrentPage < totalTradeDays) { 
+                        STATE.completedTradesCurrentPage++; 
+                        renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); 
+                    }
                 } 
 
                 else if (e.target.id === 'ts-toggle-all-completed-trades') {
@@ -3952,8 +3965,9 @@ if (reviewDateEl) {
                         ))).sort((a, b) => b.localeCompare(a));
                         
                         const currentIndex = tradeDates.indexOf(currentDate);
-                        if (currentIndex !== -1 && currentIndex < tradeDates.length - 1) {
-                            const newDate = tradeDates[currentIndex + 1];
+                        // Move to newer dates (closer to index 0)
+                        if (currentIndex > 0) {
+                            const newDate = tradeDates[currentIndex - 1];
                             dateInput.value = newDate;
                             renderFilteredEvalData();
                             
@@ -3979,8 +3993,9 @@ if (reviewDateEl) {
                         ))).sort((a, b) => b.localeCompare(a));
                         
                         const currentIndex = tradeDates.indexOf(currentDate);
-                        if (currentIndex > 0) {
-                            const newDate = tradeDates[currentIndex - 1];
+                        // Move to older dates (further down descending sorted array)
+                        if (currentIndex !== -1 && currentIndex < tradeDates.length - 1) {
+                            const newDate = tradeDates[currentIndex + 1];
                             dateInput.value = newDate;
                             renderFilteredEvalData();
                             
