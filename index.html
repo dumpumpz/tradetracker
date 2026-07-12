@@ -3083,7 +3083,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         </tr>
         <tr>
             <td colspan="25" style="text-align:center; padding:30px; color:var(--subtle-text); font-style:italic;">
-                No completed trades recorded for this day.
+         
             </td>
         </tr>`;
         return;
@@ -3979,9 +3979,8 @@ if (reviewDateEl) {
                     handleGenericImageLibraryClick(e);
                 }
 
-         
-          
- else if (e.target.id === 'toggle-all-completed-trades') {
+    
+                else if (e.target.id === 'toggle-all-completed-trades') {
                     STATE.completedTradesShowAll = true; STATE.completedTradesCurrentPage = 1;
                     renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
                 } else if (e.target.id === 'completed-trades-prev-page') {
@@ -4039,6 +4038,7 @@ if (reviewDateEl) {
                         renderFilteredEvalData(); 
                     }
                 }
+
                 else if (e.target.id === 'toggle-all-setups-images') {
                     STATE.setupsImagesShowAll = true; STATE.setupsImagesCurrentPage = 1;
                     renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
@@ -4061,8 +4061,17 @@ if (reviewDateEl) {
                     }
                 } 
                 else if (e.target.id === 'ts-setups-images-next-page') {
-                    const uniqueDatesTS = new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp)));
-                    if (STATE.tsSetupsImagesCurrentPage < uniqueDatesTS.size) { 
+                    const uniqueDatesTS = Array.from(new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp))));
+                    
+                    // Inject today and selected review date for correct limits
+                    const todayStr = getPerthDateString();
+                    const dateInput = document.getElementById('ts-setup-review-date');
+                    const selectedDateStr = dateInput ? dateInput.value : todayStr;
+                    if (todayStr && !uniqueDatesTS.includes(todayStr)) uniqueDatesTS.push(todayStr);
+                    if (selectedDateStr && !uniqueDatesTS.includes(selectedDateStr)) uniqueDatesTS.push(selectedDateStr);
+                    uniqueDatesTS.sort((a, b) => b.localeCompare(a));
+
+                    if (STATE.tsSetupsImagesCurrentPage < uniqueDatesTS.length) { 
                         STATE.tsSetupsImagesCurrentPage++; 
                         renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
                     }
@@ -4824,6 +4833,7 @@ function handleCompletedTradeUpdate(cell) {
 
     
    
+// --- SAFELY TYPED IMAGE LIBRARY RENDER FUNCTION WITH EMPTY DAY SUPPORT ---
 function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
     const images = imagesData || {};
     if (!containerElement) return;
@@ -4849,15 +4859,35 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
 
     const allImageIds = Object.keys(images).sort((a, b) => (images[b].timestamp || 0) - (images[a].timestamp || 0));
     
-    if (allImageIds.length === 0) {
+    const uniqueDates = Array.from(new Set(allImageIds.map(id => getTradingDayString(images[id].timestamp, images[id].timestamp)))).sort((a, b) => b.localeCompare(a));
+    
+    // If Topstep, inject both today's date (as a permanent home anchor) and the currently selected review date
+    if (isTS) {
+        const todayStr = getPerthDateString();
+        const dateInput = document.getElementById('ts-setup-review-date');
+        const selectedDateStr = dateInput ? dateInput.value : todayStr;
+        
+        let needsSort = false;
+        if (todayStr && !uniqueDates.includes(todayStr)) {
+            uniqueDates.push(todayStr);
+            needsSort = true;
+        }
+        if (selectedDateStr && !uniqueDates.includes(selectedDateStr)) {
+            uniqueDates.push(selectedDateStr);
+            needsSort = true;
+        }
+        if (needsSort) {
+            uniqueDates.sort((a, b) => b.localeCompare(a)); // Maintain descending order
+        }
+    }
+
+    if (uniqueDates.length === 0) {
         containerElement.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 20px;">No setups recorded yet.</div>';
         if (paginationControls) paginationControls.style.display = 'none';
         return;
     }
 
-    const uniqueDates = Array.from(new Set(allImageIds.map(id => getTradingDayString(images[id].timestamp, images[id].timestamp)))).sort((a, b) => b.localeCompare(a));
     const totalPages = uniqueDates.length;
-    
     const targetPageIndex = Math.min(currentPage, totalPages) - 1;
     const targetDate = uniqueDates[targetPageIndex];
 
@@ -4874,11 +4904,18 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
             </div>`;
     };
 
-    // SPEED OPTIMIZATION: Use requestAnimationFrame to prevent page "glitching"
     window.requestAnimationFrame(() => {
         if (targetDate) {
             const idsForDate = allImageIds.filter(id => getTradingDayString(images[id].timestamp, images[id].timestamp) === targetDate);
-            let imagesHtml = idsForDate.map(id => createImageHtml(id)).join('');
+            let imagesHtml = '';
+
+            // Handle empty state if no images are uploaded for the selected date
+            if (idsForDate.length === 0) {
+                imagesHtml = `<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 40px 20px; font-style: italic;">No setup images uploaded for this day.</div>`;
+            } else {
+                imagesHtml = idsForDate.map(id => createImageHtml(id)).join('');
+            }
+
             imagesHtml += `<h3 class="daily-image-footer">${formatDisplayDate(targetDate)}</h3>`;
             containerElement.innerHTML = imagesHtml;
 
@@ -4897,7 +4934,6 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
         
         if (paginationControls) {
             paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
-            // FIXED LINE BELOW (Note the backticks around the whole string)
             pageInfo.textContent = `Day ${targetPageIndex + 1}/${totalPages}`;
             
             prevBtn.disabled = (targetPageIndex === 0);
