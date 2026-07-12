@@ -2199,29 +2199,53 @@ function renderFundedDashboard() {
         }
 
         // --- FIXED SYNC FUNCTION ---
-        function syncCompletedTradesToDate(targetDate, isTopstep) {
-            const trades = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
-            if (!trades || Object.keys(trades).length === 0) return;
+     
+// --- TWO-WAY SYNCHRONIZATION ALIGNER ---
+function syncCompletedTradesToDate(targetDate, isTopstep) {
+    const trades = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
+    if (!trades || Object.keys(trades).length === 0) return;
 
-            const uniqueTradeDates = Array.from(new Set(Object.keys(trades).map(id => 
-                getTradingDayString(trades[id].closed_date, trades[id].date)
-            ))).sort((a, b) => b.localeCompare(a));
+    const completedMapped = isTopstep ? mapLegacyAccounts(trades) : trades;
+    const tradeIds = Object.keys(completedMapped);
+    const tradesByDay = {};
+    tradeIds.forEach(id => {
+        const t = completedMapped[id];
+        const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
+        if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
+        tradesByDay[dayStr].push(t);
+    });
+    const uniqueTradeDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
 
-            const dateIndex = uniqueTradeDates.indexOf(targetDate);
+    // Force date bounds alignment
+    if (isTopstep) {
+        const todayStr = getPerthDateString();
+        if (todayStr && !uniqueTradeDates.includes(todayStr)) {
+            uniqueTradeDates.push(todayStr);
+        }
+        if (targetDate && !uniqueTradeDates.includes(targetDate)) {
+            uniqueTradeDates.push(targetDate);
+        }
+        uniqueTradeDates.sort((a, b) => b.localeCompare(a));
+    }
 
-            if (dateIndex !== -1) {
-                if (isTopstep) {
-                    STATE.tsCompletedTradesShowAll = true;
-                    STATE.tsCompletedTradesCurrentPage = dateIndex + 1;
-                    renderFilteredEvalData();
-                } else {
-                    STATE.completedTradesShowAll = true;
-                    STATE.completedTradesCurrentPage = dateIndex + 1;
-                    renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
-                }
+    const dateIndex = uniqueTradeDates.indexOf(targetDate);
+
+    if (dateIndex !== -1) {
+        if (isTopstep) {
+            const newPage = dateIndex + 1;
+            if (STATE.tsCompletedTradesCurrentPage !== newPage) {
+                STATE.tsCompletedTradesCurrentPage = newPage;
+                renderFilteredEvalData();
+            }
+        } else {
+            const newPage = dateIndex + 1;
+            if (STATE.completedTradesCurrentPage !== newPage) {
+                STATE.completedTradesCurrentPage = newPage;
+                renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
             }
         }
-
+    }
+}
         // --- FIXED JUMP TO DATE FUNCTION ---
         function jumpToFundedSetupDate() {
             const dateInput = document.getElementById('ts-setup-review-date');
@@ -2939,7 +2963,7 @@ function renderFundedDashboard() {
             container.innerHTML = messages.length > 0 ? messages.join('') : '';
         }
 
-// --- STABLE INTEGRATED COMPLETED TRADES RENDER FUNCTION ---
+// --- STABLE COMPLETED TRADES FUNCTION WITH SETUPS SYNC ---
 function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
@@ -2970,7 +2994,6 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         tradesByDay[dayStr].push(t);
     });
 
-  
     const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
 
     // If Topstep, inject both today's date (as a permanent home anchor) and the currently selected review date
@@ -3015,6 +3038,22 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         const dateInput = document.getElementById('ts-setup-review-date');
         if (dateInput && dateInput.value !== targetDateStr) {
             dateInput.value = targetDateStr;
+        }
+
+        // Auto-sync the Setups Library display page to match this displayed date
+        const tsSetupsContainer = document.getElementById('ts-setups-image-container');
+        if (tsSetupsContainer && STATE.allTsSetupsImages) {
+            const allImageIds = Object.keys(STATE.allTsSetupsImages).sort((a, b) => (STATE.allTsSetupsImages[b].timestamp || 0) - (STATE.allTsSetupsImages[a].timestamp || 0));
+            const uniqueImgDates = Array.from(new Set(allImageIds.map(id => getTradingDayString(STATE.allTsSetupsImages[id].timestamp, STATE.allTsSetupsImages[id].timestamp)))).sort((a, b) => b.localeCompare(a));
+            
+            const imgIndex = uniqueImgDates.indexOf(targetDateStr);
+            if (imgIndex !== -1) {
+                const newImgPage = imgIndex + 1;
+                if (STATE.tsSetupsImagesCurrentPage !== newImgPage) {
+                    STATE.tsSetupsImagesCurrentPage = newImgPage;
+                    renderGenericImageLibrary(STATE.allTsSetupsImages, tsSetupsContainer, 'ts_setups_images');
+                }
+            }
         }
     }
 
