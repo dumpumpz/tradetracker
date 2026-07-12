@@ -2939,13 +2939,22 @@ function renderFundedDashboard() {
             container.innerHTML = messages.length > 0 ? messages.join('') : '';
         }
 
-// --- CORRECTED COMPLETED TRADES RENDER FUNCTION ---
+// --- SAFELY TYPED COMPLETED TRADES RENDER FUNCTION ---
 function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
 
     const trades = data || {};
-    const tradeIds = Object.keys(trades).sort((a, b) => new Date(trades[b].closed_date) - new Date(trades[a].closed_date));
+    
+    // Helper to extract a safe numeric timestamp from any trade
+    const getSafeTimestamp = (t) => {
+        if (!t) return 0;
+        const dateVal = t.closed_date || t.date || 0;
+        return typeof dateVal === 'number' ? dateVal : new Date(dateVal).getTime() || 0;
+    };
+
+    // Sort safely using the helper to handle older/differently structured database records
+    const tradeIds = Object.keys(trades).sort((a, b) => getSafeTimestamp(trades[b]) - getSafeTimestamp(trades[a]));
     let rowsHtml = '';
     
     const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
@@ -2956,14 +2965,15 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const tradesByDay = {};
     tradeIds.forEach(id => {
         const t = { ...trades[id], dbId: id };
-        const dayStr = getTradingDayString(t.closed_date, t.date);
+        // Fall back to t.date if closed_date is missing on older records
+        const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
         if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
         tradesByDay[dayStr].push(t);
     });
 
     const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
 
-    // Get target date
+    // Determine current target date
     let targetDateStr;
     if (isTopstep) {
         const dateInput = document.getElementById('ts-setup-review-date');
@@ -2983,10 +2993,10 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
         : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
 
-    const dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => b.closed_date - a.closed_date);
+    const dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => getSafeTimestamp(b) - getSafeTimestamp(a));
     const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
 
-    // Handle empty state specifically for the selected date
+    // Handle empty state gracefully
     if (isTopstep && dayTrades.length === 0) {
         tbodyElement.innerHTML = `
         <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
@@ -3063,7 +3073,9 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         let currentCluster = [dayTrades[0]];
         for (let i = 1; i < dayTrades.length; i++) {
             const prev = dayTrades[i - 1], curr = dayTrades[i];
-            if (Math.abs(prev.closed_date - curr.closed_date) <= 10 * 60 * 1000) currentCluster.push(curr);
+            const prevTime = getSafeTimestamp(prev);
+            const currTime = getSafeTimestamp(curr);
+            if (Math.abs(prevTime - currTime) <= 10 * 60 * 1000) currentCluster.push(curr);
             else { clusters.push(currentCluster); currentCluster = [curr]; }
         }
         clusters.push(currentCluster);
@@ -3930,20 +3942,19 @@ if (reviewDateEl) {
                 }
 
          
+          
                 else if (e.target.id === 'toggle-all-completed-trades') {
                     STATE.completedTradesShowAll = true; STATE.completedTradesCurrentPage = 1;
                     renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
                 } else if (e.target.id === 'completed-trades-prev-page') {
-                    // Standard Crypto: Move to newer days
                     if (STATE.completedTradesCurrentPage > 1) { 
                         STATE.completedTradesCurrentPage--; 
                         renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); 
                     }
                 } else if (e.target.id === 'completed-trades-next-page') {
-                    // Standard Crypto: Move to older days
                     const completedMapped = STATE.allCompletedTrades || {};
                     const totalTradeDays = new Set(Object.values(completedMapped).map(t => 
-                        getTradingDayString(t.closed_date, t.date)
+                        getTradingDayString(t.closed_date || t.date || 0, t.date || 0)
                     )).size;
                     
                     if (STATE.completedTradesCurrentPage < totalTradeDays) { 
@@ -3961,11 +3972,10 @@ if (reviewDateEl) {
                         const currentDate = dateInput.value;
                         const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
                         const tradeDates = Array.from(new Set(Object.keys(completedMapped).map(id => 
-                            getTradingDayString(completedMapped[id].closed_date, completedMapped[id].date)
+                            getTradingDayString(completedMapped[id].closed_date || completedMapped[id].date || 0, completedMapped[id].date || 0)
                         ))).sort((a, b) => b.localeCompare(a));
                         
                         const currentIndex = tradeDates.indexOf(currentDate);
-                        // Move to newer dates (closer to index 0)
                         if (currentIndex > 0) {
                             const newDate = tradeDates[currentIndex - 1];
                             dateInput.value = newDate;
@@ -3989,11 +3999,10 @@ if (reviewDateEl) {
                         const currentDate = dateInput.value;
                         const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
                         const tradeDates = Array.from(new Set(Object.keys(completedMapped).map(id => 
-                            getTradingDayString(completedMapped[id].closed_date, completedMapped[id].date)
+                            getTradingDayString(completedMapped[id].closed_date || completedMapped[id].date || 0, completedMapped[id].date || 0)
                         ))).sort((a, b) => b.localeCompare(a));
                         
                         const currentIndex = tradeDates.indexOf(currentDate);
-                        // Move to older dates (further down descending sorted array)
                         if (currentIndex !== -1 && currentIndex < tradeDates.length - 1) {
                             const newDate = tradeDates[currentIndex + 1];
                             dateInput.value = newDate;
@@ -4012,7 +4021,6 @@ if (reviewDateEl) {
                         }
                     }
                 }
-
                 else if (e.target.id === 'toggle-all-setups-images') {
                     STATE.setupsImagesShowAll = true; STATE.setupsImagesCurrentPage = 1;
                     renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
