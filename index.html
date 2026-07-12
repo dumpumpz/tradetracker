@@ -1097,7 +1097,7 @@
     height: 40px;
     flex-shrink: 0;
     background: #1a1a1a; /* Placeholder color while loading */
-    border-radius: 4px;
+    border-radius: 4px;}
 
 
 
@@ -1107,21 +1107,7 @@
 
 
 
-    
-function openCollapsibleSection(sectionElement) {
-    if (!sectionElement || sectionElement.classList.contains('is-open')) return;
-    const content = sectionElement.querySelector('.collapsible-content');
-    const toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
-    if (content && toggleBtn) {
-        sectionElement.classList.add('is-open'); 
-        toggleBtn.textContent = '−'; 
-        
-        // Force height to be visible immediately
-        content.style.display = 'block';
-        content.style.maxHeight = 'none'; 
-        content.style.overflow = 'visible';
-    }
-}
+
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -2654,6 +2640,21 @@ function renderFundedDashboard() {
             }).catch(err => alert("Error saving note: " + err.message));
         }
 
+            
+function openCollapsibleSection(sectionElement) {
+    if (!sectionElement || sectionElement.classList.contains('is-open')) return;
+    const content = sectionElement.querySelector('.collapsible-content');
+    const toggleBtn = sectionElement.querySelector('.collapsible-toggle-btn');
+    if (content && toggleBtn) {
+        sectionElement.classList.add('is-open'); 
+        toggleBtn.textContent = '−'; 
+        
+        // Force height to be visible immediately
+        content.style.display = 'block';
+        content.style.maxHeight = 'none'; 
+        content.style.overflow = 'visible';
+    }
+}
         function renderLiveSummaryCards(groupedTrades, summaryId, isTopstep = false) {
             const summaryContainer = document.getElementById(summaryId);
             if (!summaryContainer) return;
@@ -3910,7 +3911,7 @@ if (reviewDateEl) {
             if (DOM.addTradeForm) DOM.addTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, false));
             if (DOM.tsAddTradeForm) DOM.tsAddTradeForm.addEventListener('submit', (e) => handleAddTradeSubmit(e, true));
 
-            document.body.addEventListener('click', (e) => {
+        document.body.addEventListener('click', (e) => {
                 const header = e.target.closest('.collapsible-header');
                 if (header) {
                     const section = header.parentElement;
@@ -3955,6 +3956,60 @@ if (reviewDateEl) {
                     STATE.tsCompletedTradesShowAll = true; STATE.tsCompletedTradesCurrentPage = 1;
                     renderFilteredEvalData();
                 } else if (e.target.id === 'ts-completed-trades-prev-page') {
+                    const dateInput = document.getElementById('ts-setup-review-date');
+                    if (dateInput) {
+                        const currentDate = dateInput.value;
+                        const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
+                        const tradeDates = Array.from(new Set(Object.keys(completedMapped).map(id => 
+                            getTradingDayString(completedMapped[id].closed_date, completedMapped[id].date)
+                        ))).sort((a, b) => b.localeCompare(a));
+                        
+                        const currentIndex = tradeDates.indexOf(currentDate);
+                        if (currentIndex !== -1 && currentIndex < tradeDates.length - 1) {
+                            const newDate = tradeDates[currentIndex + 1];
+                            dateInput.value = newDate;
+                            renderFilteredEvalData();
+                            
+                            // Sync setup library
+                            const tsSetupsContainer = document.getElementById('ts-setups-image-container');
+                            if (tsSetupsContainer) {
+                                const uniqueImgDates = Array.from(new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp)))).sort((a, b) => b.localeCompare(a));
+                                const imgIndex = uniqueImgDates.indexOf(newDate);
+                                if (imgIndex !== -1) {
+                                    STATE.tsSetupsImagesCurrentPage = imgIndex + 1;
+                                    renderGenericImageLibrary(STATE.allTsSetupsImages, tsSetupsContainer, 'ts_setups_images');
+                                }
+                            }
+                        }
+                    }
+                } else if (e.target.id === 'ts-completed-trades-next-page') {
+                    const dateInput = document.getElementById('ts-setup-review-date');
+                    if (dateInput) {
+                        const currentDate = dateInput.value;
+                        const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
+                        const tradeDates = Array.from(new Set(Object.keys(completedMapped).map(id => 
+                            getTradingDayString(completedMapped[id].closed_date, completedMapped[id].date)
+                        ))).sort((a, b) => b.localeCompare(a));
+                        
+                        const currentIndex = tradeDates.indexOf(currentDate);
+                        if (currentIndex > 0) {
+                            const newDate = tradeDates[currentIndex - 1];
+                            dateInput.value = newDate;
+                            renderFilteredEvalData();
+                            
+                            // Sync setup library
+                            const tsSetupsContainer = document.getElementById('ts-setups-image-container');
+                            if (tsSetupsContainer) {
+                                const uniqueImgDates = Array.from(new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp)))).sort((a, b) => b.localeCompare(a));
+                                const imgIndex = uniqueImgDates.indexOf(newDate);
+                                if (imgIndex !== -1) {
+                                    STATE.tsSetupsImagesCurrentPage = imgIndex + 1;
+                                    renderGenericImageLibrary(STATE.allTsSetupsImages, tsSetupsContainer, 'ts_setups_images');
+                                }
+                            }
+                        }
+                    }
+                }
 
                 else if (e.target.id === 'toggle-all-setups-images') {
                     STATE.setupsImagesShowAll = true; STATE.setupsImagesCurrentPage = 1;
