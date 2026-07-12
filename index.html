@@ -1777,6 +1777,38 @@
             });
         }
 
+
+// --- UNIFIED CALENDAR DATE ALIGNER ---
+function getMasterTradingDates(isTopstep) {
+    const dates = new Set();
+    
+    // 1. Always anchor today's date
+    dates.add(getPerthDateString());
+    
+    // 2. Anchor the currently selected review date
+    const dateInput = document.getElementById('ts-setup-review-date');
+    if (dateInput && dateInput.value) {
+        dates.add(dateInput.value);
+    }
+
+    // 3. Collect all dates with completed trades
+    const trades = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
+    if (trades) {
+        Object.values(trades).forEach(t => {
+            dates.add(getTradingDayString(t.closed_date || t.date || 0, t.date || 0));
+        });
+    }
+
+    // 4. Collect all dates with setup images
+    if (isTopstep && STATE.allTsSetupsImages) {
+        Object.values(STATE.allTsSetupsImages).forEach(img => {
+            dates.add(getTradingDayString(img.timestamp, img.timestamp));
+        });
+    }
+
+    return Array.from(dates).sort((a, b) => b.localeCompare(a));
+}
+        
         function subscribeToOtherTabs(tabId) {
             if (STATE.initializedTabs[tabId]) return;
             STATE.initializedTabs[tabId] = true;
@@ -2199,35 +2231,14 @@ function renderFundedDashboard() {
         }
 
         // --- FIXED SYNC FUNCTION ---
-     
+  
 // --- TWO-WAY SYNCHRONIZATION ALIGNER ---
 function syncCompletedTradesToDate(targetDate, isTopstep) {
     const trades = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
     if (!trades || Object.keys(trades).length === 0) return;
 
-    const completedMapped = isTopstep ? mapLegacyAccounts(trades) : trades;
-    const tradeIds = Object.keys(completedMapped);
-    const tradesByDay = {};
-    tradeIds.forEach(id => {
-        const t = completedMapped[id];
-        const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
-        if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
-        tradesByDay[dayStr].push(t);
-    });
-    const uniqueTradeDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
-
-    // Force date bounds alignment
-    if (isTopstep) {
-        const todayStr = getPerthDateString();
-        if (todayStr && !uniqueTradeDates.includes(todayStr)) {
-            uniqueTradeDates.push(todayStr);
-        }
-        if (targetDate && !uniqueTradeDates.includes(targetDate)) {
-            uniqueTradeDates.push(targetDate);
-        }
-        uniqueTradeDates.sort((a, b) => b.localeCompare(a));
-    }
-
+    // Use unified Master Dates list
+    const uniqueTradeDates = getMasterTradingDates(isTopstep);
     const dateIndex = uniqueTradeDates.indexOf(targetDate);
 
     if (dateIndex !== -1) {
@@ -2963,7 +2974,7 @@ function syncCompletedTradesToDate(targetDate, isTopstep) {
             container.innerHTML = messages.length > 0 ? messages.join('') : '';
         }
 
-// --- STABLE COMPLETED TRADES FUNCTION WITH SETUPS SYNC ---
+// --- UNIFIED COMPLETED TRADES RENDER FUNCTION ---
 function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
     const tbodyElement = document.getElementById(tbodyId);
     if (!tbodyElement) return;
@@ -2994,32 +3005,8 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         tradesByDay[dayStr].push(t);
     });
 
-    const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
-
-    // If Topstep, inject both today's date (as a permanent home anchor) and the currently selected review date
-    if (isTopstep) {
-        const todayStr = getPerthDateString();
-        const dateInput = document.getElementById('ts-setup-review-date');
-        const selectedDateStr = dateInput ? dateInput.value : todayStr;
-        
-        let needsSort = false;
-        if (todayStr && !uniqueTradingDates.includes(todayStr)) {
-            uniqueTradingDates.push(todayStr);
-            needsSort = true;
-        }
-        if (selectedDateStr && !uniqueTradingDates.includes(selectedDateStr)) {
-            uniqueTradingDates.push(selectedDateStr);
-            needsSort = true;
-        }
-        if (needsSort) {
-            uniqueTradingDates.sort((a, b) => b.localeCompare(a)); // Maintain descending order
-        }
-    }
-
-    if (uniqueTradingDates.length === 0) {
-        tbodyElement.innerHTML = '<tr><td colspan="25" style="text-align:center; padding:20px;">No history found.</td></tr>';
-        return;
-    }
+    // Use unified Master Dates list
+    const uniqueTradingDates = getMasterTradingDates(isTopstep);
 
     let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
     if (!currentPage || currentPage > uniqueTradingDates.length) currentPage = 1;
@@ -3043,9 +3030,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         // Auto-sync the Setups Library display page to match this displayed date
         const tsSetupsContainer = document.getElementById('ts-setups-image-container');
         if (tsSetupsContainer && STATE.allTsSetupsImages) {
-            const allImageIds = Object.keys(STATE.allTsSetupsImages).sort((a, b) => (STATE.allTsSetupsImages[b].timestamp || 0) - (STATE.allTsSetupsImages[a].timestamp || 0));
-            const uniqueImgDates = Array.from(new Set(allImageIds.map(id => getTradingDayString(STATE.allTsSetupsImages[id].timestamp, STATE.allTsSetupsImages[id].timestamp)))).sort((a, b) => b.localeCompare(a));
-            
+            const uniqueImgDates = getMasterTradingDates(true);
             const imgIndex = uniqueImgDates.indexOf(targetDateStr);
             if (imgIndex !== -1) {
                 const newImgPage = imgIndex + 1;
@@ -3083,7 +3068,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         </tr>
         <tr>
             <td colspan="25" style="text-align:center; padding:30px; color:var(--subtle-text); font-style:italic;">
-         
+                No completed trades recorded for this day.
             </td>
         </tr>`;
         return;
@@ -4859,27 +4844,8 @@ function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
 
     const allImageIds = Object.keys(images).sort((a, b) => (images[b].timestamp || 0) - (images[a].timestamp || 0));
     
-    const uniqueDates = Array.from(new Set(allImageIds.map(id => getTradingDayString(images[id].timestamp, images[id].timestamp)))).sort((a, b) => b.localeCompare(a));
-    
-    // If Topstep, inject both today's date (as a permanent home anchor) and the currently selected review date
-    if (isTS) {
-        const todayStr = getPerthDateString();
-        const dateInput = document.getElementById('ts-setup-review-date');
-        const selectedDateStr = dateInput ? dateInput.value : todayStr;
-        
-        let needsSort = false;
-        if (todayStr && !uniqueDates.includes(todayStr)) {
-            uniqueDates.push(todayStr);
-            needsSort = true;
-        }
-        if (selectedDateStr && !uniqueDates.includes(selectedDateStr)) {
-            uniqueDates.push(selectedDateStr);
-            needsSort = true;
-        }
-        if (needsSort) {
-            uniqueDates.sort((a, b) => b.localeCompare(a)); // Maintain descending order
-        }
-    }
+    // Use unified Master Dates list for Topstep image rotation
+    const uniqueDates = isTS ? getMasterTradingDates(true) : Array.from(new Set(allImageIds.map(id => getTradingDayString(images[id].timestamp, images[id].timestamp)))).sort((a, b) => b.localeCompare(a));
 
     if (uniqueDates.length === 0) {
         containerElement.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 20px;">No setups recorded yet.</div>';
