@@ -2970,14 +2970,25 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         tradesByDay[dayStr].push(t);
     });
 
+  
     const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
 
-    // If Topstep, inject the currently selected review date so it is included in our daily loop
+    // If Topstep, inject both today's date (as a permanent home anchor) and the currently selected review date
     if (isTopstep) {
+        const todayStr = getPerthDateString();
         const dateInput = document.getElementById('ts-setup-review-date');
-        const selectedDateStr = dateInput ? dateInput.value : getPerthDateString();
+        const selectedDateStr = dateInput ? dateInput.value : todayStr;
+        
+        let needsSort = false;
+        if (todayStr && !uniqueTradingDates.includes(todayStr)) {
+            uniqueTradingDates.push(todayStr);
+            needsSort = true;
+        }
         if (selectedDateStr && !uniqueTradingDates.includes(selectedDateStr)) {
             uniqueTradingDates.push(selectedDateStr);
+            needsSort = true;
+        }
+        if (needsSort) {
             uniqueTradingDates.sort((a, b) => b.localeCompare(a)); // Maintain descending order
         }
     }
@@ -3931,7 +3942,7 @@ if (reviewDateEl) {
 
          
           
-                else if (e.target.id === 'toggle-all-completed-trades') {
+ else if (e.target.id === 'toggle-all-completed-trades') {
                     STATE.completedTradesShowAll = true; STATE.completedTradesCurrentPage = 1;
                     renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
                 } else if (e.target.id === 'completed-trades-prev-page') {
@@ -3974,11 +3985,15 @@ if (reviewDateEl) {
                     });
                     const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
                     
-                    // Inject selected review date to match table loop structure
+                    // Always anchor today's date in the array boundaries
+                    const todayStr = getPerthDateString();
+                    if (todayStr && !uniqueTradingDates.includes(todayStr)) {
+                        uniqueTradingDates.push(todayStr);
+                    }
                     if (selectedDateStr && !uniqueTradingDates.includes(selectedDateStr)) {
                         uniqueTradingDates.push(selectedDateStr);
-                        uniqueTradingDates.sort((a, b) => b.localeCompare(a));
                     }
+                    uniqueTradingDates.sort((a, b) => b.localeCompare(a));
 
                     if (STATE.tsCompletedTradesCurrentPage < uniqueTradingDates.length) { 
                         STATE.tsCompletedTradesCurrentPage++; 
