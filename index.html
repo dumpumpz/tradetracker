@@ -3172,7 +3172,7 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.entry).toFixed(2)}</td>
                     <td style="${clusterB}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
                     <td style="${clusterB}">${parseFloat(t.target || 0).toFixed(2)}</td>
-                    <td style="${clusterB}">${isTopstep ? contr : contr.toFixed(0)}</td>
+                  <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${isTopstep ? contr : contr.toFixed(0)}</td>
                     <td style="${clusterB}">${isTopstep ? (m.rr_taker || '0.00') : (m.rr_maker || '0.00')}</td> 
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.exit_price).toFixed(2)}</td>
                     <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">$${net.toFixed(2)}</td>
