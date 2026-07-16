@@ -1248,19 +1248,23 @@
                 </div>
             </div>
 
-            <!-- Completed Trades -->
+             <!-- Completed Trades -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
-                    <h2>Completed Trades</h2>
+                <h2 class="hide-title">Completed Trades</h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
+                        <!-- Add this container here: -->
+                        <div id="ts-completed-filter-container" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; align-items: center;"></div>
+                        
                         <div class="table-wrapper">
                             <table>
-                                <tbody id="completed-trades-tbody"></tbody>
+                                <tbody id="ts-completed-trades-tbody"></tbody>
                             </table>
                         </div>
+
                         <button id="toggle-all-completed-trades" class="toggle-history-btn">Show All</button>
                         <div id="completed-trades-pagination-controls" class="pagination-controls" style="display: none;">
                             <button id="completed-trades-prev-page" class="pagination-btn">&lt; Prev</button>
@@ -1691,6 +1695,8 @@
             isMasterUser: false, 
             activeTab: 'topstep', // Default tab
             initializedTabs: { topstep: true }, // Tracker for what's been loaded
+                        visibleTsAccounts: ['Lucid 1', 'Lucid 2', 'Lucid 3', 'Lucid 4 - scalp'],
+
             isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {},  favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null, isTopstep: false },
             allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,             apexDates: {}, 
             renderTimer: null,
@@ -2086,6 +2092,55 @@ function renderFundedDashboard() {
 
     container.innerHTML = html;
 }
+
+                function renderAccountFilterPills() {
+            const container = document.getElementById('ts-completed-filter-container');
+            if (!container) return;
+
+            let html = `<span style="font-size: 11px; color: var(--subtle-text); font-weight: bold; text-transform: uppercase; margin-right: 4px;">Filter Accounts:</span>`;
+            
+            CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
+                const isActive = STATE.visibleTsAccounts.includes(acc);
+                const bgColor = isActive ? 'var(--link-color)' : 'var(--card-bg)';
+                const textColor = isActive ? '#fff' : 'var(--subtle-text)';
+                const borderColor = isActive ? 'var(--link-color)' : 'var(--border-color)';
+                const fontWeight = isActive ? 'bold' : 'normal';
+
+                html += `
+                    <button type="button" class="account-filter-pill" data-acc="${acc}" style="
+                        width: auto; 
+                        padding: 4px 12px; 
+                        font-size: 11px; 
+                        background-color: ${bgColor}; 
+                        color: ${textColor}; 
+                        border: 1px solid ${borderColor}; 
+                        border-radius: 20px; 
+                        cursor: pointer; 
+                        font-weight: ${fontWeight};
+                        transition: all 0.2s ease;
+                        margin: 0;
+                    ">${acc}</button>
+                `;
+            });
+
+            const allActive = STATE.visibleTsAccounts.length === CONFIG.FUNDED_ACCOUNTS.length;
+            html += `
+                <button type="button" id="ts-filter-toggle-all" style="
+                    width: auto; 
+                    padding: 4px 10px; 
+                    font-size: 10px; 
+                    background-color: transparent; 
+                    color: var(--subtle-text); 
+                    border: 1px dashed var(--border-color); 
+                    border-radius: 20px; 
+                    cursor: pointer;
+                    margin-left: auto;
+                ">${allActive ? 'Clear Filters' : 'Select All'}</button>
+            `;
+
+            container.innerHTML = html;
+        }
+
         // --- RENDERING FUNCTIONS ---
         function toggleHistoricalRows(tbodyId, button) {
             const tbody = document.getElementById(tbodyId);
@@ -3042,7 +3097,12 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
         }
     }
 
-    const dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => getSafeTimestamp(b) - getSafeTimestamp(a));
+   let dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => getSafeTimestamp(b) - getSafeTimestamp(a));
+    
+    // Filter the trades list if we are viewing the Funded Accounts Tab
+    if (isTopstep && STATE.visibleTsAccounts) {
+        dayTrades = dayTrades.filter(t => STATE.visibleTsAccounts.includes(getEvalAccount(t)));
+    }
     const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
 
     const table = tbodyElement.closest('table');
@@ -3836,7 +3896,38 @@ function updateFundedPerformanceStats() {
                     }, 1000);
                 });
             }
-            
+             const filterContainer = document.getElementById('ts-completed-filter-container');
+            if (filterContainer) {
+                filterContainer.addEventListener('click', (e) => {
+                    const pill = e.target.closest('.account-filter-pill');
+                    if (pill) {
+                        const acc = pill.dataset.acc;
+                        const index = STATE.visibleTsAccounts.indexOf(acc);
+                        if (index > -1) {
+                            // Ensure at least one remains active to prevent blank states
+                            if (STATE.visibleTsAccounts.length > 1) {
+                                STATE.visibleTsAccounts.splice(index, 1);
+                            } else {
+                                return;
+                            }
+                        } else {
+                            STATE.visibleTsAccounts.push(acc);
+                        }
+                        renderAccountFilterPills();
+                        renderFilteredEvalData(); 
+                    }
+
+                    if (e.target.id === 'ts-filter-toggle-all') {
+                        if (STATE.visibleTsAccounts.length === CONFIG.FUNDED_ACCOUNTS.length) {
+                            STATE.visibleTsAccounts = [CONFIG.FUNDED_ACCOUNTS[0]]; // Keeps one active
+                        } else {
+                            STATE.visibleTsAccounts = [...CONFIG.FUNDED_ACCOUNTS];
+                        }
+                        renderAccountFilterPills();
+                        renderFilteredEvalData();
+                    }
+                });
+            }
 // --- AUTO REFRESH TABLE WHEN REVIEW DATE CHANGES ---
 const reviewDateEl = document.getElementById('ts-setup-review-date');
 if (reviewDateEl) {
@@ -5335,7 +5426,8 @@ function openDefaultSectionsInContainer(containerElement) {
             await fetchLiveConversionRate();
 
             renderFundedAccountRadios();
-            
+            renderAccountFilterPills();
+
             CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
                 FUNDED_STATS_CACHE[acc] = { 
                     balance: CONFIG.FUNDED_START, 
