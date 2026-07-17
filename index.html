@@ -2088,17 +2088,16 @@
         }
 
      
-        function renderFilteredEvalData() {
-            if (STATE.isRenderingCompleted) return;
-            const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
-            renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
-            
-            const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
-            renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
-            
-            calculateTopstepStats(completedMapped);
-            renderFundedDashboard(); 
-        }
+ function renderFilteredEvalData() {
+    const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
+    renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
+    
+    const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
+    renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
+    
+    calculateTopstepStats(completedMapped);
+    renderFundedDashboard(); 
+}
       
         function renderFundedDashboard() {
             const container = document.getElementById('funded-dashboard-rows');
@@ -2332,34 +2331,29 @@
             return maxVariant + 1;
         }
 
-        // --- TWO-WAY SYNCHRONIZATION ALIGNER ---
-        function syncCompletedTradesToDate(targetDate, isTopstep) {
-            if (STATE.isRenderingCompleted) return;
-            const trades = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
-            if (!trades || Object.keys(trades).length === 0) return;
+    
+function syncCompletedTradesToDate(targetDate, isTopstep) {
+    const trades = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
+    if (!trades || Object.keys(trades).length === 0) return;
 
-            const uniqueTradeDates = getMasterTradingDates(isTopstep);
-            const dateIndex = uniqueTradeDates.indexOf(targetDate);
+    const uniqueTradeDates = getMasterTradingDates(isTopstep);
+    const dateIndex = uniqueTradeDates.indexOf(targetDate);
 
-            if (dateIndex !== -1) {
-                const newPage = dateIndex + 1;
-                if (isTopstep) {
-                    if (STATE.tsCompletedTradesCurrentPage !== newPage) {
-                        STATE.tsCompletedTradesCurrentPage = newPage;
-                        STATE.isRenderingCompleted = true;
-                        renderFilteredEvalData();
-                        STATE.isRenderingCompleted = false;
-                    }
-                } else {
-                    if (STATE.completedTradesCurrentPage !== newPage) {
-                        STATE.completedTradesCurrentPage = newPage;
-                        STATE.isRenderingCompleted = true;
-                        renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
-                        STATE.isRenderingCompleted = false;
-                    }
-                }
+    if (dateIndex !== -1) {
+        const newPage = dateIndex + 1;
+        if (isTopstep) {
+            if (STATE.tsCompletedTradesCurrentPage !== newPage) {
+                STATE.tsCompletedTradesCurrentPage = newPage;
+                renderFilteredEvalData();
+            }
+        } else {
+            if (STATE.completedTradesCurrentPage !== newPage) {
+                STATE.completedTradesCurrentPage = newPage;
+                renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
             }
         }
+    }
+}
 
         // --- FIXED JUMP TO DATE FUNCTION ---
         function jumpToFundedSetupDate() {
