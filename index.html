@@ -4120,21 +4120,15 @@
                     renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
                 }
             } 
-            else if (e.target.id === 'ts-setups-images-next-page') {
-                const uniqueDatesTS = Array.from(new Set(Object.values(STATE.allTsSetupsImages || {}).map(i => getTradingDayString(i.timestamp, i.timestamp))));
-                
-                const todayStr = getPerthDateString();
-                const dateInput = document.getElementById('ts-setup-review-date');
-                const selectedDateStr = dateInput ? dateInput.value : todayStr;
-                if (todayStr && !uniqueDatesTS.includes(todayStr)) uniqueDatesTS.push(todayStr);
-                if (selectedDateStr && !uniqueDatesTS.includes(selectedDateStr)) uniqueDatesTS.push(selectedDateStr);
-                uniqueDatesTS.sort((a, b) => b.localeCompare(a));
-
-                if (STATE.tsSetupsImagesCurrentPage < uniqueDatesTS.length) { 
-                    STATE.tsSetupsImagesCurrentPage++; 
-                    renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
-                }
-            }
+           
+else if (e.target.id === 'ts-setups-images-next-page') {
+    // Read directly from the synchronized master dates cache
+    const uniqueDatesTS = getMasterTradingDates(true);
+    if (STATE.tsSetupsImagesCurrentPage < uniqueDatesTS.length) { 
+        STATE.tsSetupsImagesCurrentPage++; 
+        renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
+    }
+}
         });
 
         if (DOM.createNewNoteBtn) {
