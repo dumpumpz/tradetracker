@@ -3323,8 +3323,17 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                 const isLastRowOfCluster = isLastGroupInCluster && (tIndex === gTrades.length - 1);
                 const clusterB = isLastRowOfCluster ? 'border-bottom: 3px solid #6f42c1 !important;' : '';
                 
+                const accBadgeHtml = isTopstep ? `<span class="acc-badge">${getEvalAccount(t)}</span>` : '';
+                const groupBadgeHtml = `<span class="group-badge editable-completed-cell" data-id="${t.dbId}" data-field="groupId" contenteditable="${STATE.isMasterUser}" style="font-size: 9px; background-color: var(--header-bg); padding: 1px 4px; border-radius: 3px; cursor: text; color: var(--link-color); font-weight: bold; border: 1px solid var(--border-color); display: inline-block; margin-left: 3px;" title="Click to edit Group ID">${t.groupId || 'Ungrouped'}</span>`;
+
                 rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
-                    <td class="cell-narrow" style="${clusterL} ${clusterB}"><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
+                    <td class="cell-narrow" style="${clusterL} ${clusterB}">
+                        <div style="display: flex; align-items: center; gap: 3px; flex-wrap: wrap; margin-bottom: 3px;">
+                            ${accBadgeHtml}
+                            ${groupBadgeHtml}
+                        </div>
+                        <div style="font-weight: bold; color: var(--text-color);">${t.symbol}</div>
+                    </td>
                     <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">${t.type}</td>
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.entry).toFixed(2)}</td>
                     <td style="${clusterB}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
