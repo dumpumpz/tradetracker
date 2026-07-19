@@ -3059,10 +3059,35 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
     const trades = data || {};
     
     // Helper to extract a safe numeric timestamp from any trade
+    // Prioritizes t.date (entry time) for chronological sorting,
+    // and automatically self-repairs legacy "HH:MM" string corruptions.
     const getSafeTimestamp = (t) => {
         if (!t) return 0;
-        const dateVal = t.closed_date || t.date || 0;
-        return typeof dateVal === 'number' ? dateVal : new Date(dateVal).getTime() || 0;
+        // Prioritize t.date for natural chronological sorting on entry time
+        let dateVal = t.date || t.closed_date || 0;
+        
+        // Self-repair legacy corrupted "HH:MM" strings stored in the database
+        if (typeof dateVal === 'string' && dateVal.includes(':') && !dateVal.includes('-') && !dateVal.includes('T')) {
+            const alternate = (dateVal === t.date) ? t.closed_date : t.date;
+            const baseTs = (alternate && typeof alternate === 'number') ? alternate : Date.now();
+            
+            const parts = dateVal.trim().split(':');
+            if (parts.length >= 2) {
+                const hours = parseInt(parts[0], 10);
+                const minutes = parseInt(parts[1], 10);
+                if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+                    const baseDate = new Date(baseTs);
+                    const tzOffset = 8 * 60; // Perth UTC+8
+                    const localTime = new Date(baseDate.getTime() + tzOffset * 60 * 1000);
+                    localTime.setUTCHours(hours, minutes, 0, 0);
+                    return localTime.getTime() - tzOffset * 60 * 1000;
+                }
+            }
+        }
+
+        if (typeof dateVal === 'number') return dateVal;
+        const parsed = new Date(dateVal).getTime();
+        return isNaN(parsed) ? 0 : parsed;
     };
 
     // Sort safely using the helper to handle older database records
@@ -3267,10 +3292,10 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                     <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; ${clusterB}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
                     
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="date" contenteditable="${STATE.isMasterUser}" style="color:var(--link-color); font-weight:bold; ${clusterB}">
-                        ${t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
+                        ${t.date ? new Date(getSafeTimestamp({date: t.date, closed_date: t.closed_date})).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
                     </td>
                     <td class="editable-completed-cell" data-id="${t.dbId}" data-field="closed_date" contenteditable="${STATE.isMasterUser}" style="${clusterB}">
-                        ${t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
+                        ${t.closed_date ? new Date(getSafeTimestamp({closed_date: t.closed_date, date: t.date})).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
                     </td>
                     
                     <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note || ''}</td>
