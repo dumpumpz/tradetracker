@@ -4516,7 +4516,7 @@ else if (e.target.id === 'ts-setups-images-next-page') {
         }
     }
 
- function handleCompletedTradeUpdate(cell) {
+function handleCompletedTradeUpdate(cell) {
         if (!STATE.isMasterUser) return;
 
         const isTopstep = cell.closest('#topstep-tab') !== null;
@@ -4594,12 +4594,14 @@ else if (e.target.id === 'ts-setups-images-next-page') {
             
             if (isTopstep) {
                 const MULT = getFuturesMultiplier(tempTrade.symbol);
+                const entryVal = parseFloat(tempTrade.entry) || 0;
+                const exitVal = parseFloat(tempTrade.exit_price) || 0;
                 const newContracts = parseFloat(tempTrade.contracts || tempTrade.size || 1);
                 const feeRate = parseFloat(tempTrade.commissions || 1.00); 
                 
                 const points = tempTrade.type === "Long" 
-                    ? (tempTrade.exit_price - tempTrade.entry) 
-                    : (tempTrade.entry - tempTrade.exit_price);
+                    ? (exitVal - entryVal) 
+                    : (entryVal - exitVal);
                 
                 const totalFees = feeRate * newContracts;
                 const grossPnL = points * MULT * newContracts;
@@ -4615,18 +4617,29 @@ else if (e.target.id === 'ts-setups-images-next-page') {
                     exit_fee: totalFees / 2
                 };
             } else {
-                const res = calculateNetResult(tempTrade, tempTrade.exit_price, tempTrade.exitFeeType || 'taker');
+                const exitVal = parseFloat(tempTrade.exit_price) || 0;
+                const res = calculateNetResult(tempTrade, exitVal, tempTrade.exitFeeType || 'taker');
                 const metrics = calculateTradeMetrics(tempTrade);
                 updates = { ...updates, ...res, ...metrics };
             }
 
+            // CLEANER SANITIZER: Scans and removes NaN / undefined values to prevent Firebase rejection
+            Object.keys(updates).forEach(key => {
+                if (updates[key] === undefined) {
+                    delete updates[key];
+                } else if (typeof updates[key] === 'number' && isNaN(updates[key])) {
+                    updates[key] = 0; 
+                }
+            });
+
             compRef.child(tradeId).update(updates).then(() => {
                 cell.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
                 setTimeout(() => cell.style.backgroundColor = '', 500);
+            }).catch(err => {
+                console.error("Firebase Update Failure:", err);
             });
         });
     }
-
     function handleLiveTradeUpdate(cell) {
         if (!STATE.isMasterUser) return;
         
@@ -5148,8 +5161,7 @@ else if (e.target.id === 'ts-setups-images-next-page') {
         if (baseRow) baseRow.classList.add('is-merge-base');
         alert('MERGE MODE: Click another trade to merge into this one. Click "Merge" again to cancel.');
     }
-
-      // Global Utility: Parses HH:MM strings into valid UTC millisecond timestamps
+// Global Utility: Parses HH:MM strings into browser-local UTC millisecond timestamps
 function parseTimeStringToTimestamp(timeStr, baseTimestamp) {
     const parts = timeStr.trim().split(':');
     if (parts.length < 2) return null;
@@ -5162,20 +5174,19 @@ function parseTimeStringToTimestamp(timeStr, baseTimestamp) {
         cleanBase = Date.now();
     }
 
-    const baseDate = new Date(cleanBase);
-    const tzOffset = 8 * 60; // Perth UTC+8
-    const localTime = new Date(baseDate.getTime() + tzOffset * 60 * 1000);
-    localTime.setUTCHours(hours, minutes, 0, 0);
+    const localDate = new Date(cleanBase);
+    localDate.setHours(hours, minutes, 0, 0);
     
-    return localTime.getTime() - tzOffset * 60 * 1000;
+    return localDate.getTime();
 }
 
 // Global Utility: Sorts trades chronologically by entry time and repairs string corruptions
 const getSafeTimestamp = (t) => {
     if (!t) return 0;
+    // Prioritize t.date for natural chronological sorting on entry time
     let dateVal = t.date || t.closed_date || 0;
     
-    // Self-repair legacy corrupted "HH:MM" strings stored directly in the database
+    // Self-repair legacy corrupted "HH:MM" strings stored directly in the database on the fly
     if (typeof dateVal === 'string' && dateVal.includes(':') && !dateVal.includes('-') && !dateVal.includes('T')) {
         const alternate = (dateVal === t.date) ? t.closed_date : t.date;
         const baseTs = (alternate && typeof alternate === 'number') ? alternate : Date.now();
@@ -5186,10 +5197,8 @@ const getSafeTimestamp = (t) => {
             const minutes = parseInt(parts[1], 10);
             if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
                 const baseDate = new Date(baseTs);
-                const tzOffset = 8 * 60; 
-                const localTime = new Date(baseDate.getTime() + tzOffset * 60 * 1000);
-                localTime.setUTCHours(hours, minutes, 0, 0);
-                return localTime.getTime() - tzOffset * 60 * 1000;
+                baseDate.setHours(hours, minutes, 0, 0);
+                return baseDate.getTime();
             }
         }
     }
