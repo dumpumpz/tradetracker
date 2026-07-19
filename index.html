@@ -1767,7 +1767,83 @@
                 return new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
             } catch (e) { return null; }
         })();
+function shiftTradeDay(tradeId, daysDirection, isTopstep) {
+        if (STATE.isProcessing) return;
+        STATE.isProcessing = true;
 
+        const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
+        
+        compRef.child(tradeId).once('value', snapshot => {
+            const trade = snapshot.val();
+            if (!trade) {
+                STATE.isProcessing = false;
+                return;
+            }
+
+            const msOffset = daysDirection * 24 * 60 * 60 * 1000;
+            const updates = {};
+
+            if (trade.date) {
+                const cleanDate = getSafeTimestamp({ date: trade.date });
+                if (cleanDate) updates.date = cleanDate + msOffset;
+            }
+            if (trade.closed_date) {
+                const cleanClosedDate = getSafeTimestamp({ closed_date: trade.closed_date });
+                if (cleanClosedDate) updates.closed_date = cleanClosedDate + msOffset;
+            }
+
+            // Recalculate Group ID based on the new shifted entry time
+            if (updates.date) {
+                const newSession = getSessionFromTimestamp(updates.date);
+                const currentClosedDate = updates.closed_date || updates.date;
+                const tradingDay = getTradingDayString(currentClosedDate, updates.date);
+                
+                const allCompleted = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
+                const allLive = isTopstep ? STATE.allTsTrades : {};
+
+                const newVariant = getNextVariantForDayAndSession(tradingDay, newSession, allCompleted, allLive, tradeId);
+                updates.groupId = `${newSession}_${newVariant}`;
+            }
+
+            // Sanitizer to prevent any NaN/undefined database corruption
+            Object.keys(updates).forEach(key => {
+                if (updates[key] === undefined) {
+                    delete updates[key];
+                } else if (typeof updates[key] === 'number' && isNaN(updates[key])) {
+                    updates[key] = 0;
+                }
+            });
+
+            compRef.child(tradeId).update(updates).then(() => {
+                // Auto-jump to the trade's new shifted day so the user sees it immediately
+                const finalClosedDate = updates.closed_date || trade.closed_date;
+                const finalDate = updates.date || trade.date;
+                if (finalClosedDate && finalDate) {
+                    const newDayStr = getTradingDayString(finalClosedDate, finalDate);
+                    const uniqueTradingDates = getMasterTradingDates(isTopstep);
+                    const newPageIndex = uniqueTradingDates.indexOf(newDayStr);
+                    if (newPageIndex !== -1) {
+                        const newPage = newPageIndex + 1;
+                        if (isTopstep) {
+                            if (STATE.tsCompletedTradesCurrentPage !== newPage) {
+                                STATE.tsCompletedTradesCurrentPage = newPage;
+                                renderFilteredEvalData();
+                            }
+                        } else {
+                            if (STATE.completedTradesCurrentPage !== newPage) {
+                                STATE.completedTradesCurrentPage = newPage;
+                                renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
+                            }
+                        }
+                    }
+                }
+            }).catch(err => {
+                console.error("Shift Day Error:", err);
+            }).finally(() => {
+                STATE.isProcessing = false;
+            });
+        });
+    }
         // --- REBUILD CALENDAR CACHE ---
         function rebuildDatesCache(isTopstep) {
             const dates = new Set();
@@ -3272,8 +3348,12 @@ function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopste
                     <td class="trade-image-thumbnails" style="${clusterB}">${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}</td>
                     ${STATE.isMasterUser ? `
                     <td class="master-only" style="${clusterB}">
-                        <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#dc3545; color:white; border:none; border-radius:3px;">Del</button>
-                        <button class="merge-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#6f42c1; color:white; border:none; border-radius:3px;">M</button>
+                        <div style="display: flex; gap: 2px;">
+                            <button class="shift-prev-day-btn" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#6c757d; color:white; border:none; border-radius:3px;" title="Shift trade to previous day">◀ Day</button>
+                            <button class="shift-next-day-btn" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#6c757d; color:white; border:none; border-radius:3px;" title="Shift trade to next day">Day ▶</button>
+                            <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#dc3545; color:white; border:none; border-radius:3px;">Del</button>
+                            <button class="merge-btn-completed" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#6f42c1; color:white; border:none; border-radius:3px;">M</button>
+                        </div>
                     </td>` : ''}
                 </tr>`;
             });
@@ -4816,8 +4896,7 @@ function handleCompletedTradeUpdate(cell) {
             });
         }
     }
-
-    function handleTradeAction(e) {
+function handleTradeAction(e) {
         if (!STATE.isMasterUser) return;
 
         const button = e.target.closest('button');
@@ -4888,6 +4967,14 @@ function handleCompletedTradeUpdate(cell) {
                 tradeRef.remove();
             }
         } 
+        
+        else if (button.matches('.shift-prev-day-btn')) {
+            shiftTradeDay(id, -1, isTopstep);
+        }
+        
+        else if (button.matches('.shift-next-day-btn')) {
+            shiftTradeDay(id, 1, isTopstep);
+        }
 
         else if (button.matches('.note-btn, .note-btn-completed')) {
             tradeRef.child('note').once('value', snapshot => {
@@ -4916,7 +5003,6 @@ function handleCompletedTradeUpdate(cell) {
             return date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
         } catch (e) { return dateString; }
     };
-
     function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
         const images = imagesData || {};
         if (!containerElement) return;
