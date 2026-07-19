@@ -4572,7 +4572,6 @@ else if (e.target.id === 'ts-setups-images-next-page') {
             });
         }
     }
-
 function handleCompletedTradeUpdate(cell) {
         if (!STATE.isMasterUser) return;
 
@@ -4632,9 +4631,12 @@ function handleCompletedTradeUpdate(cell) {
 
                 // Re-calculate Session and Group ID if the Entry Time ('date') is modified
                 if (field === 'date') {
+                    // AUTOMATION: Automatically set the Exit Time (closed_date) to exactly 1 minute after Entry Time
+                    const autoExitTs = parsedTs + 60000; // 1 minute in milliseconds
+                    updates.closed_date = autoExitTs;
+
                     const newSession = getSessionFromTimestamp(parsedTs);
-                    const currentClosedDate = trade.closed_date ? getSafeTimestamp({ closed_date: trade.closed_date }) : parsedTs;
-                    const tradingDay = getTradingDayString(currentClosedDate, parsedTs);
+                    const tradingDay = getTradingDayString(autoExitTs, parsedTs);
                     
                     const allCompleted = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
                     const allLive = isTopstep ? STATE.allTsTrades : {};
@@ -4692,6 +4694,29 @@ function handleCompletedTradeUpdate(cell) {
             compRef.child(tradeId).update(updates).then(() => {
                 cell.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
                 setTimeout(() => cell.style.backgroundColor = '', 500);
+
+                // AUTO-JUMP PAGINATION: Automatically navigates the view to the trade's new day if it shifted
+                const finalClosedDate = updates.closed_date || trade.closed_date || tempTrade.closed_date || tempTrade.date;
+                const finalDate = updates.date || trade.date || tempTrade.date;
+                if (finalClosedDate && finalDate) {
+                    const newDayStr = getTradingDayString(finalClosedDate, finalDate);
+                    const uniqueTradingDates = getMasterTradingDates(isTopstep);
+                    const newPageIndex = uniqueTradingDates.indexOf(newDayStr);
+                    if (newPageIndex !== -1) {
+                        const newPage = newPageIndex + 1;
+                        if (isTopstep) {
+                            if (STATE.tsCompletedTradesCurrentPage !== newPage) {
+                                STATE.tsCompletedTradesCurrentPage = newPage;
+                                renderFilteredEvalData();
+                            }
+                        } else {
+                            if (STATE.completedTradesCurrentPage !== newPage) {
+                                STATE.completedTradesCurrentPage = newPage;
+                                renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
+                            }
+                        }
+                    }
+                }
             }).catch(err => {
                 console.error("Firebase Update Failure:", err);
             });
