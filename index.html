@@ -3051,249 +3051,254 @@ function syncCompletedTradesToDate(targetDate, isTopstep) {
 
             container.innerHTML = messages.length > 0 ? messages.join('') : '';
         }
+// --- UNIFIED COMPLETED TRADES RENDER FUNCTION ---
+function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
+    const tbodyElement = document.getElementById(tbodyId);
+    if (!tbodyElement) return;
 
-        // --- UNIFIED COMPLETED TRADES RENDER FUNCTION ---
-        function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
-            const tbodyElement = document.getElementById(tbodyId);
-            if (!tbodyElement) return;
+    const trades = data || {};
+    
+    // Helper to extract a safe numeric timestamp from any trade
+    const getSafeTimestamp = (t) => {
+        if (!t) return 0;
+        const dateVal = t.closed_date || t.date || 0;
+        return typeof dateVal === 'number' ? dateVal : new Date(dateVal).getTime() || 0;
+    };
 
-            const trades = data || {};
-            
-            // Helper to extract a safe numeric timestamp from any trade
-            const getSafeTimestamp = (t) => {
-                if (!t) return 0;
-                const dateVal = t.closed_date || t.date || 0;
-                return typeof dateVal === 'number' ? dateVal : new Date(dateVal).getTime() || 0;
-            };
+    // Sort safely using the helper to handle older database records
+    const tradeIds = Object.keys(trades).sort((a, b) => getSafeTimestamp(trades[b]) - getSafeTimestamp(a));
+    let rowsHtml = '';
+    
+    const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
+    const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
+    const prevBtn = document.getElementById(isTopstep ? 'ts-completed-trades-prev-page' : 'completed-trades-prev-page');
+    const nextBtn = document.getElementById(isTopstep ? 'ts-completed-trades-next-page' : 'completed-trades-next-page');
 
-            // Sort safely using the helper to handle older database records
-            const tradeIds = Object.keys(trades).sort((a, b) => getSafeTimestamp(trades[b]) - getSafeTimestamp(a));
-            let rowsHtml = '';
-            
-            const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
-            const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
-            const prevBtn = document.getElementById(isTopstep ? 'ts-completed-trades-prev-page' : 'completed-trades-prev-page');
-            const nextBtn = document.getElementById(isTopstep ? 'ts-completed-trades-next-page' : 'completed-trades-next-page');
+    const tradesByDay = {};
+    const len = tradeIds.length;
+    for (let i = 0; i < len; i++) {
+        const id = tradeIds[i];
+        const t = { ...trades[id], dbId: id };
+        const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
+        if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
+        tradesByDay[dayStr].push(t);
+    }
 
-            const tradesByDay = {};
-            const len = tradeIds.length;
-            for (let i = 0; i < len; i++) {
-                const id = tradeIds[i];
-                const t = { ...trades[id], dbId: id };
-                const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
-                if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
-                tradesByDay[dayStr].push(t);
-            }
+    // Use unified Master Dates list
+    const uniqueTradingDates = getMasterTradingDates(isTopstep);
 
-            // Use unified Master Dates list
-            const uniqueTradingDates = getMasterTradingDates(isTopstep);
+    let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
+    if (!currentPage || currentPage > uniqueTradingDates.length) currentPage = 1;
 
-            let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
-            if (!currentPage || currentPage > uniqueTradingDates.length) currentPage = 1;
+    if (paginationControls) {
+        paginationControls.style.display = 'flex';
+        if (pageInfoSpan) pageInfoSpan.textContent = `Day ${currentPage}/${uniqueTradingDates.length}`;
+        if (prevBtn) prevBtn.disabled = (currentPage === 1);
+        if (nextBtn) nextBtn.disabled = (currentPage === uniqueTradingDates.length);
+    }
 
-            if (paginationControls) {
-                paginationControls.style.display = 'flex';
-                if (pageInfoSpan) pageInfoSpan.textContent = `Day ${currentPage}/${uniqueTradingDates.length}`;
-                if (prevBtn) prevBtn.disabled = (currentPage === 1);
-                if (nextBtn) nextBtn.disabled = (currentPage === uniqueTradingDates.length);
-            }
+    const targetDateStr = uniqueTradingDates[currentPage - 1];
+    
+    // Sync the calendar input view to show the date currently displayed in the table
+    if (isTopstep) {
+        const dateInput = document.getElementById('ts-setup-review-date');
+        if (dateInput && dateInput.value !== targetDateStr) {
+            dateInput.value = targetDateStr;
+        }
 
-            const targetDateStr = uniqueTradingDates[currentPage - 1];
-            
-            // Sync the calendar input view to show the date currently displayed in the table
-            if (isTopstep) {
-                const dateInput = document.getElementById('ts-setup-review-date');
-                if (dateInput && dateInput.value !== targetDateStr) {
-                    dateInput.value = targetDateStr;
-                }
-
-                // Auto-sync the Setups Library display page to match this displayed date
-                const tsSetupsContainer = document.getElementById('ts-setups-image-container');
-                if (tsSetupsContainer && STATE.allTsSetupsImages) {
-                    const uniqueImgDates = getMasterTradingDates(true);
-                    const imgIndex = uniqueImgDates.indexOf(targetDateStr);
-                    if (imgIndex !== -1) {
-                        const newImgPage = imgIndex + 1;
-                        if (STATE.tsSetupsImagesCurrentPage !== newImgPage) {
-                            STATE.tsSetupsImagesCurrentPage = newImgPage;
-                            if (!STATE.isRenderingLibrary) {
-                                STATE.isRenderingLibrary = true;
-                                renderGenericImageLibrary(STATE.allTsSetupsImages, tsSetupsContainer, 'ts_setups_images');
-                                STATE.isRenderingLibrary = false;
-                            }
-                        }
+        // Auto-sync the Setups Library display page to match this displayed date
+        const tsSetupsContainer = document.getElementById('ts-setups-image-container');
+        if (tsSetupsContainer && STATE.allTsSetupsImages) {
+            const uniqueImgDates = getMasterTradingDates(true);
+            const imgIndex = uniqueImgDates.indexOf(targetDateStr);
+            if (imgIndex !== -1) {
+                const newImgPage = imgIndex + 1;
+                if (STATE.tsSetupsImagesCurrentPage !== newImgPage) {
+                    STATE.tsSetupsImagesCurrentPage = newImgPage;
+                    if (!STATE.isRenderingLibrary) {
+                        STATE.isRenderingLibrary = true;
+                        renderGenericImageLibrary(STATE.allTsSetupsImages, tsSetupsContainer, 'ts_setups_images');
+                        STATE.isRenderingLibrary = false;
                     }
                 }
             }
+        }
+    }
 
-            let dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => getSafeTimestamp(b) - getSafeTimestamp(a));
-            
-            // Filter the trades list if we are viewing the Funded Accounts Tab
-            if (isTopstep && STATE.visibleTsAccounts) {
-                dayTrades = dayTrades.filter(t => STATE.visibleTsAccounts.includes(getEvalAccount(t)));
-            }
-            const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
+    let dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => getSafeTimestamp(b) - getSafeTimestamp(a));
+    
+    // Filter the trades list if we are viewing the Funded Accounts Tab
+    if (isTopstep && STATE.visibleTsAccounts) {
+        dayTrades = dayTrades.filter(t => STATE.visibleTsAccounts.includes(getEvalAccount(t)));
+    }
+    const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
 
-            const table = tbodyElement.closest('table');
-            let thead = table.querySelector('thead');
-            if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
-            
-            const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
-            thead.innerHTML = isTopstep 
-                ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
-                : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
+    const table = tbodyElement.closest('table');
+    let thead = table.querySelector('thead');
+    if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
+    
+    const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
+    thead.innerHTML = isTopstep 
+        ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
+        : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
 
-            // Render empty day state if no trades took place on the selected calendar date
-            if (dayTrades.length === 0) {
-                tbodyElement.innerHTML = `
-                <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
-                    <td colspan="3" style="text-align: left; padding: 10px 20px;">
-                        <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--subtle-text)">No Trades</span>
-                    </td>
-                    <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
-                        Daily Net: <span style="color: var(--subtle-text);">$0.00</span>
-                    </td>
-                    <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
-                </tr>
-                <tr>
-                    <td colspan="25" style="text-align:center; padding:30px; color:var(--subtle-text); font-style:italic;">
-               
-                    </td>
-                </tr>`;
-                return;
-            }
+    // Render empty day state if no trades took place on the selected calendar date
+    if (dayTrades.length === 0) {
+        tbodyElement.innerHTML = `
+        <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
+            <td colspan="3" style="text-align: left; padding: 10px 20px;">
+                <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--subtle-text)">No Trades</span>
+            </td>
+            <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
+                Daily Net: <span style="color: var(--subtle-text);">$0.00</span>
+            </td>
+            <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
+        </tr>
+        <tr>
+            <td colspan="25" style="text-align:center; padding:30px; color:var(--subtle-text); font-style:italic;">
+       
+            </td>
+        </tr>`;
+        return;
+    }
 
-            let dPnL = 0, dWins = 0, dLosses = 0;
-            dayTrades.forEach(t => {
-                const net = parseFloat(t.net_result || 0);
-                dPnL += net; if (net >= 0) dWins++; else dLosses++;
+    let dPnL = 0, dWins = 0, dLosses = 0;
+    dayTrades.forEach(t => {
+        const net = parseFloat(t.net_result || 0);
+        dPnL += net; if (net >= 0) dWins++; else dLosses++;
+    });
+
+    rowsHtml += `
+    <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
+        <td colspan="3" style="text-align: left; padding: 10px 20px;">
+            <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--green-text)">${dWins} Wins</span> / <span style="color:var(--red-text)">${dLosses} Losses</span>
+        </td>
+        <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
+            Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
+        </td>
+        <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
+    </tr>`;
+
+    const clusters = [];
+    if (dayTrades.length > 0) {
+        let currentCluster = [dayTrades[0]];
+        for (let i = 1; i < dayTrades.length; i++) {
+            const prev = dayTrades[i - 1], curr = dayTrades[i];
+            const prevTime = getSafeTimestamp(prev);
+            const currTime = getSafeTimestamp(curr);
+            if (Math.abs(prevTime - currTime) <= 10 * 60 * 1000) currentCluster.push(curr);
+            else { clusters.push(currentCluster); currentCluster = [curr]; }
+        }
+        clusters.push(currentCluster);
+    }
+
+    clusters.forEach(cluster => {
+        const isActualCluster = cluster.length > 1;
+        const clusterNet = cluster.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
+        
+        const clusterL = isActualCluster ? 'border-left: 6px solid #6f42c1 !important;' : '';
+        const clusterBG = isActualCluster ? 'background-color: rgba(111, 66, 193, 0.03) !important;' : '';
+
+        if (isActualCluster) {
+            rowsHtml += `
+            <tr style="border-top: 2px solid #6f42c1;">
+                <td colspan="25" style="${clusterL} ${clusterBG} padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
+                   <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
+                </td>
+            </tr>`;
+        }
+
+        const groupsInCluster = {};
+        cluster.forEach(t => {
+            const gid = t.groupId || 'Ungrouped';
+            if (!groupsInCluster[gid]) groupsInCluster[gid] = [];
+            groupsInCluster[gid].push(t);
+        });
+
+        const groupIds = Object.keys(groupsInCluster);
+        groupIds.forEach((groupId, gIndex) => {
+            const gTrades = groupsInCluster[groupId];
+            const isLastGroupInCluster = gIndex === groupIds.length - 1;
+
+            let gNet = 0, gQty = 0, gE = 0, gEx = 0;
+            gTrades.forEach(t => {
+                const n = parseFloat(t.net_result || 0), e = parseFloat(t.entry || 1), ex = parseFloat(t.exit_price || 0);
+                const s = isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
+                const q = isTopstep ? s : (s / e);
+                gNet += n; gQty += q; gE += (e * q); gEx += (ex * q);
             });
+            const gType = gTrades[0].type || 'Long';
+            const avgEntryG = (gE / gQty);
+            const avgExitG = (gEx / gQty);
+            const diff = avgExitG - avgEntryG;
+            let diffColor = (gType === 'Long' ? (diff >= 0 ? 'var(--green-text)' : 'var(--red-text)') : (diff <= 0 ? 'var(--green-text)' : 'var(--red-text)'));
 
             rowsHtml += `
-            <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
-                <td colspan="3" style="text-align: left; padding: 10px 20px;">
-                    <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--green-text)">${dWins} Wins</span> / <span style="color:var(--red-text)">${dLosses} Losses</span>
+            <tr class="completed-group-header">
+                <td colspan="25" style="${clusterL} ${clusterBG} padding: 8px 15px; font-size: 0.95em;">
+                    <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
+                        <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)}</span></span>
+                        <span style="color:var(--border-color);">|</span>
+                        <span>Avg: ${avgEntryG.toFixed(2)} ➔ ${avgExitG.toFixed(2)} <span style="color:${diffColor}; font-weight:bold;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
+                    </div>
                 </td>
-                <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
-                    Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
-                </td>
-                <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
             </tr>`;
 
-            const clusters = [];
-            if (dayTrades.length > 0) {
-                let currentCluster = [dayTrades[0]];
-                for (let i = 1; i < dayTrades.length; i++) {
-                    const prev = dayTrades[i - 1], curr = dayTrades[i];
-                    const prevTime = getSafeTimestamp(prev);
-                    const currTime = getSafeTimestamp(curr);
-                    if (Math.abs(prevTime - currTime) <= 10 * 60 * 1000) currentCluster.push(curr);
-                    else { clusters.push(currentCluster); currentCluster = [curr]; }
-                }
-                clusters.push(currentCluster);
-            }
-
-            clusters.forEach(cluster => {
-                const isActualCluster = cluster.length > 1;
-                const clusterNet = cluster.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
+            gTrades.forEach((t, tIndex) => {
+                const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
+                const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
+                const net = parseFloat(t.net_result || 0);
                 
-                const clusterL = isActualCluster ? 'border-left: 6px solid #6f42c1 !important;' : '';
-                const clusterBG = isActualCluster ? 'background-color: rgba(111, 66, 193, 0.03) !important;' : '';
-
-                if (isActualCluster) {
-                    rowsHtml += `
-                    <tr style="border-top: 2px solid #6f42c1;">
-                        <td colspan="25" style="${clusterL} ${clusterBG} padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
-                           <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
-                        </td>
-                    </tr>`;
-                }
-
-                const groupsInCluster = {};
-                cluster.forEach(t => {
-                    const gid = t.groupId || 'Ungrouped';
-                    if (!groupsInCluster[gid]) groupsInCluster[gid] = [];
-                    groupsInCluster[gid].push(t);
-                });
-
-                const groupIds = Object.keys(groupsInCluster);
-                groupIds.forEach((groupId, gIndex) => {
-                    const gTrades = groupsInCluster[groupId];
-                    const isLastGroupInCluster = gIndex === groupIds.length - 1;
-
-                    let gNet = 0, gQty = 0, gE = 0, gEx = 0;
-                    gTrades.forEach(t => {
-                        const n = parseFloat(t.net_result || 0), e = parseFloat(t.entry || 1), ex = parseFloat(t.exit_price || 0);
-                        const s = isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
-                        const q = isTopstep ? s : (s / e);
-                        gNet += n; gQty += q; gE += (e * q); gEx += (ex * q);
-                    });
-                    const gType = gTrades[0].type || 'Long';
-                    const avgEntryG = (gE / gQty);
-                    const avgExitG = (gEx / gQty);
-                    const diff = avgExitG - avgEntryG;
-                    let diffColor = (gType === 'Long' ? (diff >= 0 ? 'var(--green-text)' : 'var(--red-text)') : (diff <= 0 ? 'var(--green-text)' : 'var(--red-text)'));
-
-                    rowsHtml += `
-                    <tr class="completed-group-header">
-                        <td colspan="25" style="${clusterL} ${clusterBG} padding: 8px 15px; font-size: 0.95em;">
-                            <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
-                                <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
-                                <span style="color:var(--border-color);">|</span>
-                                <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)}</span></span>
-                                <span style="color:var(--border-color);">|</span>
-                                <span>Avg: ${avgEntryG.toFixed(2)} ➔ ${avgExitG.toFixed(2)} <span style="color:${diffColor}; font-weight:bold;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
-                            </div>
-                        </td>
-                    </tr>`;
-
-                    gTrades.forEach((t, tIndex) => {
-                        const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
-                        const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
-                        const net = parseFloat(t.net_result || 0);
-                        
-                        const isLastRowOfCluster = isLastGroupInCluster && (tIndex === gTrades.length - 1);
-                        const clusterB = isLastRowOfCluster ? 'border-bottom: 3px solid #6f42c1 !important;' : '';
-                        
-                        rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
-                            <td class="cell-narrow" style="${clusterL} ${clusterB}"><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
-                            <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">${t.type}</td>
-                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.entry).toFixed(2)}</td>
-                            <td style="${clusterB}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
-                            <td style="${clusterB}">${parseFloat(t.target || 0).toFixed(2)}</td>
-                          <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${isTopstep ? contr : contr.toFixed(0)}</td>
-                            <td style="${clusterB}">${isTopstep ? (m.rr_taker || '0.00') : (m.rr_maker || '0.00')}</td> 
-                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.exit_price).toFixed(2)}</td>
-                            <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">$${net.toFixed(2)}</td>
-                            <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; ${clusterB}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
-                            <td style="color:var(--link-color); font-weight:bold; ${clusterB}">${t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '--'}</td>
-                            <td style="${clusterB}">${t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '--'}</td>
-                            <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note || ''}</td>
-                            <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note2 || ''}</td>
-                            <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note3 || ''}</td>
-                            <td class="trade-image-thumbnails" style="${clusterB}">${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}</td>
-                            ${STATE.isMasterUser ? `
-                            <td class="master-only" style="${clusterB}">
-                                <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#dc3545; color:white; border:none; border-radius:3px;">Del</button>
-                                <button class="merge-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#6f42c1; color:white; border:none; border-radius:3px;">M</button>
-                            </td>` : ''}
-                        </tr>`;
-                    });
-                });
+                const isLastRowOfCluster = isLastGroupInCluster && (tIndex === gTrades.length - 1);
+                const clusterB = isLastRowOfCluster ? 'border-bottom: 3px solid #6f42c1 !important;' : '';
+                
+                rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
+                    <td class="cell-narrow" style="${clusterL} ${clusterB}"><span class="acc-badge">${getEvalAccount(t)}</span> ${t.symbol}</td>
+                    <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">${t.type}</td>
+                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.entry).toFixed(2)}</td>
+                    <td style="${clusterB}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
+                    <td style="${clusterB}">${parseFloat(t.target || 0).toFixed(2)}</td>
+                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${isTopstep ? contr : contr.toFixed(0)}</td>
+                    <td style="${clusterB}">${isTopstep ? (m.rr_taker || '0.00') : (m.rr_maker || '0.00')}</td> 
+                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.exit_price).toFixed(2)}</td>
+                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">$${net.toFixed(2)}</td>
+                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; ${clusterB}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
+                    
+                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="date" contenteditable="${STATE.isMasterUser}" style="color:var(--link-color); font-weight:bold; ${clusterB}">
+                        ${t.date ? new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
+                    </td>
+                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="closed_date" contenteditable="${STATE.isMasterUser}" style="${clusterB}">
+                        ${t.closed_date ? new Date(t.closed_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
+                    </td>
+                    
+                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note || ''}</td>
+                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note2 || ''}</td>
+                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note3 || ''}</td>
+                    <td class="trade-image-thumbnails" style="${clusterB}">${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}</td>
+                    ${STATE.isMasterUser ? `
+                    <td class="master-only" style="${clusterB}">
+                        <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#dc3545; color:white; border:none; border-radius:3px;">Del</button>
+                        <button class="merge-btn-completed" data-id="${t.dbId}" style="padding:2px 5px; font-size:9px; background:#6f42c1; color:white; border:none; border-radius:3px;">M</button>
+                    </td>` : ''}
+                </tr>`;
             });
+        });
+    });
 
-            window.requestAnimationFrame(() => {
-                tbodyElement.innerHTML = rowsHtml;
-                const section = tbodyElement.closest('.collapsible-section');
-                if (section && section.classList.contains('is-open')) {
-                    const content = section.querySelector('.collapsible-content');
-                    if (content) {
-                        content.style.maxHeight = 'none'; 
-                        content.style.overflow = 'visible';
-                    }
-                }
-            });
+    window.requestAnimationFrame(() => {
+        tbodyElement.innerHTML = rowsHtml;
+        const section = tbodyElement.closest('.collapsible-section');
+        if (section && section.classList.contains('is-open')) {
+            const content = section.querySelector('.collapsible-content');
+            if (content) {
+                content.style.maxHeight = 'none'; 
+                content.style.overflow = 'visible';
+            }
         }
+    });
+}
         function renderDateNavigation() {
             const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
             const timeframe = DOM.journalTimeframeEl.value;
@@ -4505,21 +4510,43 @@ else if (e.target.id === 'ts-setups-images-next-page') {
 
             let updates = {};
 
-            if (['entry', 'stoploss', 'target', 'exit_price', 'contracts', 'size', 'commissions'].includes(field)) {
-                const num = parseFloat(rawValue.replace(/[^0-9.-]/g, ''));
-                if (isNaN(num)) return;
-                updates[field] = num;
-                if (field === 'contracts') updates.size = num;
-            } 
-            else if (field === 'entry_prices') {
-                const newPrices = rawValue.split(',').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
-                if (newPrices.length === 0) return;
-                updates.entry_prices = newPrices;
-                updates.entry = newPrices.reduce((a, b) => a + b, 0) / newPrices.length;
-            } 
-            else {
-                updates[field] = rawValue;
-            }
+       if (['entry', 'stoploss', 'target', 'exit_price', 'contracts', 'size', 'commissions'].includes(field)) {
+    const num = parseFloat(rawValue.replace(/[^0-9.-]/g, ''));
+    if (isNaN(num)) return;
+    updates[field] = num;
+    if (field === 'contracts') updates.size = num;
+} 
+else if (field === 'entry_prices') {
+    const newPrices = rawValue.split(',').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+    if (newPrices.length === 0) return;
+    updates.entry_prices = newPrices;
+    updates.entry = newPrices.reduce((a, b) => a + b, 0) / newPrices.length;
+} 
+else if (field === 'date' || field === 'closed_date') {
+    const baseTs = field === 'date' ? (trade.date || Date.now()) : (trade.closed_date || trade.date || Date.now());
+    const parsedTs = parseTimeStringToTimestamp(rawValue, baseTs);
+    if (!parsedTs) {
+        alert("Invalid time format. Please use HH:MM (24-hour style).");
+        return;
+    }
+    updates[field] = parsedTs;
+
+    // Recalculate session and Group ID when the entry time ('date') changes
+    if (field === 'date') {
+        const newSession = getSessionFromTimestamp(parsedTs);
+        const currentClosedDate = trade.closed_date || parsedTs;
+        const tradingDay = getTradingDayString(currentClosedDate, parsedTs);
+        
+        const allCompleted = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
+        const allLive = isTopstep ? STATE.allTsTrades : {};
+
+        const newVariant = getNextVariantForDayAndSession(tradingDay, newSession, allCompleted, allLive, tradeId);
+        updates.groupId = `${newSession}_${newVariant}`;
+    }
+}
+else {
+    updates[field] = rawValue;
+}
 
             const tempTrade = { ...trade, ...updates };
             
@@ -5080,6 +5107,65 @@ else if (e.target.id === 'ts-setups-images-next-page') {
         alert('MERGE MODE: Click another trade to merge into this one. Click "Merge" again to cancel.');
     }
 
+        // Parses a "HH:MM" string edit on the same day as the original trade timestamp
+function parseTimeStringToTimestamp(timeStr, baseTimestamp) {
+    const parts = timeStr.trim().split(':');
+    if (parts.length < 2) return null;
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+
+    const baseDate = new Date(baseTimestamp);
+    // Perth is UTC+8. Shift to Perth local time to preserve day components
+    const tzOffset = 8 * 60; 
+    const localTime = new Date(baseDate.getTime() + tzOffset * 60 * 1000);
+    localTime.setUTCHours(hours, minutes, 0, 0);
+    
+    // Return the absolute UTC timestamp
+    return localTime.getTime() - tzOffset * 60 * 1000;
+}
+
+// Determines the correct session ("Asia", "Pre_NY_AM", etc.) for ANY historical timestamp
+function getSessionFromTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const options = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false };
+    const formatter = new Intl.DateTimeFormat('en-US', options);
+    const parts = formatter.formatToParts(date);
+    const hour = parseInt(parts.find(p => p.type === 'hour').value, 10);
+    const minute = parseInt(parts.find(p => p.type === 'minute').value, 10);
+    const nyTime = hour + (minute / 60);
+
+    if (nyTime >= 20 || nyTime < 0) return "Asia";
+    if (nyTime >= 0 && nyTime < 2) return "Pre_London";
+    if (nyTime >= 2 && nyTime < 5) return "London";
+    if (nyTime >= 5 && nyTime < 9.5) return "Pre_NY_AM";
+    if (nyTime >= 9.5 && nyTime < 11) return "NY_AM";
+    if (nyTime >= 11 && nyTime < 12) return "Pre_NYL";
+    if (nyTime >= 12 && nyTime < 13) return "NYL";
+    if (nyTime >= 13 && nyTime < 13.5) return "Pre_NY_PM";
+    if (nyTime >= 13.5 && nyTime < 16) return "NY_PM";
+    return "Pre_Asia";
+}
+
+// Safely calculates the next available variant number for a specific day/session
+function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades, allLiveTrades, currentTradeId) {
+    const allTrades = { ...allLiveTrades, ...allCompletedTrades };
+    
+    const sessionTrades = Object.values(allTrades).filter(t => {
+        if (t.dbId === currentTradeId || t.id === currentTradeId) return false;
+        const tradeDay = getTradingDayString(t.closed_date || t.date, t.date);
+        return tradeDay === tradingDay && t.groupId && t.groupId.startsWith(session);
+    });
+
+    if (sessionTrades.length === 0) return 1;
+
+    const variants = sessionTrades.map(t => {
+        const parts = t.groupId.split('_');
+        return parseInt(parts[parts.length - 1], 10) || 0;
+    });
+
+    return Math.max(...variants) + 1;
+}
     function executeMerge(baseTradeId, absorbedTradeId, isTopstep = false) {
         if (!baseTradeId || !absorbedTradeId || baseTradeId === absorbedTradeId) { resetMergeState(); return; }
         
