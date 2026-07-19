@@ -4516,7 +4516,7 @@ else if (e.target.id === 'ts-setups-images-next-page') {
         }
     }
 
-   function handleCompletedTradeUpdate(cell) {
+ function handleCompletedTradeUpdate(cell) {
         if (!STATE.isMasterUser) return;
 
         const isTopstep = cell.closest('#topstep-tab') !== null;
@@ -4536,9 +4536,12 @@ else if (e.target.id === 'ts-setups-images-next-page') {
             if (field === 'date' || field === 'closed_date') {
                 const existingTime = trade[field];
                 if (existingTime) {
-                    const oldTimeStr = new Date(existingTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'});
-                    if (oldTimeStr === rawValue) {
-                        return; // Time did not change. Do nothing.
+                    const cleanExistingTime = getSafeTimestamp({ [field]: existingTime });
+                    if (cleanExistingTime) {
+                        const oldTimeStr = new Date(cleanExistingTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'});
+                        if (oldTimeStr === rawValue) {
+                            return; // Time did not change. Do nothing.
+                        }
                     }
                 }
             }
@@ -4559,12 +4562,12 @@ else if (e.target.id === 'ts-setups-images-next-page') {
             } 
             // Correctly parse time edits ("09:30") back into valid numerical timestamps
             else if (field === 'date' || field === 'closed_date') {
-                const baseTs = field === 'date' ? (trade.date || Date.now()) : (trade.closed_date || trade.date || Date.now());
+                const baseTs = getSafeTimestamp(trade) || Date.now();
                 const parsedTs = parseTimeStringToTimestamp(rawValue, baseTs);
                 if (!parsedTs) {
                     alert("Invalid time format. Please use HH:MM (24-hour style).");
                     // Revert the cell content to prevent visual bugs
-                    const restoreTs = trade[field] || baseTs;
+                    const restoreTs = trade[field] ? getSafeTimestamp({ [field]: trade[field] }) : baseTs;
                     cell.textContent = new Date(restoreTs).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'});
                     return;
                 }
@@ -4573,7 +4576,7 @@ else if (e.target.id === 'ts-setups-images-next-page') {
                 // Re-calculate Session and Group ID if the Entry Time ('date') is modified
                 if (field === 'date') {
                     const newSession = getSessionFromTimestamp(parsedTs);
-                    const currentClosedDate = trade.closed_date || parsedTs;
+                    const currentClosedDate = trade.closed_date ? getSafeTimestamp({ closed_date: trade.closed_date }) : parsedTs;
                     const tradingDay = getTradingDayString(currentClosedDate, parsedTs);
                     
                     const allCompleted = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
@@ -5146,7 +5149,7 @@ else if (e.target.id === 'ts-setups-images-next-page') {
         alert('MERGE MODE: Click another trade to merge into this one. Click "Merge" again to cancel.');
     }
 
-        // Parses a "HH:MM" string edit on the same day as the original trade timestamp
+      // Global Utility: Parses HH:MM strings into valid UTC millisecond timestamps
 function parseTimeStringToTimestamp(timeStr, baseTimestamp) {
     const parts = timeStr.trim().split(':');
     if (parts.length < 2) return null;
@@ -5154,16 +5157,47 @@ function parseTimeStringToTimestamp(timeStr, baseTimestamp) {
     const minutes = parseInt(parts[1], 10);
     if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
 
-    const baseDate = new Date(baseTimestamp);
-    // Perth is UTC+8. Shift to Perth local time to preserve day components
-    const tzOffset = 8 * 60; 
+    let cleanBase = typeof baseTimestamp === 'number' ? baseTimestamp : parseFloat(baseTimestamp);
+    if (isNaN(cleanBase) || cleanBase < 100000000000) {
+        cleanBase = Date.now();
+    }
+
+    const baseDate = new Date(cleanBase);
+    const tzOffset = 8 * 60; // Perth UTC+8
     const localTime = new Date(baseDate.getTime() + tzOffset * 60 * 1000);
     localTime.setUTCHours(hours, minutes, 0, 0);
     
-    // Return the absolute UTC timestamp
     return localTime.getTime() - tzOffset * 60 * 1000;
 }
 
+// Global Utility: Sorts trades chronologically by entry time and repairs string corruptions
+const getSafeTimestamp = (t) => {
+    if (!t) return 0;
+    let dateVal = t.date || t.closed_date || 0;
+    
+    // Self-repair legacy corrupted "HH:MM" strings stored directly in the database
+    if (typeof dateVal === 'string' && dateVal.includes(':') && !dateVal.includes('-') && !dateVal.includes('T')) {
+        const alternate = (dateVal === t.date) ? t.closed_date : t.date;
+        const baseTs = (alternate && typeof alternate === 'number') ? alternate : Date.now();
+        
+        const parts = dateVal.trim().split(':');
+        if (parts.length >= 2) {
+            const hours = parseInt(parts[0], 10);
+            const minutes = parseInt(parts[1], 10);
+            if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+                const baseDate = new Date(baseTs);
+                const tzOffset = 8 * 60; 
+                const localTime = new Date(baseDate.getTime() + tzOffset * 60 * 1000);
+                localTime.setUTCHours(hours, minutes, 0, 0);
+                return localTime.getTime() - tzOffset * 60 * 1000;
+            }
+        }
+    }
+
+    if (typeof dateVal === 'number') return dateVal;
+    const parsed = new Date(dateVal).getTime();
+    return isNaN(parsed) ? 0 : parsed;
+};
 // Determines the correct session ("Asia", "Pre_NY_AM", etc.) for ANY historical timestamp
 function getSessionFromTimestamp(timestamp) {
     const date = new Date(timestamp);
