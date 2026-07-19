@@ -4491,8 +4491,7 @@ else if (e.target.id === 'ts-setups-images-next-page') {
         }
     }
 
-   
-    function handleCompletedTradeUpdate(cell) {
+   function handleCompletedTradeUpdate(cell) {
         if (!STATE.isMasterUser) return;
 
         const isTopstep = cell.closest('#topstep-tab') !== null;
@@ -4508,45 +4507,60 @@ else if (e.target.id === 'ts-setups-images-next-page') {
             const trade = snapshot.val();
             if (!trade) return;
 
+            // SAFEGUARD: If clicking in/out of a time field without making any edits, exit immediately
+            if (field === 'date' || field === 'closed_date') {
+                const existingTime = trade[field];
+                if (existingTime) {
+                    const oldTimeStr = new Date(existingTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'});
+                    if (oldTimeStr === rawValue) {
+                        return; // Time did not change. Do nothing.
+                    }
+                }
+            }
+
             let updates = {};
 
-       if (['entry', 'stoploss', 'target', 'exit_price', 'contracts', 'size', 'commissions'].includes(field)) {
-    const num = parseFloat(rawValue.replace(/[^0-9.-]/g, ''));
-    if (isNaN(num)) return;
-    updates[field] = num;
-    if (field === 'contracts') updates.size = num;
-} 
-else if (field === 'entry_prices') {
-    const newPrices = rawValue.split(',').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
-    if (newPrices.length === 0) return;
-    updates.entry_prices = newPrices;
-    updates.entry = newPrices.reduce((a, b) => a + b, 0) / newPrices.length;
-} 
-else if (field === 'date' || field === 'closed_date') {
-    const baseTs = field === 'date' ? (trade.date || Date.now()) : (trade.closed_date || trade.date || Date.now());
-    const parsedTs = parseTimeStringToTimestamp(rawValue, baseTs);
-    if (!parsedTs) {
-        alert("Invalid time format. Please use HH:MM (24-hour style).");
-        return;
-    }
-    updates[field] = parsedTs;
+            if (['entry', 'stoploss', 'target', 'exit_price', 'contracts', 'size', 'commissions'].includes(field)) {
+                const num = parseFloat(rawValue.replace(/[^0-9.-]/g, ''));
+                if (isNaN(num)) return;
+                updates[field] = num;
+                if (field === 'contracts') updates.size = num;
+            } 
+            else if (field === 'entry_prices') {
+                const newPrices = rawValue.split(',').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+                if (newPrices.length === 0) return;
+                updates.entry_prices = newPrices;
+                updates.entry = newPrices.reduce((a, b) => a + b, 0) / newPrices.length;
+            } 
+            // Correctly parse time edits ("09:30") back into valid numerical timestamps
+            else if (field === 'date' || field === 'closed_date') {
+                const baseTs = field === 'date' ? (trade.date || Date.now()) : (trade.closed_date || trade.date || Date.now());
+                const parsedTs = parseTimeStringToTimestamp(rawValue, baseTs);
+                if (!parsedTs) {
+                    alert("Invalid time format. Please use HH:MM (24-hour style).");
+                    // Revert the cell content to prevent visual bugs
+                    const restoreTs = trade[field] || baseTs;
+                    cell.textContent = new Date(restoreTs).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'});
+                    return;
+                }
+                updates[field] = parsedTs;
 
-    // Recalculate session and Group ID when the entry time ('date') changes
-    if (field === 'date') {
-        const newSession = getSessionFromTimestamp(parsedTs);
-        const currentClosedDate = trade.closed_date || parsedTs;
-        const tradingDay = getTradingDayString(currentClosedDate, parsedTs);
-        
-        const allCompleted = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
-        const allLive = isTopstep ? STATE.allTsTrades : {};
+                // Re-calculate Session and Group ID if the Entry Time ('date') is modified
+                if (field === 'date') {
+                    const newSession = getSessionFromTimestamp(parsedTs);
+                    const currentClosedDate = trade.closed_date || parsedTs;
+                    const tradingDay = getTradingDayString(currentClosedDate, parsedTs);
+                    
+                    const allCompleted = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
+                    const allLive = isTopstep ? STATE.allTsTrades : {};
 
-        const newVariant = getNextVariantForDayAndSession(tradingDay, newSession, allCompleted, allLive, tradeId);
-        updates.groupId = `${newSession}_${newVariant}`;
-    }
-}
-else {
-    updates[field] = rawValue;
-}
+                    const newVariant = getNextVariantForDayAndSession(tradingDay, newSession, allCompleted, allLive, tradeId);
+                    updates.groupId = `${newSession}_${newVariant}`;
+                }
+            }
+            else {
+                updates[field] = rawValue;
+            }
 
             const tempTrade = { ...trade, ...updates };
             
