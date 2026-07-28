@@ -1415,6 +1415,10 @@
                                 <input type="number" id="ts-contracts" value="1" step="1">
                             </div>
                             <div>
+    <label for="ts-trade-timestamp">Entry Time (Optional):</label>
+    <input type="datetime-local" id="ts-trade-timestamp">
+</div>
+                            <div>
                                 <label for="ts-commissions">Round Trip Fee ($):</label>
                                 <input type="number" id="ts-commissions" value="1.00" step="0.01">
                             </div>
@@ -4484,42 +4488,21 @@ else if (e.target.id === 'ts-setups-images-next-page') {
         
         const prefix = isTopstep ? 'ts-' : '';
         let session, variant;
+let customDateVal = firebase.database.ServerValue.TIMESTAMP;
 
         if (isTopstep) {
-            const nyHour = (() => {
-                const options = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false };
-                const formatter = new Intl.DateTimeFormat('en-US', options);
-                const parts = formatter.formatToParts(new Date());
-                const h = parseInt(parts.find(p => p.type === 'hour').value);
-                const m = parseInt(parts.find(p => p.type === 'minute').value);
-                return h + (m / 60);
-            })();
+            const timestampInput = document.getElementById('ts-trade-timestamp')?.value;
+            let targetMs = Date.now();
 
-            if (nyHour >= 20 || nyHour < 0) session = "Asia";
-            else if (nyHour >= 0 && nyHour < 2) session = "Pre_London";
-            else if (nyHour >= 2 && nyHour < 5) session = "London";
-            else if (nyHour >= 5 && nyHour < 9.5) session = "Pre_NY_AM";
-            else if (nyHour >= 9.5 && nyHour < 11) session = "NY_AM";
-            else if (nyHour >= 11 && nyHour < 12) session = "Pre_NYL";
-            else if (nyHour >= 12 && nyHour < 13) session = "NYL";
-            else if (nyHour >= 13 && nyHour < 13.5) session = "Pre_NY_PM";
-            else if (nyHour >= 13.5 && nyHour < 16) session = "NY_PM";
-            else session = "Pre_Asia";
+            if (timestampInput) {
+                targetMs = new Date(timestampInput).getTime();
+                customDateVal = targetMs; // Uses user's manual input timestamp
+            }
 
-            const todayStr = getTradingDayString(Date.now(), Date.now());
-            const allTrades = { ...STATE.allTsTrades, ...STATE.allTsCompletedTrades };
+            session = getSessionFromTimestamp(targetMs);
+            const tradingDay = getTradingDayString(targetMs, targetMs);
             
-            const existingVariants = Object.values(allTrades)
-                .filter(t => {
-                    const tradeDay = getTradingDayString(t.closed_date || t.date, t.date);
-                    return tradeDay === todayStr && t.groupId && t.groupId.startsWith(session);
-                })
-                .map(t => {
-                    const parts = t.groupId.split('_');
-                    return parseInt(parts[parts.length - 1]) || 0;
-                });
-
-            variant = existingVariants.length > 0 ? Math.max(...existingVariants) + 1 : 1;
+            variant = getNextVariantForDayAndSession(tradingDay, session, STATE.allTsCompletedTrades, STATE.allTsTrades, null);
 
             const uiSess = document.getElementById('ts-trade-session');
             const uiVar = document.getElementById('ts-trade-variant');
@@ -4546,7 +4529,7 @@ else if (e.target.id === 'ts-setups-images-next-page') {
             stoploss: stopLossPrice,
             original_stoploss: stopLossPrice, 
             target: targetPrice, 
-            date: firebase.database.ServerValue.TIMESTAMP, 
+            date: customDateVal, // Uses user timestamp if filled, or auto ServerValue.TIMESTAMP if blank
             entry_prices: [entryPrice]
         };
 
