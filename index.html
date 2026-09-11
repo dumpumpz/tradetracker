@@ -5413,9 +5413,7 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
                 resetMergeState(); 
             });
         });
-    }
-
-    function calculateFundedStats(tsCompletedData) {
+    }function calculateFundedStats(tsCompletedData) {
         const stats = {};
         const accountsLen = CONFIG.FUNDED_ACCOUNTS.length;
         for (let i = 0; i < accountsLen; i++) {
@@ -5468,6 +5466,36 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
                 }
             }
         }
+
+        // ==========================================
+        // FIX: MANUAL OVERRIDES FOR DESYNCED ACCOUNTS
+        // ==========================================
+        
+        // Account 1 (Ending in 1001)
+        if (stats['Lucid 1']) {
+            stats['Lucid 1'].balance = 48856.00;
+            stats['Lucid 1'].maxLoss = 48210.50; 
+        }
+        
+        // Account 2 (Ending in 1002)
+        if (stats['Lucid 2']) {
+            stats['Lucid 2'].balance = 49016.00;
+            stats['Lucid 2'].maxLoss = 48302.50;
+        }
+
+        // Account 3 (Ending in 1003)
+        if (stats['Lucid 3']) {
+            stats['Lucid 3'].balance = 49271.50;
+            stats['Lucid 3'].maxLoss = 48317.00;
+        }
+
+        // Account 4 (Ending in 1004)
+        if (stats['Lucid 4 - scalp']) {
+            stats['Lucid 4 - scalp'].balance = 48582.00;
+            stats['Lucid 4 - scalp'].maxLoss = 48057.50;
+        }
+        // ==========================================
+
         return stats;
     }
 
