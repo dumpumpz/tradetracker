@@ -1662,6 +1662,8 @@
                 TS_SETUPS_1: 'ts_setups_1',
                 TS_SETUPS_2: 'ts_setups_2',
                 TS_SETUPS_IMAGES: 'ts_setups_images',
+                fundedSettings: database.ref(CONFIG.DB_PATHS.FUNDED_SETTINGS),
+    apexExpiry: database.ref(CONFIG.DB_PATHS.APEX_EXPIRY),
                 APEX_EXPIRY: 'apex_expiry_dates' 
             },
             TRADE_SETTINGS: {
@@ -1737,6 +1739,8 @@
             allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,             apexDates: {}, 
             renderTimer: null,
             statsTimer: null,
+                fundedAccountSettings: {},
+
             allTsTrades: {}, allTsCompletedTrades: {}, 
             tsCompletedTradesShowAll: false, tsCompletedTradesCurrentPage: 1,
             allSetupsImages: {}, setupsImagesShowAll: true, setupsImagesCurrentPage: 1, 
@@ -1929,6 +1933,11 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
                 renderFilteredEvalData(); 
                 debouncedPerformanceUpdate(); 
             });
+
+            dbRefs.fundedSettings.on('value', s => {
+    STATE.fundedAccountSettings = s.val() || {};
+    renderFilteredEvalData();
+});
 
             dbRefs.tsCompletedTrades.on('value', s => {
                 STATE.allTsCompletedTrades = s.val() || {};
@@ -2210,45 +2219,45 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
     renderFundedDashboard(); 
 }
       
-        function renderFundedDashboard() {
-            const container = document.getElementById('funded-dashboard-rows');
-            if (!container) return;
+       function renderFundedDashboard() {
+    const container = document.getElementById('funded-dashboard-rows');
+    if (!container) return;
 
-            const todayStr = getPerthDateString();
-            let html = '';
+    const todayStr = getPerthDateString();
+    let html = '';
 
-            const len = CONFIG.FUNDED_ACCOUNTS.length;
-            for (let i = 0; i < len; i++) {
-                const acc = CONFIG.FUNDED_ACCOUNTS[i];
-                const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000, tradesByDay: {} };
-                
-                const plToday = stats.tradesByDay[todayStr] || 0;
-                const buffer = stats.balance - stats.maxLoss;
-                const toTarget = CONFIG.FUNDED_TARGET - stats.balance;
+    const len = CONFIG.FUNDED_ACCOUNTS.length;
+    for (let i = 0; i < len; i++) {
+        const acc = CONFIG.FUNDED_ACCOUNTS[i];
+        const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000, tradesByDay: {} };
+        
+        const plToday = stats.tradesByDay[todayStr] || 0;
+        const buffer = stats.balance - stats.maxLoss;
+        const toTarget = CONFIG.FUNDED_TARGET - stats.balance;
 
-                const winsToPass = toTarget > 0 ? Math.ceil(toTarget / 400) : 0;
-                const lossesToBlow = Math.max(0, Math.floor(buffer / 100));
+        const winsToPass = toTarget > 0 ? Math.ceil(toTarget / 400) : 0;
+        const lossesToBlow = Math.max(0, Math.floor(buffer / 100));
 
-                const fmt = (num) => Math.round(num).toLocaleString();
+        const fmt = (num) => Math.round(num).toLocaleString();
 
-                html += `
-                <div class="dashboard-grid dashboard-row" style="height: 35px;">
-                    <div style="text-align: left; line-height: 1.2;">
-                        <div style="font-family: -apple-system, sans-serif; font-weight: 600; color: var(--text-color);">${acc}</div>
-                        <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.3px;">
-                            ${toTarget > 0 ? `<span style="color:var(--green-text)">${winsToPass}W</span>` : 'PASS'} / 
-                            <span style="color:var(--red-text)">${lossesToBlow}L</span>
-                        </div>
-                    </div>
-                    <div class="${plToday >= 0 ? 'dash-val-plus' : 'dash-val-minus'}">${plToday >= 0 ? '+' : ''}${fmt(plToday)}</div>
-                    <div>${fmt(stats.balance)}</div>
-                    <div style="opacity: 0.5;">${fmt(stats.maxLoss)}</div>
-                    <div class="dash-buffer ${buffer < 500 ? 'dash-val-minus' : ''}">${fmt(buffer)}</div>
-                </div>`;
-            }
+        html += `
+        <div class="dashboard-grid dashboard-row" style="height: 35px;">
+            <div style="text-align: left; line-height: 1.2;">
+                <div style="font-family: -apple-system, sans-serif; font-weight: 600; color: var(--text-color);">${acc}</div>
+                <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.3px;">
+                    ${toTarget > 0 ? `<span style="color:var(--green-text)">${winsToPass}W</span>` : 'PASS'} / 
+                    <span style="color:var(--red-text)">${lossesToBlow}L</span>
+                </div>
+            </div>
+            <div class="${plToday >= 0 ? 'dash-val-plus' : 'dash-val-minus'}">${plToday >= 0 ? '+' : ''}${fmt(plToday)}</div>
+            <div class="editable-funded-stat" data-acc="${acc}" data-field="baselineBalance" contenteditable="${STATE.isMasterUser}" title="Click to edit Base Balance" style="cursor: text;">${fmt(stats.balance)}</div>
+            <div class="editable-funded-stat" data-acc="${acc}" data-field="baselineMLL" contenteditable="${STATE.isMasterUser}" title="Click to edit Base MLL" style="cursor: text; opacity: 0.7;">${fmt(stats.maxLoss)}</div>
+            <div class="dash-buffer ${buffer < 500 ? 'dash-val-minus' : ''}">${fmt(buffer)}</div>
+        </div>`;
+    }
 
-            container.innerHTML = html;
-        }
+    container.innerHTML = html;
+}
 
         function renderAccountFilterPills() {
             const container = document.getElementById('ts-completed-filter-container');
@@ -3975,6 +3984,23 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
             const tsPrimary = document.getElementById('ts-primary-setups-notes');
             const tsSecondary = document.getElementById('ts-secondary-setups-notes');
 
+              if (e.target.matches('.editable-funded-stat')) {
+        if (!STATE.isMasterUser) return;
+        const acc = e.target.dataset.acc;
+        const field = e.target.dataset.field;
+        const rawValue = parseFloat(e.target.textContent.replace(/[^0-9.-]/g, ''));
+        
+        if (isNaN(rawValue)) {
+            renderFundedDashboard();
+            return;
+        }
+
+        dbRefs.fundedSettings.child(acc).child(field).set(rawValue).then(() => {
+            e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+            setTimeout(() => { e.target.style.backgroundColor = ''; }, 500);
+        }).catch(err => alert("Error saving account setting: " + err.message));
+    }
+}, true);
             if (tsPrimary) {
                 tsPrimary.addEventListener('input', (e) => {
                     autoResizeTextarea(e.target);
@@ -5413,91 +5439,67 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
                 resetMergeState(); 
             });
         });
-    }function calculateFundedStats(tsCompletedData) {
-        const stats = {};
-        const accountsLen = CONFIG.FUNDED_ACCOUNTS.length;
-        for (let i = 0; i < accountsLen; i++) {
-            const acc = CONFIG.FUNDED_ACCOUNTS[i];
-            stats[acc] = {
-                balance: CONFIG.FUNDED_START,
-                hwm: CONFIG.FUNDED_START, 
-                maxLoss: CONFIG.FUNDED_START - CONFIG.FUNDED_DRAWDOWN, 
-                tradesByDay: {}
-            };
-        }
+    }
+       function calculateFundedStats(tsCompletedData) {
+    const stats = {};
+    const accountsLen = CONFIG.FUNDED_ACCOUNTS.length;
+    for (let i = 0; i < accountsLen; i++) {
+        const acc = CONFIG.FUNDED_ACCOUNTS[i];
+        
+        // Base starting point from Firebase override (if set), otherwise defaults
+        const customSettings = STATE.fundedAccountSettings[acc] || {};
+        const baseStart = customSettings.baselineBalance !== undefined ? parseFloat(customSettings.baselineBalance) : CONFIG.FUNDED_START;
+        const baseMLL = customSettings.baselineMLL !== undefined ? parseFloat(customSettings.baselineMLL) : (baseStart - CONFIG.FUNDED_DRAWDOWN);
 
-        const values = Object.values(tsCompletedData);
-        const len = values.length;
-        for (let i = 0; i < len; i++) {
-            const t = values[i];
-            if (!t.closed_date) continue;
-            const acc = getEvalAccount(t);
-            if (!stats[acc]) continue; 
-            const dayStr = getTradingDayString(t.closed_date, t.date);
-            if (!stats[acc].tradesByDay[dayStr]) stats[acc].tradesByDay[dayStr] = 0;
-            stats[acc].tradesByDay[dayStr] += parseFloat(t.net_result || 0);
-        }
+        stats[acc] = {
+            balance: baseStart,
+            hwm: baseStart, 
+            maxLoss: baseMLL, 
+            tradesByDay: {}
+        };
+    }
 
-        const currentTradingDay = getPerthDateString(); 
+    const values = Object.values(tsCompletedData);
+    const len = values.length;
+    for (let i = 0; i < len; i++) {
+        const t = values[i];
+        if (!t.closed_date) continue;
+        const acc = getEvalAccount(t);
+        if (!stats[acc]) continue; 
+        const dayStr = getTradingDayString(t.closed_date, t.date);
+        if (!stats[acc].tradesByDay[dayStr]) stats[acc].tradesByDay[dayStr] = 0;
+        stats[acc].tradesByDay[dayStr] += parseFloat(t.net_result || 0);
+    }
 
-        for (let i = 0; i < accountsLen; i++) {
-            const acc = CONFIG.FUNDED_ACCOUNTS[i];
-            const sortedDays = Object.keys(stats[acc].tradesByDay).sort((a,b) => new Date(a) - new Date(b));
-            const daysLen = sortedDays.length;
+    const currentTradingDay = getPerthDateString(); 
+
+    for (let i = 0; i < accountsLen; i++) {
+        const acc = CONFIG.FUNDED_ACCOUNTS[i];
+        const sortedDays = Object.keys(stats[acc].tradesByDay).sort((a, b) => new Date(a) - new Date(b));
+        
+        for (let j = 0; j < sortedDays.length; j++) {
+            const day = sortedDays[j];
+            stats[acc].balance += stats[acc].tradesByDay[day];
             
-            for (let j = 0; j < daysLen; j++) {
-                const day = sortedDays[j];
-                stats[acc].balance += stats[acc].tradesByDay[day];
-                
-                if (day !== currentTradingDay) {
-                    if (stats[acc].balance > stats[acc].hwm) {
-                        stats[acc].hwm = stats[acc].balance;
-                        
-                        if (stats[acc].hwm >= CONFIG.FUNDED_TRAIL_LOCK_TRIGGER) {
-                            stats[acc].maxLoss = CONFIG.FUNDED_LOCKED_MLL;
-                        } 
-                        else {
-                            let trailingLimit = stats[acc].hwm - CONFIG.FUNDED_DRAWDOWN;
-                            if (trailingLimit > stats[acc].maxLoss) {
-                                stats[acc].maxLoss = trailingLimit;
-                            }
+            if (day !== currentTradingDay) {
+                if (stats[acc].balance > stats[acc].hwm) {
+                    stats[acc].hwm = stats[acc].balance;
+                    
+                    if (stats[acc].hwm >= CONFIG.FUNDED_TRAIL_LOCK_TRIGGER) {
+                        stats[acc].maxLoss = CONFIG.FUNDED_LOCKED_MLL;
+                    } else {
+                        let trailingLimit = stats[acc].hwm - CONFIG.FUNDED_DRAWDOWN;
+                        if (trailingLimit > stats[acc].maxLoss) {
+                            stats[acc].maxLoss = trailingLimit;
                         }
                     }
                 }
             }
         }
-
-        // ==========================================
-        // FIX: MANUAL OVERRIDES FOR DESYNCED ACCOUNTS
-        // ==========================================
-        
-        // Account 1 (Ending in 1001)
-        if (stats['Lucid 1']) {
-            stats['Lucid 1'].balance = 49109.00;
-            stats['Lucid 1'].maxLoss = 48210.50; 
-        }
-        
-        // Account 2 (Ending in 1002)
-        if (stats['Lucid 2']) {
-            stats['Lucid 2'].balance = 49016.00;
-            stats['Lucid 2'].maxLoss = 48302.50;
-        }
-
-        // Account 3 (Ending in 1003)
-        if (stats['Lucid 3']) {
-            stats['Lucid 3'].balance = 49545.50;
-            stats['Lucid 3'].maxLoss = 48317.00;
-        }
-
-        // Account 4 (Ending in 1004)
-        if (stats['Lucid 4 - scalp']) {
-            stats['Lucid 4 - scalp'].balance = 48582.00;
-            stats['Lucid 4 - scalp'].maxLoss = 48057.50;
-        }
-        // ==========================================
-        return stats;
     }
 
+    return stats;
+}
     function calculateTopstepStats(tsCompletedData) {
         FUNDED_STATS_CACHE = calculateFundedStats(tsCompletedData);
         updateTargetCalculator();
