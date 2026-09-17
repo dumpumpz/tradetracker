@@ -2084,45 +2084,45 @@
             renderFundedDashboard(); 
         }
       
-        function renderFundedDashboard() {
-            const container = document.getElementById('funded-dashboard-rows');
-            if (!container) return;
+       function renderFundedDashboard() {
+    const container = document.getElementById('funded-dashboard-rows');
+    if (!container) return;
 
-            const todayStr = getPerthDateString();
-            let html = '';
+    const todayStr = getPerthDateString();
+    let html = '';
 
-            const len = CONFIG.FUNDED_ACCOUNTS.length;
-            for (let i = 0; i < len; i++) {
-                const acc = CONFIG.FUNDED_ACCOUNTS[i];
-                const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000, tradesByDay: {} };
-                
-                const plToday = stats.tradesByDay[todayStr] || 0;
-                const buffer = stats.balance - stats.maxLoss;
-                const toTarget = CONFIG.FUNDED_TARGET - stats.balance;
+    const len = CONFIG.FUNDED_ACCOUNTS.length;
+    for (let i = 0; i < len; i++) {
+        const acc = CONFIG.FUNDED_ACCOUNTS[i];
+        const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000, tradesByDay: {} };
+        
+        const plToday = stats.tradesByDay[todayStr] || 0;
+        const buffer = stats.balance - stats.maxLoss;
+        const toTarget = CONFIG.FUNDED_TARGET - stats.balance;
 
-                const winsToPass = toTarget > 0 ? Math.ceil(toTarget / 400) : 0;
-                const lossesToBlow = Math.max(0, Math.floor(buffer / 100));
+        const winsToPass = toTarget > 0 ? Math.ceil(toTarget / 400) : 0;
+        const lossesToBlow = Math.max(0, Math.floor(buffer / 100));
 
-                const fmt = (num) => Math.round(num).toLocaleString();
+        const fmt = (num) => Math.round(num).toLocaleString();
 
-                html += `
-                <div class="dashboard-grid dashboard-row" style="height: 35px;">
-                    <div style="text-align: left; line-height: 1.2;">
-                        <div style="font-family: -apple-system, sans-serif; font-weight: 600; color: var(--text-color);">${acc}</div>
-                        <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.3px;">
-                            ${toTarget > 0 ? `<span style="color:var(--green-text)">${winsToPass}W</span>` : 'PASS'} / 
-                            <span style="color:var(--red-text)">${lossesToBlow}L</span>
-                        </div>
-                    </div>
-                    <div class="${plToday >= 0 ? 'dash-val-plus' : 'dash-val-minus'}">${plToday >= 0 ? '+' : ''}${fmt(plToday)}</div>
-                    <div class="editable-funded-stat" data-acc="${acc}" data-field="baselineBalance" contenteditable="${STATE.isMasterUser}" title="Click to edit Base Balance" style="cursor: text;">${fmt(stats.balance)}</div>
-                    <div class="editable-funded-stat" data-acc="${acc}" data-field="baselineMLL" contenteditable="${STATE.isMasterUser}" title="Click to edit Base MLL" style="cursor: text; opacity: 0.7;">${fmt(stats.maxLoss)}</div>
-                    <div class="dash-buffer ${buffer < 500 ? 'dash-val-minus' : ''}">${fmt(buffer)}</div>
-                </div>`;
-            }
+        html += `
+        <div class="dashboard-grid dashboard-row" style="height: 35px;">
+            <div style="text-align: left; line-height: 1.2;">
+                <div style="font-family: -apple-system, sans-serif; font-weight: 600; color: var(--text-color);">${acc}</div>
+                <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.3px;">
+                    ${toTarget > 0 ? `<span style="color:var(--green-text)">${winsToPass}W</span>` : 'PASS'} / 
+                    <span style="color:var(--red-text)">${lossesToBlow}L</span>
+                </div>
+            </div>
+            <div class="${plToday >= 0 ? 'dash-val-plus' : 'dash-val-minus'}">${plToday >= 0 ? '+' : ''}${fmt(plToday)}</div>
+            <div class="editable-funded-stat" data-acc="${acc}" data-field="manualBalance" contenteditable="${STATE.isMasterUser}" title="Click to edit Balance" style="cursor: text;">${fmt(stats.balance)}</div>
+            <div class="editable-funded-stat" data-acc="${acc}" data-field="manualMLL" contenteditable="${STATE.isMasterUser}" title="Click to edit MLL" style="cursor: text; opacity: 0.7;">${fmt(stats.maxLoss)}</div>
+            <div class="dash-buffer ${buffer < 500 ? 'dash-val-minus' : ''}">${fmt(buffer)}</div>
+        </div>`;
+    }
 
-            container.innerHTML = html;
-        }
+    container.innerHTML = html;
+}
 
         function renderAccountFilterPills() {
             const container = document.getElementById('ts-completed-filter-container');
@@ -3853,23 +3853,27 @@
                     handleCompletedTradeUpdate(e.target);
                 }
 
-                if (e.target.matches('.editable-funded-stat')) {
-                    if (!STATE.isMasterUser) return;
-                    const acc = e.target.dataset.acc;
-                    const field = e.target.dataset.field;
-                    const rawValue = parseFloat(e.target.textContent.replace(/[^0-9.-]/g, ''));
-                    
-                    if (isNaN(rawValue)) {
-                        renderFundedDashboard();
-                        return;
-                    }
+            if (e.target.matches('.editable-funded-stat')) {
+    if (!STATE.isMasterUser) return;
+    const acc = e.target.dataset.acc;
+    const field = e.target.dataset.field;
+    const rawValue = parseFloat(e.target.textContent.replace(/[^0-9.-]/g, ''));
+    
+    if (isNaN(rawValue)) {
+        renderFundedDashboard();
+        return;
+    }
 
-                    dbRefs.fundedSettings.child(acc).child(field).set(rawValue).then(() => {
-                        e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
-                        setTimeout(() => { e.target.style.backgroundColor = ''; }, 500);
-                    }).catch(err => alert("Error saving account setting: " + err.message));
-                }
+    const updates = { [field]: rawValue };
+    if (field === 'manualBalance') {
+        updates.setTimestamp = Date.now();
+    }
 
+    dbRefs.fundedSettings.child(acc).update(updates).then(() => {
+        e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+        setTimeout(() => { e.target.style.backgroundColor = ''; }, 500);
+    }).catch(err => alert("Error saving account setting: " + err.message));
+}
                 if (e.target.matches('.editable-daily-note')) {
                     if (!STATE.isMasterUser) return;
                     dbRefs.dailyNotes.child(e.target.dataset.dateKey).set(e.target.innerText.trim()).then(() => {
@@ -5120,62 +5124,59 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
             });
         });
     }
-       function calculateFundedStats(tsCompletedData) {
+    function calculateFundedStats(tsCompletedData) {
     const stats = {};
     const accountsLen = CONFIG.FUNDED_ACCOUNTS.length;
-    for (let i = 0; i < accountsLen; i++) {
-        const acc = CONFIG.FUNDED_ACCOUNTS[i];
-        
-        // Base starting point from Firebase override (if set), otherwise defaults
-        const customSettings = STATE.fundedAccountSettings[acc] || {};
-        const baseStart = customSettings.baselineBalance !== undefined ? parseFloat(customSettings.baselineBalance) : CONFIG.FUNDED_START;
-        const baseMLL = customSettings.baselineMLL !== undefined ? parseFloat(customSettings.baselineMLL) : (baseStart - CONFIG.FUNDED_DRAWDOWN);
-
-        stats[acc] = {
-            balance: baseStart,
-            hwm: baseStart, 
-            maxLoss: baseMLL, 
-            tradesByDay: {}
-        };
-    }
-
-    const values = Object.values(tsCompletedData);
-    const len = values.length;
-    for (let i = 0; i < len; i++) {
-        const t = values[i];
-        if (!t.closed_date) continue;
-        const acc = getEvalAccount(t);
-        if (!stats[acc]) continue; 
-        const dayStr = getTradingDayString(t.closed_date, t.date);
-        if (!stats[acc].tradesByDay[dayStr]) stats[acc].tradesByDay[dayStr] = 0;
-        stats[acc].tradesByDay[dayStr] += parseFloat(t.net_result || 0);
-    }
-
-    const currentTradingDay = getPerthDateString(); 
 
     for (let i = 0; i < accountsLen; i++) {
         const acc = CONFIG.FUNDED_ACCOUNTS[i];
-        const sortedDays = Object.keys(stats[acc].tradesByDay).sort((a, b) => new Date(a) - new Date(b));
+        const custom = STATE.fundedAccountSettings[acc] || {};
         
-        for (let j = 0; j < sortedDays.length; j++) {
-            const day = sortedDays[j];
-            stats[acc].balance += stats[acc].tradesByDay[day];
-            
-            if (day !== currentTradingDay) {
-                if (stats[acc].balance > stats[acc].hwm) {
-                    stats[acc].hwm = stats[acc].balance;
-                    
-                    if (stats[acc].hwm >= CONFIG.FUNDED_TRAIL_LOCK_TRIGGER) {
-                        stats[acc].maxLoss = CONFIG.FUNDED_LOCKED_MLL;
-                    } else {
-                        let trailingLimit = stats[acc].hwm - CONFIG.FUNDED_DRAWDOWN;
-                        if (trailingLimit > stats[acc].maxLoss) {
-                            stats[acc].maxLoss = trailingLimit;
-                        }
+        let bal = custom.manualBalance !== undefined ? parseFloat(custom.manualBalance) : CONFIG.FUNDED_START;
+        let mll = custom.manualMLL !== undefined ? parseFloat(custom.manualMLL) : (bal - CONFIG.FUNDED_DRAWDOWN);
+        let hwm = bal;
+        const setTime = custom.setTimestamp || 0;
+
+        // Only add trades closed AFTER you calibrated this balance
+        const tradesForAcc = Object.values(tsCompletedData).filter(t => {
+            if (!t.closed_date || getEvalAccount(t) !== acc) return false;
+            const closeTime = getSafeTimestamp({ closed_date: t.closed_date });
+            return closeTime > setTime;
+        });
+        
+        tradesForAcc.sort((a, b) => getSafeTimestamp({ closed_date: a.closed_date }) - getSafeTimestamp({ closed_date: b.closed_date }));
+
+        tradesForAcc.forEach(t => {
+            const net = parseFloat(t.net_result || 0);
+            bal += net;
+            if (bal > hwm) {
+                hwm = bal;
+                if (hwm >= CONFIG.FUNDED_TRAIL_LOCK_TRIGGER) {
+                    mll = CONFIG.FUNDED_LOCKED_MLL;
+                } else {
+                    let trailingLimit = hwm - CONFIG.FUNDED_DRAWDOWN;
+                    if (trailingLimit > mll) {
+                        mll = trailingLimit;
                     }
                 }
             }
-        }
+        });
+
+        // Calculate tradesByDay for the "DAY P/L" display
+        const tradesByDay = {};
+        Object.values(tsCompletedData).forEach(t => {
+            if (!t.closed_date || getEvalAccount(t) !== acc) return;
+            const dayStr = getTradingDayString(t.closed_date, t.date);
+            if (!tradesByDay[dayStr]) tradesByDay[dayStr] = 0;
+            tradesByDay[dayStr] += parseFloat(t.net_result || 0);
+        });
+
+        stats[acc] = {
+            balance: bal,
+            hwm: hwm,
+            maxLoss: mll,
+            tradesByDay: tradesByDay
+        };
     }
 
     return stats;
