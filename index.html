@@ -16,18 +16,15 @@
 
     <style>
         /* Force dark background immediately to prevent loading flashes */
-          /* This MUST be at the top of the style block */
         :root {
             color-scheme: dark;
         }
         html, body {
             background-color: #121212 !important;
         }
- 
 
         :root {
             --bg-color: #121212;
-            
             --container-bg: #1e1e1e;
             --text-color: #e0e0e0;
             --border-color: #444;
@@ -306,21 +303,19 @@
         .alert-banner strong { font-weight: 700; text-transform: uppercase; margin-right: 5px; }
         .alert-banner + .alert-banner { margin-top: -10px; }
 
-        /* 1. Target ONLY the individual trade rows (NOT the group headers) */
-        #ts-trades-tbody tr.child-row td:nth-child(1),  /* Sym */
-        #ts-trades-tbody tr.child-row td:nth-child(5),  /* BE */
-        #ts-trades-tbody tr.child-row td:nth-child(6),  /* Entries List */
-        #ts-trades-tbody tr.child-row td:nth-child(10), /* RR-M */
-        #ts-trades-tbody tr.child-row td:nth-child(12), /* Qty */
-        #ts-trades-tbody tr.child-row td:nth-child(13), /* /100 */
-        #ts-trades-tbody tr.child-row td:nth-child(14), /* Fees */
-        #ts-trades-tbody tr.child-row td:nth-child(16), /* Pr-M */
-        #ts-trades-tbody tr.child-row td:nth-child(18)  /* Ls-M */
+        #ts-trades-tbody tr.child-row td:nth-child(1),
+        #ts-trades-tbody tr.child-row td:nth-child(5),
+        #ts-trades-tbody tr.child-row td:nth-child(6),
+        #ts-trades-tbody tr.child-row td:nth-child(10),
+        #ts-trades-tbody tr.child-row td:nth-child(12),
+        #ts-trades-tbody tr.child-row td:nth-child(13),
+        #ts-trades-tbody tr.child-row td:nth-child(14),
+        #ts-trades-tbody tr.child-row td:nth-child(16),
+        #ts-trades-tbody tr.child-row td:nth-child(18)
         {
             display: none !important;
         }
 
-        /* 2. Target ONLY the Live Trades Table Headers */
         table:has(#ts-trades-tbody) thead th:nth-child(1),
         table:has(#ts-trades-tbody) thead th:nth-child(5),
         table:has(#ts-trades-tbody) thead th:nth-child(6),
@@ -333,18 +328,15 @@
             display: none !important;
         }
 
-        /* 3. ENSURE Group Headers (colspan rows) remain visible */
         #ts-trades-tbody tr:not(.child-row) td {
             display: table-cell !important;
         }
 
-        /* 4. ENSURE Completed Trades table shows EVERYTHING */
         #ts-completed-trades-tbody tr td, 
         table:has(#ts-completed-trades-tbody) thead th {
             display: table-cell !important;
         }
         
-        /* Funded Accounts Added Styles */
         .funded-radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
         .funded-radio-group label { flex: 1; text-align: center; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; transition: all 0.2s; font-weight: bold; font-size: 14px; background: var(--container-bg); }
         .funded-radio-group input[type="radio"] { display: none; }
@@ -382,7 +374,6 @@
             background-color: var(--bg-color); 
         }
 
-        /* Add this new rule for the Funded Banner grid */
         .funded-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -391,7 +382,6 @@
             text-align: center;
         }
 
-        /* Mobile fix for the 5-column grid */
         @media (max-width: 768px) {
             .funded-grid {
                 grid-template-columns: repeat(2, 1fr) !important; 
@@ -421,7 +411,6 @@
             }
         }
 
-        /* --- Optimized Summary Cards --- */
         .summary-split-container { 
             display: flex; 
             flex-wrap: wrap; 
@@ -440,7 +429,6 @@
             box-sizing: border-box; 
         }
 
-        /* 5-column grid for Desktop */
         .funded-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -498,7 +486,6 @@
             border-color: var(--link-color);
         }
 
-        /* Container for the account selection */
         .funded-radio-group {
             display: grid !important; 
             grid-template-columns: 1fr; 
@@ -506,7 +493,6 @@
             width: 100%;
         }
 
-        /* The Grid for the Account Buttons */
         .acc-grid-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -518,7 +504,6 @@
             display: none !important;
         }
 
-        /* Style the Label to look like a Button */
         .acc-checkbox + label {
             display: block;
             padding: 12px 5px;
@@ -534,12 +519,10 @@
             user-select: none;
         }
 
-        /* Hover State */
         .acc-checkbox + label:hover {
             border-color: var(--link-color);
         }
 
-        /* CHECKED STATE - Turns Green */
         .acc-checkbox:checked + label {
             background-color: #28a745 !important; 
             border-color: #218838 !important;
@@ -559,7 +542,6 @@
             background-color: var(--header-bg);
         }
 
-        /* Highlight for images added in the current session */
         .newly-added-highlight {
             border: 3px solid #ffc107 !important; 
             background-color: rgba(255, 193, 7, 0.15) !important; 
@@ -588,7 +570,6 @@
             height: auto; 
         }
 
-        /* --- Optimized Summary Cards Fix for PC/Mobile --- */
         .summary-split-container { 
             display: flex; 
             flex-wrap: wrap; 
@@ -610,7 +591,6 @@
             box-shadow: 0 2px 4px var(--shadow-color);
         }
 
-        /* Specific grid for the 5-column funded accounts */
         .funded-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -641,7 +621,6 @@
             white-space: nowrap;
         }
 
-        /* Mobile Overrides */
         @media (max-width: 768px) {
             .summary-card {
                 min-width: 100% !important;
@@ -665,7 +644,6 @@
             }
         }
 
-        /* --- Optimized Summary Cards Grid --- */
         .summary-split-container { 
             display: grid; 
             grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); 
@@ -685,7 +663,6 @@
             border-top: 3px solid var(--link-color); 
         }
 
-        /* 5-column layout inside each card */
         .funded-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -710,14 +687,12 @@
             margin-bottom: 2px;
         }
 
-        /* PC adjustment: Prevent the 8th card from expanding weirdly */
         @media (min-width: 1200px) {
             .summary-split-container {
                 grid-template-columns: repeat(4, 1fr); 
             }
         }
 
-        /* Mobile Overrides */
         @media (max-width: 768px) {
             .summary-split-container {
                 grid-template-columns: 1fr; 
@@ -847,7 +822,6 @@
         .dash-val-minus { color: var(--red-text); }
         .dash-buffer { font-weight: 900; }
 
-        /* Container: Full width on mobile, capped at 600px on PC */
         #funded-dashboard-container {
             background: var(--container-bg);
             border-radius: 4px;
@@ -857,7 +831,6 @@
             box-sizing: border-box;
         }
 
-        /* This is the magic part for PC only */
         @media (min-width: 800px) {
             #funded-dashboard-container {
                 max-width: 600px; 
@@ -865,7 +838,6 @@
             }
         }
 
-        /* EXACT GRID FROM THE VERSION YOU LIKED */
         .dashboard-grid {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 1fr 1fr; 
@@ -924,7 +896,6 @@
             position: relative;
         }
 
-        /* Container: Full width on mobile, capped at 600px on PC, aligned right */
         #apex-expiry-dashboard {
             background: var(--container-bg);
             border-radius: 4px;
@@ -945,7 +916,6 @@
             }
         }
 
-        /* Specific Grid for 4 Columns */
         .expiry-grid {
             display: grid;
             grid-template-columns: 2fr 1.5fr 1fr 1.2fr; 
@@ -960,204 +930,135 @@
             overflow: visible !important;
         }
 
-
-
-
-
-
-
-
-
-        
-@media (max-width: 768px) {
-    /* Shrink the entire table footprint */
-    #completed-trades-tbody td, 
-    #ts-completed-trades-tbody td,
-    table thead th {
-        font-size: 10px !important; /* Smaller text to fit more columns */
-   
-    }
-
-}
-
-
-
-
+        @media (max-width: 768px) {
+            #completed-trades-tbody td, 
+            #ts-completed-trades-tbody td,
+            table thead th {
+                font-size: 10px !important;
+            }
+        }
 
         .hide-title { opacity: 0; pointer-events: none; }
 
+        #tabs-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--subtle-text);
+            font-size: 22px; 
+            cursor: pointer;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s;
+        }
 
+        #tabs-toggle-btn:hover { color: var(--link-color); transform: scale(1.1); }
 
+        .tabs {
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            min-height: 45px;
+        }
 
+        .tabs:not(.is-expanded) .tab-link {
+            display: none;
+        }
 
+        .tabs.is-expanded {
+            flex-wrap: wrap;
+        }
 
+        .tabs.is-expanded .tab-link {
+            display: block;
+            animation: fadeIn 0.3s forwards;
+        }
 
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
+        #tracker-tab .collapsible-section:has(#completed-trades-tbody),
+        #topstep-tab .collapsible-section:has(#ts-completed-trades-tbody) {
+            transition: none !important;
+        }
 
+        #tracker-tab .collapsible-section.is-open .collapsible-content,
+        #topstep-tab .collapsible-section.is-open .collapsible-content {
+            max-height: none !important;
+            overflow: visible !important;
+        }
 
+        .collapsible-section:has(#completed-trades-tbody),
+        .collapsible-section:has(#ts-completed-trades-tbody),
+        .collapsible-section:has(#ts-completed-trades-tbody) .collapsible-content {
+            transition: none !important;
+        }
 
-/* Styling for the Toggle Button */
-#tabs-toggle-btn {
-    background: none;
-    border: none;
-    color: var(--subtle-text);
-    font-size: 22px; /* Slightly larger since it's the only thing there */
-    cursor: pointer;
-    padding: 10px 15px;
-    display: flex;
-    align-items: center;
-    transition: all 0.2s;
-}
+        .collapsible-section.is-open:has(#completed-trades-tbody) .collapsible-content,
+        .collapsible-section.is-open:has(#ts-completed-trades-tbody) .collapsible-content {
+            max-height: none !important;
+            overflow: visible !important;
+            display: block !important;
+        }
 
-#tabs-toggle-btn:hover { color: var(--link-color); transform: scale(1.1); }
+        .trade-image-thumbnails {
+            min-height: 42px;
+            min-width: 42px;
+            display: flex;
+            align-items: center;
+        }
 
-/* The Tab Bar container */
-.tabs {
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    min-height: 45px;
-}
+        .thumbnail-wrapper {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
 
-/* HIDE ALL TAB LINKS when not expanded */
-.tabs:not(.is-expanded) .tab-link {
-    display: none;
-}
-
-/* Show all tab links when expanded */
-.tabs.is-expanded {
-    flex-wrap: wrap;
-}
-
-.tabs.is-expanded .tab-link {
-    display: block;
-    animation: fadeIn 0.3s forwards;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-
-
-        /* Prevent the "glitchy" sliding animation for the completed trades sections */
-#tracker-tab .collapsible-section:has(#completed-trades-tbody),
-#topstep-tab .collapsible-section:has(#ts-completed-trades-tbody) {
-    transition: none !important;
-}
-
-#tracker-tab .collapsible-section.is-open .collapsible-content,
-#topstep-tab .collapsible-section.is-open .collapsible-content {
-    max-height: none !important; /* Force it to be full height immediately */
-    overflow: visible !important;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-/* 1. Kill the sliding animation for these specific tables - it causes the jump */
-.collapsible-section:has(#completed-trades-tbody),
-.collapsible-section:has(#ts-completed-trades-tbody),
-.collapsible-section:has(#ts-completed-trades-tbody) .collapsible-content {
-    transition: none !important;
-}
-
-/* 2. Force the section to be exactly as tall as the content immediately */
-.collapsible-section.is-open:has(#completed-trades-tbody) .collapsible-content,
-.collapsible-section.is-open:has(#ts-completed-trades-tbody) .collapsible-content {
-    max-height: none !important;
-    overflow: visible !important;
-    display: block !important;
-}
-
-/* 3. Give the image cells a fixed height so they don't 'pop' into existence */
-.trade-image-thumbnails {
-    min-height: 42px;
-    min-width: 42px;
-    display: flex;
-    align-items: center;
-}
-
-.thumbnail-wrapper {
-    width: 40px;
-    height: 40px;
-    flex-shrink: 0;
-    background: #1a1a1a; /* Placeholder color while loading */
-    border-radius: 4px;}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        /* --- Compact Badges for Mobile Completed Tables --- */
-@media (max-width: 768px) {
-    #ts-completed-trades-tbody .acc-badge,
-    #completed-trades-tbody .acc-badge {
-        font-size: 7.5px !important;
-        padding: 1px 3px !important;
-        margin-right: 0 !important;
-        border-radius: 2px !important;
-    }
-    #ts-completed-trades-tbody .group-badge,
-    #completed-trades-tbody .group-badge {
-        font-size: 7.5px !important;
-        padding: 1px 3px !important;
-        margin-left: 0 !important;
-        border-radius: 2px !important;
-        max-width: 50px !important;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    #ts-completed-trades-tbody td.cell-narrow,
-    #completed-trades-tbody td.cell-narrow {
-        padding: 4px 3px !important;
-    }
-}
-
-
+        @media (max-width: 768px) {
+            #ts-completed-trades-tbody .acc-badge,
+            #completed-trades-tbody .acc-badge {
+                font-size: 7.5px !important;
+                padding: 1px 3px !important;
+                margin-right: 0 !important;
+                border-radius: 2px !important;
+            }
+            #ts-completed-trades-tbody .group-badge,
+            #completed-trades-tbody .group-badge {
+                font-size: 7.5px !important;
+                padding: 1px 3px !important;
+                margin-left: 0 !important;
+                border-radius: 2px !important;
+                max-width: 50px !important;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            #ts-completed-trades-tbody td.cell-narrow,
+            #completed-trades-tbody td.cell-narrow {
+                padding: 4px 3px !important;
+            }
+        }
     </style>
 </head>
 <body style="background-color: #121212;">
     <div class="container">
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button id="tabs-toggle-btn" title="Menu">☰</button>
+            <button class="tab-link" data-tab="tracker">Trade Tracker</button>
+            <button class="tab-link active" data-tab="topstep">Funded Accounts</button>
+            <button class="tab-link" data-tab="journal">Journal & Setups</button>
+            <button class="tab-link" data-tab="strategy">Setups</button>
+            <button class="tab-link" data-tab="notes">Notes</button>
+        </div>
 
-     
-   
-<!-- Navigation Tabs -->
-<div class="tabs">
-    <button id="tabs-toggle-btn" title="Menu">☰</button>
-    <button class="tab-link" data-tab="tracker">Trade Tracker</button>
-    <button class="tab-link active" data-tab="topstep">Funded Accounts</button>
-    <button class="tab-link" data-tab="journal">Journal & Setups</button>
-    <button class="tab-link" data-tab="strategy">Setups</button>
-    <button class="tab-link" data-tab="notes">Notes</button>
-</div>
         <!-- Tab 1: Tracker -->
         <div id="tracker-tab" class="tab-content">
-            
             <div id="tracker-alerts"></div> 
 
             <!-- Add Trade (Master Only) -->
@@ -1179,16 +1080,7 @@
                                 <div style="flex: 1;">
                                     <label for="trade-variant">#:</label>
                                     <select id="trade-variant">
-                                        <option value="1">1</option>
-                                        <option value="2">2</option>
-                                        <option value="3">3</option>
-                                        <option value="4">4</option>
-                                        <option value="5">5</option>
-                                        <option value="6">6</option>
-                                        <option value="7">7</option>
-                                        <option value="8">8</option>
-                                        <option value="9">9</option>
-                                        <option value="10">10</option>
+                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
                                     </select>
                                 </div>
                             </div>
@@ -1208,7 +1100,6 @@
                                 <label for="trade-type">Trade Type:</label>
                                 <select id="trade-type"><option value="Long">Long</option><option value="Short">Short</option></select>
                             </div>
-                   
                             <div><label for="entry-price">Entry Price:</label><input type="number" id="entry-price" step="any" required></div>
                             <div><label for="stop-loss">Stop Loss:</label><input type="number" id="stop-loss" step="any" required></div>
                             <div><label for="target">Target:</label><input type="number" id="target" step="any" required></div>
@@ -1279,21 +1170,19 @@
                 </div>
             </div>
 
-             <!-- Completed Trades -->
+            <!-- Completed Trades -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
-                <h2 class="hide-title">Completed Trades</h2>
+                    <h2 class="hide-title">Completed Trades</h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
-                        
                         <div class="table-wrapper">
                             <table>
-                                <tbody id="completed-trades-tbody"></tbody> <!-- Swapped back to original ID -->
+                                <tbody id="completed-trades-tbody"></tbody>
                             </table>
                         </div>
-
                         <button id="toggle-all-completed-trades" class="toggle-history-btn">Show All</button>
                         <div id="completed-trades-pagination-controls" class="pagination-controls" style="display: none;">
                             <button id="completed-trades-prev-page" class="pagination-btn">&lt; Prev</button>
@@ -1307,7 +1196,7 @@
 
         <!-- Tab 1.5: Funded Accounts -->
         <div id="topstep-tab" class="tab-content active">
-        <!-- Link Button to All Symbols (opens in a new tab) -->
+            <!-- Link Button to All Symbols (opens in a new tab) -->
             <div style="width: 100%; box-sizing: border-box; margin-bottom: 12px; display: flex; justify-content: flex-end;">
                 <div style="width: 100%; max-width: 600px;">
                     <a href="https://dumpumpz.github.io/all-symbols/" target="_blank" rel="noopener noreferrer" style="text-decoration: none; display: block;">
@@ -1326,23 +1215,18 @@
                     <div>MLL</div>
                     <div style="color: var(--text-color);">BUFFER</div>
                 </div>
-                <div id="funded-dashboard-rows">
-                    <!-- JS will inject rows here -->
-                </div>
+                <div id="funded-dashboard-rows"></div>
             </div>
 
-
             <!-- Evaluation Target Calculator -->
-   <div class="collapsible-section master-only">
-    <div class="collapsible-header">
-        <h2>Target & Projections Calculator</h2>
+            <div class="collapsible-section master-only">
+                <div class="collapsible-header">
+                    <h2>Target & Projections Calculator</h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
-                        
                         <div id="funded-calculator-results" style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;"></div>
-                        
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end;">
                             <div>
                                 <label for="calc-risk-usd">Risk ($):</label>
@@ -1357,7 +1241,6 @@
                                 <input type="number" id="calc-reward-ticks" value="200" step="1">
                             </div>
                         </div>
-                        
                         <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; text-align: center; align-items: center;">
                             <div>
                                 <div class="sum-label">Projected Reward</div>
@@ -1385,13 +1268,11 @@
                             <div style="display: flex; gap: 5px;">
                                 <div style="flex: 2;">
                                     <label for="ts-trade-session">Session (Auto):</label>
-                                    <select id="ts-trade-session" disabled style="background-color: var(--header-bg); opacity: 0.7;">
-                                    </select>
+                                    <select id="ts-trade-session" disabled style="background-color: var(--header-bg); opacity: 0.7;"></select>
                                 </div>
                                 <div style="flex: 1;">
                                     <label for="ts-trade-variant"># (Auto):</label>
-                                    <select id="ts-trade-variant" disabled style="background-color: var(--header-bg); opacity: 0.7;">
-                                    </select>
+                                    <select id="ts-trade-variant" disabled style="background-color: var(--header-bg); opacity: 0.7;"></select>
                                 </div>
                             </div>
                             <div>
@@ -1401,12 +1282,10 @@
                                     <option value="NQ">NQ ($20/pt)</option>
                                 </select>
                             </div>
-                    
                             <div>
                                 <label for="ts-trade-type">Trade Type:</label>
                                 <select id="ts-trade-type"><option value="Long">Long</option><option value="Short">Short</option></select>
                             </div>
-                  
                             <div><label for="ts-entry-price">Entry Price:</label><input type="number" id="ts-entry-price" step="any" required></div>
                             <div><label for="ts-stop-loss">Stop Loss:</label><input type="number" id="ts-stop-loss" step="any" required></div>
                             <div><label for="ts-target">Target:</label><input type="number" id="ts-target" step="any" required></div>
@@ -1415,9 +1294,9 @@
                                 <input type="number" id="ts-contracts" value="1" step="1">
                             </div>
                             <div>
-    <label for="ts-trade-timestamp">Entry Time (Optional):</label>
-    <input type="datetime-local" id="ts-trade-timestamp">
-</div>
+                                <label for="ts-trade-timestamp">Entry Time (Optional):</label>
+                                <input type="datetime-local" id="ts-trade-timestamp">
+                            </div>
                             <div>
                                 <label for="ts-commissions">Round Trip Fee ($):</label>
                                 <input type="number" id="ts-commissions" value="1.00" step="0.01">
@@ -1428,10 +1307,10 @@
                 </div>
             </div>
 
-         <!-- Live Trades Section -->
-<div class="collapsible-section master-only">
-    <div class="collapsible-header">
-        <h2>Live Trades</h2>
+            <!-- Live Trades Section -->
+            <div class="collapsible-section master-only">
+                <div class="collapsible-header">
+                    <h2>Live Trades</h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
@@ -1446,11 +1325,10 @@
                 </div>
             </div>
 
-        <!-- Independent Evaluation Trading Setups -->
-<div class="collapsible-section master-only">
-    <div class="collapsible-header">
-      <h2 class="hide-title">Funded Notes</h2>
-
+            <!-- Independent Evaluation Trading Setups -->
+            <div class="collapsible-section master-only">
+                <div class="collapsible-header">
+                    <h2 class="hide-title">Funded Notes</h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
@@ -1464,8 +1342,7 @@
             <!-- Independent Evaluation Setups Library -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
-                   <h2 class="hide-title">Funded Setups</h2>
-
+                    <h2 class="hide-title">Funded Setups</h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
@@ -1482,7 +1359,7 @@
                         </div>
 
                         <div id="ts-setups-image-container"></div>
-        <button id="ts-toggle-all-setups-images" class="toggle-history-btn" style="display:none;">Show All history</button>
+                        <button id="ts-toggle-all-setups-images" class="toggle-history-btn" style="display:none;">Show All history</button>
                         <div id="ts-setups-images-pagination-controls" class="pagination-controls" style="display: none;">
                             <button id="ts-setups-images-prev-page" class="pagination-btn">&lt; Prev</button>
                             <span id="ts-setups-images-page-info"></span>
@@ -1492,16 +1369,14 @@
                 </div>
             </div>
             
-                <!-- Completed Trades -->
+            <!-- Completed Trades -->
             <div class="collapsible-section">
                 <div class="collapsible-header">
-                <h2 class="hide-title">Completed Trades</h2>
-
+                    <h2 class="hide-title">Completed Trades</h2>
                     <button class="collapsible-toggle-btn">+</button>
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-content-inner">
-                        <!-- Placed the Filter Container here in the correct Tab -->
                         <div id="ts-completed-filter-container" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; align-items: center;"></div>
                         
                         <div class="table-wrapper">
@@ -1596,7 +1471,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <!-- Modals -->
@@ -1618,6 +1492,12 @@
 
     <input type="file" id="trade-image-uploader" accept="image/*" style="display:none;" multiple>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -1662,8 +1542,7 @@
                 TS_SETUPS_1: 'ts_setups_1',
                 TS_SETUPS_2: 'ts_setups_2',
                 TS_SETUPS_IMAGES: 'ts_setups_images',
-                fundedSettings: database.ref(CONFIG.DB_PATHS.FUNDED_SETTINGS),
-    apexExpiry: database.ref(CONFIG.DB_PATHS.APEX_EXPIRY),
+                FUNDED_SETTINGS: 'funded_account_settings',
                 APEX_EXPIRY: 'apex_expiry_dates' 
             },
             TRADE_SETTINGS: {
@@ -1733,13 +1612,13 @@
             isMasterUser: false, 
             activeTab: 'topstep', 
             initializedTabs: { topstep: true }, 
-            visibleTsAccounts: ['Lucid 1',  'Lucid 3'], 
+            visibleTsAccounts: ['Lucid 1', 'Lucid 3'], 
 
             isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {},  favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null, isTopstep: false },
-            allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5,             apexDates: {}, 
+            allCompletedTrades: {}, completedTradesShowAll: false, completedTradesCurrentPage: 1, completedTradesItemsPerPage: 5, apexDates: {}, 
             renderTimer: null,
             statsTimer: null,
-                fundedAccountSettings: {},
+            fundedAccountSettings: {},
 
             allTsTrades: {}, allTsCompletedTrades: {}, 
             tsCompletedTradesShowAll: false, tsCompletedTradesCurrentPage: 1,
@@ -1749,7 +1628,6 @@
             calendarViewDate: new Date(),
             strategyImages: {}, strategySaveTimer: null,
             
-            // Render Guards & Cache to completely eliminate lags
             tsDatesCached: [],
             cryptoDatesCached: [],
             isRenderingCompleted: false,
@@ -1785,6 +1663,7 @@
             tsSetups1: database.ref(CONFIG.DB_PATHS.TS_SETUPS_1),
             tsSetups2: database.ref(CONFIG.DB_PATHS.TS_SETUPS_2),
             tsSetupsImages: database.ref(CONFIG.DB_PATHS.TS_SETUPS_IMAGES),
+            fundedSettings: database.ref(CONFIG.DB_PATHS.FUNDED_SETTINGS),
             apexExpiry: database.ref(CONFIG.DB_PATHS.APEX_EXPIRY) 
         };
 
@@ -1806,84 +1685,82 @@
                 return new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
             } catch (e) { return null; }
         })();
-function shiftTradeDay(tradeId, daysDirection, isTopstep) {
-        if (STATE.isProcessing) return;
-        STATE.isProcessing = true;
 
-        const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
-        
-        compRef.child(tradeId).once('value', snapshot => {
-            const trade = snapshot.val();
-            if (!trade) {
-                STATE.isProcessing = false;
-                return;
-            }
+        function shiftTradeDay(tradeId, daysDirection, isTopstep) {
+            if (STATE.isProcessing) return;
+            STATE.isProcessing = true;
 
-            const msOffset = daysDirection * 24 * 60 * 60 * 1000;
-            const updates = {};
-
-            if (trade.date) {
-                const cleanDate = getSafeTimestamp({ date: trade.date });
-                if (cleanDate) updates.date = cleanDate + msOffset;
-            }
-            if (trade.closed_date) {
-                const cleanClosedDate = getSafeTimestamp({ closed_date: trade.closed_date });
-                if (cleanClosedDate) updates.closed_date = cleanClosedDate + msOffset;
-            }
-
-            // Recalculate Group ID based on the new shifted entry time
-            if (updates.date) {
-                const newSession = getSessionFromTimestamp(updates.date);
-                const currentClosedDate = updates.closed_date || updates.date;
-                const tradingDay = getTradingDayString(currentClosedDate, updates.date);
-                
-                const allCompleted = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
-                const allLive = isTopstep ? STATE.allTsTrades : {};
-
-                const newVariant = getNextVariantForDayAndSession(tradingDay, newSession, allCompleted, allLive, tradeId);
-                updates.groupId = `${newSession}_${newVariant}`;
-            }
-
-            // Sanitizer to prevent any NaN/undefined database corruption
-            Object.keys(updates).forEach(key => {
-                if (updates[key] === undefined) {
-                    delete updates[key];
-                } else if (typeof updates[key] === 'number' && isNaN(updates[key])) {
-                    updates[key] = 0;
+            const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
+            
+            compRef.child(tradeId).once('value', snapshot => {
+                const trade = snapshot.val();
+                if (!trade) {
+                    STATE.isProcessing = false;
+                    return;
                 }
-            });
 
-            compRef.child(tradeId).update(updates).then(() => {
-                // Auto-jump to the trade's new shifted day so the user sees it immediately
-                const finalClosedDate = updates.closed_date || trade.closed_date;
-                const finalDate = updates.date || trade.date;
-                if (finalClosedDate && finalDate) {
-                    const newDayStr = getTradingDayString(finalClosedDate, finalDate);
-                    const uniqueTradingDates = getMasterTradingDates(isTopstep);
-                    const newPageIndex = uniqueTradingDates.indexOf(newDayStr);
-                    if (newPageIndex !== -1) {
-                        const newPage = newPageIndex + 1;
-                        if (isTopstep) {
-                            if (STATE.tsCompletedTradesCurrentPage !== newPage) {
-                                STATE.tsCompletedTradesCurrentPage = newPage;
-                                renderFilteredEvalData();
-                            }
-                        } else {
-                            if (STATE.completedTradesCurrentPage !== newPage) {
-                                STATE.completedTradesCurrentPage = newPage;
-                                renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
+                const msOffset = daysDirection * 24 * 60 * 60 * 1000;
+                const updates = {};
+
+                if (trade.date) {
+                    const cleanDate = getSafeTimestamp({ date: trade.date });
+                    if (cleanDate) updates.date = cleanDate + msOffset;
+                }
+                if (trade.closed_date) {
+                    const cleanClosedDate = getSafeTimestamp({ closed_date: trade.closed_date });
+                    if (cleanClosedDate) updates.closed_date = cleanClosedDate + msOffset;
+                }
+
+                if (updates.date) {
+                    const newSession = getSessionFromTimestamp(updates.date);
+                    const currentClosedDate = updates.closed_date || updates.date;
+                    const tradingDay = getTradingDayString(currentClosedDate, updates.date);
+                    
+                    const allCompleted = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
+                    const allLive = isTopstep ? STATE.allTsTrades : {};
+
+                    const newVariant = getNextVariantForDayAndSession(tradingDay, newSession, allCompleted, allLive, tradeId);
+                    updates.groupId = `${newSession}_${newVariant}`;
+                }
+
+                Object.keys(updates).forEach(key => {
+                    if (updates[key] === undefined) {
+                        delete updates[key];
+                    } else if (typeof updates[key] === 'number' && isNaN(updates[key])) {
+                        updates[key] = 0;
+                    }
+                });
+
+                compRef.child(tradeId).update(updates).then(() => {
+                    const finalClosedDate = updates.closed_date || trade.closed_date;
+                    const finalDate = updates.date || trade.date;
+                    if (finalClosedDate && finalDate) {
+                        const newDayStr = getTradingDayString(finalClosedDate, finalDate);
+                        const uniqueTradingDates = getMasterTradingDates(isTopstep);
+                        const newPageIndex = uniqueTradingDates.indexOf(newDayStr);
+                        if (newPageIndex !== -1) {
+                            const newPage = newPageIndex + 1;
+                            if (isTopstep) {
+                                if (STATE.tsCompletedTradesCurrentPage !== newPage) {
+                                    STATE.tsCompletedTradesCurrentPage = newPage;
+                                    renderFilteredEvalData();
+                                }
+                            } else {
+                                if (STATE.completedTradesCurrentPage !== newPage) {
+                                    STATE.completedTradesCurrentPage = newPage;
+                                    renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
+                                }
                             }
                         }
                     }
-                }
-            }).catch(err => {
-                console.error("Shift Day Error:", err);
-            }).finally(() => {
-                STATE.isProcessing = false;
+                }).catch(err => {
+                    console.error("Shift Day Error:", err);
+                }).finally(() => {
+                    STATE.isProcessing = false;
+                });
             });
-        });
-    }
-        // --- REBUILD CALENDAR CACHE ---
+        }
+
         function rebuildDatesCache(isTopstep) {
             const dates = new Set();
             dates.add(getPerthDateString());
@@ -1920,8 +1797,6 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
             }
         }
 
-        // --- LAZY LOADING LOGIC ---
-
         function subscribeToFundedData() {
             dbRefs.dailyNotes.on('value', (s) => {
                 STATE.dailyNotes = s.val() || {};
@@ -1935,9 +1810,9 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
             });
 
             dbRefs.fundedSettings.on('value', s => {
-    STATE.fundedAccountSettings = s.val() || {};
-    renderFilteredEvalData();
-});
+                STATE.fundedAccountSettings = s.val() || {};
+                renderFilteredEvalData();
+            });
 
             dbRefs.tsCompletedTrades.on('value', s => {
                 STATE.allTsCompletedTrades = s.val() || {};
@@ -1954,7 +1829,6 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
                 if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
             });
 
-            // Load Funded Setup Notes
             dbRefs.tsSetups1.on('value', s => { 
                 const el = document.getElementById('ts-primary-setups-notes');
                 if (el && document.activeElement !== el) { el.value = s.val() || ""; autoResizeTextarea(el); }
@@ -1965,8 +1839,6 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
             });
         }
 
-
-        // --- UNIFIED CALENDAR DATE ALIGNER (FAST READ-FROM-CACHE) ---
         function getMasterTradingDates(isTopstep) {
             if (isTopstep) {
                 if (!STATE.tsDatesCached || STATE.tsDatesCached.length === 0) {
@@ -2033,10 +1905,8 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
             }
         }
 
-        // --- HELPER FUNCTIONS ---
         const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
 
-        // Optimized Tab Switcher
         DOM.tabs.addEventListener('click', (e) => {
             if (!e.target.matches('.tab-link')) return;
             
@@ -2049,11 +1919,8 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
             const newTabContent = document.getElementById(`${tabId}-tab`);
             if (newTabContent) {
                 newTabContent.classList.add('active');
-                
-                // Trigger Lazy Load
                 subscribeToOtherTabs(tabId);
                 
-                // Adjust UI
                 setTimeout(() => {
                     newTabContent.querySelectorAll('textarea').forEach(ta => autoResizeTextarea(ta));
                     resizeParentCollapsible(newTabContent);
@@ -2061,7 +1928,6 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
             }
         });
 
-        // Tab Menu Toggle Logic
         const toggleBtn = document.getElementById('tabs-toggle-btn');
         const tabsContainer = document.querySelector('.tabs');
 
@@ -2077,6 +1943,7 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
                 toggleBtn.textContent = '☰';
             }
         });
+
         function calculateBreakevenPrice(trade) {
             const entry = parseFloat(trade.entry);
             if (isNaN(entry) || entry <= 0) return 0;
@@ -2185,7 +2052,6 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
 
         async function fetchLiveConversionRate() { try { const response = await fetch('https://open.er-api.com/v6/latest/USD'); if (!response.ok) return; const data = await response.json(); if (data?.result === "success" && data?.rates?.AUD) { STATE.usdToAudRate = data.rates.AUD; } } catch (error) { console.error("Could not fetch conversion rate.", error); } }
 
-        // --- FILTER HELPERS FOR FUNDED TAB ---
         function getEvalAccount(trade) {
             let acc = trade.evalAccount;
             if (!acc || acc === 'Topstep' || acc === 'Lucid') return CONFIG.FUNDED_ACCOUNTS[0]; 
@@ -2207,57 +2073,56 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
             return mapped;
         }
 
-     
- function renderFilteredEvalData() {
-    const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
-    renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
-    
-    const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
-    renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
-    
-    calculateTopstepStats(completedMapped);
-    renderFundedDashboard(); 
-}
+        function renderFilteredEvalData() {
+            const liveMapped = mapLegacyAccounts(STATE.allTsTrades);
+            renderLiveTable(liveMapped, 'ts-trades-tbody', 'ts-live-trades-summary-container');
+            
+            const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
+            renderCompletedTable(completedMapped, 'ts-completed-trades-tbody', true);
+            
+            calculateTopstepStats(completedMapped);
+            renderFundedDashboard(); 
+        }
       
-       function renderFundedDashboard() {
-    const container = document.getElementById('funded-dashboard-rows');
-    if (!container) return;
+        function renderFundedDashboard() {
+            const container = document.getElementById('funded-dashboard-rows');
+            if (!container) return;
 
-    const todayStr = getPerthDateString();
-    let html = '';
+            const todayStr = getPerthDateString();
+            let html = '';
 
-    const len = CONFIG.FUNDED_ACCOUNTS.length;
-    for (let i = 0; i < len; i++) {
-        const acc = CONFIG.FUNDED_ACCOUNTS[i];
-        const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000, tradesByDay: {} };
-        
-        const plToday = stats.tradesByDay[todayStr] || 0;
-        const buffer = stats.balance - stats.maxLoss;
-        const toTarget = CONFIG.FUNDED_TARGET - stats.balance;
+            const len = CONFIG.FUNDED_ACCOUNTS.length;
+            for (let i = 0; i < len; i++) {
+                const acc = CONFIG.FUNDED_ACCOUNTS[i];
+                const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000, tradesByDay: {} };
+                
+                const plToday = stats.tradesByDay[todayStr] || 0;
+                const buffer = stats.balance - stats.maxLoss;
+                const toTarget = CONFIG.FUNDED_TARGET - stats.balance;
 
-        const winsToPass = toTarget > 0 ? Math.ceil(toTarget / 400) : 0;
-        const lossesToBlow = Math.max(0, Math.floor(buffer / 100));
+                const winsToPass = toTarget > 0 ? Math.ceil(toTarget / 400) : 0;
+                const lossesToBlow = Math.max(0, Math.floor(buffer / 100));
 
-        const fmt = (num) => Math.round(num).toLocaleString();
+                const fmt = (num) => Math.round(num).toLocaleString();
 
-        html += `
-        <div class="dashboard-grid dashboard-row" style="height: 35px;">
-            <div style="text-align: left; line-height: 1.2;">
-                <div style="font-family: -apple-system, sans-serif; font-weight: 600; color: var(--text-color);">${acc}</div>
-                <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.3px;">
-                    ${toTarget > 0 ? `<span style="color:var(--green-text)">${winsToPass}W</span>` : 'PASS'} / 
-                    <span style="color:var(--red-text)">${lossesToBlow}L</span>
-                </div>
-            </div>
-            <div class="${plToday >= 0 ? 'dash-val-plus' : 'dash-val-minus'}">${plToday >= 0 ? '+' : ''}${fmt(plToday)}</div>
-            <div class="editable-funded-stat" data-acc="${acc}" data-field="baselineBalance" contenteditable="${STATE.isMasterUser}" title="Click to edit Base Balance" style="cursor: text;">${fmt(stats.balance)}</div>
-            <div class="editable-funded-stat" data-acc="${acc}" data-field="baselineMLL" contenteditable="${STATE.isMasterUser}" title="Click to edit Base MLL" style="cursor: text; opacity: 0.7;">${fmt(stats.maxLoss)}</div>
-            <div class="dash-buffer ${buffer < 500 ? 'dash-val-minus' : ''}">${fmt(buffer)}</div>
-        </div>`;
-    }
+                html += `
+                <div class="dashboard-grid dashboard-row" style="height: 35px;">
+                    <div style="text-align: left; line-height: 1.2;">
+                        <div style="font-family: -apple-system, sans-serif; font-weight: 600; color: var(--text-color);">${acc}</div>
+                        <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.3px;">
+                            ${toTarget > 0 ? `<span style="color:var(--green-text)">${winsToPass}W</span>` : 'PASS'} / 
+                            <span style="color:var(--red-text)">${lossesToBlow}L</span>
+                        </div>
+                    </div>
+                    <div class="${plToday >= 0 ? 'dash-val-plus' : 'dash-val-minus'}">${plToday >= 0 ? '+' : ''}${fmt(plToday)}</div>
+                    <div class="editable-funded-stat" data-acc="${acc}" data-field="baselineBalance" contenteditable="${STATE.isMasterUser}" title="Click to edit Base Balance" style="cursor: text;">${fmt(stats.balance)}</div>
+                    <div class="editable-funded-stat" data-acc="${acc}" data-field="baselineMLL" contenteditable="${STATE.isMasterUser}" title="Click to edit Base MLL" style="cursor: text; opacity: 0.7;">${fmt(stats.maxLoss)}</div>
+                    <div class="dash-buffer ${buffer < 500 ? 'dash-val-minus' : ''}">${fmt(buffer)}</div>
+                </div>`;
+            }
 
-    container.innerHTML = html;
-}
+            container.innerHTML = html;
+        }
 
         function renderAccountFilterPills() {
             const container = document.getElementById('ts-completed-filter-container');
@@ -2305,19 +2170,6 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
             `;
 
             container.innerHTML = html;
-        }
-
-        // --- RENDERING FUNCTIONS ---
-        function toggleHistoricalRows(tbodyId, button) {
-            const tbody = document.getElementById(tbodyId);
-            if (!tbody) return;
-            const historicalRows = tbody.querySelectorAll('.historical-entry');
-            if (historicalRows.length === 0) return;
-            const isCurrentlyHidden = historicalRows[0].style.display === 'none';
-            const displayStyle = isCurrentlyHidden ? 'table-row' : 'none';
-            historicalRows.forEach(row => { row.style.display = displayStyle; });
-            button.textContent = isCurrentlyHidden ? 'Hide Older' : 'Show All';
-            adjustCollapsibleSize(button);
         }
 
         function renderNotes(notesData) {
@@ -2451,31 +2303,29 @@ function shiftTradeDay(tradeId, daysDirection, isTopstep) {
             return maxVariant + 1;
         }
 
-    
-function syncCompletedTradesToDate(targetDate, isTopstep) {
-    const trades = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
-    if (!trades || Object.keys(trades).length === 0) return;
+        function syncCompletedTradesToDate(targetDate, isTopstep) {
+            const trades = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
+            if (!trades || Object.keys(trades).length === 0) return;
 
-    const uniqueTradeDates = getMasterTradingDates(isTopstep);
-    const dateIndex = uniqueTradeDates.indexOf(targetDate);
+            const uniqueTradeDates = getMasterTradingDates(isTopstep);
+            const dateIndex = uniqueTradeDates.indexOf(targetDate);
 
-    if (dateIndex !== -1) {
-        const newPage = dateIndex + 1;
-        if (isTopstep) {
-            if (STATE.tsCompletedTradesCurrentPage !== newPage) {
-                STATE.tsCompletedTradesCurrentPage = newPage;
-                renderFilteredEvalData();
-            }
-        } else {
-            if (STATE.completedTradesCurrentPage !== newPage) {
-                STATE.completedTradesCurrentPage = newPage;
-                renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
+            if (dateIndex !== -1) {
+                const newPage = dateIndex + 1;
+                if (isTopstep) {
+                    if (STATE.tsCompletedTradesCurrentPage !== newPage) {
+                        STATE.tsCompletedTradesCurrentPage = newPage;
+                        renderFilteredEvalData();
+                    }
+                } else {
+                    if (STATE.completedTradesCurrentPage !== newPage) {
+                        STATE.completedTradesCurrentPage = newPage;
+                        renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
+                    }
+                }
             }
         }
-    }
-}
 
-        // --- FIXED JUMP TO DATE FUNCTION ---
         function jumpToFundedSetupDate() {
             const dateInput = document.getElementById('ts-setup-review-date');
             const targetDate = dateInput.value; 
@@ -2503,6 +2353,7 @@ function syncCompletedTradesToDate(targetDate, isTopstep) {
                 syncCompletedTradesToDate(targetDate, true);
             }
         }
+
         function updateAutoSessionUI() {
             const session = getAutoSession();
             const variant = getNextTradeVariant(session);
@@ -2519,7 +2370,6 @@ function syncCompletedTradesToDate(targetDate, isTopstep) {
             const stoploss = parseFloat(tradeData.stoploss);
             const target = parseFloat(tradeData.target);
             const contracts = parseFloat(tradeData.contracts || tradeData.size || 1); 
-            const type = tradeData.type;
             const feePerContract = parseFloat(tradeData.commissions || 0.78);
             const totalCommissions = feePerContract * contracts;
 
@@ -2660,7 +2510,6 @@ function syncCompletedTradesToDate(targetDate, isTopstep) {
                     <button type="button" id="btn-select-all-acc" style="flex: 1; font-size: 11px; padding: 8px; background: var(--header-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">Select All</button>
                     <button type="button" id="btn-deselect-all-acc" style="flex: 1; font-size: 11px; padding: 8px; background: var(--header-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">Clear All</button>
                 </div>
-                
                 <div class="acc-grid-container">
             `;
 
@@ -2849,7 +2698,6 @@ function syncCompletedTradesToDate(targetDate, isTopstep) {
                 thead.innerHTML = `<tr><th>Sym</th><th>Type</th><th>Group / Details</th><th>${entryLabel}</th><th>BE</th><th>Entries</th><th>SL</th><th>TP</th><th>RR(T)</th><th>RR(M)</th><th>${valLabel}</th><th>Qty</th><th>/100</th><th>Fees</th><th>Pr(T)</th><th>Pr(M)</th><th>Ls(T)</th><th>Ls(M)</th><th colspan="4">Notes</th><th>Pics</th><th class="master-only">Actions</th></tr>`;
 
                 renderLiveSummaryCards(groupedTrades, summaryId, isTopstep);
-                
                 setTimeout(() => adjustCollapsibleSize(tbodyElement), 50);
             } catch (e) {
                 console.error("Error rendering live table:", e);
@@ -2872,8 +2720,6 @@ function syncCompletedTradesToDate(targetDate, isTopstep) {
                 setTimeout(() => cell.style.backgroundColor = '', 500);
             }).catch(err => alert("Error saving note: " + err.message));
         }
-
-            
 
         function renderLiveSummaryCards(groupedTrades, summaryId, isTopstep = false) {
             const summaryContainer = document.getElementById(summaryId);
@@ -3171,260 +3017,252 @@ function syncCompletedTradesToDate(targetDate, isTopstep) {
 
             container.innerHTML = messages.length > 0 ? messages.join('') : '';
         }
-// --- UNIFIED COMPLETED TRADES RENDER FUNCTION ---
-function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
-    const tbodyElement = document.getElementById(tbodyId);
-    if (!tbodyElement) return;
 
-    const trades = data || {};
+        function renderCompletedTable(data, tbodyId = 'completed-trades-tbody', isTopstep = false) {
+            const tbodyElement = document.getElementById(tbodyId);
+            if (!tbodyElement) return;
 
-    // Sort safely using the global helper to handle older database records
-    const tradeIds = Object.keys(trades).sort((a, b) => getSafeTimestamp(trades[b]) - getSafeTimestamp(a));
-    let rowsHtml = '';
-    
-    const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
-    const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
-    const prevBtn = document.getElementById(isTopstep ? 'ts-completed-trades-prev-page' : 'completed-trades-prev-page');
-    const nextBtn = document.getElementById(isTopstep ? 'ts-completed-trades-next-page' : 'completed-trades-next-page');
+            const trades = data || {};
+            const tradeIds = Object.keys(trades).sort((a, b) => getSafeTimestamp(trades[b]) - getSafeTimestamp(trades[a]));
+            let rowsHtml = '';
+            
+            const paginationControls = document.getElementById(isTopstep ? 'ts-completed-trades-pagination-controls' : 'completed-trades-pagination-controls');
+            const pageInfoSpan = document.getElementById(isTopstep ? 'ts-completed-trades-page-info' : 'completed-trades-page-info');
+            const prevBtn = document.getElementById(isTopstep ? 'ts-completed-trades-prev-page' : 'completed-trades-prev-page');
+            const nextBtn = document.getElementById(isTopstep ? 'ts-completed-trades-next-page' : 'completed-trades-next-page');
 
-    const tradesByDay = {};
-    const len = tradeIds.length;
-    for (let i = 0; i < len; i++) {
-        const id = tradeIds[i];
-        const t = { ...trades[id], dbId: id };
-        const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
-        if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
-        tradesByDay[dayStr].push(t);
-    }
+            const tradesByDay = {};
+            const len = tradeIds.length;
+            for (let i = 0; i < len; i++) {
+                const id = tradeIds[i];
+                const t = { ...trades[id], dbId: id };
+                const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
+                if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
+                tradesByDay[dayStr].push(t);
+            }
 
-    // Use unified Master Dates list
-    const uniqueTradingDates = getMasterTradingDates(isTopstep);
+            const uniqueTradingDates = getMasterTradingDates(isTopstep);
 
-    let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
-    if (!currentPage || currentPage > uniqueTradingDates.length) currentPage = 1;
+            let currentPage = isTopstep ? STATE.tsCompletedTradesCurrentPage : STATE.completedTradesCurrentPage;
+            if (!currentPage || currentPage > uniqueTradingDates.length) currentPage = 1;
 
-    if (paginationControls) {
-        paginationControls.style.display = 'flex';
-        if (pageInfoSpan) pageInfoSpan.textContent = `Day ${currentPage}/${uniqueTradingDates.length}`;
-        if (prevBtn) prevBtn.disabled = (currentPage === 1);
-        if (nextBtn) nextBtn.disabled = (currentPage === uniqueTradingDates.length);
-    }
+            if (paginationControls) {
+                paginationControls.style.display = 'flex';
+                if (pageInfoSpan) pageInfoSpan.textContent = `Day ${currentPage}/${uniqueTradingDates.length}`;
+                if (prevBtn) prevBtn.disabled = (currentPage === 1);
+                if (nextBtn) nextBtn.disabled = (currentPage === uniqueTradingDates.length);
+            }
 
-    const targetDateStr = uniqueTradingDates[currentPage - 1];
-    
-    // Sync the calendar input view to show the date currently displayed in the table
-    if (isTopstep) {
-        const dateInput = document.getElementById('ts-setup-review-date');
-        if (dateInput && dateInput.value !== targetDateStr) {
-            dateInput.value = targetDateStr;
-        }
+            const targetDateStr = uniqueTradingDates[currentPage - 1];
+            
+            if (isTopstep) {
+                const dateInput = document.getElementById('ts-setup-review-date');
+                if (dateInput && dateInput.value !== targetDateStr) {
+                    dateInput.value = targetDateStr;
+                }
 
-        // Auto-sync the Setups Library display page to match this displayed date
-        const tsSetupsContainer = document.getElementById('ts-setups-image-container');
-        if (tsSetupsContainer && STATE.allTsSetupsImages) {
-            const uniqueImgDates = getMasterTradingDates(true);
-            const imgIndex = uniqueImgDates.indexOf(targetDateStr);
-            if (imgIndex !== -1) {
-                const newImgPage = imgIndex + 1;
-                if (STATE.tsSetupsImagesCurrentPage !== newImgPage) {
-                    STATE.tsSetupsImagesCurrentPage = newImgPage;
-                    if (!STATE.isRenderingLibrary) {
-                        STATE.isRenderingLibrary = true;
-                        renderGenericImageLibrary(STATE.allTsSetupsImages, tsSetupsContainer, 'ts_setups_images');
-                        STATE.isRenderingLibrary = false;
+                const tsSetupsContainer = document.getElementById('ts-setups-image-container');
+                if (tsSetupsContainer && STATE.allTsSetupsImages) {
+                    const uniqueImgDates = getMasterTradingDates(true);
+                    const imgIndex = uniqueImgDates.indexOf(targetDateStr);
+                    if (imgIndex !== -1) {
+                        const newImgPage = imgIndex + 1;
+                        if (STATE.tsSetupsImagesCurrentPage !== newImgPage) {
+                            STATE.tsSetupsImagesCurrentPage = newImgPage;
+                            if (!STATE.isRenderingLibrary) {
+                                STATE.isRenderingLibrary = true;
+                                renderGenericImageLibrary(STATE.allTsSetupsImages, tsSetupsContainer, 'ts_setups_images');
+                                STATE.isRenderingLibrary = false;
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
 
-    let dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => getSafeTimestamp(b) - getSafeTimestamp(a));
-    
-    // Filter the trades list if we are viewing the Funded Accounts Tab
-    if (isTopstep && STATE.visibleTsAccounts) {
-        dayTrades = dayTrades.filter(t => STATE.visibleTsAccounts.includes(getEvalAccount(t)));
-    }
-    const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
-
-    const table = tbodyElement.closest('table');
-    let thead = table.querySelector('thead');
-    if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
-    
-    const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
-    thead.innerHTML = isTopstep 
-        ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
-        : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
-
-    // Render empty day state if no trades took place on the selected calendar date
-    if (dayTrades.length === 0) {
-        tbodyElement.innerHTML = `
-        <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
-            <td colspan="3" style="text-align: left; padding: 10px 20px;">
-                <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--subtle-text)">No Trades</span>
-            </td>
-            <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
-                Daily Net: <span style="color: var(--subtle-text);">$0.00</span>
-            </td>
-            <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
-        </tr>
-        <tr>
-            <td colspan="25" style="text-align:center; padding:30px; color:var(--subtle-text); font-style:italic;">
-       
-            </td>
-        </tr>`;
-        return;
-    }
-
-    let dPnL = 0, dWins = 0, dLosses = 0;
-    dayTrades.forEach(t => {
-        const net = parseFloat(t.net_result || 0);
-        dPnL += net; if (net >= 0) dWins++; else dLosses++;
-    });
-
-    rowsHtml += `
-    <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
-        <td colspan="3" style="text-align: left; padding: 10px 20px;">
-            <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--green-text)">${dWins} Wins</span> / <span style="color:var(--red-text)">${dLosses} Losses</span>
-        </td>
-        <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
-            Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
-        </td>
-        <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
-    </tr>`;
-
-    const clusters = [];
-    if (dayTrades.length > 0) {
-        let currentCluster = [dayTrades[0]];
-        for (let i = 1; i < dayTrades.length; i++) {
-            const prev = dayTrades[i - 1], curr = dayTrades[i];
-            const prevTime = getSafeTimestamp(prev);
-            const currTime = getSafeTimestamp(curr);
-            if (Math.abs(prevTime - currTime) <= 10 * 60 * 1000) currentCluster.push(curr);
-            else { clusters.push(currentCluster); currentCluster = [curr]; }
-        }
-        clusters.push(currentCluster);
-    }
-
-    clusters.forEach(cluster => {
-        const isActualCluster = cluster.length > 1;
-        const clusterNet = cluster.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
-        
-        const clusterL = isActualCluster ? 'border-left: 6px solid #6f42c1 !important;' : '';
-        const clusterBG = isActualCluster ? 'background-color: rgba(111, 66, 193, 0.03) !important;' : '';
-
-        if (isActualCluster) {
-            rowsHtml += `
-            <tr style="border-top: 2px solid #6f42c1;">
-                <td colspan="25" style="${clusterL} ${clusterBG} padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
-                   <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
-                </td>
-            </tr>`;
-        }
-
-        const groupsInCluster = {};
-        cluster.forEach(t => {
-            const gid = t.groupId || 'Ungrouped';
-            if (!groupsInCluster[gid]) groupsInCluster[gid] = [];
-            groupsInCluster[gid].push(t);
-        });
-
-        const groupIds = Object.keys(groupsInCluster);
-        groupIds.forEach((groupId, gIndex) => {
-            const gTrades = groupsInCluster[groupId];
-            const isLastGroupInCluster = gIndex === groupIds.length - 1;
-
-            let gNet = 0, gQty = 0, gE = 0, gEx = 0;
-            gTrades.forEach(t => {
-                const n = parseFloat(t.net_result || 0), e = parseFloat(t.entry || 1), ex = parseFloat(t.exit_price || 0);
-                const s = isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
-                const q = isTopstep ? s : (s / e);
-                gNet += n; gQty += q; gE += (e * q); gEx += (ex * q);
-            });
-            const gType = gTrades[0].type || 'Long';
-            const avgEntryG = (gE / gQty);
-            const avgExitG = (gEx / gQty);
-            const diff = avgExitG - avgEntryG;
-            let diffColor = (gType === 'Long' ? (diff >= 0 ? 'var(--green-text)' : 'var(--red-text)') : (diff <= 0 ? 'var(--green-text)' : 'var(--red-text)'));
-
-            rowsHtml += `
-            <tr class="completed-group-header">
-                <td colspan="25" style="${clusterL} ${clusterBG} padding: 8px 15px; font-size: 0.95em;">
-                    <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
-                        <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
-                        <span style="color:var(--border-color);">|</span>
-                        <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)}</span></span>
-                        <span style="color:var(--border-color);">|</span>
-                        <span>Avg: ${avgEntryG.toFixed(2)} ➔ ${avgExitG.toFixed(2)} <span style="color:${diffColor}; font-weight:bold;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
-                    </div>
-                </td>
-            </tr>`;
-
-            gTrades.forEach((t, tIndex) => {
-                const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
-                const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
-                const net = parseFloat(t.net_result || 0);
-                
-                const isLastRowOfCluster = isLastGroupInCluster && (tIndex === gTrades.length - 1);
-                const clusterB = isLastRowOfCluster ? 'border-bottom: 3px solid #6f42c1 !important;' : '';
-                
-       const accBadgeHtml = isTopstep ? `<span class="acc-badge" style="font-size: 8px; padding: 1px 3px; margin: 0; line-height: 1.1; border-radius: 2px; display: inline-block; white-space: nowrap;">${getEvalAccount(t)}</span>` : '';
-const groupBadgeHtml = `<span class="group-badge editable-completed-cell" data-id="${t.dbId}" data-field="groupId" contenteditable="${STATE.isMasterUser}" style="font-size: 8px; background-color: var(--header-bg); padding: 1px 3px; border-radius: 2px; cursor: text; color: var(--link-color); font-weight: bold; border: 1px solid var(--border-color); display: inline-block; margin: 0; line-height: 1.1; white-space: nowrap; max-width: 65px; overflow: hidden; text-overflow: ellipsis;" title="Click to edit Group ID">${t.groupId || 'Ungrouped'}</span>`;
-
-rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
-    <td class="cell-narrow" style="${clusterL} ${clusterB} vertical-align: middle; padding: 4px 6px;">
-        <div style="font-weight: bold; color: var(--text-color); font-size: 11px; margin-bottom: 3px; line-height: 1.1;">${t.symbol}</div>
-        <div style="display: flex; gap: 2px; align-items: center; flex-wrap: nowrap; overflow: hidden;">
-            ${accBadgeHtml}
-            ${groupBadgeHtml}
-        </div>
-    </td>
-                    <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">${t.type}</td>
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.entry).toFixed(2)}</td>
-                    <td style="${clusterB}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
-                    <td style="${clusterB}">${parseFloat(t.target || 0).toFixed(2)}</td>
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${isTopstep ? contr : contr.toFixed(0)}</td>
-                    <td style="${clusterB}">${isTopstep ? (m.rr_taker || '0.00') : (m.rr_maker || '0.00')}</td> 
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.exit_price).toFixed(2)}</td>
-                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">$${net.toFixed(2)}</td>
-                    <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; ${clusterB}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
-                    
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="date" contenteditable="${STATE.isMasterUser}" style="color:var(--link-color); font-weight:bold; ${clusterB}">
-                        ${t.date ? new Date(getSafeTimestamp({date: t.date})).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
-                    </td>
-                    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="closed_date" contenteditable="${STATE.isMasterUser}" style="${clusterB}">
-                        ${t.closed_date ? new Date(getSafeTimestamp({closed_date: t.closed_date})).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
-                    </td>
-                    
-                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note || ''}</td>
-                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note2 || ''}</td>
-                    <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note3 || ''}</td>
-                    <td class="trade-image-thumbnails" style="${clusterB}">${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}</td>
-                    ${STATE.isMasterUser ? `
-                    <td class="master-only" style="${clusterB}">
-                        <div style="display: flex; gap: 2px;">
-                            <button class="shift-prev-day-btn" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#6c757d; color:white; border:none; border-radius:3px;" title="Shift trade to previous day">◀ Day</button>
-                            <button class="shift-next-day-btn" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#6c757d; color:white; border:none; border-radius:3px;" title="Shift trade to next day">Day ▶</button>
-                            <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#dc3545; color:white; border:none; border-radius:3px;">Del</button>
-                            <button class="merge-btn-completed" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#6f42c1; color:white; border:none; border-radius:3px;">M</button>
-                        </div>
-                    </td>` : ''}
-                </tr>`;
-            });
-        });
-    });
-
-    window.requestAnimationFrame(() => {
-        tbodyElement.innerHTML = rowsHtml;
-        const section = tbodyElement.closest('.collapsible-section');
-        if (section && section.classList.contains('is-open')) {
-            const content = section.querySelector('.collapsible-content');
-            if (content) {
-                content.style.maxHeight = 'none'; 
-                content.style.overflow = 'visible';
+            let dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => getSafeTimestamp(b) - getSafeTimestamp(a));
+            
+            if (isTopstep && STATE.visibleTsAccounts) {
+                dayTrades = dayTrades.filter(t => STATE.visibleTsAccounts.includes(getEvalAccount(t)));
             }
+            const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
+
+            const table = tbodyElement.closest('table');
+            let thead = table.querySelector('thead');
+            if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
+            
+            const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
+            thead.innerHTML = isTopstep 
+                ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
+                : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
+
+            if (dayTrades.length === 0) {
+                tbodyElement.innerHTML = `
+                <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
+                    <td colspan="3" style="text-align: left; padding: 10px 20px;">
+                        <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--subtle-text)">No Trades</span>
+                    </td>
+                    <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
+                        Daily Net: <span style="color: var(--subtle-text);">$0.00</span>
+                    </td>
+                    <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
+                </tr>
+                <tr>
+                    <td colspan="25" style="text-align:center; padding:30px; color:var(--subtle-text); font-style:italic;"></td>
+                </tr>`;
+                return;
+            }
+
+            let dPnL = 0, dWins = 0, dLosses = 0;
+            dayTrades.forEach(t => {
+                const net = parseFloat(t.net_result || 0);
+                dPnL += net; if (net >= 0) dWins++; else dLosses++;
+            });
+
+            rowsHtml += `
+            <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
+                <td colspan="3" style="text-align: left; padding: 10px 20px;">
+                    <strong style="text-transform: capitalize;">${formatFriendlyDate(targetDateStr)}</strong> | <span style="color:var(--green-text)">${dWins} Wins</span> / <span style="color:var(--red-text)">${dLosses} Losses</span>
+                </td>
+                <td colspan="3" style="font-weight:bold; font-size: 1.1em;">
+                    Daily Net: <span style="color: ${dPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">$${dPnL.toFixed(2)}</span>
+                </td>
+                <td colspan="15" class="editable-daily-note hide-mobile" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>
+            </tr>`;
+
+            const clusters = [];
+            if (dayTrades.length > 0) {
+                let currentCluster = [dayTrades[0]];
+                for (let i = 1; i < dayTrades.length; i++) {
+                    const prev = dayTrades[i - 1], curr = dayTrades[i];
+                    const prevTime = getSafeTimestamp(prev);
+                    const currTime = getSafeTimestamp(curr);
+                    if (Math.abs(prevTime - currTime) <= 10 * 60 * 1000) currentCluster.push(curr);
+                    else { clusters.push(currentCluster); currentCluster = [curr]; }
+                }
+                clusters.push(currentCluster);
+            }
+
+            clusters.forEach(cluster => {
+                const isActualCluster = cluster.length > 1;
+                const clusterNet = cluster.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
+                
+                const clusterL = isActualCluster ? 'border-left: 6px solid #6f42c1 !important;' : '';
+                const clusterBG = isActualCluster ? 'background-color: rgba(111, 66, 193, 0.03) !important;' : '';
+
+                if (isActualCluster) {
+                    rowsHtml += `
+                    <tr style="border-top: 2px solid #6f42c1;">
+                        <td colspan="25" style="${clusterL} ${clusterBG} padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
+                           <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
+                        </td>
+                    </tr>`;
+                }
+
+                const groupsInCluster = {};
+                cluster.forEach(t => {
+                    const gid = t.groupId || 'Ungrouped';
+                    if (!groupsInCluster[gid]) groupsInCluster[gid] = [];
+                    groupsInCluster[gid].push(t);
+                });
+
+                const groupIds = Object.keys(groupsInCluster);
+                groupIds.forEach((groupId, gIndex) => {
+                    const gTrades = groupsInCluster[groupId];
+                    const isLastGroupInCluster = gIndex === groupIds.length - 1;
+
+                    let gNet = 0, gQty = 0, gE = 0, gEx = 0;
+                    gTrades.forEach(t => {
+                        const n = parseFloat(t.net_result || 0), e = parseFloat(t.entry || 1), ex = parseFloat(t.exit_price || 0);
+                        const s = isTopstep ? (parseFloat(t.contracts) || 1) : parseFloat(t.size || 0);
+                        const q = isTopstep ? s : (s / e);
+                        gNet += n; gQty += q; gE += (e * q); gEx += (ex * q);
+                    });
+                    const gType = gTrades[0].type || 'Long';
+                    const avgEntryG = (gE / gQty);
+                    const avgExitG = (gEx / gQty);
+                    const diff = avgExitG - avgEntryG;
+                    let diffColor = (gType === 'Long' ? (diff >= 0 ? 'var(--green-text)' : 'var(--red-text)') : (diff <= 0 ? 'var(--green-text)' : 'var(--red-text)'));
+
+                    rowsHtml += `
+                    <tr class="completed-group-header">
+                        <td colspan="25" style="${clusterL} ${clusterBG} padding: 8px 15px; font-size: 0.95em;">
+                            <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
+                                <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
+                                <span style="color:var(--border-color);">|</span>
+                                <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)}</span></span>
+                                <span style="color:var(--border-color);">|</span>
+                                <span>Avg: ${avgEntryG.toFixed(2)} ➔ ${avgExitG.toFixed(2)} <span style="color:${diffColor}; font-weight:bold;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
+                            </div>
+                        </td>
+                    </tr>`;
+
+                    gTrades.forEach((t, tIndex) => {
+                        const m = isTopstep ? calculateFuturesMetrics(t) : calculateTradeMetrics(t);
+                        const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
+                        const net = parseFloat(t.net_result || 0);
+                        
+                        const isLastRowOfCluster = isLastGroupInCluster && (tIndex === gTrades.length - 1);
+                        const clusterB = isLastRowOfCluster ? 'border-bottom: 3px solid #6f42c1 !important;' : '';
+                        
+                        const accBadgeHtml = isTopstep ? `<span class="acc-badge" style="font-size: 8px; padding: 1px 3px; margin: 0; line-height: 1.1; border-radius: 2px; display: inline-block; white-space: nowrap;">${getEvalAccount(t)}</span>` : '';
+                        const groupBadgeHtml = `<span class="group-badge editable-completed-cell" data-id="${t.dbId}" data-field="groupId" contenteditable="${STATE.isMasterUser}" style="font-size: 8px; background-color: var(--header-bg); padding: 1px 3px; border-radius: 2px; cursor: text; color: var(--link-color); font-weight: bold; border: 1px solid var(--border-color); display: inline-block; margin: 0; line-height: 1.1; white-space: nowrap; max-width: 65px; overflow: hidden; text-overflow: ellipsis;" title="Click to edit Group ID">${t.groupId || 'Ungrouped'}</span>`;
+
+                        rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
+                            <td class="cell-narrow" style="${clusterL} ${clusterB} vertical-align: middle; padding: 4px 6px;">
+                                <div style="font-weight: bold; color: var(--text-color); font-size: 11px; margin-bottom: 3px; line-height: 1.1;">${t.symbol}</div>
+                                <div style="display: flex; gap: 2px; align-items: center; flex-wrap: nowrap; overflow: hidden;">
+                                    ${accBadgeHtml}
+                                    ${groupBadgeHtml}
+                                </div>
+                            </td>
+                            <td style="color:${t.type === 'Long' ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">${t.type}</td>
+                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.entry).toFixed(2)}</td>
+                            <td style="${clusterB}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
+                            <td style="${clusterB}">${parseFloat(t.target || 0).toFixed(2)}</td>
+                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${isTopstep ? contr : contr.toFixed(0)}</td>
+                            <td style="${clusterB}">${isTopstep ? (m.rr_taker || '0.00') : (m.rr_maker || '0.00')}</td> 
+                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.exit_price).toFixed(2)}</td>
+                            <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">$${net.toFixed(2)}</td>
+                            <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; ${clusterB}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
+                            
+                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="date" contenteditable="${STATE.isMasterUser}" style="color:var(--link-color); font-weight:bold; ${clusterB}">
+                                ${t.date ? new Date(getSafeTimestamp({date: t.date})).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
+                            </td>
+                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="closed_date" contenteditable="${STATE.isMasterUser}" style="${clusterB}">
+                                ${t.closed_date ? new Date(getSafeTimestamp({closed_date: t.closed_date})).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
+                            </td>
+                            
+                            <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note || ''}</td>
+                            <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note2 || ''}</td>
+                            <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note3 || ''}</td>
+                            <td class="trade-image-thumbnails" style="${clusterB}">${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}</td>
+                            ${STATE.isMasterUser ? `
+                            <td class="master-only" style="${clusterB}">
+                                <div style="display: flex; gap: 2px;">
+                                    <button class="shift-prev-day-btn" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#6c757d; color:white; border:none; border-radius:3px;" title="Shift trade to previous day">◀ Day</button>
+                                    <button class="shift-next-day-btn" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#6c757d; color:white; border:none; border-radius:3px;" title="Shift trade to next day">Day ▶</button>
+                                    <button class="delete-btn-completed" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#dc3545; color:white; border:none; border-radius:3px;">Del</button>
+                                    <button class="merge-btn-completed" data-id="${t.dbId}" style="padding:2px 4px; font-size:9px; background:#6f42c1; color:white; border:none; border-radius:3px;">M</button>
+                                </div>
+                            </td>` : ''}
+                        </tr>`;
+                    });
+                });
+            });
+
+            window.requestAnimationFrame(() => {
+                tbodyElement.innerHTML = rowsHtml;
+                const section = tbodyElement.closest('.collapsible-section');
+                if (section && section.classList.contains('is-open')) {
+                    const content = section.querySelector('.collapsible-content');
+                    if (content) {
+                        content.style.maxHeight = 'none'; 
+                        content.style.overflow = 'visible';
+                    }
+                }
+            });
         }
-    });
-}
+
         function renderDateNavigation() {
             const safeSymbol = getSafeSymbol(DOM.journalSymbolEl.value);
             const timeframe = DOM.journalTimeframeEl.value;
@@ -3518,30 +3356,6 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
             });
         }
 
-        function renderSetupsTable(tableElement, data, notesTextareaId) {
-            if (tableElement) {
-                const tbody = tableElement.querySelector('tbody');
-                tbody.querySelectorAll('tr').forEach(row => {
-                    const timeframe = row.firstElementChild.textContent.trim();
-                    const rowData = data[timeframe] || {};
-                    const cells = row.querySelectorAll('td');
-                    cells[0].textContent = rowData.zero_entry || ''; cells[1].textContent = rowData.zero_target || ''; cells[3].textContent = rowData.zero_stoploss || '';
-                    cells[5].textContent = rowData.four_entry || ''; cells[6].textContent = rowData.four_target || ''; cells[8].textContent = rowData.four_stoploss || '';
-                    cells[10].textContent = rowData.bounce_entry || ''; cells[11].textContent = rowData.bounce_target || ''; cells[13].textContent = rowData.bounce_stoploss || '';
-                    calculateAndDisplayPercentages(row);
-                });
-                applyHighlightingToSetupsTable(tableElement);
-                adjustCollapsibleSize(tableElement);
-            }
-            const notesTextarea = document.getElementById(notesTextareaId);
-            if (notesTextarea) {
-                if (document.activeElement !== notesTextarea) {
-                    notesTextarea.value = data.global_notes || '';
-                }
-                adjustCollapsibleSize(notesTextarea);
-            }
-        }
-        
         function getFeeRates(exchangeName) {
             const exchange = (exchangeName || 'binance').toLowerCase();
             if (exchange === 'hyperliquid') {
@@ -3549,25 +3363,6 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
             } else {
                 return { MAKER: 0.0000, TAKER: 0.00075 };
             }
-        }
-
-        function saveSetupsTable(tableElement, dbRef, statusElement, notesTextareaId) {
-            if (!STATE.isMasterUser) return;
-            const dataToSave = {};
-            const tbody = tableElement.querySelector('tbody');
-            tbody.querySelectorAll('tr').forEach(row => {
-                const timeframe = row.firstElementChild.textContent.trim();
-                const cells = row.querySelectorAll('td');
-                dataToSave[timeframe] = {
-                    zero_entry: cells[0].textContent.trim(), zero_target: cells[1].textContent.trim(), zero_stoploss: cells[3].textContent.trim(),
-                    four_entry: cells[5].textContent.trim(), four_target: cells[6].textContent.trim(), four_stoploss: cells[8].textContent.trim(),
-                    bounce_entry: cells[10].textContent.trim(), bounce_target: cells[11].textContent.trim(), bounce_stoploss: cells[13].textContent.trim()
-                };
-            });
-            const notesTextarea = document.getElementById(notesTextareaId);
-            if (notesTextarea) { dataToSave.global_notes = notesTextarea.value; }
-            statusElement.textContent = 'Saving...';
-            dbRef.set(dataToSave).then(() => { statusElement.textContent = 'Saved.'; setTimeout(() => { statusElement.textContent = '' }, 2000); }).catch(e => { statusElement.textContent = `Error: ${e.message}`; console.error("Error saving setups table:", e); });
         }
 
         const saveJournalEntry = () => {
@@ -3643,7 +3438,6 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
 
             let wins = 0, losses = 0, grossProfit = 0, grossLoss = 0;
             let beCount = 0;
-            
             let winsExclBE = 0, lossesExclBE = 0;
             let profitExclBE = 0, lossExclBE = 0;
 
@@ -3666,28 +3460,18 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
 
                     const isBreakeven = (netResult >= BE_LOWER_LIMIT && netResult <= BE_UPPER_LIMIT);
 
-                    if (isBreakeven) {
-                        beCount++;
-                    }
+                    if (isBreakeven) beCount++;
 
                     if (netResult > 0) {
                         wins++;
                         grossProfit += netResult;
                         if (netResult > bestWin) bestWin = netResult;
-                        
-                        if (!isBreakeven) {
-                            winsExclBE++;
-                            profitExclBE += netResult;
-                        }
+                        if (!isBreakeven) { winsExclBE++; profitExclBE += netResult; }
                     } else if (netResult < 0) {
                         losses++;
                         grossLoss += Math.abs(netResult);
                         if (netResult < worstLoss) worstLoss = netResult;
-
-                        if (!isBreakeven) {
-                            lossesExclBE++;
-                            lossExclBE += Math.abs(netResult);
-                        }
+                        if (!isBreakeven) { lossesExclBE++; lossExclBE += Math.abs(netResult); }
                     }
 
                     if (netResult > 0 && target > 0) {
@@ -3699,18 +3483,6 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
                     }
                 }
             }
-
-            const total = wins + losses;
-            const totalExclBE = winsExclBE + lossesExclBE;
-
-            const winRate = total > 0 ? (wins / total) * 100 : 0;
-            const expectancy = total > 0 ? (grossProfit - grossLoss) / total : 0;
-
-            const winRateExcl = totalExclBE > 0 ? (winsExclBE / totalExclBE) * 100 : 0;
-            const expectancyExcl = totalExclBE > 0 ? (profitExclBE - lossExclBE) / totalExclBE : 0;
-            const bePercent = total > 0 ? (beCount / total) * 100 : 0;
-
-            const setT = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
         }
 
         function handleGenericLibraryUpload(files, libraryType, progressElement, dbRef) {
@@ -3723,7 +3495,6 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
             
             if (libraryType === 'ts_setups_images' && reviewDateEl && reviewDateEl.value) {
                 customTimestamp = new Date(reviewDateEl.value + 'T12:00:00').getTime();
-                
                 const todayStr = getPerthDateString();
                 if (reviewDateEl.value !== todayStr) {
                     isReviewMode = true;
@@ -3907,12 +3678,6 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
             });
         }
 
-        // Auto repairs are bypassed during production to optimize initialization times.
-        function fixHistoricalFundedMath() {
-            if (!STATE.isMasterUser) return;
-            console.log("Database Repair isolated.");
-        }
-
         function openImageModal(imageArray, clickedIndex) {
             STATE.modalImageGallery = imageArray;
             STATE.modalImageIndex = clickedIndex;
@@ -3925,9 +3690,7 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
             const currentImage = STATE.modalImageGallery[STATE.modalImageIndex];
             DOM.modalImageContent.src = currentImage.url;
             DOM.modalCaption.textContent = currentImage.caption || '';
-            
             DOM.modalCaption.style.display = STATE.isMasterUser ? 'block' : 'none';
-
             DOM.modalPrevBtn.style.display = STATE.modalImageIndex > 0 ? 'flex' : 'none';
             DOM.modalNextBtn.style.display = STATE.modalImageIndex < STATE.modalImageGallery.length - 1 ? 'flex' : 'none';
         }
@@ -3979,28 +3742,9 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
                 if (el) el.addEventListener('input', updateTargetCalculator);
             });
 
-       
-
             const tsPrimary = document.getElementById('ts-primary-setups-notes');
             const tsSecondary = document.getElementById('ts-secondary-setups-notes');
 
-              if (e.target.matches('.editable-funded-stat')) {
-        if (!STATE.isMasterUser) return;
-        const acc = e.target.dataset.acc;
-        const field = e.target.dataset.field;
-        const rawValue = parseFloat(e.target.textContent.replace(/[^0-9.-]/g, ''));
-        
-        if (isNaN(rawValue)) {
-            renderFundedDashboard();
-            return;
-        }
-
-        dbRefs.fundedSettings.child(acc).child(field).set(rawValue).then(() => {
-            e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
-            setTimeout(() => { e.target.style.backgroundColor = ''; }, 500);
-        }).catch(err => alert("Error saving account setting: " + err.message));
-    }
-}, true);
             if (tsPrimary) {
                 tsPrimary.addEventListener('input', (e) => {
                     autoResizeTextarea(e.target);
@@ -4024,6 +3768,7 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
                     }, 1000);
                 });
             }
+
             const filterContainer = document.getElementById('ts-completed-filter-container');
             if (filterContainer) {
                 filterContainer.addEventListener('click', (e) => {
@@ -4055,6 +3800,7 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
                     }
                 });
             }
+
             const reviewDateEl = document.getElementById('ts-setup-review-date');
             if (reviewDateEl) {
                 reviewDateEl.addEventListener('change', () => {
@@ -4092,37 +3838,6 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
                 });
             }
 
-            DOM.tabs.addEventListener('click', (e) => {
-                if (!e.target.matches('.tab-link')) return;
-                document.querySelectorAll('.tab-link, .tab-content').forEach(el => el.classList.remove('active'));
-                e.target.classList.add('active');
-                const tabId = e.target.dataset.tab;
-                const newTabContent = document.getElementById(`${tabId}-tab`);
-                
-                if (newTabContent) {
-                    newTabContent.classList.add('active');
-                    setTimeout(() => {
-                        if (tabId === 'strategy') {
-                            const stratNote = document.getElementById('strategy-notes-entry');
-                            if (stratNote) { autoResizeTextarea(stratNote); resizeParentCollapsible(stratNote); }
-                        }
-                        newTabContent.querySelectorAll('textarea').forEach(ta => autoResizeTextarea(ta));
-                        newTabContent.querySelectorAll('.collapsible-section.is-open').forEach(section => {
-                            const content = section.querySelector('.collapsible-content');
-                            if(content) content.style.maxHeight = content.scrollHeight + 'px'; 
-                        });
-                    }, 100); 
-
-                    if (!newTabContent.dataset.sectionsInitialized) { 
-                        openDefaultSectionsInContainer(newTabContent); 
-                        newTabContent.dataset.sectionsInitialized = 'true'; 
-                    }
-                }
-             
-            });
-
-          
-
             if (DOM.tradesTbody) DOM.tradesTbody.addEventListener('click', handleTradeAction);
             if (DOM.completedTradesTbody) DOM.completedTradesTbody.addEventListener('click', handleTradeAction);
             if (DOM.tsTradesTbody) DOM.tsTradesTbody.addEventListener('click', handleTradeAction);
@@ -4136,6 +3851,23 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
                 
                 if (e.target.matches('.editable-completed-cell')) {
                     handleCompletedTradeUpdate(e.target);
+                }
+
+                if (e.target.matches('.editable-funded-stat')) {
+                    if (!STATE.isMasterUser) return;
+                    const acc = e.target.dataset.acc;
+                    const field = e.target.dataset.field;
+                    const rawValue = parseFloat(e.target.textContent.replace(/[^0-9.-]/g, ''));
+                    
+                    if (isNaN(rawValue)) {
+                        renderFundedDashboard();
+                        return;
+                    }
+
+                    dbRefs.fundedSettings.child(acc).child(field).set(rawValue).then(() => {
+                        e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+                        setTimeout(() => { e.target.style.backgroundColor = ''; }, 500);
+                    }).catch(err => alert("Error saving account setting: " + err.message));
                 }
 
                 if (e.target.matches('.editable-daily-note')) {
@@ -4162,456 +3894,404 @@ rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
                     toggleBtn.textContent = isOpen ? '−' : '+';
                     
                     if (isOpen) {
-                      content.style.maxHeight = content.scrollHeight + "px";
-                    setTimeout(() => {
-                        if (section.classList.contains('is-open')) {
-                            content.style.maxHeight = "none";
-                        }
-                    }, 450);
-                } else { 
-                    content.style.maxHeight = content.scrollHeight + "px";
-                    setTimeout(() => {
-                        content.style.maxHeight = '0px';
-                    }, 10);
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        setTimeout(() => {
+                            if (section.classList.contains('is-open')) {
+                                content.style.maxHeight = "none";
+                            }
+                        }, 450);
+                    } else { 
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        setTimeout(() => {
+                            content.style.maxHeight = '0px';
+                        }, 10);
+                    }
                 }
-            }
-            if (handleAttachmentActions(e)) return;
+                if (handleAttachmentActions(e)) return;
 
-            if (e.target.closest('#setups-image-container, #ts-setups-image-container, #image-library-container, #strategy-image-container')) {
-                handleGenericImageLibraryClick(e);
-            }
+                if (e.target.closest('#setups-image-container, #ts-setups-image-container, #image-library-container, #strategy-image-container')) {
+                    handleGenericImageLibraryClick(e);
+                }
 
-            else if (e.target.id === 'toggle-all-completed-trades') {
-                STATE.completedTradesShowAll = true; STATE.completedTradesCurrentPage = 1;
-                renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
-            } else if (e.target.id === 'completed-trades-prev-page') {
-                if (STATE.completedTradesCurrentPage > 1) { 
-                    STATE.completedTradesCurrentPage--; 
-                    renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); 
-                }
-            } else if (e.target.id === 'completed-trades-next-page') {
-                const completedMapped = STATE.allCompletedTrades || {};
-                const totalTradeDays = new Set(Object.values(completedMapped).map(t => 
-                    getTradingDayString(t.closed_date || t.date || 0, t.date || 0)
-                )).size;
-                
-                if (STATE.completedTradesCurrentPage < totalTradeDays) { 
-                    STATE.completedTradesCurrentPage++; 
-                    renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); 
-                }
-            } 
+                else if (e.target.id === 'toggle-all-completed-trades') {
+                    STATE.completedTradesShowAll = true; STATE.completedTradesCurrentPage = 1;
+                    renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
+                } else if (e.target.id === 'completed-trades-prev-page') {
+                    if (STATE.completedTradesCurrentPage > 1) { 
+                        STATE.completedTradesCurrentPage--; 
+                        renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); 
+                    }
+                } else if (e.target.id === 'completed-trades-next-page') {
+                    const completedMapped = STATE.allCompletedTrades || {};
+                    const totalTradeDays = new Set(Object.values(completedMapped).map(t => 
+                        getTradingDayString(t.closed_date || t.date || 0, t.date || 0)
+                    )).size;
+                    
+                    if (STATE.completedTradesCurrentPage < totalTradeDays) { 
+                        STATE.completedTradesCurrentPage++; 
+                        renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false); 
+                    }
+                } 
 
-            else if (e.target.id === 'ts-toggle-all-completed-trades') {
-                STATE.tsCompletedTradesShowAll = true; STATE.tsCompletedTradesCurrentPage = 1;
-                renderFilteredEvalData();
-            } else if (e.target.id === 'ts-completed-trades-prev-page') {
-                if (STATE.tsCompletedTradesCurrentPage > 1) { 
-                    STATE.tsCompletedTradesCurrentPage--; 
-                    renderFilteredEvalData(); 
+                else if (e.target.id === 'ts-toggle-all-completed-trades') {
+                    STATE.tsCompletedTradesShowAll = true; STATE.tsCompletedTradesCurrentPage = 1;
+                    renderFilteredEvalData();
+                } else if (e.target.id === 'ts-completed-trades-prev-page') {
+                    if (STATE.tsCompletedTradesCurrentPage > 1) { 
+                        STATE.tsCompletedTradesCurrentPage--; 
+                        renderFilteredEvalData(); 
+                    }
+                } else if (e.target.id === 'ts-completed-trades-next-page') {
+                    const uniqueTradingDates = getMasterTradingDates(true);
+                    if (STATE.tsCompletedTradesCurrentPage < uniqueTradingDates.length) { 
+                        STATE.tsCompletedTradesCurrentPage++; 
+                        renderFilteredEvalData(); 
+                    }
                 }
-            } else if (e.target.id === 'ts-completed-trades-next-page') {
-                const completedMapped = mapLegacyAccounts(STATE.allTsCompletedTrades);
-                const dateInput = document.getElementById('ts-setup-review-date');
-                const selectedDateStr = dateInput ? dateInput.value : getPerthDateString();
-                
-                const tradeIds = Object.keys(completedMapped);
-                const tradesByDay = {};
-                const len = tradeIds.length;
-                for (let i = 0; i < len; i++) {
-                    const id = tradeIds[i];
-                    const t = completedMapped[id];
-                    const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
-                    if (!tradesByDay[dayStr]) tradesByDay[dayStr] = [];
-                    tradesByDay[dayStr].push(t);
-                }
-                const uniqueTradingDates = Object.keys(tradesByDay).sort((a, b) => b.localeCompare(a));
-                
-                const todayStr = getPerthDateString();
-                if (todayStr && !uniqueTradingDates.includes(todayStr)) {
-                    uniqueTradingDates.push(todayStr);
-                }
-                if (selectedDateStr && !uniqueTradingDates.includes(selectedDateStr)) {
-                    uniqueTradingDates.push(selectedDateStr);
-                }
-                uniqueTradingDates.sort((a, b) => b.localeCompare(a));
 
-                if (STATE.tsCompletedTradesCurrentPage < uniqueTradingDates.length) { 
-                    STATE.tsCompletedTradesCurrentPage++; 
-                    renderFilteredEvalData(); 
+                else if (e.target.id === 'toggle-all-setups-images') {
+                    STATE.setupsImagesShowAll = true; STATE.setupsImagesCurrentPage = 1;
+                    renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
+                } else if (e.target.id === 'setups-images-prev-page') {
+                    if (STATE.setupsImagesCurrentPage > 1) { STATE.setupsImagesCurrentPage--; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
+                } else if (e.target.id === 'setups-images-next-page') {
+                    const totalDays = new Set(Object.values(STATE.allSetupsImages).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
+                    if (STATE.setupsImagesCurrentPage < totalDays) { STATE.setupsImagesCurrentPage++; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
                 }
-            }
-
-            else if (e.target.id === 'toggle-all-setups-images') {
-                STATE.setupsImagesShowAll = true; STATE.setupsImagesCurrentPage = 1;
-                renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images');
-            } else if (e.target.id === 'setups-images-prev-page') {
-                if (STATE.setupsImagesCurrentPage > 1) { STATE.setupsImagesCurrentPage--; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
-            } else if (e.target.id === 'setups-images-next-page') {
-                const totalDays = new Set(Object.values(STATE.allSetupsImages).map(i => getTradingDayString(i.timestamp, i.timestamp))).size;
-                if (STATE.setupsImagesCurrentPage < totalDays) { STATE.setupsImagesCurrentPage++; renderGenericImageLibrary(STATE.allSetupsImages, DOM.setupsImageContainer, 'setups_images'); }
-            }
-    
-            else if (e.target.id === 'ts-toggle-all-setups-images') {
-                STATE.tsSetupsImagesShowAll = true; 
-                STATE.tsSetupsImagesCurrentPage = 1;
-                renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
-            } 
-            else if (e.target.id === 'ts-setups-images-prev-page') {
-                if (STATE.tsSetupsImagesCurrentPage > 1) { 
-                    STATE.tsSetupsImagesCurrentPage--; 
+        
+                else if (e.target.id === 'ts-toggle-all-setups-images') {
+                    STATE.tsSetupsImagesShowAll = true; 
+                    STATE.tsSetupsImagesCurrentPage = 1;
                     renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
-                }
-            } 
-           
-else if (e.target.id === 'ts-setups-images-next-page') {
-    // Read directly from the synchronized master dates cache
-    const uniqueDatesTS = getMasterTradingDates(true);
-    if (STATE.tsSetupsImagesCurrentPage < uniqueDatesTS.length) { 
-        STATE.tsSetupsImagesCurrentPage++; 
-        renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
-    }
-}
-        });
-
-        if (DOM.createNewNoteBtn) {
-            DOM.createNewNoteBtn.addEventListener('click', () => {
-                if (!STATE.isMasterUser) return;
-                const title = prompt("New note title:");
-                if (title?.trim()) dbRefs.generalNotes.push({ title: title.trim(), content: '', timestamp: firebase.database.ServerValue.TIMESTAMP });
-            });
-        }
-        if (DOM.notesContainer) {
-            DOM.notesContainer.addEventListener('click', (e) => {
-                const header = e.target.closest('.note-item-header');
-                const del = e.target.closest('.note-delete-btn');
-                if (del && STATE.isMasterUser) { e.stopPropagation(); if (confirm(`Delete?`)) dbRefs.generalNotes.child(del.dataset.noteId).remove(); return; }
-                if (header) openNoteForEditing(header.dataset.noteId); 
-            });
-        }
-        DOM.noteModalClose.addEventListener('click', closeNoteModal);
-        DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
-        DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
-
-        DOM.primarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); });
-        DOM.secondarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); });
-        DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
-        DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
-
-        DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
-        DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
-        DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
-        DOM.strategyImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'strategy_images', DOM.strategyUploadProgress, dbRefs.strategyImages));
-        DOM.modalClose.addEventListener('click', closeModal);
-        DOM.modalPrevBtn.addEventListener('click', () => { if (STATE.modalImageIndex > 0) { STATE.modalImageIndex--; displayModalImage(); } });
-        DOM.modalNextBtn.addEventListener('click', () => { if (STATE.modalImageIndex < STATE.modalImageGallery.length - 1) { STATE.modalImageIndex++; displayModalImage(); } });
-
-        [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => { updateJournalView(false); renderDateNavigation(); }));
-        DOM.dateButtonsContainer.addEventListener('click', (e) => { 
-            if (e.target.matches('.date-nav-btn')) { 
-                const parts = e.target.dataset.date.split('-'); 
-                STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); 
-                STATE.centerDate = new Date(STATE.selectedDate); updateJournalView(); renderDateNavigation(); 
-            } 
-        });
-        DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); saveJournalEntry(); });
-        DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
-        
-        DOM.strategyNotesEntry.addEventListener('input', (e) => {
-            autoResizeTextarea(e.target); resizeParentCollapsible(e.target);
-            clearTimeout(STATE.strategySaveTimer);
-            STATE.strategySaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.strategyNotes.set(e.target.value); }, 1000);
-        });
-
-        const tsTabEl = document.getElementById('topstep-tab');
-        if (tsTabEl) {
-            tsTabEl.addEventListener('click', (e) => {
-                if (e.target.closest('.delete-library-image')) { handleLibraryActions(e, 'ts_setups_images', dbRefs.tsSetupsImages); return; }
-                if (e.target.closest('.edit-caption-btn')) { handleLibraryActions(e, 'ts_setups_images', dbRefs.tsSetupsImages); return; }
-                const img = e.target.closest('#ts-setups-image-container img');
-                if (img) {
-                    const container = document.getElementById('ts-setups-image-container');
-                    const allImg = container.querySelectorAll('img');
-                    openImageModal(Array.from(allImg).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })), Array.from(allImg).indexOf(img));
+                } 
+                else if (e.target.id === 'ts-setups-images-prev-page') {
+                    if (STATE.tsSetupsImagesCurrentPage > 1) { 
+                        STATE.tsSetupsImagesCurrentPage--; 
+                        renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
+                    }
+                } 
+                else if (e.target.id === 'ts-setups-images-next-page') {
+                    const uniqueDatesTS = getMasterTradingDates(true);
+                    if (STATE.tsSetupsImagesCurrentPage < uniqueDatesTS.length) { 
+                        STATE.tsSetupsImagesCurrentPage++; 
+                        renderGenericImageLibrary(STATE.allTsSetupsImages, document.getElementById('ts-setups-image-container'), 'ts_setups_images');
+                    }
                 }
             });
-        }
 
-        const tsEntryInput = document.getElementById('ts-entry-price');
-        const tsTypeSelect = document.getElementById('ts-trade-type');
-
-        function updateFundedSLTP() {
-            const entry = parseFloat(tsEntryInput.value);
-            if (isNaN(entry)) return;
-            
-            const isLong = tsTypeSelect.value === 'Long';
-            
-            const riskTicks = parseFloat(document.getElementById('calc-risk-ticks').value) || 50;
-            const rewardTicks = parseFloat(document.getElementById('calc-reward-ticks').value) || 200;
-            
-            const riskPoints = riskTicks / 4;
-            const rewardPoints = rewardTicks / 4;
-            
-            let sl, tp;
-            if (isLong) {
-                sl = entry - riskPoints;
-                tp = entry + rewardPoints;
-            } else {
-                sl = entry + riskPoints;
-                tp = entry - rewardPoints;
+            if (DOM.createNewNoteBtn) {
+                DOM.createNewNoteBtn.addEventListener('click', () => {
+                    if (!STATE.isMasterUser) return;
+                    const title = prompt("New note title:");
+                    if (title?.trim()) dbRefs.generalNotes.push({ title: title.trim(), content: '', timestamp: firebase.database.ServerValue.TIMESTAMP });
+                });
             }
-            
-            document.getElementById('ts-stop-loss').value = sl.toFixed(2);
-            document.getElementById('ts-target').value = tp.toFixed(2);
-        }
-
-        if (tsEntryInput) tsEntryInput.addEventListener('input', updateFundedSLTP);
-        if (tsTypeSelect) tsTypeSelect.addEventListener('change', updateFundedSLTP);
-
-        const cryptoEntryInput = document.getElementById('entry-price');
-        const cryptoTypeSelect = document.getElementById('trade-type');
-
-        function updateCryptoSLTP() {
-            const entry = parseFloat(cryptoEntryInput.value);
-            if (isNaN(entry)) return;
-            
-            const isLong = cryptoTypeSelect.value === 'Long';
-            
-            const riskPct = 0.01;
-            const rewardPct = 0.04;
-            
-            let sl, tp;
-            if (isLong) {
-                sl = entry * (1 - riskPct);
-                tp = entry * (1 + rewardPct);
-            } else {
-                sl = entry * (1 + riskPct);
-                tp = entry * (1 - rewardPct);
+            if (DOM.notesContainer) {
+                DOM.notesContainer.addEventListener('click', (e) => {
+                    const header = e.target.closest('.note-item-header');
+                    const del = e.target.closest('.note-delete-btn');
+                    if (del && STATE.isMasterUser) { e.stopPropagation(); if (confirm(`Delete?`)) dbRefs.generalNotes.child(del.dataset.noteId).remove(); return; }
+                    if (header) openNoteForEditing(header.dataset.noteId); 
+                });
             }
+            DOM.noteModalClose.addEventListener('click', closeNoteModal);
+            DOM.noteModalTitle.addEventListener('input', saveNoteFromModal);
+            DOM.noteModalContent.addEventListener('input', (e) => { autoResizeTextarea(e.target); saveNoteFromModal(); });
+
+            DOM.primarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); });
+            DOM.secondarySetupsNotes.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); });
+            DOM.primarySetupsNotes.addEventListener('blur', savePrimaryNotesOnly);
+            DOM.secondarySetupsNotes.addEventListener('blur', saveSecondaryNotesOnly);
+
+            DOM.setupsImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'setups_images', DOM.setupsUploadProgress, dbRefs.setupsImages));
+            DOM.tradeImageUploader.addEventListener('change', (e) => handleAttachmentImageUpload(e.target.files));
+            DOM.journalImageUpload.addEventListener('change', (e) => handleFileUpload(e.target.files));
+            DOM.strategyImageUpload.addEventListener('change', (e) => handleGenericLibraryUpload(e.target.files, 'strategy_images', DOM.strategyUploadProgress, dbRefs.strategyImages));
+            DOM.modalClose.addEventListener('click', closeModal);
+            DOM.modalPrevBtn.addEventListener('click', () => { if (STATE.modalImageIndex > 0) { STATE.modalImageIndex--; displayModalImage(); } });
+            DOM.modalNextBtn.addEventListener('click', () => { if (STATE.modalImageIndex < STATE.modalImageGallery.length - 1) { STATE.modalImageIndex++; displayModalImage(); } });
+
+            [DOM.journalSymbolEl, DOM.journalTimeframeEl, DOM.journalImageFilterEl].forEach(el => el.addEventListener('change', () => { updateJournalView(false); renderDateNavigation(); }));
+            DOM.dateButtonsContainer.addEventListener('click', (e) => { 
+                if (e.target.matches('.date-nav-btn')) { 
+                    const parts = e.target.dataset.date.split('-'); 
+                    STATE.selectedDate = new Date(Date.UTC(parts[0], parseInt(parts[1], 10) - 1, parts[2])); 
+                    STATE.centerDate = new Date(STATE.selectedDate); updateJournalView(); renderDateNavigation(); 
+                } 
+            });
+            DOM.journalEntryEl.addEventListener('input', (e) => { autoResizeTextarea(e.target); resizeParentCollapsible(e.target); saveJournalEntry(); });
+            DOM.favouriteBtn.addEventListener('click', handleFavouriteClick);
             
-            document.getElementById('stop-loss').value = sl.toFixed(2);
-            document.getElementById('target').value = tp.toFixed(2);
-        }
-
-        if (cryptoEntryInput) cryptoEntryInput.addEventListener('input', updateCryptoSLTP);
-        if (cryptoTypeSelect) cryptoTypeSelect.addEventListener('change', updateCryptoSLTP);
-
-        DOM.journalTab.addEventListener('click', (e) => {
-            if (e.target.closest('.delete-journal-image')) { handleImageDelete(e); return; }
-            const img = e.target.closest('#journal-images-container img');
-            if(img) { 
-                const allImg = DOM.journalImagesContainer.querySelectorAll('img'); 
-                openImageModal(Array.from(allImg).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })), Array.from(allImg).indexOf(img)); 
-            }
-        });
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => { DOM.journalTab.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }); });
-        ['dragenter', 'dragover'].forEach(ev => { DOM.journalTab.addEventListener(ev, () => { if (STATE.isMasterUser) DOM.journalTab.classList.add('drag-over'); }); });
-        DOM.journalTab.addEventListener('dragleave', () => DOM.journalTab.classList.remove('drag-over'));
-        DOM.journalTab.addEventListener('drop', (e) => { DOM.journalTab.classList.remove('drag-over'); if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); });
-    }
-    
-    function setupSpinbox(inputElement) {
-        const handleAdjustment = (multiplier) => {
-            let currentValue = parseFloat(inputElement.value) || 0;
-            const valueStr = inputElement.value;
-            let step = 1;
-            if (valueStr.includes('.')) { const decimalPart = valueStr.split('.')[1]; step = Math.pow(10, -decimalPart.length); }
-            const precision = Math.pow(10, (valueStr.split('.')[1] || '').length);
-            let newValue = (Math.round(currentValue * precision) + Math.round(step * multiplier * precision)) / precision;
-            const decimalPlaces = (valueStr.split('.')[1] || '').length;
-            inputElement.value = newValue.toFixed(decimalPlaces);
-            inputElement.dispatchEvent(new Event('input'));
-        };
-        inputElement.addEventListener('keydown', e => {
-            if (e.key === 'ArrowUp') { e.preventDefault(); handleAdjustment(1); } else if (e.key === 'ArrowDown') { e.preventDefault(); handleAdjustment(-1); }
-        });
-        inputElement.addEventListener('wheel', e => { e.preventDefault(); handleAdjustment(e.deltaY < 0 ? 1 : -1); });
-    }
-
-    function calculateTradeMetrics(tradeData) {
-        const entry = parseFloat(tradeData.entry); 
-        const stoploss = parseFloat(tradeData.stoploss); 
-        const target = parseFloat(tradeData.target); 
-        const size = parseFloat(tradeData.size); 
-        const type = tradeData.type;
-
-        const baseReturn = { 
-            rr_taker: 0, rr_maker: 0, estimated_total_fee: 0, 
-            expected_profit_taker: 0, expected_profit_maker: 0, 
-            expected_loss_taker: 0, expected_loss_maker: 0, 
-            expected_profit_percent_taker: 0, expected_profit_percent_maker: 0,
-            expected_loss_percent_taker: 0, expected_loss_percent_maker: 0,
-            pnl_per_100_move: 0 
-        };
-
-        if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return baseReturn; }
-
-        const rates = getFeeRates(tradeData.exchange);
-        const MAKER_FEE_RATE = rates.MAKER;
-        const TAKER_FEE_RATE = rates.TAKER;
-
-        const entryFeeRate = tradeData.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
-        const positionQty = size / entry; 
-        const entryFee = size * entryFeeRate;
-
-        const pnl_per_100_move = positionQty * 100; 
-
-        let potentialProfit, potentialLoss;
-        if (type === 'Long') { 
-            potentialProfit = positionQty * (target - entry); 
-            potentialLoss = positionQty * (entry - stoploss); 
-        } else { 
-            potentialProfit = positionQty * (entry - target); 
-            potentialLoss = positionQty * (stoploss - entry); 
-        }
-
-        const exitValueAtTarget = (target / entry) * size; 
-
-        const exitFeeAtTarget_Taker = exitValueAtTarget * TAKER_FEE_RATE; 
-        const expected_profit_taker = potentialProfit - entryFee - exitFeeAtTarget_Taker;
-
-        const exitFeeAtTarget_Maker = exitValueAtTarget * MAKER_FEE_RATE;
-        const expected_profit_maker = potentialProfit - entryFee - exitFeeAtTarget_Maker;
-
-        const projectedExitFee = tradeData.entryFeeType === 'maker' ? exitFeeAtTarget_Maker : exitFeeAtTarget_Taker;
-        const estimated_total_fee = entryFee + projectedExitFee; 
-
-        const exitValueAtStop = (stoploss / entry) * size; 
-
-        const exitFeeAtStop_Taker = exitValueAtStop * TAKER_FEE_RATE; 
-        const expected_loss_taker = potentialLoss + entryFee + exitFeeAtStop_Taker;
-
-        const exitFeeAtStop_Maker = exitValueAtStop * MAKER_FEE_RATE;
-        const expected_loss_maker = potentialLoss + entryFee + exitFeeAtStop_Maker;
-
-        const rr_taker = (expected_loss_taker > 0) ? (expected_profit_taker / expected_loss_taker) : 0;
-        const rr_maker = (expected_loss_maker > 0) ? (expected_profit_maker / expected_loss_maker) : 0;
-
-        const expected_profit_percent_taker = (expected_profit_taker / size) * 100; 
-        const expected_profit_percent_maker = (expected_profit_maker / size) * 100; 
-        const expected_loss_percent_taker = (expected_loss_taker / size) * 100;
-        const expected_loss_percent_maker = (expected_loss_maker / size) * 100;
-
-        return { 
-            rr_taker: rr_taker.toFixed(2),
-            rr_maker: rr_maker.toFixed(2),
-            estimated_total_fee: estimated_total_fee, 
-            expected_profit_taker: expected_profit_taker, 
-            expected_profit_maker: expected_profit_maker,
-            expected_loss_taker: expected_loss_taker,
-            expected_loss_maker: expected_loss_maker,
-            expected_profit_percent_taker: expected_profit_percent_taker,
-            expected_profit_percent_maker: expected_profit_percent_maker,
-            expected_loss_percent_taker: expected_loss_percent_taker,
-            expected_loss_percent_maker: expected_loss_percent_maker,
-            pnl_per_100_move: pnl_per_100_move
-        };
-    }
-
-    function handleAddTradeSubmit(e, isTopstep = false) {
-        e.preventDefault(); 
-        if (!STATE.isMasterUser) return;
-        
-        const prefix = isTopstep ? 'ts-' : '';
-        let session, variant;
-let customDateVal = firebase.database.ServerValue.TIMESTAMP;
-
-        if (isTopstep) {
-            const timestampInput = document.getElementById('ts-trade-timestamp')?.value;
-            let targetMs = Date.now();
-
-            if (timestampInput) {
-                targetMs = new Date(timestampInput).getTime();
-                customDateVal = targetMs; // Uses user's manual input timestamp
-            }
-
-            session = getSessionFromTimestamp(targetMs);
-            const tradingDay = getTradingDayString(targetMs, targetMs);
-            
-            variant = getNextVariantForDayAndSession(tradingDay, session, STATE.allTsCompletedTrades, STATE.allTsTrades, null);
-
-            const uiSess = document.getElementById('ts-trade-session');
-            const uiVar = document.getElementById('ts-trade-variant');
-            if (uiSess) uiSess.value = session;
-            if (uiVar) uiVar.value = variant;
-
-        } else {
-            session = document.getElementById(`trade-session`).value;
-            variant = document.getElementById(`trade-variant`).value;
-        }
-
-        const generatedGroupId = `${session}_${variant}`;
-
-        const entryPrice = parseFloat(document.getElementById(`${prefix}entry-price`).value);
-        const stopLossPrice = parseFloat(document.getElementById(`${prefix}stop-loss`).value);
-        const targetPrice = parseFloat(document.getElementById(`${prefix}target`).value);
-
-        const tradeBase = { 
-            symbol: document.getElementById(`${prefix}trade-symbol`).value, 
-            type: document.getElementById(`${prefix}trade-type`).value, 
-            setupType: 'Major', 
-            groupId: generatedGroupId, 
-            entry: entryPrice, 
-            stoploss: stopLossPrice,
-            original_stoploss: stopLossPrice, 
-            target: targetPrice, 
-            date: customDateVal, // Uses user timestamp if filled, or auto ServerValue.TIMESTAMP if blank
-            entry_prices: [entryPrice]
-        };
-
-        if ([tradeBase.entry, tradeBase.stoploss, tradeBase.target].some(val => isNaN(val))) {
-            return alert('Please fill all price fields correctly.');
-        }
-
-        if (isTopstep) {
-            const selectedCheckboxes = document.querySelectorAll('input[name="funded-account-target"]:checked');
-            if (selectedCheckboxes.length === 0) return alert('Please select at least one account.');
-
-            const contracts = parseFloat(document.getElementById(`ts-contracts`).value);
-            const comms = parseFloat(document.getElementById(`ts-commissions`).value);
-            if (isNaN(contracts)) return alert('Please enter contract quantity.');
-
-            const promises = Array.from(selectedCheckboxes).map(cb => {
-                const accTrade = { 
-                    ...tradeBase, 
-                    evalAccount: cb.value,
-                    contracts: contracts,
-                    size: contracts,
-                    commissions: comms,
-                    exchange: "Futures",
-                    entryFeeType: "fixed"
-                };
-                const metrics = calculateFuturesMetrics(accTrade);
-                return dbRefs.tsTrades.push({ ...accTrade, ...metrics });
+            DOM.strategyNotesEntry.addEventListener('input', (e) => {
+                autoResizeTextarea(e.target); resizeParentCollapsible(e.target);
+                clearTimeout(STATE.strategySaveTimer);
+                STATE.strategySaveTimer = setTimeout(() => { if (!STATE.isMasterUser) return; dbRefs.strategyNotes.set(e.target.value); }, 1000);
             });
 
-            Promise.all(promises).then(() => {
-                document.getElementById(`ts-entry-price`).value = '';
-                document.getElementById(`ts-stop-loss`).value = '';
-                document.getElementById(`ts-target`).value = '';
-                console.log(`Executed ${generatedGroupId} for: ${Array.from(selectedCheckboxes).map(c=>c.value).join(', ')}`);
-            }).catch(err => alert("Error: " + err.message));
+            const tsTabEl = document.getElementById('topstep-tab');
+            if (tsTabEl) {
+                tsTabEl.addEventListener('click', (e) => {
+                    if (e.target.closest('.delete-library-image')) { handleLibraryActions(e, 'ts_setups_images', dbRefs.tsSetupsImages); return; }
+                    if (e.target.closest('.edit-caption-btn')) { handleLibraryActions(e, 'ts_setups_images', dbRefs.tsSetupsImages); return; }
+                    const img = e.target.closest('#ts-setups-image-container img');
+                    if (img) {
+                        const container = document.getElementById('ts-setups-image-container');
+                        const allImg = container.querySelectorAll('img');
+                        openImageModal(Array.from(allImg).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })), Array.from(allImg).indexOf(img));
+                    }
+                });
+            }
 
-        } else {
-            const size = parseFloat(document.getElementById(`position-value`).value);
-            if (isNaN(size)) return alert('Please enter position value.');
+            const tsEntryInput = document.getElementById('ts-entry-price');
+            const tsTypeSelect = document.getElementById('ts-trade-type');
 
-            const cryptoTrade = {
-                ...tradeBase,
-                size: size,
-                exchange: document.getElementById(`trade-exchange`).value,
-                entryFeeType: document.getElementById(`entry-fee-type`).value
+            function updateFundedSLTP() {
+                const entry = parseFloat(tsEntryInput.value);
+                if (isNaN(entry)) return;
+                
+                const isLong = tsTypeSelect.value === 'Long';
+                const riskTicks = parseFloat(document.getElementById('calc-risk-ticks').value) || 50;
+                const rewardTicks = parseFloat(document.getElementById('calc-reward-ticks').value) || 200;
+                
+                const riskPoints = riskTicks / 4;
+                const rewardPoints = rewardTicks / 4;
+                
+                let sl, tp;
+                if (isLong) {
+                    sl = entry - riskPoints;
+                    tp = entry + rewardPoints;
+                } else {
+                    sl = entry + riskPoints;
+                    tp = entry - rewardPoints;
+                }
+                
+                document.getElementById('ts-stop-loss').value = sl.toFixed(2);
+                document.getElementById('ts-target').value = tp.toFixed(2);
+            }
+
+            if (tsEntryInput) tsEntryInput.addEventListener('input', updateFundedSLTP);
+            if (tsTypeSelect) tsTypeSelect.addEventListener('change', updateFundedSLTP);
+
+            const cryptoEntryInput = document.getElementById('entry-price');
+            const cryptoTypeSelect = document.getElementById('trade-type');
+
+            function updateCryptoSLTP() {
+                const entry = parseFloat(cryptoEntryInput.value);
+                if (isNaN(entry)) return;
+                
+                const isLong = cryptoTypeSelect.value === 'Long';
+                const riskPct = 0.01;
+                const rewardPct = 0.04;
+                
+                let sl, tp;
+                if (isLong) {
+                    sl = entry * (1 - riskPct);
+                    tp = entry * (1 + rewardPct);
+                } else {
+                    sl = entry * (1 + riskPct);
+                    tp = entry - rewardPct;
+                }
+                
+                document.getElementById('stop-loss').value = sl.toFixed(2);
+                document.getElementById('target').value = tp.toFixed(2);
+            }
+
+            if (cryptoEntryInput) cryptoEntryInput.addEventListener('input', updateCryptoSLTP);
+            if (cryptoTypeSelect) cryptoTypeSelect.addEventListener('change', updateCryptoSLTP);
+
+            DOM.journalTab.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-journal-image')) { handleImageDelete(e); return; }
+                const img = e.target.closest('#journal-images-container img');
+                if(img) { 
+                    const allImg = DOM.journalImagesContainer.querySelectorAll('img'); 
+                    openImageModal(Array.from(allImg).map(el => ({ url: el.dataset.fullSrc, caption: el.dataset.caption })), Array.from(allImg).indexOf(img)); 
+                }
+            });
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => { DOM.journalTab.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }); });
+            ['dragenter', 'dragover'].forEach(ev => { DOM.journalTab.addEventListener(ev, () => { if (STATE.isMasterUser) DOM.journalTab.classList.add('drag-over'); }); });
+            DOM.journalTab.addEventListener('dragleave', () => DOM.journalTab.classList.remove('drag-over'));
+            DOM.journalTab.addEventListener('drop', (e) => { DOM.journalTab.classList.remove('drag-over'); if (STATE.isMasterUser && e.dataTransfer?.files.length > 0) handleFileUpload(e.dataTransfer.files); });
+        }
+        
+        function calculateTradeMetrics(tradeData) {
+            const entry = parseFloat(tradeData.entry); 
+            const stoploss = parseFloat(tradeData.stoploss); 
+            const target = parseFloat(tradeData.target); 
+            const size = parseFloat(tradeData.size); 
+            const type = tradeData.type;
+
+            const baseReturn = { 
+                rr_taker: 0, rr_maker: 0, estimated_total_fee: 0, 
+                expected_profit_taker: 0, expected_profit_maker: 0, 
+                expected_loss_taker: 0, expected_loss_maker: 0, 
+                expected_profit_percent_taker: 0, expected_profit_percent_maker: 0,
+                expected_loss_percent_taker: 0, expected_loss_percent_maker: 0,
+                pnl_per_100_move: 0 
             };
 
-            const metrics = calculateTradeMetrics(cryptoTrade);
-            dbRefs.trades.push({ ...cryptoTrade, ...metrics }).then(() => {
-                document.getElementById(`entry-price`).value = '';
-                document.getElementById(`stop-loss`).value = '';
-                document.getElementById(`target`).value = '';
-                document.getElementById(`position-value`).value = '';
-            });
+            if ([entry, stoploss, target, size].some(v => isNaN(v) || v <= 0)) { return baseReturn; }
+
+            const rates = getFeeRates(tradeData.exchange);
+            const MAKER_FEE_RATE = rates.MAKER;
+            const TAKER_FEE_RATE = rates.TAKER;
+
+            const entryFeeRate = tradeData.entryFeeType === 'maker' ? MAKER_FEE_RATE : TAKER_FEE_RATE;
+            const positionQty = size / entry; 
+            const entryFee = size * entryFeeRate;
+            const pnl_per_100_move = positionQty * 100; 
+
+            let potentialProfit, potentialLoss;
+            if (type === 'Long') { 
+                potentialProfit = positionQty * (target - entry); 
+                potentialLoss = positionQty * (entry - stoploss); 
+            } else { 
+                potentialProfit = positionQty * (entry - target); 
+                potentialLoss = positionQty * (stoploss - entry); 
+            }
+
+            const exitValueAtTarget = (target / entry) * size; 
+            const exitFeeAtTarget_Taker = exitValueAtTarget * TAKER_FEE_RATE; 
+            const expected_profit_taker = potentialProfit - entryFee - exitFeeAtTarget_Taker;
+            const exitFeeAtTarget_Maker = exitValueAtTarget * MAKER_FEE_RATE;
+            const expected_profit_maker = potentialProfit - entryFee - exitFeeAtTarget_Maker;
+
+            const projectedExitFee = tradeData.entryFeeType === 'maker' ? exitFeeAtTarget_Maker : exitFeeAtTarget_Taker;
+            const estimated_total_fee = entryFee + projectedExitFee; 
+
+            const exitValueAtStop = (stoploss / entry) * size; 
+            const exitFeeAtStop_Taker = exitValueAtStop * TAKER_FEE_RATE; 
+            const expected_loss_taker = potentialLoss + entryFee + exitFeeAtStop_Taker;
+            const exitFeeAtStop_Maker = exitValueAtStop * MAKER_FEE_RATE;
+            const expected_loss_maker = potentialLoss + entryFee + exitFeeAtStop_Maker;
+
+            const rr_taker = (expected_loss_taker > 0) ? (expected_profit_taker / expected_loss_taker) : 0;
+            const rr_maker = (expected_loss_maker > 0) ? (expected_profit_maker / expected_loss_maker) : 0;
+
+            const expected_profit_percent_taker = (expected_profit_taker / size) * 100; 
+            const expected_profit_percent_maker = (expected_profit_maker / size) * 100; 
+            const expected_loss_percent_taker = (expected_loss_percent_taker / size) * 100;
+            const expected_loss_percent_maker = (expected_loss_maker / size) * 100;
+
+            return { 
+                rr_taker: rr_taker.toFixed(2),
+                rr_maker: rr_maker.toFixed(2),
+                estimated_total_fee: estimated_total_fee, 
+                expected_profit_taker: expected_profit_taker, 
+                expected_profit_maker: expected_profit_maker,
+                expected_loss_taker: expected_loss_taker,
+                expected_loss_maker: expected_loss_maker,
+                expected_profit_percent_taker: expected_profit_percent_taker,
+                expected_profit_percent_maker: expected_profit_percent_maker,
+                expected_loss_percent_taker: expected_loss_percent_taker,
+                expected_loss_percent_maker: expected_loss_percent_maker,
+                pnl_per_100_move: pnl_per_100_move
+            };
         }
-    }
+
+        function handleAddTradeSubmit(e, isTopstep = false) {
+            e.preventDefault(); 
+            if (!STATE.isMasterUser) return;
+            
+            const prefix = isTopstep ? 'ts-' : '';
+            let session, variant;
+            let customDateVal = firebase.database.ServerValue.TIMESTAMP;
+
+            if (isTopstep) {
+                const timestampInput = document.getElementById('ts-trade-timestamp')?.value;
+                let targetMs = Date.now();
+
+                if (timestampInput) {
+                    targetMs = new Date(timestampInput).getTime();
+                    customDateVal = targetMs;
+                }
+
+                session = getSessionFromTimestamp(targetMs);
+                const tradingDay = getTradingDayString(targetMs, targetMs);
+                variant = getNextVariantForDayAndSession(tradingDay, session, STATE.allTsCompletedTrades, STATE.allTsTrades, null);
+
+                const uiSess = document.getElementById('ts-trade-session');
+                const uiVar = document.getElementById('ts-trade-variant');
+                if (uiSess) uiSess.value = session;
+                if (uiVar) uiVar.value = variant;
+
+            } else {
+                session = document.getElementById(`trade-session`).value;
+                variant = document.getElementById(`trade-variant`).value;
+            }
+
+            const generatedGroupId = `${session}_${variant}`;
+
+            const entryPrice = parseFloat(document.getElementById(`${prefix}entry-price`).value);
+            const stopLossPrice = parseFloat(document.getElementById(`${prefix}stop-loss`).value);
+            const targetPrice = parseFloat(document.getElementById(`${prefix}target`).value);
+
+            const tradeBase = { 
+                symbol: document.getElementById(`${prefix}trade-symbol`).value, 
+                type: document.getElementById(`${prefix}trade-type`).value, 
+                setupType: 'Major', 
+                groupId: generatedGroupId, 
+                entry: entryPrice, 
+                stoploss: stopLossPrice,
+                original_stoploss: stopLossPrice, 
+                target: targetPrice, 
+                date: customDateVal,
+                entry_prices: [entryPrice]
+            };
+
+            if ([tradeBase.entry, tradeBase.stoploss, tradeBase.target].some(val => isNaN(val))) {
+                return alert('Please fill all price fields correctly.');
+            }
+
+            if (isTopstep) {
+                const selectedCheckboxes = document.querySelectorAll('input[name="funded-account-target"]:checked');
+                if (selectedCheckboxes.length === 0) return alert('Please select at least one account.');
+
+                const contracts = parseFloat(document.getElementById(`ts-contracts`).value);
+                const comms = parseFloat(document.getElementById(`ts-commissions`).value);
+                if (isNaN(contracts)) return alert('Please enter contract quantity.');
+
+                const promises = Array.from(selectedCheckboxes).map(cb => {
+                    const accTrade = { 
+                        ...tradeBase, 
+                        evalAccount: cb.value,
+                        contracts: contracts,
+                        size: contracts,
+                        commissions: comms,
+                        exchange: "Futures",
+                        entryFeeType: "fixed"
+                    };
+                    const metrics = calculateFuturesMetrics(accTrade);
+                    return dbRefs.tsTrades.push({ ...accTrade, ...metrics });
+                });
+
+                Promise.all(promises).then(() => {
+                    document.getElementById(`ts-entry-price`).value = '';
+                    document.getElementById(`ts-stop-loss`).value = '';
+                    document.getElementById(`ts-target`).value = '';
+                    console.log(`Executed ${generatedGroupId} for: ${Array.from(selectedCheckboxes).map(c=>c.value).join(', ')}`);
+                }).catch(err => alert("Error: " + err.message));
+
+            } else {
+                const size = parseFloat(document.getElementById(`position-value`).value);
+                if (isNaN(size)) return alert('Please enter position value.');
+
+                const cryptoTrade = {
+                    ...tradeBase,
+                    size: size,
+                    exchange: document.getElementById(`trade-exchange`).value,
+                    entryFeeType: document.getElementById(`entry-fee-type`).value
+                };
+
+                const metrics = calculateTradeMetrics(cryptoTrade);
+                dbRefs.trades.push({ ...cryptoTrade, ...metrics }).then(() => {
+                    document.getElementById(`entry-price`).value = '';
+                    document.getElementById(`stop-loss`).value = '';
+                    document.getElementById(`target`).value = '';
+                    document.getElementById(`position-value`).value = '';
+                });
+            }
+        }
 function handleCompletedTradeUpdate(cell) {
         if (!STATE.isMasterUser) return;
 
