@@ -2089,7 +2089,7 @@
             renderFundedDashboard(); 
         }
       
-      function renderFundedDashboard() {
+  function renderFundedDashboard() {
     const container = document.getElementById('funded-dashboard-rows');
     if (!container) return;
 
@@ -2141,14 +2141,14 @@
             } else if (buffer >= 1000) {
                 // Zone Yellow (Caution)
                 riskPerTrade = 75;
-                rewardPerWin = 225;
+                rewardPerWin = 225; // Proportional 3c scale
                 zoneLabel = '3c';
-                zoneColor = '#ffc107';
+                zoneColor = '#ffc107'; // Yellow / Amber
                 zoneBg = 'rgba(255, 193, 7, 0.2)';
             } else {
                 // Zone Red (Survival)
                 riskPerTrade = 50;
-                rewardPerWin = 150;
+                rewardPerWin = 150; // Proportional 2c scale
                 zoneLabel = '2c';
                 zoneColor = 'var(--red-text)';
                 zoneBg = 'rgba(220, 53, 69, 0.2)';
@@ -2157,14 +2157,26 @@
             const bulletsLeft = Math.max(0, Math.floor(buffer / riskPerTrade));
             const winsToPass = toTarget > 0 ? Math.ceil(toTarget / rewardPerWin) : 0;
 
+            // Calculate wins needed to reach the $1,500 buffer (4c tier)
+            let winsTo4c = 0;
+            if (buffer < 1500) {
+                winsTo4c = Math.max(1, Math.ceil((1500 - buffer) / rewardPerWin));
+            }
+
+            // Extra pill text if below 4c
+            const upgradeTag = winsTo4c > 0 
+                ? `<span style="color: #ffc107; font-size: 7.5px; font-weight: bold; margin-left: 2px;">(${winsTo4c}W➔4c)</span>` 
+                : '';
+
             accCellHtml = `
                 <div style="font-family: -apple-system, sans-serif; font-weight: 600; color: var(--text-color); display: flex; align-items: center; gap: 4px;">
                     <span>${acc}</span>
                     <span style="font-size: 8px; padding: 0 4px; border-radius: 3px; font-weight: 900; background: ${zoneBg}; color: ${zoneColor}; border: 1px solid ${zoneColor};">${zoneLabel}</span>
                 </div>
-                <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.3px;">
-                    ${toTarget > 0 ? `<span style="color:var(--green-text)">${winsToPass}W</span>` : '<span style="color:var(--green-text)">PASS</span>'} / 
+                <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${toTarget > 0 ? `<span style="color:var(--green-text)">${winsToPass}W pass</span>` : '<span style="color:var(--green-text)">PASS</span>'} / 
                     <span style="color:${zoneColor}">${bulletsLeft}L</span>
+                    ${upgradeTag}
                 </div>`;
 
             bufferCellHtml = `<div class="dash-buffer" style="color: ${zoneColor}; font-weight: 900;">${fmt(buffer)}</div>`;
