@@ -1206,10 +1206,13 @@
                     </a>
                 </div>
             </div>
-            <!-- Mini Dashboard Section -->
+<!-- Mini Dashboard Section -->
             <div id="funded-dashboard-container" style="margin-bottom: 15px;">
                 <div class="dashboard-grid dashboard-header">
-                    <div style="text-align: left;">ACC</div>
+                    <div style="text-align: left; display: flex; align-items: center; justify-content: space-between; padding-right: 4px;">
+                        <span>ACC</span>
+                        <button type="button" id="sizing-mode-toggle-btn" style="background: var(--purple-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 3px; font-size: 7.5px; padding: 1px 5px; cursor: pointer; font-weight: bold; margin: 0; width: auto; line-height: 1.2;" title="Toggle Sizing Mode">⚡ Dynamic</button>
+                    </div>
                     <div>DAY P/L</div>
                     <div>BAL</div>
                     <div>MLL</div>
@@ -1610,6 +1613,8 @@
         // --- APPLICATION STATE ---
         const STATE = {
             isMasterUser: false, 
+                useDynamicSizing: localStorage.getItem('useDynamicSizing') !== 'false', // Defaults to true
+
             activeTab: 'topstep', 
             initializedTabs: { topstep: true }, 
             visibleTsAccounts: ['Lucid 1', 'Lucid 2','Lucid 3', 'Lucid 4 - scalp','Lucid 5'  ], 
@@ -2084,9 +2089,23 @@
             renderFundedDashboard(); 
         }
       
-       function renderFundedDashboard() {
+      function renderFundedDashboard() {
     const container = document.getElementById('funded-dashboard-rows');
     if (!container) return;
+
+    // Update toggle button text/style if present
+    const toggleBtn = document.getElementById('sizing-mode-toggle-btn');
+    if (toggleBtn) {
+        if (STATE.useDynamicSizing) {
+            toggleBtn.textContent = '⚡ Dynamic';
+            toggleBtn.style.color = 'var(--green-text)';
+            toggleBtn.style.borderColor = 'var(--green-border)';
+        } else {
+            toggleBtn.textContent = '🎯 Original';
+            toggleBtn.style.color = 'var(--subtle-text)';
+            toggleBtn.style.borderColor = 'var(--border-color)';
+        }
+    }
 
     const todayStr = getPerthDateString();
     let html = '';
@@ -2099,31 +2118,86 @@
         const plToday = stats.tradesByDay[todayStr] || 0;
         const buffer = stats.balance - stats.maxLoss;
         const toTarget = CONFIG.FUNDED_TARGET - stats.balance;
-
-        const winsToPass = toTarget > 0 ? Math.ceil(toTarget / 400) : 0;
-        const lossesToBlow = Math.max(0, Math.floor(buffer / 100));
-
         const fmt = (num) => Math.round(num).toLocaleString();
 
-        html += `
-        <div class="dashboard-grid dashboard-row" style="height: 35px;">
-            <div style="text-align: left; line-height: 1.2;">
+        let accCellHtml = '';
+        let bufferCellHtml = '';
+
+        if (STATE.useDynamicSizing) {
+            // --- 3-TIER DYNAMIC SIZING MODE ---
+            let riskPerTrade = 100;
+            let rewardPerWin = 300;
+            let zoneLabel = '4c';
+            let zoneColor = 'var(--green-text)';
+            let zoneBg = 'rgba(40, 167, 69, 0.2)';
+
+            if (buffer >= 1500) {
+                // Zone Green (Safe)
+                riskPerTrade = 100;
+                rewardPerWin = 300;
+                zoneLabel = '4c';
+                zoneColor = 'var(--green-text)';
+                zoneBg = 'rgba(40, 167, 69, 0.2)';
+            } else if (buffer >= 1000) {
+                // Zone Yellow (Caution)
+                riskPerTrade = 75;
+                rewardPerWin = 225;
+                zoneLabel = '3c';
+                zoneColor = '#ffc107';
+                zoneBg = 'rgba(255, 193, 7, 0.2)';
+            } else {
+                // Zone Red (Survival)
+                riskPerTrade = 50;
+                rewardPerWin = 150;
+                zoneLabel = '2c';
+                zoneColor = 'var(--red-text)';
+                zoneBg = 'rgba(220, 53, 69, 0.2)';
+            }
+
+            const bulletsLeft = Math.max(0, Math.floor(buffer / riskPerTrade));
+            const winsToPass = toTarget > 0 ? Math.ceil(toTarget / rewardPerWin) : 0;
+
+            accCellHtml = `
+                <div style="font-family: -apple-system, sans-serif; font-weight: 600; color: var(--text-color); display: flex; align-items: center; gap: 4px;">
+                    <span>${acc}</span>
+                    <span style="font-size: 8px; padding: 0 4px; border-radius: 3px; font-weight: 900; background: ${zoneBg}; color: ${zoneColor}; border: 1px solid ${zoneColor};">${zoneLabel}</span>
+                </div>
+                <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.3px;">
+                    ${toTarget > 0 ? `<span style="color:var(--green-text)">${winsToPass}W</span>` : '<span style="color:var(--green-text)">PASS</span>'} / 
+                    <span style="color:${zoneColor}">${bulletsLeft}L</span>
+                </div>`;
+
+            bufferCellHtml = `<div class="dash-buffer" style="color: ${zoneColor}; font-weight: 900;">${fmt(buffer)}</div>`;
+
+        } else {
+            // --- ORIGINAL FIXED MODE (Original 4c / 400TP / 100SL) ---
+            const winsToPass = toTarget > 0 ? Math.ceil(toTarget / 400) : 0;
+            const lossesToBlow = Math.max(0, Math.floor(buffer / 100));
+
+            accCellHtml = `
                 <div style="font-family: -apple-system, sans-serif; font-weight: 600; color: var(--text-color);">${acc}</div>
                 <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.3px;">
                     ${toTarget > 0 ? `<span style="color:var(--green-text)">${winsToPass}W</span>` : 'PASS'} / 
                     <span style="color:var(--red-text)">${lossesToBlow}L</span>
-                </div>
+                </div>`;
+
+            bufferCellHtml = `<div class="dash-buffer ${buffer < 500 ? 'dash-val-minus' : ''}">${fmt(buffer)}</div>`;
+        }
+
+        html += `
+        <div class="dashboard-grid dashboard-row" style="height: 35px;">
+            <div style="text-align: left; line-height: 1.2;">
+                ${accCellHtml}
             </div>
             <div class="${plToday >= 0 ? 'dash-val-plus' : 'dash-val-minus'}">${plToday >= 0 ? '+' : ''}${fmt(plToday)}</div>
             <div class="editable-funded-stat" data-acc="${acc}" data-field="manualBalance" contenteditable="${STATE.isMasterUser}" title="Click to edit Balance" style="cursor: text;">${fmt(stats.balance)}</div>
             <div class="editable-funded-stat" data-acc="${acc}" data-field="manualMLL" contenteditable="${STATE.isMasterUser}" title="Click to edit MLL" style="cursor: text; opacity: 0.7;">${fmt(stats.maxLoss)}</div>
-            <div class="dash-buffer ${buffer < 500 ? 'dash-val-minus' : ''}">${fmt(buffer)}</div>
+            ${bufferCellHtml}
         </div>`;
     }
 
     container.innerHTML = html;
 }
-
         function renderAccountFilterPills() {
             const container = document.getElementById('ts-completed-filter-container');
             if (!container) return;
@@ -3768,6 +3842,17 @@
                     }, 1000);
                 });
             }
+
+
+            const sizingToggleBtn = document.getElementById('sizing-mode-toggle-btn');
+    if (sizingToggleBtn) {
+        sizingToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            STATE.useDynamicSizing = !STATE.useDynamicSizing;
+            localStorage.setItem('useDynamicSizing', STATE.useDynamicSizing);
+            renderFundedDashboard();
+        });
+    }
 
             const filterContainer = document.getElementById('ts-completed-filter-container');
             if (filterContainer) {
