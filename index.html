@@ -2121,16 +2121,14 @@
                     <span style="font-size: 8.5px; color:var(--subtle-text); text-transform:uppercase; letter-spacing:0.5px;">Auto-Protected Mode</span>
                 </div>
                 <div style="color:var(--text-color); margin-bottom: 5px;">
-                    <strong>Execution:</strong> Enter 4c (12.5 pt SL = -$100). Take <strong>2c off @ +25 pts </strong> to bank <strong>+$100</strong> and snap stop to Breakeven. Remaining 2c run to <strong>+50 pts</strong> for +$200 (<span style="color:var(--green-text); font-weight:bold;">+$300 Full Win</span>).
-                </div>
+                <strong>Execution:</strong> Enter 4c (12.5 pt SL = -$100). Take <strong>2c off @ +25 pts </strong> to bank <strong>+$100</strong> and snap stop to Breakeven. Remaining 2c run to <strong>+50 pts</strong> for +$200 (<span style="color:var(--green-text); font-weight:bold;">+$300 Full Win</span>).     </div>
                 <div style="font-size: 9px; color:var(--subtle-text); border-top: 1px dotted var(--border-color); padding-top: 4px; display:flex; gap:12px; flex-wrap:wrap;">
-                    <span><strong style="color:var(--green-text)">4c Safe:</strong> Buffer ≥ $1,500</span>
-                    <span><strong style="color:#ffc107">3c Caution:</strong> Buffer $1,000–$1,499</span>
-                    <span><strong style="color:var(--red-text)">2c Survival:</strong> Buffer &lt; $1,000</span>
+                    <span><strong style="color:var(--green-text)">4c Safe:</strong> Buffer ≥ $1,500 (+$300/win)</span>
+                    <span><strong style="color:#ffc107">3c Caution:</strong> Buffer $1,000–$1,499 (+$225/win)</span>
+                    <span><strong style="color:var(--red-text)">2c Survival:</strong> Buffer &lt; $1,000 (+$150/win)</span>
                 </div>
             `;
         } else {
-            // Remove summary completely in Original mode
             summaryBox.style.display = 'none';
             summaryBox.innerHTML = '';
         }
@@ -2153,31 +2151,24 @@
         let bufferCellHtml = '';
 
         if (STATE.useDynamicSizing) {
-            // --- 3-TIER DYNAMIC SIZING MATRIX ---
+            // Determine CURRENT tier styling and bullets
             let riskPerTrade = 100;
-            let rewardPerWin = 300;
             let zoneLabel = '4c';
             let zoneColor = 'var(--green-text)';
             let zoneBg = 'rgba(40, 167, 69, 0.2)';
 
             if (buffer >= 1500) {
-                // Zone Green (Safe)
                 riskPerTrade = 100;
-                rewardPerWin = 300;
                 zoneLabel = '4c';
                 zoneColor = 'var(--green-text)';
                 zoneBg = 'rgba(40, 167, 69, 0.2)';
             } else if (buffer >= 1000) {
-                // Zone Yellow (Caution)
                 riskPerTrade = 75;
-                rewardPerWin = 225; // Proportional 3c scale
                 zoneLabel = '3c';
-                zoneColor = '#ffc107'; // Yellow / Amber
+                zoneColor = '#ffc107';
                 zoneBg = 'rgba(255, 193, 7, 0.2)';
             } else {
-                // Zone Red (Survival)
                 riskPerTrade = 50;
-                rewardPerWin = 150; // Proportional 2c scale
                 zoneLabel = '2c';
                 zoneColor = 'var(--red-text)';
                 zoneBg = 'rgba(220, 53, 69, 0.2)';
@@ -2185,42 +2176,44 @@
 
             const bulletsLeft = Math.max(0, Math.floor(buffer / riskPerTrade));
 
-            // --- REALISTIC STEPPED WIN CALCULATION ---
-            let trueTotalWins = 0;
-            let winsTo4c = 0;
-            let winsAt4c = 0;
+            // --- TRUE 3-TIER PROGRESSION SIMULATION (2c ➔ 3c ➔ 4c ➔ PASS) ---
+            let totalWins = 0;
+            let count2c = 0;
+            let count3c = 0;
+            let count4c = 0;
 
-            if (toTarget <= 0) {
-                trueTotalWins = 0;
-            } else if (buffer >= 1500) {
-                // Already at 4 contracts
-                trueTotalWins = Math.ceil(toTarget / 300);
-            } else {
-                // Step 1: Wins needed to recover buffer back to $1,500 (at current 2c/3c sizing)
-                winsTo4c = Math.max(1, Math.ceil((1500 - buffer) / rewardPerWin));
-                const profitFromRecovery = winsTo4c * rewardPerWin;
+            if (toTarget > 0) {
+                let simBal = stats.balance;
+                let simMLL = stats.maxLoss;
 
-                if (profitFromRecovery >= toTarget) {
-                    // Passes before even needing full 4c
-                    trueTotalWins = Math.ceil(toTarget / rewardPerWin);
-                    winsTo4c = trueTotalWins;
-                    winsAt4c = 0;
-                } else {
-                    // Step 2: Remaining distance is finished with full 4c (+ $300 / win)
-                    const remainingDistance = toTarget - profitFromRecovery;
-                    winsAt4c = Math.ceil(remainingDistance / 300);
-                    trueTotalWins = winsTo4c + winsAt4c;
+                while (simBal < CONFIG.FUNDED_TARGET && totalWins < 60) {
+                    let simBuffer = simBal - simMLL;
+
+                    if (simBuffer < 1000) {
+                        // Zone Red: 2 contracts (+$150 win)
+                        simBal += 150;
+                        count2c++;
+                    } else if (simBuffer < 1500) {
+                        // Zone Yellow: 3 contracts (+$225 win)
+                        simBal += 225;
+                        count3c++;
+                    } else {
+                        // Zone Green: 4 contracts (+$300 win)
+                        simBal += 300;
+                        count4c++;
+                    }
+                    totalWins++;
                 }
             }
 
-            // Compact breakdown tag: (7@2c + 12@4c)
+            // Build the multi-tier roadmap breakdown tag
             let breakdownTag = '';
             if (toTarget > 0 && buffer < 1500) {
-                if (winsAt4c > 0) {
-                    breakdownTag = `<span style="color: #ffc107; font-size: 7.5px; font-weight: bold; margin-left: 2px;">(${winsTo4c}@${zoneLabel} + ${winsAt4c}@4c)</span>`;
-                } else {
-                    breakdownTag = `<span style="color: #ffc107; font-size: 7.5px; font-weight: bold; margin-left: 2px;">(${winsTo4c}@${zoneLabel})</span>`;
-                }
+                let parts = [];
+                if (count2c > 0) parts.push(`${count2c}@2c`);
+                if (count3c > 0) parts.push(`${count3c}@3c`);
+                if (count4c > 0) parts.push(`${count4c}@4c`);
+                breakdownTag = `<span style="color: #ffc107; font-size: 7px; font-weight: bold; margin-left: 2px;">(${parts.join(' + ')})</span>`;
             }
 
             accCellHtml = `
@@ -2229,7 +2222,7 @@
                     <span style="font-size: 8px; padding: 0 4px; border-radius: 3px; font-weight: 900; background: ${zoneBg}; color: ${zoneColor}; border: 1px solid ${zoneColor};">${zoneLabel}</span>
                 </div>
                 <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    ${toTarget > 0 ? `<span style="color:var(--green-text)">${trueTotalWins}W pass</span>` : '<span style="color:var(--green-text)">PASS</span>'} / 
+                    ${toTarget > 0 ? `<span style="color:var(--green-text)">${totalWins}W pass</span>` : '<span style="color:var(--green-text)">PASS</span>'} / 
                     <span style="color:${zoneColor}">${bulletsLeft}L</span>
                     ${breakdownTag}
                 </div>`;
