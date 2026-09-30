@@ -1613,7 +1613,7 @@
         // --- APPLICATION STATE ---
         const STATE = {
             isMasterUser: false, 
-                useDynamicSizing: localStorage.getItem('useDynamicSizing') !== 'true', // Defaults to true
+                useDynamicSizing: localStorage.getItem('useDynamicSizing') !== 'false', // Defaults to true
 
             activeTab: 'topstep', 
             initializedTabs: { topstep: true }, 
@@ -3856,13 +3856,12 @@
             }
 
 
-            const sizingToggleBtn = document.getElementById('sizing-mode-toggle-btn');
+          const sizingToggleBtn = document.getElementById('sizing-mode-toggle-btn');
     if (sizingToggleBtn) {
         sizingToggleBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             STATE.useDynamicSizing = !STATE.useDynamicSizing;
-            localStorage.setItem('useDynamicSizing', STATE.useDynamicSizing);
-            renderFundedDashboard();
+            renderFundedDashboard(); // Toggles cleanly for the current session
         });
     }
 
