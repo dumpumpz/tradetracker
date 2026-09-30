@@ -2089,7 +2089,7 @@
             renderFundedDashboard(); 
         }
       
-  function renderFundedDashboard() {
+ function renderFundedDashboard() {
     const container = document.getElementById('funded-dashboard-rows');
     if (!container) return;
 
@@ -2124,7 +2124,7 @@
         let bufferCellHtml = '';
 
         if (STATE.useDynamicSizing) {
-            // --- 3-TIER DYNAMIC SIZING MODE ---
+            // --- 3-TIER DYNAMIC SIZING MATRIX ---
             let riskPerTrade = 100;
             let rewardPerWin = 300;
             let zoneLabel = '4c';
@@ -2155,18 +2155,44 @@
             }
 
             const bulletsLeft = Math.max(0, Math.floor(buffer / riskPerTrade));
-            const winsToPass = toTarget > 0 ? Math.ceil(toTarget / rewardPerWin) : 0;
 
-            // Calculate wins needed to reach the $1,500 buffer (4c tier)
+            // --- REALISTIC STEPPED WIN CALCULATION ---
+            let trueTotalWins = 0;
             let winsTo4c = 0;
-            if (buffer < 1500) {
+            let winsAt4c = 0;
+
+            if (toTarget <= 0) {
+                trueTotalWins = 0;
+            } else if (buffer >= 1500) {
+                // Already at 4 contracts
+                trueTotalWins = Math.ceil(toTarget / 300);
+            } else {
+                // Step 1: Wins needed to recover buffer back to $1,500 (at current 2c/3c sizing)
                 winsTo4c = Math.max(1, Math.ceil((1500 - buffer) / rewardPerWin));
+                const profitFromRecovery = winsTo4c * rewardPerWin;
+
+                if (profitFromRecovery >= toTarget) {
+                    // Passes before even needing full 4c
+                    trueTotalWins = Math.ceil(toTarget / rewardPerWin);
+                    winsTo4c = trueTotalWins;
+                    winsAt4c = 0;
+                } else {
+                    // Step 2: Remaining distance is finished with full 4c (+ $300 / win)
+                    const remainingDistance = toTarget - profitFromRecovery;
+                    winsAt4c = Math.ceil(remainingDistance / 300);
+                    trueTotalWins = winsTo4c + winsAt4c;
+                }
             }
 
-            // Extra pill text if below 4c
-            const upgradeTag = winsTo4c > 0 
-                ? `<span style="color: #ffc107; font-size: 7.5px; font-weight: bold; margin-left: 2px;">(${winsTo4c}W➔4c)</span>` 
-                : '';
+            // Compact breakdown tag: (7@2c + 12@4c)
+            let breakdownTag = '';
+            if (toTarget > 0 && buffer < 1500) {
+                if (winsAt4c > 0) {
+                    breakdownTag = `<span style="color: #ffc107; font-size: 7.5px; font-weight: bold; margin-left: 2px;">(${winsTo4c}@${zoneLabel} + ${winsAt4c}@4c)</span>`;
+                } else {
+                    breakdownTag = `<span style="color: #ffc107; font-size: 7.5px; font-weight: bold; margin-left: 2px;">(${winsTo4c}@${zoneLabel})</span>`;
+                }
+            }
 
             accCellHtml = `
                 <div style="font-family: -apple-system, sans-serif; font-weight: 600; color: var(--text-color); display: flex; align-items: center; gap: 4px;">
@@ -2174,9 +2200,9 @@
                     <span style="font-size: 8px; padding: 0 4px; border-radius: 3px; font-weight: 900; background: ${zoneBg}; color: ${zoneColor}; border: 1px solid ${zoneColor};">${zoneLabel}</span>
                 </div>
                 <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    ${toTarget > 0 ? `<span style="color:var(--green-text)">${winsToPass}W pass</span>` : '<span style="color:var(--green-text)">PASS</span>'} / 
+                    ${toTarget > 0 ? `<span style="color:var(--green-text)">${trueTotalWins}W pass</span>` : '<span style="color:var(--green-text)">PASS</span>'} / 
                     <span style="color:${zoneColor}">${bulletsLeft}L</span>
-                    ${upgradeTag}
+                    ${breakdownTag}
                 </div>`;
 
             bufferCellHtml = `<div class="dash-buffer" style="color: ${zoneColor}; font-weight: 900;">${fmt(buffer)}</div>`;
