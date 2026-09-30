@@ -1219,6 +1219,9 @@
                     <div style="color: var(--text-color);">BUFFER</div>
                 </div>
                 <div id="funded-dashboard-rows"></div>
+
+                <!-- LIVE MODE SUMMARY BOX -->
+                <div id="funded-dashboard-summary" style="padding: 8px 10px; background: rgba(0,0,0,0.25); border-top: 1px solid var(--border-color); font-size: 10px; line-height: 1.4;"></div>
             </div>
 
             <!-- Evaluation Target Calculator -->
@@ -2089,9 +2092,11 @@
             renderFundedDashboard(); 
         }
       
- function renderFundedDashboard() {
+function renderFundedDashboard() {
     const container = document.getElementById('funded-dashboard-rows');
     if (!container) return;
+
+    const summaryBox = document.getElementById('funded-dashboard-summary');
 
     // Update toggle button text/style if present
     const toggleBtn = document.getElementById('sizing-mode-toggle-btn');
@@ -2104,6 +2109,36 @@
             toggleBtn.textContent = '🎯 Original';
             toggleBtn.style.color = 'var(--subtle-text)';
             toggleBtn.style.borderColor = 'var(--border-color)';
+        }
+    }
+
+    // Render Explainer Summary for the active mode
+    if (summaryBox) {
+        if (STATE.useDynamicSizing) {
+            summaryBox.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+                    <span style="font-weight:bold; color:var(--green-text); font-size: 10.5px;">⚡ Active: 2×2 Hybrid Dynamic Scaling</span>
+                    <span style="font-size: 8.5px; color:var(--subtle-text); text-transform:uppercase; letter-spacing:0.5px;">Auto-Protected Mode</span>
+                </div>
+                <div style="color:var(--text-color); margin-bottom: 5px;">
+                    <strong>Execution:</strong> Enter 4c (12.5 pt SL = -$100). Take <strong>2c off @ +25 pts (+100 ticks)</strong> to bank <strong>+$100</strong> and snap stop to Breakeven (+2 ticks). Remaining 2c run to <strong>+50 pts</strong> (+200 ticks) for +$200 (<span style="color:var(--green-text); font-weight:bold;">+$300 Full Win</span>).
+                </div>
+                <div style="font-size: 9px; color:var(--subtle-text); border-top: 1px dotted var(--border-color); padding-top: 4px; display:flex; gap:12px; flex-wrap:wrap;">
+                    <span><strong style="color:var(--green-text)">4c Safe:</strong> Buffer ≥ $1,500</span>
+                    <span><strong style="color:#ffc107">3c Caution:</strong> Buffer $1,000–$1,499</span>
+                    <span><strong style="color:var(--red-text)">2c Survival:</strong> Buffer &lt; $1,000</span>
+                </div>
+            `;
+        } else {
+            summaryBox.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+                    <span style="font-weight:bold; color:var(--link-color); font-size: 10.5px;">🎯 Active: Original Fixed Sizing</span>
+                    <span style="font-size: 8.5px; color:var(--subtle-text); text-transform:uppercase; letter-spacing:0.5px;">All-or-Nothing Mode</span>
+                </div>
+                <div style="color:var(--text-color);">
+                    <strong>Execution:</strong> Static 4 contracts. Fixed 12.5 pt Stop Loss (<strong>-$100</strong>) and Straight 50 pt Take Profit (<strong>+$400</strong>). No partials at 25 points; all 4 contracts ride to full target or stop.
+                </div>
+            `;
         }
     }
 
@@ -2132,23 +2167,20 @@
             let zoneBg = 'rgba(40, 167, 69, 0.2)';
 
             if (buffer >= 1500) {
-                // Zone Green (Safe)
                 riskPerTrade = 100;
                 rewardPerWin = 300;
                 zoneLabel = '4c';
                 zoneColor = 'var(--green-text)';
                 zoneBg = 'rgba(40, 167, 69, 0.2)';
             } else if (buffer >= 1000) {
-                // Zone Yellow (Caution)
                 riskPerTrade = 75;
-                rewardPerWin = 225; // Proportional 3c scale
+                rewardPerWin = 225;
                 zoneLabel = '3c';
-                zoneColor = '#ffc107'; // Yellow / Amber
+                zoneColor = '#ffc107';
                 zoneBg = 'rgba(255, 193, 7, 0.2)';
             } else {
-                // Zone Red (Survival)
                 riskPerTrade = 50;
-                rewardPerWin = 150; // Proportional 2c scale
+                rewardPerWin = 150;
                 zoneLabel = '2c';
                 zoneColor = 'var(--red-text)';
                 zoneBg = 'rgba(220, 53, 69, 0.2)';
@@ -2164,27 +2196,22 @@
             if (toTarget <= 0) {
                 trueTotalWins = 0;
             } else if (buffer >= 1500) {
-                // Already at 4 contracts
                 trueTotalWins = Math.ceil(toTarget / 300);
             } else {
-                // Step 1: Wins needed to recover buffer back to $1,500 (at current 2c/3c sizing)
                 winsTo4c = Math.max(1, Math.ceil((1500 - buffer) / rewardPerWin));
                 const profitFromRecovery = winsTo4c * rewardPerWin;
 
                 if (profitFromRecovery >= toTarget) {
-                    // Passes before even needing full 4c
                     trueTotalWins = Math.ceil(toTarget / rewardPerWin);
                     winsTo4c = trueTotalWins;
                     winsAt4c = 0;
                 } else {
-                    // Step 2: Remaining distance is finished with full 4c (+ $300 / win)
                     const remainingDistance = toTarget - profitFromRecovery;
                     winsAt4c = Math.ceil(remainingDistance / 300);
                     trueTotalWins = winsTo4c + winsAt4c;
                 }
             }
 
-            // Compact breakdown tag: (7@2c + 12@4c)
             let breakdownTag = '';
             if (toTarget > 0 && buffer < 1500) {
                 if (winsAt4c > 0) {
