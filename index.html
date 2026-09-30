@@ -1616,8 +1616,7 @@
         // --- APPLICATION STATE ---
         const STATE = {
             isMasterUser: false, 
-                useDynamicSizing: localStorage.getItem('useDynamicSizing') !== 'false', // Defaults to true
-
+useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
             activeTab: 'topstep', 
             initializedTabs: { topstep: true }, 
             visibleTsAccounts: ['Lucid 1', 'Lucid 2','Lucid 3', 'Lucid 4 - scalp','Lucid 5'  ], 
@@ -5435,6 +5434,8 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
     }
  
     async function initializeApp() {
+            localStorage.removeItem('useDynamicSizing'); // <-- Automatically wipes stubborn iPhone memory
+
         checkMasterMode(); 
         getViewerId();
         await fetchLiveConversionRate();
