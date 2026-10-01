@@ -2716,15 +2716,15 @@ function renderFundedDashboard() {
                 </div>
                 <div class="acc-grid-container">
             `;
-
-            CONFIG.FUNDED_ACCOUNTS.forEach((acc, i) => {
-                html += `
-                    <div class="acc-item">
-                        <input type="checkbox" id="check-acc-${i}" name="funded-account-target" value="${acc}" class="acc-checkbox">
-                        <label for="check-acc-${i}">${acc}</label>
-                    </div>
-                `;
-            });
+CONFIG.FUNDED_ACCOUNTS.forEach((acc, i) => {
+    const dynC = getAccountDynamicContracts(acc);
+    html += `
+        <div class="acc-item">
+            <input type="checkbox" id="check-acc-${i}" name="funded-account-target" value="${acc}" class="acc-checkbox" checked>
+            <label for="check-acc-${i}">${acc} <span style="color:#ffc107; font-size:10.5px; font-weight:900;">(${dynC}c)</span></label>
+        </div>
+    `;
+});
             
             html += `</div>`; 
             container.innerHTML = html;
@@ -4464,17 +4464,20 @@ const masterButtons = STATE.isMasterUser ?
             };
         }
 
-        function getAccountDynamicContracts(acc) {
-    if (!STATE.useDynamicSizing) {
-        return parseFloat(document.getElementById('ts-contracts').value) || 4;
-    }
-    const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000 };
-    const buffer = stats.balance - stats.maxLoss;
-    if (buffer >= 1200) return 4;
-    if (buffer >= 600) return 3;
-    return 2;
-}
+function getAccountDynamicContracts(acc) {
+    const stats = (FUNDED_STATS_CACHE && FUNDED_STATS_CACHE[acc]) 
+        ? FUNDED_STATS_CACHE[acc] 
+        : { balance: CONFIG.FUNDED_START, maxLoss: 48000 };
 
+    const buffer = (stats.balance !== undefined && stats.maxLoss !== undefined) 
+        ? (stats.balance - stats.maxLoss) 
+        : 0;
+
+    // Buffer Strategy Rules:
+    if (buffer >= 1200) return 4; // Safe: 4c
+    if (buffer >= 600)  return 3; // Caution: 3c
+    return 2;                     // Survival: 2c
+}
      function handleAddTradeSubmit(e, isTopstep = false) {
             e.preventDefault(); 
             if (!STATE.isMasterUser) return;
@@ -4533,15 +4536,16 @@ const masterButtons = STATE.isMasterUser ?
                 const selectedCheckboxes = document.querySelectorAll('input[name="funded-account-target"]:checked');
                 if (selectedCheckboxes.length === 0) return alert('Please select at least one account.');
 
-               // WITH THIS:
-const comms = parseFloat(document.getElementById(`ts-commissions`).value) || 1.00;
+           const comms = parseFloat(document.getElementById(`ts-commissions`).value) || 1.00;
 const beLevelInput = parseFloat(document.getElementById('ts-be-level')?.value);
 const bePrice = !isNaN(beLevelInput) ? beLevelInput : entryPrice;
 
 const promises = Array.from(selectedCheckboxes).map(cb => {
     const acc = cb.value;
+    
+    // Auto-calculate dynamic contracts directly from this account's buffer:
     const accContracts = getAccountDynamicContracts(acc);
-    const accScale = accContracts === 3 ? 2 : Math.floor(accContracts / 2);
+    const accScale = (accContracts === 4) ? 2 : (accContracts === 3 ? 2 : 1);
 
     const accTrade = { 
         ...tradeBase, 
@@ -4557,7 +4561,6 @@ const promises = Array.from(selectedCheckboxes).map(cb => {
     const metrics = calculateFuturesMetrics(accTrade);
     return dbRefs.tsTrades.push({ ...accTrade, ...metrics });
 });
-
                 Promise.all(promises).then(() => {
                     document.getElementById(`ts-entry-price`).value = '';
                     document.getElementById(`ts-stop-loss`).value = '';
@@ -5123,30 +5126,27 @@ function handleCompletedTradeUpdate(cell) {
         let netResult = 0;
         let noteText = '';
 
-        if (mode === 'tp_be') {
-            // First half hits +25 pts, remainder exits at BE (0 pts)
-            const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
-            const runnerQty = contracts - scaleQty;
-            const tp1Price = isLong ? (entry + 25) : (entry - 25);
+    if (mode === 'tp_be') {
+    // 4c = +$100, 3c = +$75, 2c = +$50 (gross)
+    const gross = contracts * 25; 
+    netResult = gross - fee;
+    exitPrice = isLong ? (entry + 12.5) : (entry - 12.5);
+    noteText = `TP+BE (${contracts}c): +$${gross} gross`;
 
-            exitPrice = ((scaleQty * tp1Price) + (runnerQty * entry)) / contracts;
-            const gross = (25 * MULT * scaleQty);
-            netResult = gross - fee;
-            noteText = `TP+BE: ${scaleQty}c @ +25pts ($${tp1Price}), ${runnerQty}c @ BE ($${entry})`;
+} else if (mode === 'full_tp') {
+    // 4c = +$300, 3c = +$225, 2c = +$150 (gross)
+    const gross = contracts * 75; 
+    netResult = gross - fee;
+    exitPrice = isLong ? (entry + 37.5) : (entry - 37.5);
+    noteText = `Full TP (${contracts}c): +$${gross} gross`;
 
-        } else if (mode === 'full_tp') {
-            exitPrice = parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50);
-            const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
-            netResult = (points * MULT * contracts) - fee;
-            noteText = `Full TP @ $${exitPrice.toFixed(2)} (+${points.toFixed(1)} pts)`;
-
-        } else if (mode === 'full_sl') {
-            exitPrice = parseFloat(trade.stoploss) || (isLong ? entry - 12.5 : entry + 12.5);
-            const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
-            netResult = (points * MULT * contracts) - fee;
-            noteText = `Full SL @ $${exitPrice.toFixed(2)} (${points.toFixed(1)} pts)`;
-        }
-
+} else if (mode === 'full_sl') {
+    // 4c = -$100, 3c = -$75, 2c = -$50 (gross)
+    const grossLoss = contracts * 25; 
+    netResult = -grossLoss - fee;
+    exitPrice = isLong ? (entry - 12.5) : (entry + 12.5);
+    noteText = `Full SL (${contracts}c): -$${grossLoss} gross`;
+}
         const completedData = {
             ...trade,
             contracts,
@@ -5895,6 +5895,12 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
         FUNDED_STATS_CACHE = calculateFundedStats(tsCompletedData);
         updateTargetCalculator();
     }
+
+        function calculateTopstepStats(tsCompletedData) {
+    FUNDED_STATS_CACHE = calculateFundedStats(tsCompletedData);
+    updateTargetCalculator();
+    renderFundedAccountRadios(); // Keeps account badges synced to live buffers
+}
 
     function subscribeToData() {
         dbRefs.apexExpiry.on('value', (s) => {
