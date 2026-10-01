@@ -5243,12 +5243,12 @@ function handleTradeAction(e) {
                 let imagesHtml = '';
 
                 if (idsForDate.length === 0) {
-                    imagesHtml = `<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 40px 20px; font-style: italic;"></div>`;
-                } else {
+    imagesHtml = `<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 40px 20px; font-style: italic;">No setup images for this day. Use &lt; Prev / Next &gt; to browse.</div>`;
+} else {
                     imagesHtml = idsForDate.map(id => createImageHtml(id)).join('');
                 }
 
-                imagesHtml += `<h3 class="daily-image-footer">${formatDisplayDate(targetDate)}</h3>`;
+imagesHtml += `<h3 class="daily-image-footer">${formatFriendlyDate(targetDate)}</h3>`;
                 containerElement.innerHTML = imagesHtml;
 
                 if (isTS) { 
