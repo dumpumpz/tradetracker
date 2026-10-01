@@ -4026,8 +4026,7 @@ function renderFundedDashboard() {
             renderFundedDashboard(); // Toggles cleanly for the current session
         });
     }
-if (tsEntryInput) tsEntryInput.addEventListener('input', updateFundedSLTP);
-            if (tsTypeSelect) tsTypeSelect.addEventListener('change', updateFundedSLTP);
+
             const filterContainer = document.getElementById('ts-completed-filter-container');
             if (filterContainer) {
                 filterContainer.addEventListener('click', (e) => {
@@ -4305,10 +4304,12 @@ if (tsEntryInput) tsEntryInput.addEventListener('input', updateFundedSLTP);
                 });
             }
 
-            const tsEntryInput = document.getElementById('ts-entry-price');
+           const tsEntryInput = document.getElementById('ts-entry-price');
             const tsTypeSelect = document.getElementById('ts-trade-type');
+            const cryptoEntryInput = document.getElementById('entry-price');
+            const cryptoTypeSelect = document.getElementById('trade-type');
 
-           function updateFundedSLTP() {
+            function updateFundedSLTP() {
                 const entry = parseFloat(tsEntryInput.value);
                 if (isNaN(entry)) return;
                 
@@ -4338,6 +4339,7 @@ if (tsEntryInput) tsEntryInput.addEventListener('input', updateFundedSLTP);
             }
 
             function updateCryptoSLTP() {
+                if (!cryptoEntryInput || !cryptoTypeSelect) return;
                 const entry = parseFloat(cryptoEntryInput.value);
                 if (isNaN(entry)) return;
                 
@@ -4358,9 +4360,10 @@ if (tsEntryInput) tsEntryInput.addEventListener('input', updateFundedSLTP);
                 document.getElementById('target').value = tp.toFixed(2);
             }
 
+            if (tsEntryInput) tsEntryInput.addEventListener('input', updateFundedSLTP);
+            if (tsTypeSelect) tsTypeSelect.addEventListener('change', updateFundedSLTP);
             if (cryptoEntryInput) cryptoEntryInput.addEventListener('input', updateCryptoSLTP);
             if (cryptoTypeSelect) cryptoTypeSelect.addEventListener('change', updateCryptoSLTP);
-
             DOM.journalTab.addEventListener('click', (e) => {
                 if (e.target.closest('.delete-journal-image')) { handleImageDelete(e); return; }
                 const img = e.target.closest('#journal-images-container img');
