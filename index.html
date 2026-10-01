@@ -1960,25 +1960,32 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
         });
 
      function calculateBreakevenPrice(trade) {
-            if (trade.be_price !== undefined && trade.be_price !== null && !isNaN(parseFloat(trade.be_price))) {
-                return parseFloat(trade.be_price);
-            }
-            const entry = parseFloat(trade.entry);
-            if (isNaN(entry) || entry <= 0) return 0;
+    const entry = parseFloat(trade.entry);
+    const be = parseFloat(trade.be_price);
 
-            if (trade.exchange === 'Futures' || trade.evalAccount || trade.contracts) {
-                return entry; // Default BE level for futures is Entry Price
-            }
+    // 1. Only use custom be_price if it's a valid positive number (ignores -1.00, 0, or blanks)
+    if (!isNaN(be) && be > 0) {
+        return be;
+    }
 
-            const rates = getFeeRates(trade.exchange);
-            if (trade.entryFeeType === 'maker') return entry;
+    // 2. If entry is missing or invalid, return 0
+    if (isNaN(entry) || entry <= 0) return 0;
 
-            const entryFeeRate = rates.TAKER; 
-            const exitFeeRate = rates.TAKER;
+    // 3. For Futures / Funded accounts, BE is always the exact Entry Price
+    if (trade.exchange === 'Futures' || trade.evalAccount || trade.contracts) {
+        return entry;
+    }
 
-            if (trade.type === "Long") return entry * (1 + entryFeeRate) / (1 - exitFeeRate);
-            else return entry * (1 - entryFeeRate) / (1 + exitFeeRate);
-        }
+    // 4. For Crypto, calculate fee-adjusted BE
+    const rates = getFeeRates(trade.exchange);
+    if (trade.entryFeeType === 'maker') return entry;
+
+    const entryFeeRate = rates.TAKER; 
+    const exitFeeRate = rates.TAKER;
+
+    if (trade.type === "Long") return entry * (1 + entryFeeRate) / (1 - exitFeeRate);
+    else return entry * (1 - entryFeeRate) / (1 + exitFeeRate);
+}
         function autoResizeTextarea(textarea) { 
             if (!textarea || textarea.tagName !== 'TEXTAREA') return; 
             if (textarea.offsetParent === null) return;
@@ -2885,8 +2892,7 @@ const masterButtons = STATE.isMasterUser ?
                             <td class="editable-cell" data-id="${trade.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.entry).toFixed(2)}</td>
                             
                             <!-- BE Level Column: Visible & Editable for both Topstep and Crypto -->
-                            <td class="editable-cell" data-id="${trade.dbId}" data-field="be_price" contenteditable="${STATE.isMasterUser}" style="font-weight:bold; color:var(--link-color);" title="Click to edit BE Level">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : '--'}</td>
-                            
+                           <td class="editable-cell" data-id="${trade.dbId}" data-field="be_price" contenteditable="${STATE.isMasterUser}" style="font-weight:bold; color:var(--link-color);" title="Click to edit BE Level">${breakevenPrice > 0 ? breakevenPrice.toFixed(2) : parseFloat(trade.entry).toFixed(2)}</td>
                             <td style="${hideIfFunded}" class="note-cell editable-cell" data-id="${trade.dbId}" data-field="entry_prices" contenteditable="${STATE.isMasterUser}">${entriesList}</td>
                             
                             <td class="editable-cell" data-id="${trade.dbId}" data-field="stoploss" contenteditable="${STATE.isMasterUser}">${parseFloat(trade.stoploss).toFixed(2)}</td>
@@ -4341,11 +4347,11 @@ const masterButtons = STATE.isMasterUser ?
                 
                 document.getElementById('ts-stop-loss').value = sl.toFixed(2);
                 document.getElementById('ts-target').value = tp.toFixed(2);
-
-                const beInput = document.getElementById('ts-be-level');
-                if (beInput && !beInput.value) {
-                    beInput.value = entry.toFixed(2);
-                }
+const beInput = document.getElementById('ts-be-level');
+if (beInput) {
+    // Always sync BE Level to the live entry price whenever entry changes
+    beInput.value = entry.toFixed(2);
+}
             }
 
             function updateCryptoSLTP() {
@@ -4538,8 +4544,8 @@ function getAccountDynamicContracts(acc) {
 
            const comms = parseFloat(document.getElementById(`ts-commissions`).value) || 1.00;
 const beLevelInput = parseFloat(document.getElementById('ts-be-level')?.value);
-const bePrice = !isNaN(beLevelInput) ? beLevelInput : entryPrice;
-
+// If BE level is blank, <= 0, or negative (-1.00), strictly fallback to entryPrice:
+const bePrice = (!isNaN(beLevelInput) && beLevelInput > 0) ? beLevelInput : entryPrice;
 const promises = Array.from(selectedCheckboxes).map(cb => {
     const acc = cb.value;
     
