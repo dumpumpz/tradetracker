@@ -5324,14 +5324,14 @@ function handleTradeAction(e) {
                     let netResult = 0;
                     let noteText = '';
 
-                    if (mode === 'tp_be') {
+                if (mode === 'tp_be') {
                         const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
                         const runnerQty = contracts - scaleQty;
                         const tp1Price = isLong ? (entry + 25) : (entry - 25);
                         exitPrice = ((scaleQty * tp1Price) + (runnerQty * entry)) / contracts;
                         netResult = (25 * MULT * scaleQty) - fee;
                         noteText = `TP+BE: ${scaleQty}c @ +25pts, ${runnerQty}c @ BE`;
-                    } } else if (mode === 'full_tp') {
+                    } else if (mode === 'full_tp') {
                         // Use your custom entered exit price, or fallback to target
                         exitPrice = (customExitPrice !== null) ? customExitPrice : (parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50));
                         const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
@@ -5923,10 +5923,7 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
 
     return stats;
 }
-    function calculateTopstepStats(tsCompletedData) {
-        FUNDED_STATS_CACHE = calculateFundedStats(tsCompletedData);
-        updateTargetCalculator();
-    }
+
 
         function calculateTopstepStats(tsCompletedData) {
     FUNDED_STATS_CACHE = calculateFundedStats(tsCompletedData);
