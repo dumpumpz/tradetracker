@@ -2090,7 +2090,7 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
             calculateTopstepStats(completedMapped);
             renderFundedDashboard(); 
         }
- function renderFundedDashboard() {
+function renderFundedDashboard() {
     const container = document.getElementById('funded-dashboard-rows');
     if (!container) return;
 
@@ -2116,15 +2116,15 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
             summaryBox.style.display = 'block';
             summaryBox.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
-                    <span style="font-weight:bold; color:var(--green-text); font-size: 10.5px;">⚡ Active: 2×2 Hybrid Dynamic Scaling</span>
+                    <span style="font-weight:bold; color:var(--green-text); font-size: 10.5px;">⚡ Active: 2×2 Hybrid Dynamic Scaling (Balanced)</span>
                 </div>
                 <div style="color:var(--text-color); margin-bottom: 5px;">
-                    <strong>Execution:</strong> Enter 4c (12.5 pt SL = -$100). Take <strong>2c off @ +25 pts (+100 ticks)</strong> to bank <strong>+$100</strong> and snap stop to Breakeven (+2 ticks). Remaining 2c run to <strong>+50 pts</strong> (+200 ticks) for +$200 (<span style="color:var(--green-text); font-weight:bold;">+$300 Full Win</span>).
+                    <strong>Execution:</strong> Enter 4c (12.5 pt SL = -$100). Take <strong>2c off @ +25 pts</strong> to bank <strong>+$100</strong> and snap stop to Breakeven. Remaining 2c run to <strong>+50 pts</strong> for +$200 (<span style="color:var(--green-text); font-weight:bold;">+$300 Full Win</span>).
                 </div>
                 <div style="font-size: 9px; color:var(--subtle-text); border-top: 1px dotted var(--border-color); padding-top: 4px; display:flex; gap:12px; flex-wrap:wrap;">
-                    <span><strong style="color:var(--green-text)">4c Safe:</strong> Buffer ≥ $1,500 (+$300/win)</span>
-                    <span><strong style="color:#ffc107">3c Caution:</strong> Buffer $1,000–$1,499 (+$225/win)</span>
-                    <span><strong style="color:var(--red-text)">2c Survival:</strong> Buffer &lt; $1,000 (+$150/win)</span>
+                    <span><strong style="color:var(--green-text)">4c Safe:</strong> Buffer ≥ $1,200 (+$300/win)</span>
+                    <span><strong style="color:#ffc107">3c Caution:</strong> Buffer $600–$1,199 (+$225/win)</span>
+                    <span><strong style="color:var(--red-text)">2c Survival:</strong> Buffer &lt; $600 (+$150/win)</span>
                 </div>
             `;
         } else {
@@ -2150,16 +2150,16 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
         let bufferCellHtml = '';
 
         if (STATE.useDynamicSizing) {
-            // Determine CURRENT tier styling
+            // Determine CURRENT tier styling ($1,200 / $600 thresholds)
             let zoneLabel = '4c';
             let zoneColor = 'var(--green-text)';
             let zoneBg = 'rgba(40, 167, 69, 0.2)';
 
-            if (buffer >= 1500) {
+            if (buffer >= 1200) {
                 zoneLabel = '4c';
                 zoneColor = 'var(--green-text)';
                 zoneBg = 'rgba(40, 167, 69, 0.2)';
-            } else if (buffer >= 1000) {
+            } else if (buffer >= 600) {
                 zoneLabel = '3c';
                 zoneColor = '#ffc107';
                 zoneBg = 'rgba(255, 193, 7, 0.2)';
@@ -2169,7 +2169,7 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
                 zoneBg = 'rgba(220, 53, 69, 0.2)';
             }
 
-            // --- 1. TRUE 3-TIER STEP-DOWN LOSS SIMULATION (4c ➔ 3c ➔ 2c ➔ 0) ---
+            // --- 1. BALANCED 3-TIER LOSS RUNWAY SIMULATION (4c ➔ 3c ➔ 2c ➔ 0) ---
             let totalLosses = 0;
             let lossCount4c = 0;
             let lossCount3c = 0;
@@ -2178,10 +2178,10 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
             if (buffer > 0) {
                 let simLossBuffer = buffer;
                 while (simLossBuffer >= 50 && totalLosses < 100) {
-                    if (simLossBuffer >= 1500) {
+                    if (simLossBuffer >= 1200) {
                         simLossBuffer -= 100; // 4c risk (-$100)
                         lossCount4c++;
-                    } else if (simLossBuffer >= 1000) {
+                    } else if (simLossBuffer >= 600) {
                         simLossBuffer -= 75;  // 3c risk (-$75)
                         lossCount3c++;
                     } else {
@@ -2198,7 +2198,7 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
             if (lossCount2c > 0) lossParts.push(`${lossCount2c}L@2c`);
             const lossSeqText = lossParts.length > 0 ? `(${lossParts.join(' + ')})` : '(0L)';
 
-            // --- 2. TRUE 3-TIER STEP-UP WIN SIMULATION (2c ➔ 3c ➔ 4c ➔ PASS) ---
+            // --- 2. BALANCED 3-TIER WIN ROADMAP SIMULATION (2c ➔ 3c ➔ 4c ➔ PASS) ---
             let totalWins = 0;
             let winCount2c = 0;
             let winCount3c = 0;
@@ -2211,10 +2211,10 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
                 while (simBal < CONFIG.FUNDED_TARGET && totalWins < 100) {
                     let simBuffer = simBal - simMLL;
 
-                    if (simBuffer < 1000) {
+                    if (simBuffer < 600) {
                         simBal += 150; // 2c win (+$150)
                         winCount2c++;
-                    } else if (simBuffer < 1500) {
+                    } else if (simBuffer < 1200) {
                         simBal += 225; // 3c win (+$225)
                         winCount3c++;
                     } else {
