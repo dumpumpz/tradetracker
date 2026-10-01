@@ -2090,7 +2090,7 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
             calculateTopstepStats(completedMapped);
             renderFundedDashboard(); 
         }
-  function renderFundedDashboard() {
+ function renderFundedDashboard() {
     const container = document.getElementById('funded-dashboard-rows');
     if (!container) return;
 
@@ -2117,9 +2117,11 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
             summaryBox.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
                     <span style="font-weight:bold; color:var(--green-text); font-size: 10.5px;">⚡ Active: 2×2 Hybrid Dynamic Scaling</span>
+                    <span style="font-size: 8.5px; color:var(--subtle-text); text-transform:uppercase; letter-spacing:0.5px;">Auto-Protected Mode</span>
                 </div>
                 <div style="color:var(--text-color); margin-bottom: 5px;">
-                <strong>Execution:</strong> Enter 4c (12.5 pt SL = -$100). Take <strong>2c off @ +25 pts </strong> to bank <strong>+$100</strong> and snap stop to Breakeven. Remaining 2c run to <strong>+50 pts</strong> for +$200 (<span style="color:var(--green-text); font-weight:bold;">+$300 Full Win</span>).     </div>
+                    <strong>Execution:</strong> Enter 4c (12.5 pt SL = -$100). Take <strong>2c off @ +25 pts (+100 ticks)</strong> to bank <strong>+$100</strong> and snap stop to Breakeven (+2 ticks). Remaining 2c run to <strong>+50 pts</strong> (+200 ticks) for +$200 (<span style="color:var(--green-text); font-weight:bold;">+$300 Full Win</span>).
+                </div>
                 <div style="font-size: 9px; color:var(--subtle-text); border-top: 1px dotted var(--border-color); padding-top: 4px; display:flex; gap:12px; flex-wrap:wrap;">
                     <span><strong style="color:var(--green-text)">4c Safe:</strong> Buffer ≥ $1,500 (+$300/win)</span>
                     <span><strong style="color:#ffc107">3c Caution:</strong> Buffer $1,000–$1,499 (+$225/win)</span>
@@ -2149,69 +2151,91 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
         let bufferCellHtml = '';
 
         if (STATE.useDynamicSizing) {
-            // Determine CURRENT tier styling and bullets
-            let riskPerTrade = 100;
+            // Determine CURRENT tier styling
             let zoneLabel = '4c';
             let zoneColor = 'var(--green-text)';
             let zoneBg = 'rgba(40, 167, 69, 0.2)';
 
             if (buffer >= 1500) {
-                riskPerTrade = 100;
                 zoneLabel = '4c';
                 zoneColor = 'var(--green-text)';
                 zoneBg = 'rgba(40, 167, 69, 0.2)';
             } else if (buffer >= 1000) {
-                riskPerTrade = 75;
                 zoneLabel = '3c';
                 zoneColor = '#ffc107';
                 zoneBg = 'rgba(255, 193, 7, 0.2)';
             } else {
-                riskPerTrade = 50;
                 zoneLabel = '2c';
                 zoneColor = 'var(--red-text)';
                 zoneBg = 'rgba(220, 53, 69, 0.2)';
             }
 
-            const bulletsLeft = Math.max(0, Math.floor(buffer / riskPerTrade));
+            // --- 1. TRUE 3-TIER LOSS RUNWAY SIMULATION (4c ➔ 3c ➔ 2c ➔ 0) ---
+            let totalLosses = 0;
+            let lossCount4c = 0;
+            let lossCount3c = 0;
+            let lossCount2c = 0;
 
-            // --- TRUE 3-TIER PROGRESSION SIMULATION (2c ➔ 3c ➔ 4c ➔ PASS) ---
+            if (buffer > 0) {
+                let simLossBuffer = buffer;
+                while (simLossBuffer >= 50 && totalLosses < 100) {
+                    if (simLossBuffer >= 1500) {
+                        simLossBuffer -= 100; // 4c risk (-$100)
+                        lossCount4c++;
+                    } else if (simLossBuffer >= 1000) {
+                        simLossBuffer -= 75;  // 3c risk (-$75)
+                        lossCount3c++;
+                    } else {
+                        simLossBuffer -= 50;  // 2c risk (-$50)
+                        lossCount2c++;
+                    }
+                    totalLosses++;
+                }
+            }
+
+            // --- 2. TRUE 3-TIER WIN ROADMAP SIMULATION (2c ➔ 3c ➔ 4c ➔ PASS) ---
             let totalWins = 0;
-            let count2c = 0;
-            let count3c = 0;
-            let count4c = 0;
+            let winCount2c = 0;
+            let winCount3c = 0;
+            let winCount4c = 0;
 
             if (toTarget > 0) {
                 let simBal = stats.balance;
                 let simMLL = stats.maxLoss;
 
-                while (simBal < CONFIG.FUNDED_TARGET && totalWins < 60) {
+                while (simBal < CONFIG.FUNDED_TARGET && totalWins < 100) {
                     let simBuffer = simBal - simMLL;
 
                     if (simBuffer < 1000) {
-                        // Zone Red: 2 contracts (+$150 win)
-                        simBal += 150;
-                        count2c++;
+                        simBal += 150; // 2c win (+$150)
+                        winCount2c++;
                     } else if (simBuffer < 1500) {
-                        // Zone Yellow: 3 contracts (+$225 win)
-                        simBal += 225;
-                        count3c++;
+                        simBal += 225; // 3c win (+$225)
+                        winCount3c++;
                     } else {
-                        // Zone Green: 4 contracts (+$300 win)
-                        simBal += 300;
-                        count4c++;
+                        simBal += 300; // 4c win (+$300)
+                        winCount4c++;
                     }
                     totalWins++;
                 }
             }
 
-            // Build the multi-tier roadmap breakdown tag
+            // --- 3. DYNAMIC ROADMAP TAG ---
             let breakdownTag = '';
             if (toTarget > 0 && buffer < 1500) {
-                let parts = [];
-                if (count2c > 0) parts.push(`${count2c}@2c`);
-                if (count3c > 0) parts.push(`${count3c}@3c`);
-                if (count4c > 0) parts.push(`${count4c}@4c`);
-                breakdownTag = `<span style="color: #ffc107; font-size: 7px; font-weight: bold; margin-left: 2px;">(${parts.join(' + ')})</span>`;
+                // If in drawdown, show the multi-tier win path to pass
+                let winParts = [];
+                if (winCount2c > 0) winParts.push(`${winCount2c}@2c`);
+                if (winCount3c > 0) winParts.push(`${winCount3c}@3c`);
+                if (winCount4c > 0) winParts.push(`${winCount4c}@4c`);
+                breakdownTag = `<span style="color: #ffc107; font-size: 7px; font-weight: bold; margin-left: 2px;">(${winParts.join(' + ')})</span>`;
+            } else if (buffer >= 1500 && totalLosses > 0) {
+                // If in safe buffer, show the downshift loss cushion
+                let lossParts = [];
+                if (lossCount4c > 0) lossParts.push(`${lossCount4c}@4c`);
+                if (lossCount3c > 0) lossParts.push(`${lossCount3c}@3c`);
+                if (lossCount2c > 0) lossParts.push(`${lossCount2c}@2c`);
+                breakdownTag = `<span style="color: var(--subtle-text); font-size: 7px; font-weight: bold; margin-left: 2px;">(${lossParts.join(' + ')})</span>`;
             }
 
             accCellHtml = `
@@ -2221,7 +2245,7 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
                 </div>
                 <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     ${toTarget > 0 ? `<span style="color:var(--green-text)">${totalWins}W pass</span>` : '<span style="color:var(--green-text)">PASS</span>'} / 
-                    <span style="color:${zoneColor}">${bulletsLeft}L</span>
+                    <span style="color:${zoneColor}">${totalLosses}L</span>
                     ${breakdownTag}
                 </div>`;
 
