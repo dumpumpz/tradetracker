@@ -5294,6 +5294,21 @@ function handleTradeAction(e) {
                     alert(`No active live trades found for group: ${groupId}`);
                     return;
                 }
+                // Prompt to edit TP price if mode is full_tp
+                let customExitPrice = null;
+                if (mode === 'full_tp') {
+                    const firstTrade = groupEntries[0][1];
+                    const defaultTarget = parseFloat(firstTrade.target) || (firstTrade.type === 'Long' ? (parseFloat(firstTrade.entry) + 50) : (parseFloat(firstTrade.entry) - 50));
+                    
+                    const inputExit = prompt(`Close Group [${groupId}]\nEnter Take Profit Exit Price:`, defaultTarget.toFixed(2));
+                    if (inputExit === null) return; // Cancelled
+                    
+                    customExitPrice = parseFloat(inputExit);
+                    if (isNaN(customExitPrice) || customExitPrice <= 0) {
+                        alert("Invalid exit price entered.");
+                        return;
+                    }
+                }
 
                 const liveUpdates = {};
                 const compUpdates = {};
@@ -5316,11 +5331,12 @@ function handleTradeAction(e) {
                         exitPrice = ((scaleQty * tp1Price) + (runnerQty * entry)) / contracts;
                         netResult = (25 * MULT * scaleQty) - fee;
                         noteText = `TP+BE: ${scaleQty}c @ +25pts, ${runnerQty}c @ BE`;
-                    } else if (mode === 'full_tp') {
-                        exitPrice = parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50);
+                    } } else if (mode === 'full_tp') {
+                        // Use your custom entered exit price, or fallback to target
+                        exitPrice = (customExitPrice !== null) ? customExitPrice : (parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50));
                         const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
                         netResult = (points * MULT * contracts) - fee;
-                        noteText = `Full TP @ $${exitPrice.toFixed(2)}`;
+                        noteText = `TP @ $${exitPrice.toFixed(2)} (${points >= 0 ? '+' : ''}${points.toFixed(2)} pts) [${contracts}c]`;
                     } else if (mode === 'full_sl') {
                         exitPrice = parseFloat(trade.stoploss) || (isLong ? entry - 12.5 : entry + 12.5);
                         const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
@@ -5361,7 +5377,7 @@ function handleTradeAction(e) {
         // ==========================================
         // 1-CLICK SINGLE TRADE FINISH (TP+BE / Full TP / SL)
         // ==========================================
-        if (button.matches('.quick-finish-btn')) {
+     if (button.matches('.quick-finish-btn')) {
             if (!id) {
                 alert("Error: Trade ID missing on button.");
                 return;
@@ -5380,29 +5396,39 @@ function handleTradeAction(e) {
                 const fee = (parseFloat(trade.commissions || 1.00)) * contracts;
                 const isLong = trade.type === 'Long';
 
+                // Prompt to edit TP price for single trade:
+                let customExitPrice = null;
+                if (mode === 'full_tp') {
+                    const defaultTarget = parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50);
+                    const inputExit = prompt(`Close ${trade.evalAccount || trade.symbol} (${contracts}c)\nEnter Take Profit Exit Price:`, defaultTarget.toFixed(2));
+                    if (inputExit === null) return;
+                    customExitPrice = parseFloat(inputExit);
+                    if (isNaN(customExitPrice) || customExitPrice <= 0) {
+                        alert("Invalid exit price.");
+                        return;
+                    }
+                }
+
                 let exitPrice = entry;
                 let netResult = 0;
                 let noteText = '';
 
                 if (mode === 'tp_be') {
-                    const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
-                    const runnerQty = contracts - scaleQty;
-                    const tp1Price = isLong ? (entry + 25) : (entry - 25);
-                    exitPrice = ((scaleQty * tp1Price) + (runnerQty * entry)) / contracts;
-                    netResult = (25 * MULT * scaleQty) - fee;
-                    noteText = `TP+BE: ${scaleQty}c @ +25pts, ${runnerQty}c @ BE`;
+                    const gross = contracts * 25; 
+                    netResult = gross - fee;
+                    exitPrice = isLong ? (entry + 12.5) : (entry - 12.5);
+                    noteText = `TP+BE (${contracts}c): +$${gross} gross`;
                 } else if (mode === 'full_tp') {
-                    exitPrice = parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50);
+                    exitPrice = (customExitPrice !== null) ? customExitPrice : (parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50));
                     const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
                     netResult = (points * MULT * contracts) - fee;
-                    noteText = `Full TP @ $${exitPrice.toFixed(2)}`;
+                    noteText = `TP @ $${exitPrice.toFixed(2)} (${points >= 0 ? '+' : ''}${points.toFixed(2)} pts) [${contracts}c]`;
                 } else if (mode === 'full_sl') {
-                    exitPrice = parseFloat(trade.stoploss) || (isLong ? entry - 12.5 : entry + 12.5);
-                    const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
-                    netResult = (points * MULT * contracts) - fee;
-                    noteText = `Full SL @ $${exitPrice.toFixed(2)}`;
+                    const grossLoss = contracts * 25; 
+                    netResult = -grossLoss - fee;
+                    exitPrice = isLong ? (entry - 12.5) : (entry + 12.5);
+                    noteText = `Full SL (${contracts}c): -$${grossLoss} gross`;
                 }
-
                 const completedData = {
                     ...trade,
                     contracts,
