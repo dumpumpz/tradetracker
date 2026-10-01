@@ -5246,129 +5246,229 @@ function finishFundedGroupSingleClick(groupId, mode) {
     });
 }
 function handleTradeAction(e) {
-        if (!STATE.isMasterUser) return;
-
         const button = e.target.closest('button');
+        if (!button) return;
 
-        if (STATE.isMerging && !button) {
-            const targetRow = e.target.closest('tr');
-            if (targetRow && (targetRow.parentElement.id === 'completed-trades-tbody' || targetRow.parentElement.id === 'ts-completed-trades-tbody')) {
-                const absorbedTradeId = targetRow.querySelector('.action-buttons button')?.dataset.id;
-                const rowIsTopstep = targetRow.closest('#topstep-tab') !== null;
-                if (absorbedTradeId) executeMerge(STATE.mergeBaseTradeId, absorbedTradeId, rowIsTopstep);
-            }
+        // 1. Alert if master mode is missing instead of failing silently
+        if (!STATE.isMasterUser) {
+            alert("Action disabled: Please enter Master Mode by adding ?master=true to your URL.");
             return;
         }
-// Add these two branches inside handleTradeAction:
-if (button.matches('.quick-finish-btn')) {
-    finishFundedTradeSingleClick(id, button.dataset.mode);
-    return;
-}
-if (button.matches('.quick-group-btn')) {
-    finishFundedGroupSingleClick(groupId, button.dataset.mode);
-    return;
-}
-        // Must guard against null BEFORE accessing button.matches
-        if (!button) return;
 
         e.stopPropagation();
         e.preventDefault();
 
+        // 2. Safe debounce (prevents double-clicks without permanently freezing)
         const now = Date.now();
-        if (now - (STATE.lastClickTime || 0) < 500) return; 
+        if (now - (STATE.lastClickTime || 0) < 400) return; 
         STATE.lastClickTime = now;
 
-        if (STATE.isProcessing) return;
-
         const isTopstep = button.closest('#topstep-tab') !== null;
-        const { id, groupId } = button.dataset;
+        const id = button.dataset.id;
+        const groupId = button.dataset.groupId || button.getAttribute('data-group-id');
+        const mode = button.dataset.mode;
 
-        // Scale Group Action
+        // ==========================================
+        // 1-CLICK GROUP FINISH (TP+BE / Full TP / SL)
+        // ==========================================
+        if (button.matches('.quick-group-btn')) {
+            if (!groupId) {
+                alert("Error: Group ID missing on button.");
+                return;
+            }
+
+            dbRefs.tsTrades.once('value', snapshot => {
+                const allTrades = snapshot.val() || {};
+                const groupEntries = Object.entries(allTrades).filter(([tId, t]) => {
+                    const tGid = t.groupId || `${t.symbol}_${t.type}_Legacy`;
+                    return tGid === groupId || t.groupId === groupId;
+                });
+
+                if (groupEntries.length === 0) {
+                    alert(`No active live trades found for group: ${groupId}`);
+                    return;
+                }
+
+                const liveUpdates = {};
+                const compUpdates = {};
+
+                groupEntries.forEach(([tId, trade]) => {
+                    const entry = parseFloat(trade.entry) || 0;
+                    const contracts = parseFloat(trade.contracts || trade.size || 1);
+                    const MULT = getFuturesMultiplier(trade.symbol);
+                    const fee = (parseFloat(trade.commissions || 1.00)) * contracts;
+                    const isLong = trade.type === 'Long';
+
+                    let exitPrice = entry;
+                    let netResult = 0;
+                    let noteText = '';
+
+                    if (mode === 'tp_be') {
+                        const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
+                        const runnerQty = contracts - scaleQty;
+                        const tp1Price = isLong ? (entry + 25) : (entry - 25);
+                        exitPrice = ((scaleQty * tp1Price) + (runnerQty * entry)) / contracts;
+                        netResult = (25 * MULT * scaleQty) - fee;
+                        noteText = `TP+BE: ${scaleQty}c @ +25pts, ${runnerQty}c @ BE`;
+                    } else if (mode === 'full_tp') {
+                        exitPrice = parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50);
+                        const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
+                        netResult = (points * MULT * contracts) - fee;
+                        noteText = `Full TP @ $${exitPrice.toFixed(2)}`;
+                    } else if (mode === 'full_sl') {
+                        exitPrice = parseFloat(trade.stoploss) || (isLong ? entry - 12.5 : entry + 12.5);
+                        const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
+                        netResult = (points * MULT * contracts) - fee;
+                        noteText = `Full SL @ $${exitPrice.toFixed(2)}`;
+                    }
+
+                    const item = {
+                        ...trade,
+                        contracts,
+                        size: contracts,
+                        exit_price: exitPrice,
+                        net_result: netResult,
+                        entry_fee: fee / 2,
+                        exit_fee: fee / 2,
+                        closed_date: firebase.database.ServerValue.TIMESTAMP,
+                        note: (trade.note || '') + `\n${noteText}`
+                    };
+
+                    Object.keys(item).forEach(k => {
+                        if (item[k] === undefined) delete item[k];
+                        else if (typeof item[k] === 'number' && isNaN(item[k])) item[k] = 0;
+                    });
+
+                    const newKey = dbRefs.tsCompletedTrades.push().key;
+                    compUpdates[newKey] = item;
+                    liveUpdates[tId] = null;
+                });
+
+                Promise.all([
+                    dbRefs.tsCompletedTrades.update(compUpdates),
+                    dbRefs.tsTrades.update(liveUpdates)
+                ]).catch(err => alert("Group close error: " + err.message));
+            });
+            return;
+        }
+
+        // ==========================================
+        // 1-CLICK SINGLE TRADE FINISH (TP+BE / Full TP / SL)
+        // ==========================================
+        if (button.matches('.quick-finish-btn')) {
+            if (!id) {
+                alert("Error: Trade ID missing on button.");
+                return;
+            }
+
+            dbRefs.tsTrades.child(id).once('value', snapshot => {
+                const trade = snapshot.val();
+                if (!trade) {
+                    alert("Trade not found in live trades.");
+                    return;
+                }
+
+                const entry = parseFloat(trade.entry) || 0;
+                const contracts = parseFloat(trade.contracts || trade.size || 1);
+                const MULT = getFuturesMultiplier(trade.symbol);
+                const fee = (parseFloat(trade.commissions || 1.00)) * contracts;
+                const isLong = trade.type === 'Long';
+
+                let exitPrice = entry;
+                let netResult = 0;
+                let noteText = '';
+
+                if (mode === 'tp_be') {
+                    const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
+                    const runnerQty = contracts - scaleQty;
+                    const tp1Price = isLong ? (entry + 25) : (entry - 25);
+                    exitPrice = ((scaleQty * tp1Price) + (runnerQty * entry)) / contracts;
+                    netResult = (25 * MULT * scaleQty) - fee;
+                    noteText = `TP+BE: ${scaleQty}c @ +25pts, ${runnerQty}c @ BE`;
+                } else if (mode === 'full_tp') {
+                    exitPrice = parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50);
+                    const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
+                    netResult = (points * MULT * contracts) - fee;
+                    noteText = `Full TP @ $${exitPrice.toFixed(2)}`;
+                } else if (mode === 'full_sl') {
+                    exitPrice = parseFloat(trade.stoploss) || (isLong ? entry - 12.5 : entry + 12.5);
+                    const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
+                    netResult = (points * MULT * contracts) - fee;
+                    noteText = `Full SL @ $${exitPrice.toFixed(2)}`;
+                }
+
+                const completedData = {
+                    ...trade,
+                    contracts,
+                    size: contracts,
+                    exit_price: exitPrice,
+                    net_result: netResult,
+                    entry_fee: fee / 2,
+                    exit_fee: fee / 2,
+                    closed_date: firebase.database.ServerValue.TIMESTAMP,
+                    note: (trade.note || '') + `\n${noteText}`
+                };
+
+                Object.keys(completedData).forEach(k => {
+                    if (completedData[k] === undefined) delete completedData[k];
+                    else if (typeof completedData[k] === 'number' && isNaN(completedData[k])) completedData[k] = 0;
+                });
+
+                Promise.all([
+                    dbRefs.tsCompletedTrades.push(completedData),
+                    dbRefs.tsTrades.child(id).remove()
+                ]).catch(err => alert("Trade close error: " + err.message));
+            });
+            return;
+        }
+
+        // ==========================================
+        // OTHER STANDARD ACTIONS
+        // ==========================================
         if (button.matches('.scale-group-btn')) {
             handleScaleGroup(groupId);
             return;
         }
-
-        // Scale Individual Trade Action
         if (button.matches('.scale-trade-btn')) {
             handleScaleTrade(id);
             return;
         }
-
         if (button.matches('.attach-image-btn')) {
             let imgType = button.dataset.type;
-            if(isTopstep) imgType = `ts-${imgType}`; 
+            if (isTopstep) imgType = `ts-${imgType}`; 
             handleAttachAttachmentClick(id, imgType);
             return;
         }
-
-       if (button.matches('.close-group-btn')) {
+        if (button.matches('.close-group-btn')) {
             handleCloseGroup(groupId, isTopstep);
             return;
         }
 
-        // MUST BE ABOVE tradeRef SO undefined id DOES NOT CRASH FIREBASE:
-        if (button.matches('.quick-group-btn')) {
-            finishFundedGroupSingleClick(groupId, button.dataset.mode);
-            return;
-        }
-
-        if (button.matches('.quick-finish-btn')) {
-            finishFundedTradeSingleClick(id, button.dataset.mode);
-            return;
-        }
-
-        // ONLY single trades with a valid ID continue past this point:
+        // Only single trades with valid IDs proceed past here:
         if (!id) return;
 
         const isCompleted = button.closest('tbody').id.includes('completed-trades-tbody');
-        let tradeRef;
-        if (isTopstep) {
-            tradeRef = isCompleted ? dbRefs.tsCompletedTrades.child(id) : dbRefs.tsTrades.child(id);
-        } else {
-            tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
-        }
+        const tradeRef = isTopstep 
+            ? (isCompleted ? dbRefs.tsCompletedTrades.child(id) : dbRefs.tsTrades.child(id))
+            : (isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id));
+
         if (button.matches('.win-btn')) {
             completeTrade(id, 'win', isTopstep);
-        } 
-        else if (button.matches('.loss-btn')) {
+        } else if (button.matches('.loss-btn')) {
             completeTrade(id, 'loss', isTopstep);
-        }
-        else if (button.matches('.add-to-position-btn')) {
+        } else if (button.matches('.add-to-position-btn')) {
             handleAddStaggeredEntry(id, isTopstep);
-        }
-        else if (button.matches('.merge-btn-completed')) {
+        } else if (button.matches('.merge-btn-completed')) {
             initiateMerge(id);
-        }
-        else if (button.matches('.delete-btn, .delete-btn-completed')) {
-            if (confirm('Are you sure you want to permanently delete this trade?')) {
+        } else if (button.matches('.delete-btn, .delete-btn-completed')) {
+            if (confirm('Permanently delete this trade?')) {
                 if (isCompleted) resetMergeState();
                 tradeRef.remove();
             }
-        } 
-        else if (button.matches('.shift-prev-day-btn')) {
+        } else if (button.matches('.shift-prev-day-btn')) {
             shiftTradeDay(id, -1, isTopstep);
-        }
-        else if (button.matches('.shift-next-day-btn')) {
+        } else if (button.matches('.shift-next-day-btn')) {
             shiftTradeDay(id, 1, isTopstep);
-        }
-        else if (button.matches('.note-btn, .note-btn-completed')) {
-            tradeRef.child('note').once('value', snapshot => {
-                const newNote = prompt("Edit Note 1:", snapshot.val() || "");
-                if (newNote !== null) tradeRef.update({ note: newNote });
-            });
-        }
-        else if (button.matches('.note2-btn-completed')) {
-            tradeRef.child('note2').once('value', snapshot => {
-                const newNote2 = prompt("Edit Note 2:", snapshot.val() || "");
-                if (newNote2 !== null) tradeRef.update({ note2: newNote2 });
-            });
-        }
-        else if (button.matches('.note3-btn-completed')) {
-            tradeRef.child('note3').once('value', snapshot => {
-                const newNote3 = prompt("Edit Note 3:", snapshot.val() || "");
-                if (newNote3 !== null) tradeRef.update({ note3: newNote3 });
-            });
         }
     }
     function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
