@@ -5173,13 +5173,16 @@ function finishFundedGroupSingleClick(groupId, mode) {
     dbRefs.tsTrades.once('value', snapshot => {
         const allTrades = snapshot.val() || {};
         const groupEntries = Object.entries(allTrades).filter(([id, t]) => t.groupId === groupId);
-        if (groupEntries.length === 0) { STATE.isProcessing = false; return; }
+        if (groupEntries.length === 0) { 
+            STATE.isProcessing = false; 
+            return; 
+        }
 
         const liveUpdates = {};
         const compUpdates = {};
 
         groupEntries.forEach(([id, trade]) => {
-            const entry = parseFloat(trade.entry);
+            const entry = parseFloat(trade.entry) || 0;
             const contracts = parseFloat(trade.contracts || trade.size || 1);
             const MULT = getFuturesMultiplier(trade.symbol);
             const fee = (parseFloat(trade.commissions || 1.00)) * contracts;
@@ -5208,8 +5211,7 @@ function finishFundedGroupSingleClick(groupId, mode) {
                 noteText = `Full SL @ $${exitPrice.toFixed(2)}`;
             }
 
-            const newKey = dbRefs.tsCompletedTrades.push().key;
-            compUpdates[newKey] = {
+            const item = {
                 ...trade,
                 contracts,
                 size: contracts,
@@ -5220,13 +5222,27 @@ function finishFundedGroupSingleClick(groupId, mode) {
                 closed_date: firebase.database.ServerValue.TIMESTAMP,
                 note: (trade.note || '') + `\n${noteText}`
             };
+
+            // Remove any undefined or NaN values before pushing to Firebase
+            Object.keys(item).forEach(k => {
+                if (item[k] === undefined) delete item[k];
+                else if (typeof item[k] === 'number' && isNaN(item[k])) item[k] = 0;
+            });
+
+            const newKey = dbRefs.tsCompletedTrades.push().key;
+            compUpdates[newKey] = item;
             liveUpdates[id] = null;
         });
 
         Promise.all([
             dbRefs.tsCompletedTrades.update(compUpdates),
             dbRefs.tsTrades.update(liveUpdates)
-        ]).finally(() => { STATE.isProcessing = false; });
+        ]).catch(err => {
+            console.error("Group close error:", err);
+            alert("Error closing group: " + err.message);
+        }).finally(() => { 
+            STATE.isProcessing = false; 
+        });
     });
 }
 function handleTradeAction(e) {
@@ -5286,10 +5302,24 @@ if (button.matches('.quick-group-btn')) {
             return;
         }
 
-        if (button.matches('.close-group-btn')) {
+       if (button.matches('.close-group-btn')) {
             handleCloseGroup(groupId, isTopstep);
             return;
         }
+
+        // MUST BE ABOVE tradeRef SO undefined id DOES NOT CRASH FIREBASE:
+        if (button.matches('.quick-group-btn')) {
+            finishFundedGroupSingleClick(groupId, button.dataset.mode);
+            return;
+        }
+
+        if (button.matches('.quick-finish-btn')) {
+            finishFundedTradeSingleClick(id, button.dataset.mode);
+            return;
+        }
+
+        // ONLY single trades with a valid ID continue past this point:
+        if (!id) return;
 
         const isCompleted = button.closest('tbody').id.includes('completed-trades-tbody');
         let tradeRef;
@@ -5298,7 +5328,6 @@ if (button.matches('.quick-group-btn')) {
         } else {
             tradeRef = isCompleted ? dbRefs.completedTrades.child(id) : dbRefs.trades.child(id);
         }
-
         if (button.matches('.win-btn')) {
             completeTrade(id, 'win', isTopstep);
         } 
