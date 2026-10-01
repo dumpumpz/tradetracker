@@ -3453,8 +3453,21 @@ const masterButtons = STATE.isMasterUser ?
                             <td style="${clusterB}">${parseFloat(t.target || 0).toFixed(2)}</td>
                             <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${isTopstep ? contr : contr.toFixed(0)}</td>
                             <td style="${clusterB}">${isTopstep ? (m.rr_taker || '0.00') : (m.rr_maker || '0.00')}</td> 
-                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.exit_price).toFixed(2)}</td>
-                            <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">$${net.toFixed(2)}</td>
+                          ${(() => {
+    let tp1Badge = '';
+    if (isTopstep) {
+        const isTp1 = t.tp1_hit || (t.note && (t.note.includes('TP+BE') || t.note.includes('25pt')));
+        const tp1Price = t.tp1_level || (t.type === 'Long' ? (parseFloat(t.entry) + 25) : (parseFloat(t.entry) - 25));
+        if (isTp1 && tp1Price) {
+            tp1Badge = `<div style="font-size: 8px; color: #ffc107; font-weight: 900; margin-top: 2px; white-space: nowrap;" title="25-Point TP1 Scale Level Hit">🎯 25pt: $${parseFloat(tp1Price).toFixed(2)}</div>`;
+        }
+    }
+    return `
+    <td class="editable-completed-cell" data-id="${t.dbId}" data-field="exit_price" contenteditable="${STATE.isMasterUser}" style="${clusterB}">
+        <div>${parseFloat(t.exit_price).toFixed(2)}</div>
+        ${tp1Badge}
+    </td>`;
+})()}  <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">$${net.toFixed(2)}</td>
                             <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; ${clusterB}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
                             
                             <td class="editable-completed-cell" data-id="${t.dbId}" data-field="date" contenteditable="${STATE.isMasterUser}" style="color:var(--link-color); font-weight:bold; ${clusterB}">
@@ -5324,14 +5337,24 @@ function handleTradeAction(e) {
                     let netResult = 0;
                     let noteText = '';
 
+          let tp1Hit = false;
+                    let tp1Level = 0;
+let tp1Hit = false;
+                let tp1Level = 0;
+
                 if (mode === 'tp_be') {
-                        const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
-                        const runnerQty = contracts - scaleQty;
-                        const tp1Price = isLong ? (entry + 25) : (entry - 25);
-                        exitPrice = ((scaleQty * tp1Price) + (runnerQty * entry)) / contracts;
-                        netResult = (25 * MULT * scaleQty) - fee;
-                        noteText = `TP+BE: ${scaleQty}c @ +25pts, ${runnerQty}c @ BE`;
-                    } else if (mode === 'full_tp') {
+                    const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
+                    const runnerQty = contracts - scaleQty;
+                    const tp1Price = isLong ? (entry + 25) : (entry - 25);
+                    
+                    tp1Hit = true;
+                    tp1Level = tp1Price;
+                    exitPrice = isLong ? (entry + 12.5) : (entry - 12.5);
+                    
+                    const gross = contracts * 25; 
+                    netResult = gross - fee;
+                    noteText = `TP+BE [Hit 25pt @ $${tp1Price.toFixed(2)}] (${scaleQty}c @ +25pts, ${runnerQty}c @ BE)`;
+                } else if (mode === 'full_tp') {
                         // Use your custom entered exit price, or fallback to target
                         exitPrice = (customExitPrice !== null) ? customExitPrice : (parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50));
                         const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
@@ -5349,6 +5372,8 @@ function handleTradeAction(e) {
                         contracts,
                         size: contracts,
                         exit_price: exitPrice,
+                         tp1_hit: tp1Hit,
+                        tp1_level: tp1Level,
                         net_result: netResult,
                         entry_fee: fee / 2,
                         exit_fee: fee / 2,
@@ -5434,6 +5459,8 @@ function handleTradeAction(e) {
                     contracts,
                     size: contracts,
                     exit_price: exitPrice,
+                      tp1_hit: tp1Hit,
+                    tp1_level: tp1Level,
                     net_result: netResult,
                     entry_fee: fee / 2,
                     exit_fee: fee / 2,
