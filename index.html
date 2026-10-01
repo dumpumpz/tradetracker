@@ -2814,11 +2814,14 @@ function renderFundedDashboard() {
                     const scaleGroupBtn = isTopstep ? 
                         `<button class="scale-group-btn" data-group-id="${gid}" style="width: auto; padding: 6px 12px; font-size: 11px; background-color: #fd7e14; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" title="Take 2c off each trade and move stops to BE">Take 2c Off & BE</button>` : '';
 
-                    const masterGroupBtn = STATE.isMasterUser ? 
-                        `<div style="margin-left: auto; display: flex; gap: 8px;">
-                            ${scaleGroupBtn}
-                            <button class="close-group-btn" data-group-id="${gid}" style="width: auto; padding: 6px 14px; font-size: 11px; background-color: #6f42c1; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">Close Group</button>
-                        </div>` : '';
+                  const masterGroupBtn = STATE.isMasterUser ? 
+    `<div style="margin-left: auto; display: flex; gap: 6px;">
+        ${isTopstep ? `
+            <button class="quick-group-btn" data-group-id="${gid}" data-mode="tp_be" style="padding: 4px 8px; font-size: 10px; background-color: #fd7e14; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Group TP+BE</button>
+            <button class="quick-group-btn" data-group-id="${gid}" data-mode="full_tp" style="padding: 4px 8px; font-size: 10px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Group Full TP</button>
+            <button class="quick-group-btn" data-group-id="${gid}" data-mode="full_sl" style="padding: 4px 8px; font-size: 10px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Group SL</button>
+        ` : `<button class="close-group-btn" data-group-id="${gid}" ...>Close Group</button>`}
+    </div>` : '';
 
                     tableHtml += `
                     <tr style="background-color: rgba(127, 127, 127, 0.12); border-top: 2px solid var(--border-color);">
@@ -2854,15 +2857,22 @@ function renderFundedDashboard() {
                         // Scale button per row for Topstep
                         const scaleTradeBtn = isTopstep ? `<button class="scale-trade-btn" data-id="${trade.dbId}" style="padding:2px 6px; font-size:10px; background:#fd7e14; color:white; font-weight:bold;" title="Take 2c off & snap stop to BE">BE 2c</button>` : '';
 
-                        const masterButtons = STATE.isMasterUser ? 
-                            `<div style="display:flex; gap:3px; justify-content:flex-end;">
-                                ${scaleTradeBtn}
-                                <button class="attach-image-btn" data-id="${trade.dbId}" data-type="live" style="padding:2px 6px; font-size:10px; background:#17a2b8;">Pic</button>
-                                <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 6px; font-size:10px; background:#28a745;">W</button>
-                                <button class="loss-btn" data-id="${trade.dbId}" style="padding:2px 6px; font-size:10px; background:#dc3545;">L</button>
-                                <button class="add-to-position-btn" data-id="${trade.dbId}" style="padding:2px 6px; font-size:10px; background:#007bff;">+</button>
-                                <button class="delete-btn" data-id="${trade.dbId}" style="padding:2px 6px; font-size:10px; background:#6c757d;">×</button>
-                            </div>` : '';
+                       // WITH THIS:
+const tsQuickButtons = isTopstep ? `
+    <button class="quick-finish-btn" data-id="${trade.dbId}" data-mode="tp_be" style="padding:2px 5px; font-size:9.5px; background:#fd7e14; color:white; font-weight:bold;" title="Scale off +25 pts & runner at BE">TP+BE</button>
+    <button class="quick-finish-btn" data-id="${trade.dbId}" data-mode="full_tp" style="padding:2px 5px; font-size:9.5px; background:#28a745; color:white; font-weight:bold;" title="Full TP Target">Full TP</button>
+    <button class="quick-finish-btn" data-id="${trade.dbId}" data-mode="full_sl" style="padding:2px 5px; font-size:9.5px; background:#dc3545; color:white; font-weight:bold;" title="Full Stop Loss">SL</button>
+` : `
+    <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 6px; font-size:10px; background:#28a745;">W</button>
+    <button class="loss-btn" data-id="${trade.dbId}" style="padding:2px 6px; font-size:10px; background:#dc3545;">L</button>
+`;
+
+const masterButtons = STATE.isMasterUser ? 
+    `<div style="display:flex; gap:3px; justify-content:flex-end; align-items:center;">
+        <button class="attach-image-btn" data-id="${trade.dbId}" data-type="live" style="padding:2px 5px; font-size:9.5px; background:#17a2b8;">Pic</button>
+        ${tsQuickButtons}
+        <button class="delete-btn" data-id="${trade.dbId}" style="padding:2px 5px; font-size:9.5px; background:#6c757d;">×</button>
+    </div>` : '';
 
                         const accBadge = isTopstep ? `<span class="acc-badge">${getEvalAccount(trade)}</span> ` : '';
 
@@ -4454,6 +4464,17 @@ function renderFundedDashboard() {
             };
         }
 
+        function getAccountDynamicContracts(acc) {
+    if (!STATE.useDynamicSizing) {
+        return parseFloat(document.getElementById('ts-contracts').value) || 4;
+    }
+    const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000 };
+    const buffer = stats.balance - stats.maxLoss;
+    if (buffer >= 1200) return 4;
+    if (buffer >= 600) return 3;
+    return 2;
+}
+
      function handleAddTradeSubmit(e, isTopstep = false) {
             e.preventDefault(); 
             if (!STATE.isMasterUser) return;
@@ -4512,30 +4533,30 @@ function renderFundedDashboard() {
                 const selectedCheckboxes = document.querySelectorAll('input[name="funded-account-target"]:checked');
                 if (selectedCheckboxes.length === 0) return alert('Please select at least one account.');
 
-                const contracts = parseFloat(document.getElementById(`ts-contracts`).value) || 4;
-                const comms = parseFloat(document.getElementById(`ts-commissions`).value) || 1.00;
-                
-                const beLevelInput = parseFloat(document.getElementById('ts-be-level')?.value);
-                const bePrice = !isNaN(beLevelInput) ? beLevelInput : entryPrice;
+               // WITH THIS:
+const comms = parseFloat(document.getElementById(`ts-commissions`).value) || 1.00;
+const beLevelInput = parseFloat(document.getElementById('ts-be-level')?.value);
+const bePrice = !isNaN(beLevelInput) ? beLevelInput : entryPrice;
 
-                const scaleContractsInput = parseFloat(document.getElementById('ts-scale-contracts')?.value);
-                const scaleContracts = (!isNaN(scaleContractsInput) && scaleContractsInput > 0) ? scaleContractsInput : Math.min(2, contracts);
+const promises = Array.from(selectedCheckboxes).map(cb => {
+    const acc = cb.value;
+    const accContracts = getAccountDynamicContracts(acc);
+    const accScale = accContracts === 3 ? 2 : Math.floor(accContracts / 2);
 
-                const promises = Array.from(selectedCheckboxes).map(cb => {
-                    const accTrade = { 
-                        ...tradeBase, 
-                        evalAccount: cb.value,
-                        contracts: contracts,
-                        size: contracts,
-                        be_price: bePrice,
-                        scale_contracts: scaleContracts,
-                        commissions: comms,
-                        exchange: "Futures",
-                        entryFeeType: "fixed"
-                    };
-                    const metrics = calculateFuturesMetrics(accTrade);
-                    return dbRefs.tsTrades.push({ ...accTrade, ...metrics });
-                });
+    const accTrade = { 
+        ...tradeBase, 
+        evalAccount: acc,
+        contracts: accContracts,
+        size: accContracts,
+        be_price: bePrice,
+        scale_contracts: accScale,
+        commissions: comms,
+        exchange: "Futures",
+        entryFeeType: "fixed"
+    };
+    const metrics = calculateFuturesMetrics(accTrade);
+    return dbRefs.tsTrades.push({ ...accTrade, ...metrics });
+});
 
                 Promise.all(promises).then(() => {
                     document.getElementById(`ts-entry-price`).value = '';
@@ -5083,6 +5104,131 @@ function handleCompletedTradeUpdate(cell) {
             });
         }
     }
+
+        function finishFundedTradeSingleClick(tradeId, mode) {
+    if (STATE.isProcessing) return;
+    STATE.isProcessing = true;
+
+    dbRefs.tsTrades.child(tradeId).once('value', snapshot => {
+        const trade = snapshot.val();
+        if (!trade) { STATE.isProcessing = false; return; }
+
+        const entry = parseFloat(trade.entry);
+        const contracts = parseFloat(trade.contracts || trade.size || 1);
+        const MULT = getFuturesMultiplier(trade.symbol);
+        const fee = (parseFloat(trade.commissions || 1.00)) * contracts;
+        const isLong = trade.type === 'Long';
+
+        let exitPrice = entry;
+        let netResult = 0;
+        let noteText = '';
+
+        if (mode === 'tp_be') {
+            // First half hits +25 pts, remainder exits at BE (0 pts)
+            const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
+            const runnerQty = contracts - scaleQty;
+            const tp1Price = isLong ? (entry + 25) : (entry - 25);
+
+            exitPrice = ((scaleQty * tp1Price) + (runnerQty * entry)) / contracts;
+            const gross = (25 * MULT * scaleQty);
+            netResult = gross - fee;
+            noteText = `TP+BE: ${scaleQty}c @ +25pts ($${tp1Price}), ${runnerQty}c @ BE ($${entry})`;
+
+        } else if (mode === 'full_tp') {
+            exitPrice = parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50);
+            const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
+            netResult = (points * MULT * contracts) - fee;
+            noteText = `Full TP @ $${exitPrice.toFixed(2)} (+${points.toFixed(1)} pts)`;
+
+        } else if (mode === 'full_sl') {
+            exitPrice = parseFloat(trade.stoploss) || (isLong ? entry - 12.5 : entry + 12.5);
+            const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
+            netResult = (points * MULT * contracts) - fee;
+            noteText = `Full SL @ $${exitPrice.toFixed(2)} (${points.toFixed(1)} pts)`;
+        }
+
+        const completedData = {
+            ...trade,
+            contracts,
+            size: contracts,
+            exit_price: exitPrice,
+            net_result: netResult,
+            entry_fee: fee / 2,
+            exit_fee: fee / 2,
+            closed_date: firebase.database.ServerValue.TIMESTAMP,
+            note: (trade.note || '') + `\n${noteText}`
+        };
+
+        Promise.all([
+            dbRefs.tsCompletedTrades.push(completedData),
+            dbRefs.tsTrades.child(tradeId).remove()
+        ]).finally(() => { STATE.isProcessing = false; });
+    });
+}
+
+function finishFundedGroupSingleClick(groupId, mode) {
+    if (STATE.isProcessing) return;
+    STATE.isProcessing = true;
+
+    dbRefs.tsTrades.once('value', snapshot => {
+        const allTrades = snapshot.val() || {};
+        const groupEntries = Object.entries(allTrades).filter(([id, t]) => t.groupId === groupId);
+        if (groupEntries.length === 0) { STATE.isProcessing = false; return; }
+
+        const liveUpdates = {};
+        const compUpdates = {};
+
+        groupEntries.forEach(([id, trade]) => {
+            const entry = parseFloat(trade.entry);
+            const contracts = parseFloat(trade.contracts || trade.size || 1);
+            const MULT = getFuturesMultiplier(trade.symbol);
+            const fee = (parseFloat(trade.commissions || 1.00)) * contracts;
+            const isLong = trade.type === 'Long';
+
+            let exitPrice = entry;
+            let netResult = 0;
+            let noteText = '';
+
+            if (mode === 'tp_be') {
+                const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
+                const runnerQty = contracts - scaleQty;
+                const tp1Price = isLong ? (entry + 25) : (entry - 25);
+                exitPrice = ((scaleQty * tp1Price) + (runnerQty * entry)) / contracts;
+                netResult = (25 * MULT * scaleQty) - fee;
+                noteText = `TP+BE: ${scaleQty}c @ +25pts, ${runnerQty}c @ BE`;
+            } else if (mode === 'full_tp') {
+                exitPrice = parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50);
+                const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
+                netResult = (points * MULT * contracts) - fee;
+                noteText = `Full TP @ $${exitPrice.toFixed(2)}`;
+            } else if (mode === 'full_sl') {
+                exitPrice = parseFloat(trade.stoploss) || (isLong ? entry - 12.5 : entry + 12.5);
+                const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
+                netResult = (points * MULT * contracts) - fee;
+                noteText = `Full SL @ $${exitPrice.toFixed(2)}`;
+            }
+
+            const newKey = dbRefs.tsCompletedTrades.push().key;
+            compUpdates[newKey] = {
+                ...trade,
+                contracts,
+                size: contracts,
+                exit_price: exitPrice,
+                net_result: netResult,
+                entry_fee: fee / 2,
+                exit_fee: fee / 2,
+                closed_date: firebase.database.ServerValue.TIMESTAMP,
+                note: (trade.note || '') + `\n${noteText}`
+            };
+            liveUpdates[id] = null;
+        });
+
+        Promise.all([
+            dbRefs.tsCompletedTrades.update(compUpdates),
+            dbRefs.tsTrades.update(liveUpdates)
+        ]).finally(() => { STATE.isProcessing = false; });
+    });
+}
 function handleTradeAction(e) {
         if (!STATE.isMasterUser) return;
 
@@ -5097,7 +5243,15 @@ function handleTradeAction(e) {
             }
             return;
         }
-
+// Add these two branches inside handleTradeAction:
+if (button.matches('.quick-finish-btn')) {
+    finishFundedTradeSingleClick(id, button.dataset.mode);
+    return;
+}
+if (button.matches('.quick-group-btn')) {
+    finishFundedGroupSingleClick(groupId, button.dataset.mode);
+    return;
+}
         // Must guard against null BEFORE accessing button.matches
         if (!button) return;
 
