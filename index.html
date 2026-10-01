@@ -2117,7 +2117,6 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
             summaryBox.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
                     <span style="font-weight:bold; color:var(--green-text); font-size: 10.5px;">⚡ Active: 2×2 Hybrid Dynamic Scaling</span>
-                    <span style="font-size: 8.5px; color:var(--subtle-text); text-transform:uppercase; letter-spacing:0.5px;">Auto-Protected Mode</span>
                 </div>
                 <div style="color:var(--text-color); margin-bottom: 5px;">
                     <strong>Execution:</strong> Enter 4c (12.5 pt SL = -$100). Take <strong>2c off @ +25 pts (+100 ticks)</strong> to bank <strong>+$100</strong> and snap stop to Breakeven (+2 ticks). Remaining 2c run to <strong>+50 pts</strong> (+200 ticks) for +$200 (<span style="color:var(--green-text); font-weight:bold;">+$300 Full Win</span>).
@@ -2170,7 +2169,7 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
                 zoneBg = 'rgba(220, 53, 69, 0.2)';
             }
 
-            // --- 1. TRUE 3-TIER LOSS RUNWAY SIMULATION (4c ➔ 3c ➔ 2c ➔ 0) ---
+            // --- 1. TRUE 3-TIER STEP-DOWN LOSS SIMULATION (4c ➔ 3c ➔ 2c ➔ 0) ---
             let totalLosses = 0;
             let lossCount4c = 0;
             let lossCount3c = 0;
@@ -2193,7 +2192,13 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
                 }
             }
 
-            // --- 2. TRUE 3-TIER WIN ROADMAP SIMULATION (2c ➔ 3c ➔ 4c ➔ PASS) ---
+            let lossParts = [];
+            if (lossCount4c > 0) lossParts.push(`${lossCount4c}L@4c`);
+            if (lossCount3c > 0) lossParts.push(`${lossCount3c}L@3c`);
+            if (lossCount2c > 0) lossParts.push(`${lossCount2c}L@2c`);
+            const lossSeqText = lossParts.length > 0 ? `(${lossParts.join(' + ')})` : '(0L)';
+
+            // --- 2. TRUE 3-TIER STEP-UP WIN SIMULATION (2c ➔ 3c ➔ 4c ➔ PASS) ---
             let totalWins = 0;
             let winCount2c = 0;
             let winCount3c = 0;
@@ -2220,33 +2225,26 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
                 }
             }
 
-            // --- 3. DYNAMIC ROADMAP TAG ---
-            let breakdownTag = '';
-            if (toTarget > 0 && buffer < 1500) {
-                // If in drawdown, show the multi-tier win path to pass
-                let winParts = [];
-                if (winCount2c > 0) winParts.push(`${winCount2c}@2c`);
-                if (winCount3c > 0) winParts.push(`${winCount3c}@3c`);
-                if (winCount4c > 0) winParts.push(`${winCount4c}@4c`);
-                breakdownTag = `<span style="color: #ffc107; font-size: 7px; font-weight: bold; margin-left: 2px;">(${winParts.join(' + ')})</span>`;
-            } else if (buffer >= 1500 && totalLosses > 0) {
-                // If in safe buffer, show the downshift loss cushion
-                let lossParts = [];
-                if (lossCount4c > 0) lossParts.push(`${lossCount4c}@4c`);
-                if (lossCount3c > 0) lossParts.push(`${lossCount3c}@3c`);
-                if (lossCount2c > 0) lossParts.push(`${lossCount2c}@2c`);
-                breakdownTag = `<span style="color: var(--subtle-text); font-size: 7px; font-weight: bold; margin-left: 2px;">(${lossParts.join(' + ')})</span>`;
-            }
+            let winParts = [];
+            if (winCount2c > 0) winParts.push(`${winCount2c}w@2c`);
+            if (winCount3c > 0) winParts.push(`${winCount3c}w@3c`);
+            if (winCount4c > 0) winParts.push(`${winCount4c}w@4c`);
+            const winSeqText = winParts.length > 0 ? `(${winParts.join(' + ')})` : '(0w)';
 
             accCellHtml = `
                 <div style="font-family: -apple-system, sans-serif; font-weight: 600; color: var(--text-color); display: flex; align-items: center; gap: 4px;">
                     <span>${acc}</span>
                     <span style="font-size: 8px; padding: 0 4px; border-radius: 3px; font-weight: 900; background: ${zoneBg}; color: ${zoneColor}; border: 1px solid ${zoneColor};">${zoneLabel}</span>
                 </div>
-                <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <div style="font-size: 8px; font-weight: bold; color: var(--subtle-text); letter-spacing: 0.2px; margin-top: 1px;">
                     ${toTarget > 0 ? `<span style="color:var(--green-text)">${totalWins}W pass</span>` : '<span style="color:var(--green-text)">PASS</span>'} / 
                     <span style="color:${zoneColor}">${totalLosses}L</span>
-                    ${breakdownTag}
+                </div>
+                <div style="font-size: 7px; font-weight: bold; color: #ffc107; line-height: 1.1; margin-top: 1px;">
+                    ${winSeqText}
+                </div>
+                <div style="font-size: 7px; font-weight: bold; color: var(--subtle-text); line-height: 1.1; margin-top: 1px;">
+                    ${lossSeqText}
                 </div>`;
 
             bufferCellHtml = `<div class="dash-buffer" style="color: ${zoneColor}; font-weight: 900;">${fmt(buffer)}</div>`;
@@ -2267,8 +2265,8 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
         }
 
         html += `
-        <div class="dashboard-grid dashboard-row" style="height: 35px;">
-            <div style="text-align: left; line-height: 1.2;">
+        <div class="dashboard-grid dashboard-row" style="min-height: 48px; height: auto; padding: 4px 2px; align-items: center;">
+            <div style="text-align: left; line-height: 1.15;">
                 ${accCellHtml}
             </div>
             <div class="${plToday >= 0 ? 'dash-val-plus' : 'dash-val-minus'}">${plToday >= 0 ? '+' : ''}${fmt(plToday)}</div>
