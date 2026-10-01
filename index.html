@@ -1290,28 +1290,22 @@
                                 <label for="ts-trade-type">Trade Type:</label>
                                 <select id="ts-trade-type"><option value="Long">Long</option><option value="Short">Short</option></select>
                             </div>
-                            <div><label for="ts-entry-price">Entry Price:</label><input type="number" id="ts-entry-price" step="any" required></div>
+                           <div><label for="ts-entry-price">Entry Price:</label><input type="number" id="ts-entry-price" step="any" required></div>
                             <div><label for="ts-stop-loss">Stop Loss:</label><input type="number" id="ts-stop-loss" step="any" required></div>
-                           <div><label for="ts-target">Target:</label><input type="number" id="ts-target" step="any" required></div>
+                            <div><label for="ts-target">Target:</label><input type="number" id="ts-target" step="any" required></div>
 
-<!-- NEW BE LEVEL & SCALE INPUTS -->
-<div>
-    <label for="ts-be-level">BE Level ($):</label>
-    <input type="number" id="ts-be-level" step="any" placeholder="Auto: Entry Price">
-</div>
-<div>
-    <label for="ts-scale-contracts">Scale Qty (Contracts):</label>
-    <input type="number" id="ts-scale-contracts" value="2" step="1" placeholder="2">
-</div>
-<!-- END NEW INPUTS -->
-
-<div>
-    <label for="ts-contracts">Contracts (Qty):</label>
-    <input type="number" id="ts-contracts" value="4" step="1">
-</div>
+                            <!-- BE LEVEL & SCALE INPUTS -->
+                            <div>
+                                <label for="ts-be-level">BE Level ($):</label>
+                                <input type="number" id="ts-be-level" step="any" placeholder="Auto: Entry Price">
+                            </div>
+                            <div>
+                                <label for="ts-scale-contracts">Scale Qty (Contracts):</label>
+                                <input type="number" id="ts-scale-contracts" value="2" step="1" placeholder="2">
+                            </div>
                             <div>
                                 <label for="ts-contracts">Contracts (Qty):</label>
-                                <input type="number" id="ts-contracts" value="1" step="1">
+                                <input type="number" id="ts-contracts" value="4" step="1">
                             </div>
                             <div>
                                 <label for="ts-trade-timestamp">Entry Time (Optional):</label>
@@ -4032,7 +4026,8 @@ function renderFundedDashboard() {
             renderFundedDashboard(); // Toggles cleanly for the current session
         });
     }
-
+if (tsEntryInput) tsEntryInput.addEventListener('input', updateFundedSLTP);
+            if (tsTypeSelect) tsTypeSelect.addEventListener('change', updateFundedSLTP);
             const filterContainer = document.getElementById('ts-completed-filter-container');
             if (filterContainer) {
                 filterContainer.addEventListener('click', (e) => {
@@ -5089,16 +5084,7 @@ function handleTradeAction(e) {
         if (!STATE.isMasterUser) return;
 
         const button = e.target.closest('button');
-if (button.matches('.scale-group-btn')) {
-            const groupId = button.dataset.groupId;
-            handleScaleGroup(groupId);
-            return;
-        }
 
-        if (button.matches('.scale-trade-btn')) {
-            handleScaleTrade(id);
-            return;
-        }
         if (STATE.isMerging && !button) {
             const targetRow = e.target.closest('tr');
             if (targetRow && (targetRow.parentElement.id === 'completed-trades-tbody' || targetRow.parentElement.id === 'ts-completed-trades-tbody')) {
@@ -5109,6 +5095,7 @@ if (button.matches('.scale-group-btn')) {
             return;
         }
 
+        // Must guard against null BEFORE accessing button.matches
         if (!button) return;
 
         e.stopPropagation();
@@ -5121,7 +5108,19 @@ if (button.matches('.scale-group-btn')) {
         if (STATE.isProcessing) return;
 
         const isTopstep = button.closest('#topstep-tab') !== null;
-        const { id } = button.dataset;
+        const { id, groupId } = button.dataset;
+
+        // Scale Group Action
+        if (button.matches('.scale-group-btn')) {
+            handleScaleGroup(groupId);
+            return;
+        }
+
+        // Scale Individual Trade Action
+        if (button.matches('.scale-trade-btn')) {
+            handleScaleTrade(id);
+            return;
+        }
 
         if (button.matches('.attach-image-btn')) {
             let imgType = button.dataset.type;
@@ -5131,7 +5130,6 @@ if (button.matches('.scale-group-btn')) {
         }
 
         if (button.matches('.close-group-btn')) {
-            const groupId = button.dataset.groupId;
             handleCloseGroup(groupId, isTopstep);
             return;
         }
@@ -5150,30 +5148,24 @@ if (button.matches('.scale-group-btn')) {
         else if (button.matches('.loss-btn')) {
             completeTrade(id, 'loss', isTopstep);
         }
-
         else if (button.matches('.add-to-position-btn')) {
             handleAddStaggeredEntry(id, isTopstep);
         }
-
         else if (button.matches('.merge-btn-completed')) {
             initiateMerge(id);
         }
-
         else if (button.matches('.delete-btn, .delete-btn-completed')) {
             if (confirm('Are you sure you want to permanently delete this trade?')) {
                 if (isCompleted) resetMergeState();
                 tradeRef.remove();
             }
         } 
-        
         else if (button.matches('.shift-prev-day-btn')) {
             shiftTradeDay(id, -1, isTopstep);
         }
-        
         else if (button.matches('.shift-next-day-btn')) {
             shiftTradeDay(id, 1, isTopstep);
         }
-
         else if (button.matches('.note-btn, .note-btn-completed')) {
             tradeRef.child('note').once('value', snapshot => {
                 const newNote = prompt("Edit Note 1:", snapshot.val() || "");
@@ -5193,14 +5185,6 @@ if (button.matches('.scale-group-btn')) {
             });
         }
     }
-
-    const formatDisplayDate = (dateString) => {
-        if (!dateString || dateString === 'Unknown') return 'Date Unknown';
-        try {
-            const date = new Date(dateString + 'T12:00:00'); 
-            return date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
-        } catch (e) { return dateString; }
-    };
     function renderGenericImageLibrary(imagesData, containerElement, libraryType) {
         const images = imagesData || {};
         if (!containerElement) return;
