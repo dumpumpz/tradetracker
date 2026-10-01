@@ -5307,6 +5307,7 @@ function handleTradeAction(e) {
                     alert(`No active live trades found for group: ${groupId}`);
                     return;
                 }
+
                 // Prompt to edit TP price if mode is full_tp
                 let customExitPrice = null;
                 if (mode === 'full_tp') {
@@ -5336,26 +5337,22 @@ function handleTradeAction(e) {
                     let exitPrice = entry;
                     let netResult = 0;
                     let noteText = '';
-
-          let tp1Hit = false;
+                    let tp1Hit = false;
                     let tp1Level = 0;
-let tp1Hit = false;
-                let tp1Level = 0;
 
-                if (mode === 'tp_be') {
-                    const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
-                    const runnerQty = contracts - scaleQty;
-                    const tp1Price = isLong ? (entry + 25) : (entry - 25);
-                    
-                    tp1Hit = true;
-                    tp1Level = tp1Price;
-                    exitPrice = isLong ? (entry + 12.5) : (entry - 12.5);
-                    
-                    const gross = contracts * 25; 
-                    netResult = gross - fee;
-                    noteText = `TP+BE [Hit 25pt @ $${tp1Price.toFixed(2)}] (${scaleQty}c @ +25pts, ${runnerQty}c @ BE)`;
-                } else if (mode === 'full_tp') {
-                        // Use your custom entered exit price, or fallback to target
+                    if (mode === 'tp_be') {
+                        const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
+                        const runnerQty = contracts - scaleQty;
+                        const tp1Price = isLong ? (entry + 25) : (entry - 25);
+                        
+                        tp1Hit = true;
+                        tp1Level = tp1Price;
+                        exitPrice = ((scaleQty * tp1Price) + (runnerQty * entry)) / contracts;
+                        
+                        const gross = contracts * 25; 
+                        netResult = gross - fee;
+                        noteText = `TP+BE [Hit 25pt @ $${tp1Price.toFixed(2)}] (${scaleQty}c @ +25pts, ${runnerQty}c @ BE)`;
+                    } else if (mode === 'full_tp') {
                         exitPrice = (customExitPrice !== null) ? customExitPrice : (parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50));
                         const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
                         netResult = (points * MULT * contracts) - fee;
@@ -5372,7 +5369,7 @@ let tp1Hit = false;
                         contracts,
                         size: contracts,
                         exit_price: exitPrice,
-                         tp1_hit: tp1Hit,
+                        tp1_hit: tp1Hit,
                         tp1_level: tp1Level,
                         net_result: netResult,
                         entry_fee: fee / 2,
@@ -5402,7 +5399,7 @@ let tp1Hit = false;
         // ==========================================
         // 1-CLICK SINGLE TRADE FINISH (TP+BE / Full TP / SL)
         // ==========================================
-     if (button.matches('.quick-finish-btn')) {
+        if (button.matches('.quick-finish-btn')) {
             if (!id) {
                 alert("Error: Trade ID missing on button.");
                 return;
@@ -5437,12 +5434,21 @@ let tp1Hit = false;
                 let exitPrice = entry;
                 let netResult = 0;
                 let noteText = '';
+                let tp1Hit = false;
+                let tp1Level = 0;
 
                 if (mode === 'tp_be') {
+                    const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
+                    const runnerQty = contracts - scaleQty;
+                    const tp1Price = isLong ? (entry + 25) : (entry - 25);
+                    
+                    tp1Hit = true;
+                    tp1Level = tp1Price;
+                    exitPrice = ((scaleQty * tp1Price) + (runnerQty * entry)) / contracts;
+
                     const gross = contracts * 25; 
                     netResult = gross - fee;
-                    exitPrice = isLong ? (entry + 12.5) : (entry - 12.5);
-                    noteText = `TP+BE (${contracts}c): +$${gross} gross`;
+                    noteText = `TP+BE [Hit 25pt @ $${tp1Price.toFixed(2)}] (${scaleQty}c @ +25pts, ${runnerQty}c @ BE)`;
                 } else if (mode === 'full_tp') {
                     exitPrice = (customExitPrice !== null) ? customExitPrice : (parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50));
                     const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
@@ -5454,12 +5460,13 @@ let tp1Hit = false;
                     exitPrice = isLong ? (entry - 12.5) : (entry + 12.5);
                     noteText = `Full SL (${contracts}c): -$${grossLoss} gross`;
                 }
+
                 const completedData = {
                     ...trade,
                     contracts,
                     size: contracts,
                     exit_price: exitPrice,
-                      tp1_hit: tp1Hit,
+                    tp1_hit: tp1Hit,
                     tp1_level: tp1Level,
                     net_result: netResult,
                     entry_fee: fee / 2,
