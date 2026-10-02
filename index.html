@@ -6011,10 +6011,9 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
             });
         });
     }
-   function calculateFundedStats(tsCompletedData) {
+  function calculateFundedStats(tsCompletedData) {
     const stats = {};
     const accountsLen = CONFIG.FUNDED_ACCOUNTS.length;
-    // Current active trading session day:
     const activeTradingDay = getTradingDayString(Date.now(), Date.now());
 
     for (let i = 0; i < accountsLen; i++) {
@@ -6024,14 +6023,14 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
         let startBal = custom.manualBalance !== undefined ? parseFloat(custom.manualBalance) : CONFIG.FUNDED_START;
         let setTime = custom.setTimestamp || 0;
 
-        // 1. Only include trades closed after calibration
+        // 1. Only include trades closed after calibration for running BALANCE
         const tradesForAcc = Object.values(tsCompletedData).filter(t => {
             if (!t.closed_date || getEvalAccount(t) !== acc) return false;
             const closeTime = getSafeTimestamp({ closed_date: t.closed_date });
             return closeTime > setTime;
         });
 
-        // 2. Group trades by Trading Day
+        // 2. Group trades by Trading Day for EOD trailing drawdown rules
         const dayBuckets = {};
         tradesForAcc.forEach(t => {
             const dayStr = getTradingDayString(t.closed_date, t.date);
@@ -6039,13 +6038,11 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
             dayBuckets[dayStr].push(t);
         });
 
-        // Sort days chronologically
         const sortedDays = Object.keys(dayBuckets).sort();
 
         let bal = startBal;
         let hwm = startBal;
         let mll = custom.manualMLL !== undefined ? parseFloat(custom.manualMLL) : (startBal - CONFIG.FUNDED_DRAWDOWN);
-        const tradesByDay = {};
 
         sortedDays.forEach(dayStr => {
             const dayTrades = dayBuckets[dayStr];
@@ -6053,18 +6050,14 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
             dayTrades.forEach(t => {
                 dayPnL += parseFloat(t.net_result || 0);
             });
-            tradesByDay[dayStr] = dayPnL;
 
             bal += dayPnL;
 
-            // LUCID FLEX EOD RULE:
-            // Only trail MLL at the END of PAST days.
-            // Do NOT trail MLL during today's active session!
             if (dayStr !== activeTradingDay) {
                 if (bal > hwm) {
                     hwm = bal;
                     if (hwm >= CONFIG.FUNDED_TRAIL_LOCK_TRIGGER) {
-                        mll = CONFIG.FUNDED_LOCKED_MLL; // Locks permanently at $50,100
+                        mll = CONFIG.FUNDED_LOCKED_MLL;
                     } else {
                         const trailingLimit = hwm - CONFIG.FUNDED_DRAWDOWN;
                         if (trailingLimit > mll) {
@@ -6075,17 +6068,26 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
             }
         });
 
+        // 3. SEPARATE CALCULATION: Calculate tradesByDay from ALL completed trades
+        // This ensures DAY P/L is 100% accurate regardless of buffer edits!
+        const tradesByDay = {};
+        Object.values(tsCompletedData).forEach(t => {
+            if (!t.closed_date || getEvalAccount(t) !== acc) return;
+            const dayStr = getTradingDayString(t.closed_date, t.date);
+            if (!tradesByDay[dayStr]) tradesByDay[dayStr] = 0;
+            tradesByDay[dayStr] += parseFloat(t.net_result || 0);
+        });
+
         stats[acc] = {
             balance: bal,
             hwm: hwm,
-            maxLoss: mll, // Intraday MLL stays fixed from prior EOD
+            maxLoss: mll,
             tradesByDay: tradesByDay
         };
     }
 
     return stats;
 }
-
 
         function calculateTopstepStats(tsCompletedData) {
     FUNDED_STATS_CACHE = calculateFundedStats(tsCompletedData);
