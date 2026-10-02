@@ -5361,18 +5361,28 @@ function handleTradeAction(e) {
                         const gross = contracts * 25; 
                         netResult = gross - fee;
                        noteText = `TP+BE [Hit 25pt @ $${tp1Price.toFixed(2)}] (${scaleQty}c @ +25pts, ${runnerQty}c @ BE)`;
-                    } else if (mode === 'full_tp') {
-                    exitPrice = (customExitPrice !== null) ? customExitPrice : (parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50));
-                    const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
-
-                    if (points >= 24.5) {
+                   } else if (mode === 'full_tp') {
+                        const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
+                        const runnerQty = contracts - scaleQty;
+                        
+                        // 1. Scale portion always takes +25 pts:
+                        const scaleExitPrice = isLong ? (entry + 25) : (entry - 25);
                         tp1Hit = true;
-                        tp1Level = isLong ? (entry + 25) : (entry - 25);
-                    }
+                        tp1Level = scaleExitPrice;
 
-                    netResult = (points * MULT * contracts) - fee;
-                    noteText = `TP @ $${exitPrice.toFixed(2)} (${points >= 0 ? '+' : ''}${points.toFixed(2)} pts) [${contracts}c]`;
-                } else if (mode === 'full_sl') {
+                        // 2. Runner portion takes the final exit price:
+                        const runnerExitPrice = (customExitPrice !== null) ? customExitPrice : (parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50));
+                        const runnerPoints = isLong ? (runnerExitPrice - entry) : (entry - runnerExitPrice);
+
+                        // 3. Combined PnL: Scale contracts (+25pts) + Runner contracts:
+                        const grossScale = scaleQty * 25 * MULT;
+                        const grossRunner = runnerQty * runnerPoints * MULT;
+                        netResult = (grossScale + grossRunner) - fee;
+
+                        // 4. True weighted blended exit price:
+                        exitPrice = ((scaleQty * scaleExitPrice) + (runnerQty * runnerExitPrice)) / contracts;
+                        noteText = `TP (${contracts}c): ${scaleQty}c @ +25pts ($${scaleExitPrice.toFixed(2)}) + ${runnerQty}c @ $${runnerExitPrice.toFixed(2)}`;
+                    } else if (mode === 'full_sl') {
                         exitPrice = parseFloat(trade.stoploss) || (isLong ? entry - 12.5 : entry + 12.5);
                         const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
                         netResult = (points * MULT * contracts) - fee;
@@ -5464,11 +5474,23 @@ function handleTradeAction(e) {
                     const gross = contracts * 25; 
                     netResult = gross - fee;
                     noteText = `TP+BE [Hit 25pt @ $${tp1Price.toFixed(2)}] (${scaleQty}c @ +25pts, ${runnerQty}c @ BE)`;
-                } else if (mode === 'full_tp') {
-                    exitPrice = (customExitPrice !== null) ? customExitPrice : (parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50));
-                    const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
-                    netResult = (points * MULT * contracts) - fee;
-                    noteText = `TP @ $${exitPrice.toFixed(2)} (${points >= 0 ? '+' : ''}${points.toFixed(2)} pts) [${contracts}c]`;
+              } else if (mode === 'full_tp') {
+                    const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
+                    const runnerQty = contracts - scaleQty;
+
+                    const scaleExitPrice = isLong ? (entry + 25) : (entry - 25);
+                    tp1Hit = true;
+                    tp1Level = scaleExitPrice;
+
+                    const runnerExitPrice = (customExitPrice !== null) ? customExitPrice : (parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50));
+                    const runnerPoints = isLong ? (runnerExitPrice - entry) : (entry - runnerExitPrice);
+
+                    const grossScale = scaleQty * 25 * MULT;
+                    const grossRunner = runnerQty * runnerPoints * MULT;
+                    netResult = (grossScale + grossRunner) - fee;
+
+                    exitPrice = ((scaleQty * scaleExitPrice) + (runnerQty * runnerExitPrice)) / contracts;
+                    noteText = `TP (${contracts}c): ${scaleQty}c @ +25pts ($${scaleExitPrice.toFixed(2)}) + ${runnerQty}c @ $${runnerExitPrice.toFixed(2)}`;
                 } else if (mode === 'full_sl') {
                     const grossLoss = contracts * 25; 
                     netResult = -grossLoss - fee;
@@ -5607,7 +5629,7 @@ function handleTradeAction(e) {
                 let imagesHtml = '';
 
                 if (idsForDate.length === 0) {
-    imagesHtml = `<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 40px 20px; font-style: italic;">No setup images for this day. Use &lt; Prev / Next &gt; to browse.</div>`;
+    imagesHtml = `<div style="grid-column: 1/-1; text-align: center; color: var(--subtle-text); padding: 40px 20px; font-style: italic;"></div>`;
 } else {
                     imagesHtml = idsForDate.map(id => createImageHtml(id)).join('');
                 }
