@@ -1701,81 +1701,88 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
             } catch (e) { return null; }
         })();
 
-        function shiftTradeDay(tradeId, daysDirection, isTopstep) {
-            if (STATE.isProcessing) return;
-            STATE.isProcessing = true;
-
+       function shiftTradeDay(tradeId, daysDirection, isTopstep) {
+            if (!tradeId) return;
             const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
-            
+
             compRef.child(tradeId).once('value', snapshot => {
                 const trade = snapshot.val();
-                if (!trade) {
-                    STATE.isProcessing = false;
+                if (!trade) return;
+
+                const msOffset = daysDirection * 24 * 60 * 60 * 1000;
+                
+                // Reliably extract timestamps as real numbers
+                const currentEntryTs = (typeof trade.date === 'number' && trade.date > 100000000000) 
+                    ? trade.date 
+                    : (getSafeTimestamp(trade) || Date.now());
+                const currentExitTs = (typeof trade.closed_date === 'number' && trade.closed_date > 100000000000) 
+                    ? trade.closed_date 
+                    : (currentEntryTs + 60000);
+
+                const updates = {
+                    date: currentEntryTs + msOffset,
+                    closed_date: currentExitTs + msOffset
+                };
+
+                compRef.child(tradeId).update(updates).then(() => {
+                    rebuildDatesCache(isTopstep);
+                    renderFilteredEvalData();
+                }).catch(err => {
+                    console.error("Shift Day Error:", err);
+                    alert("Error shifting trade day: " + err.message);
+                });
+            });
+        }
+
+        function shiftTradeGroup(groupId, daysDirection, isTopstep) {
+            if (!groupId) return;
+            const compRef = isTopstep ? dbRefs.tsCompletedTrades : dbRefs.completedTrades;
+
+            compRef.once('value', snapshot => {
+                const allTrades = snapshot.val() || {};
+                const groupEntries = Object.entries(allTrades).filter(([id, t]) => {
+                    const tGid = t.groupId || `${t.symbol}_${t.type}_Legacy`;
+                    return tGid === groupId || t.groupId === groupId;
+                });
+
+                if (groupEntries.length === 0) {
+                    alert(`No completed trades found for group: ${groupId}`);
                     return;
                 }
 
                 const msOffset = daysDirection * 24 * 60 * 60 * 1000;
                 const updates = {};
+                let finalNewDayStr = '';
 
-                if (trade.date) {
-                    const cleanDate = getSafeTimestamp({ date: trade.date });
-                    if (cleanDate) updates.date = cleanDate + msOffset;
-                }
-                if (trade.closed_date) {
-                    const cleanClosedDate = getSafeTimestamp({ closed_date: trade.closed_date });
-                    if (cleanClosedDate) updates.closed_date = cleanClosedDate + msOffset;
-                }
+                groupEntries.forEach(([id, trade]) => {
+                    const currentEntryTs = (typeof trade.date === 'number' && trade.date > 100000000000) 
+                        ? trade.date 
+                        : (getSafeTimestamp(trade) || Date.now());
+                    const currentExitTs = (typeof trade.closed_date === 'number' && trade.closed_date > 100000000000) 
+                        ? trade.closed_date 
+                        : (currentEntryTs + 60000);
 
-                if (updates.date) {
-                    const newSession = getSessionFromTimestamp(updates.date);
-                    const currentClosedDate = updates.closed_date || updates.date;
-                    const tradingDay = getTradingDayString(currentClosedDate, updates.date);
-                    
-                    const allCompleted = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
-                    const allLive = isTopstep ? STATE.allTsTrades : {};
+                    const newEntry = currentEntryTs + msOffset;
+                    const newExit = currentExitTs + msOffset;
 
-                    const newVariant = getNextVariantForDayAndSession(tradingDay, newSession, allCompleted, allLive, tradeId);
-                    updates.groupId = `${newSession}_${newVariant}`;
-                }
+                    updates[`${id}/date`] = newEntry;
+                    updates[`${id}/closed_date`] = newExit;
 
-                Object.keys(updates).forEach(key => {
-                    if (updates[key] === undefined) {
-                        delete updates[key];
-                    } else if (typeof updates[key] === 'number' && isNaN(updates[key])) {
-                        updates[key] = 0;
+                    if (!finalNewDayStr) {
+                        finalNewDayStr = getTradingDayString(newExit, newEntry);
                     }
                 });
 
-                compRef.child(tradeId).update(updates).then(() => {
-                    const finalClosedDate = updates.closed_date || trade.closed_date;
-                    const finalDate = updates.date || trade.date;
-                    if (finalClosedDate && finalDate) {
-                        const newDayStr = getTradingDayString(finalClosedDate, finalDate);
-                        const uniqueTradingDates = getMasterTradingDates(isTopstep);
-                        const newPageIndex = uniqueTradingDates.indexOf(newDayStr);
-                        if (newPageIndex !== -1) {
-                            const newPage = newPageIndex + 1;
-                            if (isTopstep) {
-                                if (STATE.tsCompletedTradesCurrentPage !== newPage) {
-                                    STATE.tsCompletedTradesCurrentPage = newPage;
-                                    renderFilteredEvalData();
-                                }
-                            } else {
-                                if (STATE.completedTradesCurrentPage !== newPage) {
-                                    STATE.completedTradesCurrentPage = newPage;
-                                    renderCompletedTable(STATE.allCompletedTrades, 'completed-trades-tbody', false);
-                                }
-                            }
-                        }
+                compRef.update(updates).then(() => {
+                    rebuildDatesCache(isTopstep);
+                    if (finalNewDayStr) {
+                        syncCompletedTradesToDate(finalNewDayStr, isTopstep);
                     }
                 }).catch(err => {
-                    console.error("Shift Day Error:", err);
-                }).finally(() => {
-                    STATE.isProcessing = false;
+                    alert("Error shifting group day: " + err.message);
                 });
             });
         }
-
         function rebuildDatesCache(isTopstep) {
             const dates = new Set();
             dates.add(getPerthDateString());
@@ -3415,7 +3422,7 @@ const masterButtons = STATE.isMasterUser ?
                     const diff = avgExitG - avgEntryG;
                     let diffColor = (gType === 'Long' ? (diff >= 0 ? 'var(--green-text)' : 'var(--red-text)') : (diff <= 0 ? 'var(--green-text)' : 'var(--red-text)'));
 
-                    rowsHtml += `
+                  rowsHtml += `
                     <tr class="completed-group-header">
                         <td colspan="25" style="${clusterL} ${clusterBG} padding: 8px 15px; font-size: 0.95em;">
                             <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
@@ -3424,6 +3431,11 @@ const masterButtons = STATE.isMasterUser ?
                                 <span>Net: <span style="color:${gNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold;">$${gNet.toFixed(2)}</span></span>
                                 <span style="color:var(--border-color);">|</span>
                                 <span>Avg: ${avgEntryG.toFixed(2)} ➔ ${avgExitG.toFixed(2)} <span style="color:${diffColor}; font-weight:bold;"> (${diff >= 0 ? '+' : ''}${diff.toFixed(2)})</span></span>
+                                ${STATE.isMasterUser ? `
+                                <div style="margin-left: auto; display: flex; gap: 4px;">
+                                    <button class="shift-group-prev-day-btn" data-group-id="${groupId}" style="padding: 2px 7px; font-size: 9px; background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;" title="Shift entire group to previous day">◀ Shift Group Day</button>
+                                    <button class="shift-group-next-day-btn" data-group-id="${groupId}" style="padding: 2px 7px; font-size: 9px; background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;" title="Shift entire group to next day">Shift Group Day ▶</button>
+                                </div>` : ''}
                             </div>
                         </td>
                     </tr>`;
@@ -5546,7 +5558,14 @@ function handleTradeAction(e) {
             handleCloseGroup(groupId, isTopstep);
             return;
         }
-
+if (button.matches('.shift-group-prev-day-btn')) {
+            shiftTradeGroup(groupId, -1, isTopstep);
+            return;
+        }
+        if (button.matches('.shift-group-next-day-btn')) {
+            shiftTradeGroup(groupId, 1, isTopstep);
+            return;
+        }
         // Only single trades with valid IDs proceed past here:
         if (!id) return;
 
