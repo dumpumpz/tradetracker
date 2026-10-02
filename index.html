@@ -2297,7 +2297,7 @@
                     </div>
                 </div>`;
 
-            bufferCellHtml = `<div class="dash-buffer" style="color: ${zoneColor}; font-weight: 900;">${fmt(buffer)}</div>`;
+          bufferCellHtml = `<div class="dash-buffer editable-funded-stat" data-acc="${acc}" data-field="manualBuffer" contenteditable="${STATE.isMasterUser}" title="Click to edit Buffer" style="color: ${zoneColor}; font-weight: 900; cursor: text;">${fmt(buffer)}</div>`;
 
         } else {
             // --- ORIGINAL FIXED MODE (Original 4c / 400TP / 100SL) ---
@@ -2311,7 +2311,7 @@
                     <span style="color:var(--red-text)">${lossesToBlow}L</span>
                 </div>`;
 
-            bufferCellHtml = `<div class="dash-buffer ${buffer < 500 ? 'dash-val-minus' : ''}">${fmt(buffer)}</div>`;
+    bufferCellHtml = `<div class="dash-buffer editable-funded-stat ${buffer < 500 ? 'dash-val-minus' : ''}" data-acc="${acc}" data-field="manualBuffer" contenteditable="${STATE.isMasterUser}" title="Click to edit Buffer" style="cursor: text;">${fmt(buffer)}</div>`;
         }
 
         html += `
@@ -4194,27 +4194,53 @@ const masterButtons = STATE.isMasterUser ?
                     handleCompletedTradeUpdate(e.target);
                 }
 
-            if (e.target.matches('.editable-funded-stat')) {
-    if (!STATE.isMasterUser) return;
-    const acc = e.target.dataset.acc;
-    const field = e.target.dataset.field;
-    const rawValue = parseFloat(e.target.textContent.replace(/[^0-9.-]/g, ''));
-    
-    if (isNaN(rawValue)) {
-        renderFundedDashboard();
-        return;
-    }
+if (e.target.matches('.editable-funded-stat')) {
+                if (!STATE.isMasterUser) return;
+                const acc = e.target.dataset.acc;
+                const field = e.target.dataset.field;
+                const rawValue = parseFloat(e.target.textContent.replace(/[^0-9.-]/g, ''));
+                
+                if (isNaN(rawValue)) {
+                    renderFundedDashboard();
+                    return;
+                }
 
-    const updates = { [field]: rawValue };
-    if (field === 'manualBalance') {
-        updates.setTimestamp = Date.now();
-    }
+                let updates = {};
 
-    dbRefs.fundedSettings.child(acc).update(updates).then(() => {
-        e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
-        setTimeout(() => { e.target.style.backgroundColor = ''; }, 500);
-    }).catch(err => alert("Error saving account setting: " + err.message));
-}
+                if (field === 'manualBuffer') {
+                    // Buffer = Balance - MLL  ==>  MLL = Balance - Buffer
+                    const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START };
+                    const currentBal = stats.balance;
+                    const newMLL = currentBal - rawValue;
+
+                    // Automatically syncs MLL and recalibrates the account as of now
+                    updates = { 
+                        manualMLL: newMLL,
+                        manualBalance: currentBal,
+                        setTimestamp: Date.now()
+                    };
+                } else if (field === 'manualBalance') {
+                    updates = { 
+                        manualBalance: rawValue,
+                        setTimestamp: Date.now()
+                    };
+                } else {
+                    updates = { [field]: rawValue };
+                }
+
+                dbRefs.fundedSettings.child(acc).update(updates).then(() => {
+                    e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+                    setTimeout(() => { e.target.style.backgroundColor = ''; }, 500);
+                }).catch(err => alert("Error saving account setting: " + err.message));
+            }
+
+                // Pressing Enter saves and exits edit mode
+            document.body.addEventListener('keydown', (e) => {
+                if (e.target.matches('.editable-funded-stat') && e.key === 'Enter') {
+                    e.preventDefault();
+                    e.target.blur();
+                }
+            });
                 if (e.target.matches('.editable-daily-note')) {
                     if (!STATE.isMasterUser) return;
                     dbRefs.dailyNotes.child(e.target.dataset.dateKey).set(e.target.innerText.trim()).then(() => {
