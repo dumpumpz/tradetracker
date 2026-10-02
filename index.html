@@ -1206,10 +1206,13 @@
             </div>
 <!-- Mini Dashboard Section -->
             <div id="funded-dashboard-container" style="margin-bottom: 15px;">
-                <div class="dashboard-grid dashboard-header">
-                    <div style="text-align: left; display: flex; align-items: center; justify-content: space-between; padding-right: 4px;">
+               <div class="dashboard-grid dashboard-header">
+                    <div style="text-align: left; display: flex; align-items: center; justify-content: space-between; padding-right: 2px;">
                         <span>ACC</span>
-                        <button type="button" id="sizing-mode-toggle-btn" style="background: var(--purple-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 3px; font-size: 7.5px; padding: 1px 5px; cursor: pointer; font-weight: bold; margin: 0; width: auto; line-height: 1.2;" title="Toggle Sizing Mode">🎯 Original</button>
+                        <div style="display: flex; gap: 3px; align-items: center;">
+                            <button type="button" id="sizing-mode-toggle-btn" style="background: var(--purple-bg); color: var(--green-text); border: 1px solid var(--green-border); border-radius: 3px; font-size: 7.5px; padding: 1px 4px; cursor: pointer; font-weight: bold; margin: 0; width: auto; line-height: 1.2;" title="Toggle Sizing Mode">⚡ Dynamic</button>
+                            <button type="button" id="dashboard-details-toggle-btn" style="background: var(--card-bg); color: var(--subtle-text); border: 1px solid var(--border-color); border-radius: 3px; font-size: 7.5px; padding: 1px 4px; cursor: pointer; font-weight: bold; margin: 0; width: auto; line-height: 1.2;" title="Show/Hide Details">👁️ Info</button>
+                        </div>
                     </div>
                     <div>DAY P/L</div>
                     <div>BAL</div>
@@ -1624,8 +1627,8 @@
         // --- APPLICATION STATE ---
         const STATE = {
             isMasterUser: false, 
-useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
-            activeTab: 'topstep', 
+ useDynamicSizing: true,       // Loads Dynamic mode by default
+            showDashboardDetails: false,  // Loads roadmap & strategy info hidden by default            activeTab: 'topstep', 
             initializedTabs: { topstep: true }, 
             visibleTsAccounts: ['Lucid 1', 'Lucid 2','Lucid 3', 'Lucid 4 - scalp','Lucid 5'  ], 
 
@@ -2118,13 +2121,16 @@ useDynamicSizing: false, // Forces it to ALWAYS start on Original mode
             calculateTopstepStats(completedMapped);
             renderFundedDashboard(); 
         }
-function renderFundedDashboard() {
+
+        
+        
+        function renderFundedDashboard() {
     const container = document.getElementById('funded-dashboard-rows');
     if (!container) return;
 
     const summaryBox = document.getElementById('funded-dashboard-summary');
 
-    // Update toggle button text/style if present
+    // 1. Update Sizing Mode Button (⚡ Dynamic vs 🎯 Original)
     const toggleBtn = document.getElementById('sizing-mode-toggle-btn');
     if (toggleBtn) {
         if (STATE.useDynamicSizing) {
@@ -2138,9 +2144,23 @@ function renderFundedDashboard() {
         }
     }
 
-    // Render Explainer Summary ONLY when Dynamic Mode is active
+    // 2. Update Details Info Button (👁️ Hide vs 👁️ Info)
+    const detailsBtn = document.getElementById('dashboard-details-toggle-btn');
+    if (detailsBtn) {
+        if (STATE.showDashboardDetails) {
+            detailsBtn.textContent = '👁️ Hide';
+            detailsBtn.style.color = '#ffc107';
+            detailsBtn.style.borderColor = '#ffc107';
+        } else {
+            detailsBtn.textContent = '👁️ Info';
+            detailsBtn.style.color = 'var(--subtle-text)';
+            detailsBtn.style.borderColor = 'var(--border-color)';
+        }
+    }
+
+    // 3. Render Explainer Summary ONLY when Dynamic Mode AND Details Info are active
     if (summaryBox) {
-        if (STATE.useDynamicSizing) {
+        if (STATE.useDynamicSizing && STATE.showDashboardDetails) {
             summaryBox.style.display = 'block';
             summaryBox.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
@@ -2268,11 +2288,13 @@ function renderFundedDashboard() {
                     ${toTarget > 0 ? `<span style="color:var(--green-text)">${totalWins}W pass</span>` : '<span style="color:var(--green-text)">PASS</span>'} / 
                     <span style="color:${zoneColor}">${totalLosses}L</span>
                 </div>
-                <div style="font-size: 7px; font-weight: bold; color: #ffc107; line-height: 1.1; margin-top: 1px;">
-                    ${winSeqText}
-                </div>
-                <div style="font-size: 7px; font-weight: bold; color: var(--subtle-text); line-height: 1.1; margin-top: 1px;">
-                    ${lossSeqText}
+                <div class="dash-extra-details" style="display: ${STATE.showDashboardDetails ? 'block' : 'none'};">
+                    <div style="font-size: 7px; font-weight: bold; color: #ffc107; line-height: 1.1; margin-top: 1px;">
+                        ${winSeqText}
+                    </div>
+                    <div style="font-size: 7px; font-weight: bold; color: var(--subtle-text); line-height: 1.1; margin-top: 1px;">
+                        ${lossSeqText}
+                    </div>
                 </div>`;
 
             bufferCellHtml = `<div class="dash-buffer" style="color: ${zoneColor}; font-weight: 900;">${fmt(buffer)}</div>`;
@@ -4074,6 +4096,15 @@ const masterButtons = STATE.isMasterUser ?
             e.stopPropagation();
             STATE.useDynamicSizing = !STATE.useDynamicSizing;
             renderFundedDashboard(); // Toggles cleanly for the current session
+        });
+    }
+
+            const detailsToggleBtn = document.getElementById('dashboard-details-toggle-btn');
+    if (detailsToggleBtn) {
+        detailsToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            STATE.showDashboardDetails = !STATE.showDashboardDetails;
+            renderFundedDashboard();
         });
     }
 
