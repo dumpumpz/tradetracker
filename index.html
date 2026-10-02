@@ -2850,13 +2850,14 @@ CONFIG.FUNDED_ACCOUNTS.forEach((acc, i) => {
                     const scaleGroupBtn = isTopstep ? 
                         `<button class="scale-group-btn" data-group-id="${gid}" style="width: auto; padding: 6px 12px; font-size: 11px; background-color: #fd7e14; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" title="Take 2c off each trade and move stops to BE">Take 2c Off & BE</button>` : '';
 
-                  const masterGroupBtn = STATE.isMasterUser ? 
-    `<div style="margin-left: auto; display: flex; gap: 6px;">
+               const masterGroupBtn = STATE.isMasterUser ? 
+    `<div style="margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap;">
         ${isTopstep ? `
-            <button class="quick-group-btn" data-group-id="${gid}" data-mode="tp_be" style="padding: 4px 8px; font-size: 10px; background-color: #fd7e14; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Group TP+BE</button>
-            <button class="quick-group-btn" data-group-id="${gid}" data-mode="full_tp" style="padding: 4px 8px; font-size: 10px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Group Full TP</button>
-            <button class="quick-group-btn" data-group-id="${gid}" data-mode="full_sl" style="padding: 4px 8px; font-size: 10px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Group SL</button>
-        ` : `<button class="close-group-btn" data-group-id="${gid}" ...>Close Group</button>`}
+            <button class="quick-group-btn" data-group-id="${gid}" data-mode="tp_be" style="padding: 4px 7px; font-size: 9.5px; background-color: #fd7e14; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;" title="Scale off +25 pts & runner at BE">Group TP+BE</button>
+            <button class="quick-group-btn" data-group-id="${gid}" data-mode="full_tp" style="padding: 4px 7px; font-size: 9.5px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;" title="Full TP with 2x2 Scale">Group TP (2x2)</button>
+            <button class="quick-group-btn" data-group-id="${gid}" data-mode="full_exit" style="padding: 4px 7px; font-size: 9.5px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;" title="Close ALL contracts at ONE single price (No Scaling)">Group Exit All</button>
+            <button class="quick-group-btn" data-group-id="${gid}" data-mode="full_sl" style="padding: 4px 7px; font-size: 9.5px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">Group SL</button>
+        ` : `<button class="close-group-btn" data-group-id="${gid}">Close Group</button>`}
     </div>` : '';
 
                     tableHtml += `
@@ -2896,7 +2897,8 @@ CONFIG.FUNDED_ACCOUNTS.forEach((acc, i) => {
                        // WITH THIS:
 const tsQuickButtons = isTopstep ? `
     <button class="quick-finish-btn" data-id="${trade.dbId}" data-mode="tp_be" style="padding:2px 5px; font-size:9.5px; background:#fd7e14; color:white; font-weight:bold;" title="Scale off +25 pts & runner at BE">TP+BE</button>
-    <button class="quick-finish-btn" data-id="${trade.dbId}" data-mode="full_tp" style="padding:2px 5px; font-size:9.5px; background:#28a745; color:white; font-weight:bold;" title="Full TP Target">Full TP</button>
+    <button class="quick-finish-btn" data-id="${trade.dbId}" data-mode="full_tp" style="padding:2px 5px; font-size:9.5px; background:#28a745; color:white; font-weight:bold;" title="Full TP (2x2 Scale)">TP 2x2</button>
+    <button class="quick-finish-btn" data-id="${trade.dbId}" data-mode="full_exit" style="padding:2px 5px; font-size:9.5px; background:#007bff; color:white; font-weight:bold;" title="Close ALL contracts at one single price (No Scaling)">Exit</button>
     <button class="quick-finish-btn" data-id="${trade.dbId}" data-mode="full_sl" style="padding:2px 5px; font-size:9.5px; background:#dc3545; color:white; font-weight:bold;" title="Full Stop Loss">SL</button>
 ` : `
     <button class="win-btn" data-id="${trade.dbId}" style="padding:2px 6px; font-size:10px; background:#28a745;">W</button>
@@ -5339,14 +5341,11 @@ function handleTradeAction(e) {
         const groupId = button.dataset.groupId || button.getAttribute('data-group-id');
         const mode = button.dataset.mode;
 
-        // ==========================================
-        // 1-CLICK GROUP FINISH (TP+BE / Full TP / SL)
+ // ==========================================
+        // 1-CLICK GROUP FINISH (TP+BE / TP 2x2 / Full Exit All / SL)
         // ==========================================
         if (button.matches('.quick-group-btn')) {
-            if (!groupId) {
-                alert("Error: Group ID missing on button.");
-                return;
-            }
+            if (!groupId) return alert("Error: Group ID missing on button.");
 
             dbRefs.tsTrades.once('value', snapshot => {
                 const allTrades = snapshot.val() || {};
@@ -5355,25 +5354,22 @@ function handleTradeAction(e) {
                     return tGid === groupId || t.groupId === groupId;
                 });
 
-                if (groupEntries.length === 0) {
-                    alert(`No active live trades found for group: ${groupId}`);
-                    return;
-                }
+                if (groupEntries.length === 0) return alert(`No active live trades found for group: ${groupId}`);
 
-                // Prompt to edit TP price if mode is full_tp
+                const firstTrade = groupEntries[0][1];
                 let customExitPrice = null;
-                if (mode === 'full_tp') {
-                    const firstTrade = groupEntries[0][1];
+
+                // Prompt for exit price on full_exit OR full_tp
+                if (mode === 'full_exit' || mode === 'full_tp') {
                     const defaultTarget = parseFloat(firstTrade.target) || (firstTrade.type === 'Long' ? (parseFloat(firstTrade.entry) + 50) : (parseFloat(firstTrade.entry) - 50));
-                    
-                    const inputExit = prompt(`Close Group [${groupId}]\nEnter Take Profit Exit Price:`, defaultTarget.toFixed(2));
+                    const promptTitle = mode === 'full_exit' 
+                        ? `Close Group [${groupId}]\nEnter Exit Price for ALL contracts (No Scaling):` 
+                        : `Close Group [${groupId}]\nEnter Take Profit Exit Price:`;
+
+                    const inputExit = prompt(promptTitle, defaultTarget.toFixed(2));
                     if (inputExit === null) return; // Cancelled
-                    
                     customExitPrice = parseFloat(inputExit);
-                    if (isNaN(customExitPrice) || customExitPrice <= 0) {
-                        alert("Invalid exit price entered.");
-                        return;
-                    }
+                    if (isNaN(customExitPrice) || customExitPrice <= 0) return alert("Invalid exit price.");
                 }
 
                 const liveUpdates = {};
@@ -5392,7 +5388,13 @@ function handleTradeAction(e) {
                     let tp1Hit = false;
                     let tp1Level = 0;
 
-                    if (mode === 'tp_be') {
+                    if (mode === 'full_exit') {
+                        // --- FULL EXIT: ALL CONTRACTS AT ONE EXACT PRICE (NO SCALING) ---
+                        exitPrice = customExitPrice;
+                        const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
+                        netResult = (points * MULT * contracts) - fee;
+                        noteText = `Full Exit (${contracts}c) @ $${exitPrice.toFixed(2)} [${points >= 0 ? '+' : ''}${points.toFixed(2)} pts]`;
+                    } else if (mode === 'tp_be') {
                         const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
                         const runnerQty = contracts - scaleQty;
                         const tp1Price = isLong ? (entry + 25) : (entry - 25);
@@ -5403,26 +5405,22 @@ function handleTradeAction(e) {
                         
                         const gross = contracts * 25; 
                         netResult = gross - fee;
-                       noteText = `TP+BE [Hit 25pt @ $${tp1Price.toFixed(2)}] (${scaleQty}c @ +25pts, ${runnerQty}c @ BE)`;
-                   } else if (mode === 'full_tp') {
+                        noteText = `TP+BE [Hit 25pt @ $${tp1Price.toFixed(2)}] (${scaleQty}c @ +25pts, ${runnerQty}c @ BE)`;
+                    } else if (mode === 'full_tp') {
                         const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
                         const runnerQty = contracts - scaleQty;
                         
-                        // 1. Scale portion always takes +25 pts:
                         const scaleExitPrice = isLong ? (entry + 25) : (entry - 25);
                         tp1Hit = true;
                         tp1Level = scaleExitPrice;
 
-                        // 2. Runner portion takes the final exit price:
                         const runnerExitPrice = (customExitPrice !== null) ? customExitPrice : (parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50));
                         const runnerPoints = isLong ? (runnerExitPrice - entry) : (entry - runnerExitPrice);
 
-                        // 3. Combined PnL: Scale contracts (+25pts) + Runner contracts:
                         const grossScale = scaleQty * 25 * MULT;
                         const grossRunner = runnerQty * runnerPoints * MULT;
                         netResult = (grossScale + grossRunner) - fee;
 
-                        // 4. True weighted blended exit price:
                         exitPrice = ((scaleQty * scaleExitPrice) + (runnerQty * runnerExitPrice)) / contracts;
                         noteText = `TP (${contracts}c): ${scaleQty}c @ +25pts ($${scaleExitPrice.toFixed(2)}) + ${runnerQty}c @ $${runnerExitPrice.toFixed(2)}`;
                     } else if (mode === 'full_sl') {
@@ -5465,20 +5463,14 @@ function handleTradeAction(e) {
         }
 
         // ==========================================
-        // 1-CLICK SINGLE TRADE FINISH (TP+BE / Full TP / SL)
+        // 1-CLICK SINGLE TRADE FINISH (TP+BE / TP 2x2 / Full Exit / SL)
         // ==========================================
         if (button.matches('.quick-finish-btn')) {
-            if (!id) {
-                alert("Error: Trade ID missing on button.");
-                return;
-            }
+            if (!id) return alert("Error: Trade ID missing on button.");
 
             dbRefs.tsTrades.child(id).once('value', snapshot => {
                 const trade = snapshot.val();
-                if (!trade) {
-                    alert("Trade not found in live trades.");
-                    return;
-                }
+                if (!trade) return alert("Trade not found in live trades.");
 
                 const entry = parseFloat(trade.entry) || 0;
                 const contracts = parseFloat(trade.contracts || trade.size || 1);
@@ -5486,17 +5478,17 @@ function handleTradeAction(e) {
                 const fee = (parseFloat(trade.commissions || 1.00)) * contracts;
                 const isLong = trade.type === 'Long';
 
-                // Prompt to edit TP price for single trade:
                 let customExitPrice = null;
-                if (mode === 'full_tp') {
+                if (mode === 'full_exit' || mode === 'full_tp') {
                     const defaultTarget = parseFloat(trade.target) || (isLong ? entry + 50 : entry - 50);
-                    const inputExit = prompt(`Close ${trade.evalAccount || trade.symbol} (${contracts}c)\nEnter Take Profit Exit Price:`, defaultTarget.toFixed(2));
+                    const promptTitle = mode === 'full_exit'
+                        ? `Close ALL ${contracts} contracts for ${trade.evalAccount || trade.symbol} (${trade.type})\nEnter Exit Price:`
+                        : `Close ${trade.evalAccount || trade.symbol} (${contracts}c)\nEnter Take Profit Exit Price:`;
+
+                    const inputExit = prompt(promptTitle, defaultTarget.toFixed(2));
                     if (inputExit === null) return;
                     customExitPrice = parseFloat(inputExit);
-                    if (isNaN(customExitPrice) || customExitPrice <= 0) {
-                        alert("Invalid exit price.");
-                        return;
-                    }
+                    if (isNaN(customExitPrice) || customExitPrice <= 0) return alert("Invalid exit price.");
                 }
 
                 let exitPrice = entry;
@@ -5505,7 +5497,13 @@ function handleTradeAction(e) {
                 let tp1Hit = false;
                 let tp1Level = 0;
 
-                if (mode === 'tp_be') {
+                if (mode === 'full_exit') {
+                    // --- FULL EXIT: ALL CONTRACTS AT ONE EXACT PRICE (NO SCALING) ---
+                    exitPrice = customExitPrice;
+                    const points = isLong ? (exitPrice - entry) : (entry - exitPrice);
+                    netResult = (points * MULT * contracts) - fee;
+                    noteText = `Full Exit (${contracts}c) @ $${exitPrice.toFixed(2)} [${points >= 0 ? '+' : ''}${points.toFixed(2)} pts]`;
+                } else if (mode === 'tp_be') {
                     const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
                     const runnerQty = contracts - scaleQty;
                     const tp1Price = isLong ? (entry + 25) : (entry - 25);
@@ -5517,7 +5515,7 @@ function handleTradeAction(e) {
                     const gross = contracts * 25; 
                     netResult = gross - fee;
                     noteText = `TP+BE [Hit 25pt @ $${tp1Price.toFixed(2)}] (${scaleQty}c @ +25pts, ${runnerQty}c @ BE)`;
-              } else if (mode === 'full_tp') {
+                } else if (mode === 'full_tp') {
                     const scaleQty = trade.scale_contracts ? Math.min(trade.scale_contracts, contracts) : (contracts === 3 ? 2 : Math.floor(contracts / 2));
                     const runnerQty = contracts - scaleQty;
 
