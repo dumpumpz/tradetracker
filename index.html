@@ -1144,9 +1144,8 @@
             }
         }
 
-
 /* =========================================================
-   FUNDED MONTHLY TRADING CALENDAR (RESPONSIVE FOR IPHONE)
+   FUNDED CALENDAR (EXTRA LARGE, BOLD & HIGH-CONTRAST)
    ========================================================= */
 .ts-cal-container {
     background: var(--container-bg);
@@ -1174,24 +1173,24 @@
 }
 
 .ts-cal-title-info {
-    font-size: 13.5px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     color: var(--text-color);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
 .ts-cal-title-info span.total-tag {
     font-family: 'Courier New', Courier, monospace;
-    font-weight: 800;
-    font-size: 14px;
+    font-weight: 900;
+    font-size: 16px;
 }
 
 .ts-cal-nav {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
 }
 
@@ -1199,10 +1198,10 @@
     background: var(--purple-bg);
     color: var(--text-color);
     border: 1px solid var(--border-color);
-    padding: 6px 14px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: bold;
+    padding: 7px 16px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 800;
     cursor: pointer;
     margin: 0;
     width: auto;
@@ -1215,31 +1214,30 @@
     border-color: var(--link-color);
 }
 
-/* minmax(0, 1fr) prevents columns from expanding past iPhone screen width */
 .ts-cal-grid {
     display: grid;
     grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 6px;
+    gap: 7px;
     width: 100%;
     box-sizing: border-box;
 }
 
 .ts-cal-header-cell {
     text-align: center;
-    font-size: 11px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 900;
     text-transform: uppercase;
-    color: var(--subtle-text);
-    padding: 6px 2px;
+    color: #a0a0a0;
+    padding: 8px 2px;
     letter-spacing: 0.5px;
 }
 
-/* Desktop Tiles: Big, Bold, Clean */
+/* Day Tile Container: Roomy with crisp borders */
 .ts-cal-day-cell {
     background: var(--card-bg);
     border-radius: 6px;
-    min-height: 96px;
-    padding: 8px;
+    min-height: 110px; /* Taller to cleanly fit larger text */
+    padding: 8px 6px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -1249,68 +1247,114 @@
     user-select: none;
     min-width: 0;
     overflow: hidden;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .ts-cal-day-cell:hover {
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
-    border-color: #888;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+    border-color: #999;
     transform: translateY(-1px);
 }
 
 .ts-cal-day-cell.win-day {
-    background: linear-gradient(180deg, #1e582d 0%, #143e1e 100%) !important;
-    border: 1px solid #2d7e41 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    background: linear-gradient(180deg, #1b5229 0%, #12391b 100%) !important;
+    border: 1px solid #2d8243 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .ts-cal-day-cell.loss-day {
     background: linear-gradient(180deg, #74252d 0%, #4c161d 100%) !important;
-    border: 1px solid #942e37 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    border: 1px solid #992e38 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .ts-cal-day-cell.week-col {
-    border-left: 3px solid #666 !important;
+    border-left: 3px solid #777 !important;
     filter: brightness(1.1);
     cursor: default;
 }
 
 .ts-cal-day-cell.adjacent-month {
-    opacity: 0.45;
+    opacity: 0.4;
     border: 1px dashed rgba(255, 255, 255, 0.18);
 }
 
-.ts-cal-day-cell.adjacent-month:hover {
-    opacity: 0.85;
-}
-
+/* Day Number: Big, Bold, High Contrast */
 .ts-cal-day-num {
-    font-size: 13px;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.85);
+    font-size: 14px;
+    font-weight: 900;
+    color: #ffffff;
+    opacity: 0.9;
+    line-height: 1;
 }
 
+/* PnL Value: Prominent Monospaced Heading */
 .ts-cal-day-pnl {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 900;
     text-align: center;
     color: #ffffff !important;
     font-family: 'Courier New', Courier, monospace;
-    letter-spacing: -0.3px;
-    margin: 4px 0;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    letter-spacing: -0.4px;
+    margin: 4px 0 2px 0;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.1;
 }
 
+/* T1, T2 Points Badges: Significantly Larger & Bolder */
+.ts-cal-points-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 4px 0 3px 0;
+    width: 100%;
+}
+
+.ts-cal-point-badge {
+    font-size: 12px;
+    font-weight: 900;
+    font-family: 'Courier New', Courier, monospace;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    line-height: 1.2;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.ts-cal-point-badge .tr-label {
+    color: #e0e0e0;
+    font-weight: 800;
+    font-size: 11px;
+    margin-right: 4px;
+}
+
+.ts-cal-point-badge.pt-win {
+    color: #4ade80 !important; /* Bright Neon Green */
+    border-color: rgba(74, 222, 128, 0.4);
+    text-shadow: 0 0 4px rgba(74, 222, 128, 0.35);
+}
+
+.ts-cal-point-badge.pt-loss {
+    color: #f87171 !important; /* Bright Salmon Red */
+    border-color: rgba(248, 113, 113, 0.4);
+    text-shadow: 0 0 4px rgba(248, 113, 113, 0.35);
+}
+
+/* Trade Count Footer */
 .ts-cal-day-trades {
-    font-size: 11.5px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 800;
     text-align: center;
-    color: rgba(255, 255, 255, 0.9);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    color: #f3f4f6;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1320,15 +1364,15 @@
     display: none;
 }
 
-/* Inline Summary Footer */
+/* Large Summary Bar */
 .ts-cal-footer {
-    margin-top: 15px;
+    margin-top: 16px;
     padding-top: 14px;
     border-top: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    gap: 7px;
-    font-size: 13.5px;
+    gap: 8px;
+    font-size: 14.5px;
     line-height: 1.5;
 }
 
@@ -1336,21 +1380,21 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     color: var(--subtle-text);
 }
 
 .ts-cal-footer-row .sep {
-    color: #666;
-    font-size: 11px;
+    color: #777;
+    font-size: 12px;
 }
 
 .ts-cal-footer-row strong {
-    font-weight: 800;
+    font-weight: 900;
 }
 
 /* =========================================================
-   IPHONE & MOBILE ULTRA-COMPACT FIT (<= 768px)
+   IPHONE & MOBILE VIEW (<= 768px)
    ========================================================= */
 @media (max-width: 768px) {
     .ts-cal-container {
@@ -1363,43 +1407,52 @@
         margin-bottom: 8px !important;
     }
     .ts-cal-title-info {
-        font-size: 11px !important;
+        font-size: 12px !important;
     }
     .ts-cal-title-info span.total-tag {
-        font-size: 11px !important;
+        font-size: 12px !important;
     }
     .ts-cal-nav button {
         padding: 4px 8px !important;
-        font-size: 10px !important;
+        font-size: 11px !important;
     }
     .ts-cal-grid {
         gap: 2px !important;
     }
     .ts-cal-header-cell {
-        font-size: 8px !important;
+        font-size: 9px !important;
         padding: 2px 0 !important;
     }
     .ts-cal-day-cell {
-        min-height: 48px !important;
+        min-height: 56px !important;
         padding: 3px 1px !important;
         border-radius: 3px !important;
     }
     .ts-cal-day-num {
-        font-size: 8px !important;
-        line-height: 1 !important;
+        font-size: 9px !important;
     }
-    /* Compact sans-serif on mobile ensures numbers never blow out width */
     .ts-cal-day-pnl {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-        font-size: 7.5px !important;
-        font-weight: 800 !important;
+        font-size: 8.5px !important;
+        font-weight: 900 !important;
         letter-spacing: -0.4px !important;
         margin: 1px 0 !important;
-        line-height: 1.1 !important;
+    }
+    .ts-cal-points-list {
+        gap: 1px !important;
+        margin: 1px 0 !important;
+    }
+    .ts-cal-point-badge {
+        font-size: 7.5px !important;
+        padding: 0.5px 2px !important;
+        justify-content: center !important;
+        letter-spacing: -0.3px !important;
+    }
+    .ts-cal-point-badge .tr-label {
+        display: none !important; /* Hides "T1:" on phone so "+19.5pt" fits without clipping */
     }
     .ts-cal-day-trades {
-        font-size: 6.5px !important;
-        line-height: 1 !important;
+        font-size: 7px !important;
     }
     .ts-cal-day-trades .desktop-trade-label {
         display: none !important;
@@ -1408,75 +1461,22 @@
         display: inline !important;
     }
     .ts-cal-footer {
-        font-size: 10.5px !important;
-        gap: 4px !important;
+        font-size: 11.5px !important;
+        gap: 5px !important;
         padding-top: 10px !important;
     }
     .ts-cal-footer-row {
-        gap: 6px !important;
-        font-size: 10px !important;
+        gap: 7px !important;
+        font-size: 11px !important;
     }
 }
 
 @media (max-width: 380px) {
     .ts-cal-day-pnl {
-        font-size: 6.8px !important;
-    }
-}
-
-
-
-
-
-
-
-        /* Points Breakdown List inside Day Tile */
-.ts-cal-points-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    margin: 4px 0 2px 0;
-    width: 100%;
-}
-
-.ts-cal-point-badge {
-    font-size: 10px;
-    font-weight: 800;
-    font-family: 'Courier New', Courier, monospace;
-    padding: 1px 4px;
-    border-radius: 3px;
-    background: rgba(0, 0, 0, 0.35);
-    color: #ffffff;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    line-height: 1.2;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.ts-cal-point-badge.pt-win {
-    color: #bbf7d0;
-    border-color: rgba(74, 222, 128, 0.25);
-}
-
-.ts-cal-point-badge.pt-loss {
-    color: #fecaca;
-    border-color: rgba(248, 113, 113, 0.25);
-}
-
-@media (max-width: 768px) {
-    .ts-cal-points-list {
-        gap: 1px;
-        margin: 2px 0 1px 0;
+        font-size: 7.5px !important;
     }
     .ts-cal-point-badge {
-        font-size: 6.5px;
-        padding: 0.5px 2px;
-        border-radius: 2px;
-        letter-spacing: -0.3px;
-    }
-    .ts-cal-point-badge span:first-child {
-        display: none; /* Hides "T1:" on tight screens so "+25pt" fits cleanly */
+        font-size: 6.8px !important;
     }
 }
     </style>
@@ -2893,7 +2893,6 @@ function renderTsMonthlyCalendar() {
             const completed = STATE.allTsCompletedTrades || {};
             const dayBuckets = {};
 
-            // Sort completed trades chronologically so T1, T2, T3 are ordered
             const sortedCompleted = Object.entries(completed).sort((a, b) => {
                 return (getSafeTimestamp(a[1]) || 0) - (getSafeTimestamp(b[1]) || 0);
             });
@@ -2921,7 +2920,7 @@ function renderTsMonthlyCalendar() {
                 const net = parseFloat(t.net_result || 0);
                 dayBuckets[dayStr][bucketId].netResult += net;
 
-                // Points calculation based on direction
+                // Points calculation based on trade direction
                 const entry = parseFloat(t.entry || 0);
                 const exit = parseFloat(t.exit_price || entry);
                 const isLong = t.type === 'Long';
@@ -2931,7 +2930,7 @@ function renderTsMonthlyCalendar() {
                 dayBuckets[dayStr][bucketId].executions += 1;
             });
 
-            // 2. Aggregate Day & Month Statistics + point summaries per trade
+            // 2. Aggregate Day & Month Statistics
             const tradesByDay = {};
             let monthPnL = 0;
             let monthBucketsCount = 0;
@@ -2946,7 +2945,6 @@ function renderTsMonthlyCalendar() {
                 const [tYear, tMonth] = dayStr.split('-').map(Number);
                 const isCurrentViewMonth = (tYear === year && (tMonth - 1) === month);
 
-                // Sort buckets of the day by time (T1, T2, ...)
                 const sortedBucketKeys = Object.keys(buckets).sort((a, b) => buckets[a].time - buckets[b].time);
 
                 sortedBucketKeys.forEach((bucketId, idx) => {
@@ -2954,7 +2952,6 @@ function renderTsMonthlyCalendar() {
                     dayPnL += b.netResult;
                     dayBucketCount += 1;
 
-                    // Average points across scaling fills of this bucket
                     const avgPoints = b.executions > 0 ? (b.pointsTotal / b.executions) : 0;
                     tradeList.push({
                         idx: idx + 1,
@@ -3048,7 +3045,7 @@ function renderTsMonthlyCalendar() {
                     const desktopLabel = data.count === 1 ? '1 trade' : `${data.count} trades`;
                     const mobileLabel = `${data.count}tr`;
 
-                    // Build point badges: e.g. T1: +25pts, T2: -12.5pts
+                    // Point pill list with bright contrast colors
                     let pointsHtml = '<div class="ts-cal-points-list">';
                     data.trades.forEach(tr => {
                         const ptsSign = tr.points >= 0 ? '+' : '';
@@ -3057,7 +3054,7 @@ function renderTsMonthlyCalendar() {
 
                         pointsHtml += `
                             <div class="ts-cal-point-badge ${ptsClass}">
-                                <span>T${tr.idx}:</span>
+                                <span class="tr-label">T${tr.idx}:</span>
                                 <span>${ptsSign}${ptsFormatted}pt</span>
                             </div>
                         `;
@@ -3094,7 +3091,7 @@ function renderTsMonthlyCalendar() {
 
                         html += `
                             <div class="ts-cal-day-cell week-col ${wBgClass}">
-                                <div class="ts-cal-day-num" style="color:rgba(255,255,255,0.9); font-weight:800;">Week</div>
+                                <div class="ts-cal-day-num" style="color:#ffffff; font-weight:900;">Week</div>
                                 <div class="ts-cal-day-pnl">${wSign}$${currentWeekPnL.toFixed(2)}</div>
                                 <div class="ts-cal-day-trades">
                                     <span class="desktop-trade-label">${currentWeekTrades} tr</span>
