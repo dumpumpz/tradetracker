@@ -1423,6 +1423,62 @@
         font-size: 6.8px !important;
     }
 }
+
+
+
+
+
+
+
+        /* Points Breakdown List inside Day Tile */
+.ts-cal-points-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 4px 0 2px 0;
+    width: 100%;
+}
+
+.ts-cal-point-badge {
+    font-size: 10px;
+    font-weight: 800;
+    font-family: 'Courier New', Courier, monospace;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.35);
+    color: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    line-height: 1.2;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ts-cal-point-badge.pt-win {
+    color: #bbf7d0;
+    border-color: rgba(74, 222, 128, 0.25);
+}
+
+.ts-cal-point-badge.pt-loss {
+    color: #fecaca;
+    border-color: rgba(248, 113, 113, 0.25);
+}
+
+@media (max-width: 768px) {
+    .ts-cal-points-list {
+        gap: 1px;
+        margin: 2px 0 1px 0;
+    }
+    .ts-cal-point-badge {
+        font-size: 6.5px;
+        padding: 0.5px 2px;
+        border-radius: 2px;
+        letter-spacing: -0.3px;
+    }
+    .ts-cal-point-badge span:first-child {
+        display: none; /* Hides "T1:" on tight screens so "+25pt" fits cleanly */
+    }
+}
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -2818,7 +2874,6 @@
             }).join('');
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
-
 function renderTsMonthlyCalendar() {
             if (!STATE.isMasterUser) return;
             const gridEl = document.getElementById('ts-cal-grid');
@@ -2834,11 +2889,16 @@ function renderTsMonthlyCalendar() {
                                 "July", "August", "September", "October", "November", "December"];
             const currentMonthName = monthNames[month];
 
-            // 1. Group Executions by Day & Setup Group (groupId)
+            // 1. Group Executions by Day & Setup Group (groupId) & track points
             const completed = STATE.allTsCompletedTrades || {};
             const dayBuckets = {};
 
-            Object.entries(completed).forEach(([id, t]) => {
+            // Sort completed trades chronologically so T1, T2, T3 are ordered
+            const sortedCompleted = Object.entries(completed).sort((a, b) => {
+                return (getSafeTimestamp(a[1]) || 0) - (getSafeTimestamp(b[1]) || 0);
+            });
+
+            sortedCompleted.forEach(([id, t]) => {
                 if (STATE.visibleTsAccounts && !STATE.visibleTsAccounts.includes(getEvalAccount(t))) return;
 
                 const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
@@ -2850,13 +2910,28 @@ function renderTsMonthlyCalendar() {
                     dayBuckets[dayStr] = {};
                 }
                 if (!dayBuckets[dayStr][bucketId]) {
-                    dayBuckets[dayStr][bucketId] = 0;
+                    dayBuckets[dayStr][bucketId] = {
+                        netResult: 0,
+                        pointsTotal: 0,
+                        executions: 0,
+                        time: getSafeTimestamp(t) || 0
+                    };
                 }
 
-                dayBuckets[dayStr][bucketId] += parseFloat(t.net_result || 0);
+                const net = parseFloat(t.net_result || 0);
+                dayBuckets[dayStr][bucketId].netResult += net;
+
+                // Points calculation based on direction
+                const entry = parseFloat(t.entry || 0);
+                const exit = parseFloat(t.exit_price || entry);
+                const isLong = t.type === 'Long';
+                const pts = isLong ? (exit - entry) : (entry - exit);
+
+                dayBuckets[dayStr][bucketId].pointsTotal += pts;
+                dayBuckets[dayStr][bucketId].executions += 1;
             });
 
-            // 2. Aggregate Day & Month Statistics
+            // 2. Aggregate Day & Month Statistics + point summaries per trade
             const tradesByDay = {};
             let monthPnL = 0;
             let monthBucketsCount = 0;
@@ -2866,26 +2941,40 @@ function renderTsMonthlyCalendar() {
             Object.entries(dayBuckets).forEach(([dayStr, buckets]) => {
                 let dayPnL = 0;
                 let dayBucketCount = 0;
+                const tradeList = [];
 
                 const [tYear, tMonth] = dayStr.split('-').map(Number);
                 const isCurrentViewMonth = (tYear === year && (tMonth - 1) === month);
 
-                Object.values(buckets).forEach(bucketNet => {
-                    dayPnL += bucketNet;
+                // Sort buckets of the day by time (T1, T2, ...)
+                const sortedBucketKeys = Object.keys(buckets).sort((a, b) => buckets[a].time - buckets[b].time);
+
+                sortedBucketKeys.forEach((bucketId, idx) => {
+                    const b = buckets[bucketId];
+                    dayPnL += b.netResult;
                     dayBucketCount += 1;
 
+                    // Average points across scaling fills of this bucket
+                    const avgPoints = b.executions > 0 ? (b.pointsTotal / b.executions) : 0;
+                    tradeList.push({
+                        idx: idx + 1,
+                        points: avgPoints,
+                        net: b.netResult
+                    });
+
                     if (isCurrentViewMonth) {
-                        monthPnL += bucketNet;
+                        monthPnL += b.netResult;
                         monthBucketsCount += 1;
 
-                        if (bucketNet > 0) allWins.push(bucketNet);
-                        else if (bucketNet < 0) allLosses.push(Math.abs(bucketNet));
+                        if (b.netResult > 0) allWins.push(b.netResult);
+                        else if (b.netResult < 0) allLosses.push(Math.abs(b.netResult));
                     }
                 });
 
                 tradesByDay[dayStr] = {
                     pnl: dayPnL,
-                    count: dayBucketCount
+                    count: dayBucketCount,
+                    trades: tradeList
                 };
             });
 
@@ -2912,7 +3001,7 @@ function renderTsMonthlyCalendar() {
                 <div class="ts-cal-header-cell" style="color:var(--link-color);">Σ Week</div>
             `;
 
-            // 5. Build Calendar Grid across Full Weeks (Midday 12:00 avoids DST offset)
+            // 5. Build Calendar Grid across Full Weeks
             const firstDateOfMonth = new Date(year, month, 1, 12, 0, 0);
             const firstDayIndex = firstDateOfMonth.getDay();
             const totalDaysInMonth = new Date(year, month + 1, 0, 12, 0, 0).getDate();
@@ -2959,10 +3048,27 @@ function renderTsMonthlyCalendar() {
                     const desktopLabel = data.count === 1 ? '1 trade' : `${data.count} trades`;
                     const mobileLabel = `${data.count}tr`;
 
+                    // Build point badges: e.g. T1: +25pts, T2: -12.5pts
+                    let pointsHtml = '<div class="ts-cal-points-list">';
+                    data.trades.forEach(tr => {
+                        const ptsSign = tr.points >= 0 ? '+' : '';
+                        const ptsClass = tr.points >= 0 ? 'pt-win' : 'pt-loss';
+                        const ptsFormatted = Math.abs(tr.points) % 1 === 0 ? tr.points.toFixed(0) : tr.points.toFixed(1);
+
+                        pointsHtml += `
+                            <div class="ts-cal-point-badge ${ptsClass}">
+                                <span>T${tr.idx}:</span>
+                                <span>${ptsSign}${ptsFormatted}pt</span>
+                            </div>
+                        `;
+                    });
+                    pointsHtml += '</div>';
+
                     html += `
                         <div class="ts-cal-day-cell ${adjClass} ${bgClass}" data-date-key="${dateKey}" title="Click to view trades for ${dateKey}">
                             <div class="ts-cal-day-num">${dayNum}</div>
                             <div class="ts-cal-day-pnl">${pnlSign}$${data.pnl.toFixed(2)}</div>
+                            ${pointsHtml}
                             <div class="ts-cal-day-trades">
                                 <span class="desktop-trade-label">${desktopLabel}</span>
                                 <span class="mobile-trade-label">${mobileLabel}</span>
