@@ -1295,6 +1295,19 @@
         font-size: 8px;
     }
 }
+
+
+        .ts-cal-day-cell.adjacent-month {
+    opacity: 0.65;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+}
+.ts-cal-day-cell.adjacent-month:hover {
+    opacity: 0.95;
+}
+.ts-cal-day-cell.adjacent-month.win-day,
+.ts-cal-day-cell.adjacent-month.loss-day {
+    opacity: 0.85;
+}
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -2691,7 +2704,7 @@
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 
-        function renderTsMonthlyCalendar() {
+   function renderTsMonthlyCalendar() {
             if (!STATE.isMasterUser) return;
             const gridEl = document.getElementById('ts-cal-grid');
             const headInfoEl = document.getElementById('ts-cal-heading-info');
@@ -2706,7 +2719,7 @@
                                 "July", "August", "September", "October", "November", "December"];
             const currentMonthName = monthNames[month];
 
-            // 1. Group all completed TS trades for this Month & Year
+            // 1. Group ALL completed TS trades by date key (allows cross-month week calculation)
             const completed = STATE.allTsCompletedTrades || {};
             const tradesByDay = {}; // 'YYYY-MM-DD': { pnl, count, wins: [], losses: [] }
             let monthPnL = 0;
@@ -2720,24 +2733,20 @@
                 const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
                 if (!dayStr || dayStr === 'Unknown') return;
 
+                if (!tradesByDay[dayStr]) {
+                    tradesByDay[dayStr] = { pnl: 0, count: 0 };
+                }
+                const net = parseFloat(t.net_result || 0);
+                tradesByDay[dayStr].pnl += net;
+                tradesByDay[dayStr].count += 1;
+
+                // Monthly stats header/footer stay strictly bound to the active month
                 const [tYear, tMonth] = dayStr.split('-').map(Number);
                 if (tYear === year && (tMonth - 1) === month) {
-                    if (!tradesByDay[dayStr]) {
-                        tradesByDay[dayStr] = { pnl: 0, count: 0, wins: 0, losses: 0 };
-                    }
-                    const net = parseFloat(t.net_result || 0);
-                    tradesByDay[dayStr].pnl += net;
-                    tradesByDay[dayStr].count += 1;
                     monthPnL += net;
                     monthTradesCount += 1;
-
-                    if (net > 0) {
-                        tradesByDay[dayStr].wins += 1;
-                        allWins.push(net);
-                    } else if (net < 0) {
-                        tradesByDay[dayStr].losses += 1;
-                        allLosses.push(Math.abs(net));
-                    }
+                    if (net > 0) allWins.push(net);
+                    else if (net < 0) allLosses.push(Math.abs(net));
                 }
             });
 
@@ -2749,7 +2758,7 @@
                 Trades: <strong>${monthTradesCount}</strong>
             `;
 
-            // 3. Build Day Matrix (Sunday - Saturday + Week Column)
+            // 3. Grid Headers
             let html = `
                 <div class="ts-cal-header-cell">Su</div>
                 <div class="ts-cal-header-cell">Mo</div>
@@ -2761,90 +2770,100 @@
                 <div class="ts-cal-header-cell" style="color:var(--link-color);">Σ Week</div>
             `;
 
-            const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
+            // 4. Calculate full calendar matrix (Sunday to Saturday rows)
+            const firstDateOfMonth = new Date(year, month, 1);
+            const firstDayIndex = firstDateOfMonth.getDay(); // 0 = Sunday
             const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+            const lastDateOfMonth = new Date(year, month, totalDaysInMonth);
+            const lastDayIndex = lastDateOfMonth.getDay(); // 0 = Sunday
 
-            let dayCounter = 1;
+            // Total grid cells = leading adjacent days + month days + trailing adjacent days
+            const totalGridDays = firstDayIndex + totalDaysInMonth + (6 - lastDayIndex);
+
             let currentWeekPnL = 0;
             let currentWeekTrades = 0;
             let bestDay = { day: null, pnl: -Infinity };
             let worstDay = { day: null, pnl: Infinity };
 
-            while (dayCounter <= totalDaysInMonth) {
-                currentWeekPnL = 0;
-                currentWeekTrades = 0;
-
-                // Loop Sunday (0) to Saturday (6)
-                for (let col = 0; col < 7; col++) {
-                    const isBeforeMonth = (dayCounter === 1 && col < firstDayIndex);
-                    const isAfterMonth = (dayCounter > totalDaysInMonth);
-
-                    if (isBeforeMonth || isAfterMonth) {
-                        html += `<div class="ts-cal-day-cell empty"><span class="ts-cal-day-num">—</span></div>`;
-                    } else {
-                        const dayPadded = String(dayCounter).padStart(2, '0');
-                        const monthPadded = String(month + 1).padStart(2, '0');
-                        const dateKey = `${year}-${monthPadded}-${dayPadded}`;
-
-                        const data = tradesByDay[dateKey];
-                        if (data) {
-                            currentWeekPnL += data.pnl;
-                            currentWeekTrades += data.count;
-
-                            if (data.pnl > bestDay.pnl) bestDay = { day: `${currentMonthName.slice(0,3)} ${dayCounter}`, pnl: data.pnl };
-                            if (data.pnl < worstDay.pnl) worstDay = { day: `${currentMonthName.slice(0,3)} ${dayCounter}`, pnl: data.pnl };
-
-                            const isWin = data.pnl >= 0;
-                            const bgClass = isWin ? 'win-day' : 'loss-day';
-                            const pnlSign = isWin ? '+' : '';
-
-                            html += `
-                                <div class="ts-cal-day-cell ${bgClass}">
-                                    <div class="ts-cal-day-num">${dayCounter}</div>
-                                    <div class="ts-cal-day-pnl">${pnlSign}$${data.pnl.toFixed(2)}</div>
-                                    <div class="ts-cal-day-trades">${data.count} trades</div>
-                                </div>
-                            `;
-                        } else {
-                            html += `
-                                <div class="ts-cal-day-cell">
-                                    <div class="ts-cal-day-num">${dayCounter}</div>
-                                    <div class="ts-cal-day-pnl" style="color:#555;">—</div>
-                                    <div class="ts-cal-day-trades"></div>
-                                </div>
-                            `;
-                        }
-                        dayCounter++;
-                    }
+            for (let i = 0; i < totalGridDays; i++) {
+                const col = i % 7;
+                if (col === 0) {
+                    currentWeekPnL = 0;
+                    currentWeekTrades = 0;
                 }
 
-                // 8th Column: Weekly Total
-                if (currentWeekTrades > 0) {
-                    const isWeekWin = currentWeekPnL >= 0;
-                    const wBgClass = isWeekWin ? 'win-day' : 'loss-day';
-                    const wSign = isWeekWin ? '+' : '';
+                // Resolves exact calendar date (even into previous or next month)
+                const currDate = new Date(year, month, 1 - firstDayIndex + i);
+                const cYear = currDate.getFullYear();
+                const cMonth = String(currDate.getMonth() + 1).padStart(2, '0');
+                const cDay = String(currDate.getDate()).padStart(2, '0');
+                const dateKey = `${cYear}-${cMonth}-${cDay}`;
+                const isCurrentMonth = (currDate.getMonth() === month);
+
+                const data = tradesByDay[dateKey];
+                const dayNum = currDate.getDate();
+                const adjClass = !isCurrentMonth ? 'adjacent-month' : '';
+
+                if (data && data.count > 0) {
+                    // Accumulate into the current week's total (including prior days!)
+                    currentWeekPnL += data.pnl;
+                    currentWeekTrades += data.count;
+
+                    if (isCurrentMonth) {
+                        if (data.pnl > bestDay.pnl) bestDay = { day: `${currentMonthName.slice(0,3)} ${dayNum}`, pnl: data.pnl };
+                        if (data.pnl < worstDay.pnl) worstDay = { day: `${currentMonthName.slice(0,3)} ${dayNum}`, pnl: data.pnl };
+                    }
+
+                    const isWin = data.pnl >= 0;
+                    const bgClass = isWin ? 'win-day' : 'loss-day';
+                    const pnlSign = isWin ? '+' : '';
 
                     html += `
-                        <div class="ts-cal-day-cell week-col ${wBgClass}">
-                            <div class="ts-cal-day-num">Week</div>
-                            <div class="ts-cal-day-pnl">${wSign}$${currentWeekPnL.toFixed(2)}</div>
-                            <div class="ts-cal-day-trades">${currentWeekTrades} tr</div>
+                        <div class="ts-cal-day-cell ${adjClass} ${bgClass}">
+                            <div class="ts-cal-day-num">${dayNum}</div>
+                            <div class="ts-cal-day-pnl">${pnlSign}$${data.pnl.toFixed(2)}</div>
+                            <div class="ts-cal-day-trades">${data.count} trades</div>
                         </div>
                     `;
                 } else {
                     html += `
-                        <div class="ts-cal-day-cell week-col">
-                            <div class="ts-cal-day-num">Week</div>
+                        <div class="ts-cal-day-cell ${adjClass}">
+                            <div class="ts-cal-day-num">${dayNum}</div>
                             <div class="ts-cal-day-pnl" style="color:#555;">—</div>
                             <div class="ts-cal-day-trades"></div>
                         </div>
                     `;
                 }
+
+                // When Saturday (col 6) is reached, append 8th Column (Σ Week)
+                if (col === 6) {
+                    if (currentWeekTrades > 0) {
+                        const isWeekWin = currentWeekPnL >= 0;
+                        const wBgClass = isWeekWin ? 'win-day' : 'loss-day';
+                        const wSign = isWeekWin ? '+' : '';
+
+                        html += `
+                            <div class="ts-cal-day-cell week-col ${wBgClass}">
+                                <div class="ts-cal-day-num">Week</div>
+                                <div class="ts-cal-day-pnl">${wSign}$${currentWeekPnL.toFixed(2)}</div>
+                                <div class="ts-cal-day-trades">${currentWeekTrades} tr</div>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="ts-cal-day-cell week-col">
+                                <div class="ts-cal-day-num">Week</div>
+                                <div class="ts-cal-day-pnl" style="color:#555;">—</div>
+                                <div class="ts-cal-day-trades"></div>
+                            </div>
+                        `;
+                    }
+                }
             }
 
             gridEl.innerHTML = html;
 
-            // 4. Calculate Footer Summary Metrics
+            // 5. Calculate Footer Summary Metrics
             const totalWinsCount = allWins.length;
             const totalLossesCount = allLosses.length;
             const winRate = monthTradesCount > 0 ? ((totalWinsCount / monthTradesCount) * 100).toFixed(1) : "0.0";
