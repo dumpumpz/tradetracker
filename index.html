@@ -2704,7 +2704,7 @@
             return `<td class="trade-image-thumbnails">${thumbnailsHtml}</td>`;
         }
 
-   function renderTsMonthlyCalendar() {
+ function renderTsMonthlyCalendar() {
             if (!STATE.isMasterUser) return;
             const gridEl = document.getElementById('ts-cal-grid');
             const headInfoEl = document.getElementById('ts-cal-heading-info');
@@ -2719,46 +2719,74 @@
                                 "July", "August", "September", "October", "November", "December"];
             const currentMonthName = monthNames[month];
 
-            // 1. Group ALL completed TS trades by date key (allows cross-month week calculation)
+            // 1. First Pass: Group executions by Day AND Setup Bucket (groupId)
             const completed = STATE.allTsCompletedTrades || {};
-            const tradesByDay = {}; // 'YYYY-MM-DD': { pnl, count, wins: [], losses: [] }
-            let monthPnL = 0;
-            let monthTradesCount = 0;
-            let allWins = [];
-            let allLosses = [];
+            const dayBuckets = {}; // 'YYYY-MM-DD': { 'Pre_NY_AM_1': net_result, ... }
 
-            Object.values(completed).forEach(t => {
+            Object.entries(completed).forEach(([id, t]) => {
                 if (STATE.visibleTsAccounts && !STATE.visibleTsAccounts.includes(getEvalAccount(t))) return;
 
                 const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
                 if (!dayStr || dayStr === 'Unknown') return;
 
-                if (!tradesByDay[dayStr]) {
-                    tradesByDay[dayStr] = { pnl: 0, count: 0 };
-                }
-                const net = parseFloat(t.net_result || 0);
-                tradesByDay[dayStr].pnl += net;
-                tradesByDay[dayStr].count += 1;
+                // Determine bucket ID (e.g., Pre_NY_AM_1, NY_AM_2)
+                const bucketId = t.groupId || `${t.symbol}_${t.type}_${id}`;
 
-                // Monthly stats header/footer stay strictly bound to the active month
-                const [tYear, tMonth] = dayStr.split('-').map(Number);
-                if (tYear === year && (tMonth - 1) === month) {
-                    monthPnL += net;
-                    monthTradesCount += 1;
-                    if (net > 0) allWins.push(net);
-                    else if (net < 0) allLosses.push(Math.abs(net));
+                if (!dayBuckets[dayStr]) {
+                    dayBuckets[dayStr] = {};
                 }
+                if (!dayBuckets[dayStr][bucketId]) {
+                    dayBuckets[dayStr][bucketId] = 0;
+                }
+
+                dayBuckets[dayStr][bucketId] += parseFloat(t.net_result || 0);
             });
 
-            // 2. Render Top Info Bar
+            // 2. Second Pass: Aggregate setup buckets into daily totals & month statistics
+            const tradesByDay = {}; // 'YYYY-MM-DD': { pnl, count }
+            let monthPnL = 0;
+            let monthBucketsCount = 0;
+            let allWins = [];
+            let allLosses = [];
+
+            Object.entries(dayBuckets).forEach(([dayStr, buckets]) => {
+                let dayPnL = 0;
+                let dayBucketCount = 0;
+
+                const [tYear, tMonth] = dayStr.split('-').map(Number);
+                const isCurrentViewMonth = (tYear === year && (tMonth - 1) === month);
+
+                Object.values(buckets).forEach(bucketNet => {
+                    dayPnL += bucketNet;
+                    dayBucketCount += 1; // Each bucket counts as exactly 1 trade
+
+                    if (isCurrentViewMonth) {
+                        monthPnL += bucketNet;
+                        monthBucketsCount += 1;
+
+                        if (bucketNet > 0) {
+                            allWins.push(bucketNet);
+                        } else if (bucketNet < 0) {
+                            allLosses.push(Math.abs(bucketNet));
+                        }
+                    }
+                });
+
+                tradesByDay[dayStr] = {
+                    pnl: dayPnL,
+                    count: dayBucketCount
+                };
+            });
+
+            // 3. Render Top Info Bar
             const pnlPrefix = monthPnL >= 0 ? '+' : '';
             headInfoEl.innerHTML = `
                 ${currentMonthName} ${year} • All Accounts • 
                 <strong>Total: <span style="color:${monthPnL >= 0 ? 'var(--green-text)' : 'var(--red-text)'};">${pnlPrefix}$${monthPnL.toFixed(2)}</span></strong> • 
-                Trades: <strong>${monthTradesCount}</strong>
+                Trades: <strong>${monthBucketsCount}</strong>
             `;
 
-            // 3. Grid Headers
+            // 4. Header Cells
             let html = `
                 <div class="ts-cal-header-cell">Su</div>
                 <div class="ts-cal-header-cell">Mo</div>
@@ -2770,14 +2798,13 @@
                 <div class="ts-cal-header-cell" style="color:var(--link-color);">Σ Week</div>
             `;
 
-            // 4. Calculate full calendar matrix (Sunday to Saturday rows)
+            // 5. Build Calendar Grid across Full Weeks (Sunday to Saturday)
             const firstDateOfMonth = new Date(year, month, 1);
-            const firstDayIndex = firstDateOfMonth.getDay(); // 0 = Sunday
+            const firstDayIndex = firstDateOfMonth.getDay();
             const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
             const lastDateOfMonth = new Date(year, month, totalDaysInMonth);
-            const lastDayIndex = lastDateOfMonth.getDay(); // 0 = Sunday
+            const lastDayIndex = lastDateOfMonth.getDay();
 
-            // Total grid cells = leading adjacent days + month days + trailing adjacent days
             const totalGridDays = firstDayIndex + totalDaysInMonth + (6 - lastDayIndex);
 
             let currentWeekPnL = 0;
@@ -2792,7 +2819,6 @@
                     currentWeekTrades = 0;
                 }
 
-                // Resolves exact calendar date (even into previous or next month)
                 const currDate = new Date(year, month, 1 - firstDayIndex + i);
                 const cYear = currDate.getFullYear();
                 const cMonth = String(currDate.getMonth() + 1).padStart(2, '0');
@@ -2805,9 +2831,8 @@
                 const adjClass = !isCurrentMonth ? 'adjacent-month' : '';
 
                 if (data && data.count > 0) {
-                    // Accumulate into the current week's total (including prior days!)
                     currentWeekPnL += data.pnl;
-                    currentWeekTrades += data.count;
+                    currentWeekTrades += data.count; // Total buckets in that week
 
                     if (isCurrentMonth) {
                         if (data.pnl > bestDay.pnl) bestDay = { day: `${currentMonthName.slice(0,3)} ${dayNum}`, pnl: data.pnl };
@@ -2817,12 +2842,13 @@
                     const isWin = data.pnl >= 0;
                     const bgClass = isWin ? 'win-day' : 'loss-day';
                     const pnlSign = isWin ? '+' : '';
+                    const tradeLabel = data.count === 1 ? '1 trade' : `${data.count} trades`;
 
                     html += `
                         <div class="ts-cal-day-cell ${adjClass} ${bgClass}">
                             <div class="ts-cal-day-num">${dayNum}</div>
                             <div class="ts-cal-day-pnl">${pnlSign}$${data.pnl.toFixed(2)}</div>
-                            <div class="ts-cal-day-trades">${data.count} trades</div>
+                            <div class="ts-cal-day-trades">${tradeLabel}</div>
                         </div>
                     `;
                 } else {
@@ -2835,7 +2861,7 @@
                     `;
                 }
 
-                // When Saturday (col 6) is reached, append 8th Column (Σ Week)
+                // 8th Column: Σ Week (sum of setup buckets for that row)
                 if (col === 6) {
                     if (currentWeekTrades > 0) {
                         const isWeekWin = currentWeekPnL >= 0;
@@ -2863,10 +2889,10 @@
 
             gridEl.innerHTML = html;
 
-            // 5. Calculate Footer Summary Metrics
+            // 6. Calculate Setup-Level Summary Statistics
             const totalWinsCount = allWins.length;
             const totalLossesCount = allLosses.length;
-            const winRate = monthTradesCount > 0 ? ((totalWinsCount / monthTradesCount) * 100).toFixed(1) : "0.0";
+            const winRate = monthBucketsCount > 0 ? ((totalWinsCount / monthBucketsCount) * 100).toFixed(1) : "0.0";
 
             const grossProfit = allWins.reduce((acc, v) => acc + v, 0);
             const grossLoss = allLosses.reduce((acc, v) => acc + v, 0);
