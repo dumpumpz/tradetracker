@@ -1232,6 +1232,8 @@
 }
 
 .ts-cal-day-cell {
+        cursor: pointer; /* <-- add this line */
+
     background: var(--card-bg);
     border-radius: 6px;
     min-height: 82px;
@@ -2761,7 +2763,7 @@ function renderTsMonthlyCalendar() {
                                 "July", "August", "September", "October", "November", "December"];
             const currentMonthName = monthNames[month];
 
-            // 1. Group Executions by Day & Setup Group (groupId)
+            // 1. Group Executions by Day & Setup Group (groupId) so scales/accounts count as 1 setup
             const completed = STATE.allTsCompletedTrades || {};
             const dayBuckets = {};
 
@@ -2773,13 +2775,17 @@ function renderTsMonthlyCalendar() {
 
                 const bucketId = t.groupId || `${t.symbol}_${t.type}_${id}`;
 
-                if (!dayBuckets[dayStr]) dayBuckets[dayStr] = {};
-                if (!dayBuckets[dayStr][bucketId]) dayBuckets[dayStr][bucketId] = 0;
+                if (!dayBuckets[dayStr]) {
+                    dayBuckets[dayStr] = {};
+                }
+                if (!dayBuckets[dayStr][bucketId]) {
+                    dayBuckets[dayStr][bucketId] = 0;
+                }
 
                 dayBuckets[dayStr][bucketId] += parseFloat(t.net_result || 0);
             });
 
-            // 2. Aggregate Day & Month Statistics
+            // 2. Aggregate Day & Month Statistics based on Setup Buckets
             const tradesByDay = {};
             let monthPnL = 0;
             let monthBucketsCount = 0;
@@ -2823,7 +2829,7 @@ function renderTsMonthlyCalendar() {
                 <span>Setups: <strong>${monthBucketsCount}</strong></span>
             `;
 
-            // 4. Header Cells
+            // 4. Header Cells (Sunday to Saturday + Σ Week)
             let html = `
                 <div class="ts-cal-header-cell">Su</div>
                 <div class="ts-cal-header-cell">Mo</div>
@@ -2882,7 +2888,7 @@ function renderTsMonthlyCalendar() {
                     const tradeLabel = data.count === 1 ? '1 trade' : `${data.count} trades`;
 
                     html += `
-                        <div class="ts-cal-day-cell ${adjClass} ${bgClass}">
+                        <div class="ts-cal-day-cell ${adjClass} ${bgClass}" data-date-key="${dateKey}" title="Click to view trades for ${dateKey}">
                             <div class="ts-cal-day-num">${dayNum}</div>
                             <div class="ts-cal-day-pnl">${pnlSign}$${data.pnl.toFixed(2)}</div>
                             <div class="ts-cal-day-trades">${tradeLabel}</div>
@@ -2890,15 +2896,15 @@ function renderTsMonthlyCalendar() {
                     `;
                 } else {
                     html += `
-                        <div class="ts-cal-day-cell ${adjClass}">
+                        <div class="ts-cal-day-cell ${adjClass}" data-date-key="${dateKey}" title="Click to view date ${dateKey}">
                             <div class="ts-cal-day-num">${dayNum}</div>
-                            <div class="ts-cal-day-pnl" style="color:var(--subtle-text); opacity:0.4;">—</div>
+                            <div class="ts-cal-day-pnl" style="color:var(--subtle-text); opacity:0.35;">—</div>
                             <div class="ts-cal-day-trades"></div>
                         </div>
                     `;
                 }
 
-                // 8th Column: Σ Week
+                // 8th Column: Σ Week (sum of setup buckets for this 7-day row)
                 if (col === 6) {
                     if (currentWeekTrades > 0) {
                         const isWeekWin = currentWeekPnL >= 0;
@@ -2916,7 +2922,7 @@ function renderTsMonthlyCalendar() {
                         html += `
                             <div class="ts-cal-day-cell week-col">
                                 <div class="ts-cal-day-num" style="color:var(--subtle-text);">Week</div>
-                                <div class="ts-cal-day-pnl" style="color:var(--subtle-text); opacity:0.4;">—</div>
+                                <div class="ts-cal-day-pnl" style="color:var(--subtle-text); opacity:0.35;">—</div>
                                 <div class="ts-cal-day-trades"></div>
                             </div>
                         `;
@@ -4757,7 +4763,47 @@ const masterButtons = STATE.isMasterUser ?
                     }
                 });
             }
+// Click any Calendar Day to jump Completed Trades and Setups Images to that day
+            const calGrid = document.getElementById('ts-cal-grid');
+            if (calGrid) {
+                calGrid.addEventListener('click', (e) => {
+                    const dayCell = e.target.closest('.ts-cal-day-cell:not(.week-col)');
+                    if (!dayCell || !dayCell.dataset.dateKey) return;
 
+                    const targetDate = dayCell.dataset.dateKey;
+
+                    // 1. Sync review date input
+                    const reviewDateEl = document.getElementById('ts-setup-review-date');
+                    if (reviewDateEl) {
+                        reviewDateEl.value = targetDate;
+                    }
+
+                    // 2. Jump Completed Trades to this day
+                    syncCompletedTradesToDate(targetDate, true);
+
+                    // 3. Jump Setup Images library to this day
+                    const images = STATE.allTsSetupsImages || {};
+                    const allImageIds = Object.keys(images).sort((a, b) => (images[b].timestamp || 0) - (images[a].timestamp || 0));
+                    const uniqueDates = Array.from(new Set(allImageIds.map(id => 
+                        getTradingDayString(images[id].timestamp, images[id].timestamp)
+                    ))).sort((a, b) => b.localeCompare(a));
+
+                    const targetIndex = uniqueDates.indexOf(targetDate);
+                    const tsSetupsContainer = document.getElementById('ts-setups-image-container');
+
+                    if (targetIndex !== -1 && tsSetupsContainer) {
+                        STATE.tsSetupsImagesShowAll = true;
+                        STATE.tsSetupsImagesCurrentPage = targetIndex + 1;
+                        renderGenericImageLibrary(STATE.allTsSetupsImages, tsSetupsContainer, 'ts_setups_images');
+                    }
+
+                    // 4. Smooth scroll up to Completed Trades section
+                    const completedSection = document.getElementById('ts-completed-trades-tbody')?.closest('.collapsible-section');
+                    if (completedSection) {
+                        completedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }
             const tsSetupsUpload = document.getElementById('ts-setups-image-upload');
             if (tsSetupsUpload) {
                 tsSetupsUpload.addEventListener('change', (e) => {
