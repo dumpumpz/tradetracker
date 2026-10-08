@@ -1146,10 +1146,8 @@
 
 
 
-
-
 /* =========================================================
-   FUNDED MONTHLY TRADING CALENDAR (NATIVE DARK STYLED)
+   FUNDED MONTHLY TRADING CALENDAR (FULL STYLESHEET)
    ========================================================= */
 .ts-cal-container {
     background: var(--container-bg);
@@ -1231,101 +1229,111 @@
     letter-spacing: 0.5px;
 }
 
+/* Day Tiles: Taller, Bolder, Clickable */
 .ts-cal-day-cell {
-        cursor: pointer; /* <-- add this line */
-
     background: var(--card-bg);
     border-radius: 6px;
-    min-height: 82px;
-    padding: 6px 7px;
+    min-height: 96px;
+    padding: 8px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     border: 1px solid var(--border-color);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .ts-cal-day-cell:hover {
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
-    border-color: #666;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+    border-color: #888;
+    transform: translateY(-1px);
 }
 
-/* Polished Win Day: Forest Green with Crisp White Text */
 .ts-cal-day-cell.win-day {
-    background: linear-gradient(180deg, #1e532b 0%, #153e1f 100%) !important;
-    border: 1px solid #2b7a3e !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    background: linear-gradient(180deg, #1e582d 0%, #143e1e 100%) !important;
+    border: 1px solid #2d7e41 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
-/* Polished Loss Day: Crimson/Wine Red with Crisp White Text */
 .ts-cal-day-cell.loss-day {
-    background: linear-gradient(180deg, #6e2229 0%, #4a151b 100%) !important;
-    border: 1px solid #8e2b34 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    background: linear-gradient(180deg, #74252d 0%, #4c161d 100%) !important;
+    border: 1px solid #942e37 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
-/* Week Summary 8th Column */
 .ts-cal-day-cell.week-col {
-    border-left: 2px solid #555 !important;
-    filter: brightness(1.08);
+    border-left: 3px solid #666 !important;
+    filter: brightness(1.1);
+    cursor: default;
 }
 
-/* Adjacent Days from previous / next months */
 .ts-cal-day-cell.adjacent-month {
     opacity: 0.45;
-    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border: 1px dashed rgba(255, 255, 255, 0.18);
 }
 
 .ts-cal-day-cell.adjacent-month:hover {
     opacity: 0.85;
 }
 
+/* Day Number: Big & Bold */
 .ts-cal-day-num {
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.85);
 }
 
-/* White High-Contrast Monospaced PnL */
+/* PnL Value: Crisp White, Monospaced & Punchy */
 .ts-cal-day-pnl {
-    font-size: 13.5px;
-    font-weight: 800;
+    font-size: 16px;
+    font-weight: 900;
     text-align: center;
     color: #ffffff !important;
     font-family: 'Courier New', Courier, monospace;
-    letter-spacing: -0.2px;
-    margin: 3px 0;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    letter-spacing: -0.3px;
+    margin: 4px 0;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
     white-space: nowrap;
 }
 
+/* Trades Count: Clean & High Contrast */
 .ts-cal-day-trades {
-    font-size: 10px;
-    font-weight: 600;
+    font-size: 11.5px;
+    font-weight: 700;
     text-align: center;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.9);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
+/* Summary Box Matching Your Screenshot */
 .ts-cal-footer {
-    margin-top: 16px;
+    margin-top: 15px;
     padding-top: 14px;
-    border-top: 1px dashed var(--border-color);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 13.5px;
+    line-height: 1.5;
 }
 
-.ts-cal-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 10px;
-    text-align: center;
+.ts-cal-footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    color: var(--subtle-text);
 }
 
-.ts-cal-stat-card {
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 8px 10px;
+.ts-cal-footer-row .sep {
+    color: #666;
+    font-size: 11px;
+}
+
+.ts-cal-footer-row strong {
+    font-weight: 800;
 }
 
 @media (max-width: 768px) {
@@ -1333,23 +1341,25 @@
         gap: 3px;
     }
     .ts-cal-day-cell {
-        min-height: 58px;
-        padding: 3px 2px;
-        border-radius: 4px;
+        min-height: 64px;
+        padding: 4px 2px;
     }
     .ts-cal-day-num {
-        font-size: 8.5px;
+        font-size: 9.5px;
     }
     .ts-cal-day-pnl {
-        font-size: 9.5px;
+        font-size: 11px;
         margin: 1px 0;
     }
     .ts-cal-day-trades {
-        font-size: 7.5px;
+        font-size: 8px;
     }
-    .ts-cal-stats-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
+    .ts-cal-footer {
+        font-size: 11.5px;
+        gap: 5px;
+    }
+    .ts-cal-footer-row {
+        gap: 7px;
     }
 }
     </style>
@@ -2763,7 +2773,7 @@ function renderTsMonthlyCalendar() {
                                 "July", "August", "September", "October", "November", "December"];
             const currentMonthName = monthNames[month];
 
-            // 1. Group Executions by Day & Setup Group (groupId) so scales/accounts count as 1 setup
+            // 1. Group Executions by Day & Setup Group (groupId)
             const completed = STATE.allTsCompletedTrades || {};
             const dayBuckets = {};
 
@@ -2785,7 +2795,7 @@ function renderTsMonthlyCalendar() {
                 dayBuckets[dayStr][bucketId] += parseFloat(t.net_result || 0);
             });
 
-            // 2. Aggregate Day & Month Statistics based on Setup Buckets
+            // 2. Aggregate Day & Month Statistics
             const tradesByDay = {};
             let monthPnL = 0;
             let monthBucketsCount = 0;
@@ -2818,7 +2828,7 @@ function renderTsMonthlyCalendar() {
                 };
             });
 
-            // 3. Render Top Info Bar
+            // 3. Top Info Bar
             const pnlPrefix = monthPnL >= 0 ? '+' : '';
             const pnlColorClass = monthPnL >= 0 ? 'val-green' : 'val-red';
             headInfoEl.innerHTML = `
@@ -2829,7 +2839,7 @@ function renderTsMonthlyCalendar() {
                 <span>Setups: <strong>${monthBucketsCount}</strong></span>
             `;
 
-            // 4. Header Cells (Sunday to Saturday + Σ Week)
+            // 4. Day Headers
             let html = `
                 <div class="ts-cal-header-cell">Su</div>
                 <div class="ts-cal-header-cell">Mo</div>
@@ -2841,11 +2851,11 @@ function renderTsMonthlyCalendar() {
                 <div class="ts-cal-header-cell" style="color:var(--link-color);">Σ Week</div>
             `;
 
-            // 5. Build Calendar Grid across Full Weeks
-            const firstDateOfMonth = new Date(year, month, 1);
+            // 5. Build Calendar Grid across Full Weeks using midday (12:00) to prevent DST drift
+            const firstDateOfMonth = new Date(year, month, 1, 12, 0, 0);
             const firstDayIndex = firstDateOfMonth.getDay();
-            const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
-            const lastDateOfMonth = new Date(year, month, totalDaysInMonth);
+            const totalDaysInMonth = new Date(year, month + 1, 0, 12, 0, 0).getDate();
+            const lastDateOfMonth = new Date(year, month, totalDaysInMonth, 12, 0, 0);
             const lastDayIndex = lastDateOfMonth.getDay();
 
             const totalGridDays = firstDayIndex + totalDaysInMonth + (6 - lastDayIndex);
@@ -2862,7 +2872,8 @@ function renderTsMonthlyCalendar() {
                     currentWeekTrades = 0;
                 }
 
-                const currDate = new Date(year, month, 1 - firstDayIndex + i);
+                // Initialized at 12:00:00 (midday) so date never rolls over across timezones
+                const currDate = new Date(year, month, 1 - firstDayIndex + i, 12, 0, 0);
                 const cYear = currDate.getFullYear();
                 const cMonth = String(currDate.getMonth() + 1).padStart(2, '0');
                 const cDay = String(currDate.getDate()).padStart(2, '0');
@@ -2904,7 +2915,7 @@ function renderTsMonthlyCalendar() {
                     `;
                 }
 
-                // 8th Column: Σ Week (sum of setup buckets for this 7-day row)
+                // 8th Column: Σ Week
                 if (col === 6) {
                     if (currentWeekTrades > 0) {
                         const isWeekWin = currentWeekPnL >= 0;
@@ -2913,7 +2924,7 @@ function renderTsMonthlyCalendar() {
 
                         html += `
                             <div class="ts-cal-day-cell week-col ${wBgClass}">
-                                <div class="ts-cal-day-num" style="color:rgba(255,255,255,0.85); font-weight:bold;">Week</div>
+                                <div class="ts-cal-day-num" style="color:rgba(255,255,255,0.9); font-weight:800;">Week</div>
                                 <div class="ts-cal-day-pnl">${wSign}$${currentWeekPnL.toFixed(2)}</div>
                                 <div class="ts-cal-day-trades">${currentWeekTrades} tr</div>
                             </div>
@@ -2932,7 +2943,7 @@ function renderTsMonthlyCalendar() {
 
             gridEl.innerHTML = html;
 
-            // 6. Native Stats Footer Cards
+            // 6. Inline Summary Box matching screenshot
             const totalWinsCount = allWins.length;
             const totalLossesCount = allLosses.length;
             const winRate = monthBucketsCount > 0 ? ((totalWinsCount / monthBucketsCount) * 100).toFixed(1) : "0.0";
@@ -2944,35 +2955,23 @@ function renderTsMonthlyCalendar() {
             const avgWin = totalWinsCount > 0 ? (grossProfit / totalWinsCount).toFixed(2) : "0.00";
             const avgLoss = totalLossesCount > 0 ? (grossLoss / totalLossesCount).toFixed(2) : "0.00";
 
-            const bestDayText = bestDay.day ? `${bestDay.day} (+$${bestDay.pnl.toFixed(2)})` : '--';
-            const worstDayText = worstDay.day ? `${worstDay.day} (-$${Math.abs(worstDay.pnl).toFixed(2)})` : '--';
+            const bestDayText = bestDay.day ? `<strong class="val-green">${bestDay.day} +$${bestDay.pnl.toFixed(2)}</strong>` : '--';
+            const worstDayText = worstDay.day ? `<strong class="val-red">${worstDay.day} -$${Math.abs(worstDay.pnl).toFixed(2)}</strong>` : '--';
 
             footerEl.innerHTML = `
-                <div class="ts-cal-stats-grid">
-                    <div class="ts-cal-stat-card">
-                        <span class="sum-label">Win Rate</span>
-                        <span class="sum-val ${parseFloat(winRate) >= 50 ? 'val-green' : 'val-red'}">${winRate}%</span>
-                    </div>
-                    <div class="ts-cal-stat-card">
-                        <span class="sum-label">Profit Factor</span>
-                        <span class="sum-val ${parseFloat(profitFactor) >= 1.5 ? 'val-green' : ''}">${profitFactor}</span>
-                    </div>
-                    <div class="ts-cal-stat-card">
-                        <span class="sum-label">Avg Win</span>
-                        <span class="sum-val val-green">$${avgWin}</span>
-                    </div>
-                    <div class="ts-cal-stat-card">
-                        <span class="sum-label">Avg Loss</span>
-                        <span class="sum-val val-red">-$${avgLoss}</span>
-                    </div>
-                    <div class="ts-cal-stat-card">
-                        <span class="sum-label">Best Day</span>
-                        <span class="sum-val val-green" style="font-size:12px;">${bestDayText}</span>
-                    </div>
-                    <div class="ts-cal-stat-card">
-                        <span class="sum-label">Worst Day</span>
-                        <span class="sum-val val-red" style="font-size:12px;">${worstDayText}</span>
-                    </div>
+                <div class="ts-cal-footer-row">
+                    <span>Win Rate: <strong style="color:#ffffff;">${winRate}%</strong></span>
+                    <span class="sep">•</span>
+                    <span>Profit Factor: <strong style="color:#ffffff;">${profitFactor}</strong></span>
+                    <span class="sep">•</span>
+                    <span>Avg Win: <strong class="val-green">$${avgWin}</strong></span>
+                    <span class="sep">•</span>
+                    <span>Avg Loss: <strong class="val-red">$${avgLoss}</strong></span>
+                </div>
+                <div class="ts-cal-footer-row">
+                    <span>Best Day: ${bestDayText}</span>
+                    <span class="sep">•</span>
+                    <span>Worst Day: ${worstDayText}</span>
                 </div>
             `;
         }
@@ -4763,7 +4762,7 @@ const masterButtons = STATE.isMasterUser ?
                     }
                 });
             }
-// Click any Calendar Day to jump Completed Trades and Setups Images to that day
+// Click Calendar Day: Syncs Review Date & jumps directly to that exact day
             const calGrid = document.getElementById('ts-cal-grid');
             if (calGrid) {
                 calGrid.addEventListener('click', (e) => {
@@ -4778,24 +4777,11 @@ const masterButtons = STATE.isMasterUser ?
                         reviewDateEl.value = targetDate;
                     }
 
-                    // 2. Jump Completed Trades to this day
+                    // 2. Rebuild cache so targetDate is guaranteed in master trading dates
+                    rebuildDatesCache(true);
+
+                    // 3. Jump Completed Trades table directly to this exact date
                     syncCompletedTradesToDate(targetDate, true);
-
-                    // 3. Jump Setup Images library to this day
-                    const images = STATE.allTsSetupsImages || {};
-                    const allImageIds = Object.keys(images).sort((a, b) => (images[b].timestamp || 0) - (images[a].timestamp || 0));
-                    const uniqueDates = Array.from(new Set(allImageIds.map(id => 
-                        getTradingDayString(images[id].timestamp, images[id].timestamp)
-                    ))).sort((a, b) => b.localeCompare(a));
-
-                    const targetIndex = uniqueDates.indexOf(targetDate);
-                    const tsSetupsContainer = document.getElementById('ts-setups-image-container');
-
-                    if (targetIndex !== -1 && tsSetupsContainer) {
-                        STATE.tsSetupsImagesShowAll = true;
-                        STATE.tsSetupsImagesCurrentPage = targetIndex + 1;
-                        renderGenericImageLibrary(STATE.allTsSetupsImages, tsSetupsContainer, 'ts_setups_images');
-                    }
 
                     // 4. Smooth scroll up to Completed Trades section
                     const completedSection = document.getElementById('ts-completed-trades-tbody')?.closest('.collapsible-section');
