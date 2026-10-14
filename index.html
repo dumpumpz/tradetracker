@@ -330,11 +330,10 @@
             display: table-cell !important;
         }
 
-        #ts-completed-trades-tbody tr td, 
-        table:has(#ts-completed-trades-tbody) thead th {
+ #ts-completed-trades-tbody tr td:not(.master-only), 
+        table:has(#ts-completed-trades-tbody) thead th:not(.master-only) {
             display: table-cell !important;
         }
-        
         .funded-radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
         .funded-radio-group label { flex: 1; text-align: center; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; transition: all 0.2s; font-weight: bold; font-size: 14px; background: var(--container-bg); }
         .funded-radio-group input[type="radio"] { display: none; }
@@ -4098,13 +4097,14 @@ const masterButtons = STATE.isMasterUser ?
             if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
             
 const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
-            const noteHeaders = isTopstep 
-                ? `<th class="master-only">Note 1</th><th class="master-only">Note 2</th><th class="master-only">Note 3</th>`
-                : `<th>Note 1</th><th>Note 2</th><th>Note 3</th>`;
+            // Only include Note 1, 2, 3 and Pics in Funded trades if user is Master
+            const masterCols = (!isTopstep || STATE.isMasterUser)
+                ? `<th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>`
+                : '';
 
             thead.innerHTML = isTopstep 
-                ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>Exit Price</th><th>Net PnL</th><th>In</th><th>Out</th>${noteHeaders}<th>Pics</th>${actionHeader}</tr>`
-                : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>Exit Price</th><th>Net PnL</th><th>In</th><th>Out</th>${noteHeaders}<th>Pics</th>${actionHeader}</tr>`;
+                ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>Exit Price</th><th>Net PnL</th><th>In</th><th>Out</th>${masterCols}${actionHeader}</tr>`
+                : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>Exit Price</th><th>Net PnL</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
             if (dayTrades.length === 0) {
                 tbodyElement.innerHTML = `
                 <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
@@ -4265,14 +4265,17 @@ const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '
                             <td class="editable-completed-cell" data-id="${t.dbId}" data-field="date" contenteditable="${STATE.isMasterUser}" style="color:var(--link-color); font-weight:bold; ${clusterB}">
                                 ${t.date ? new Date(getSafeTimestamp({date: t.date})).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
                             </td>
-                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="closed_date" contenteditable="${STATE.isMasterUser}" style="${clusterB}">
+                           <td class="editable-completed-cell" data-id="${t.dbId}" data-field="closed_date" contenteditable="${STATE.isMasterUser}" style="${clusterB}">
                                 ${t.closed_date ? new Date(getSafeTimestamp({closed_date: t.closed_date})).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
                             </td>
                             
+                            ${(!isTopstep || STATE.isMasterUser) ? `
                             <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note || ''}</td>
                             <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note2 || ''}</td>
                             <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note3 || ''}</td>
                             <td class="trade-image-thumbnails" style="${clusterB}">${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}</td>
+                            ` : ''}
+
                             ${STATE.isMasterUser ? `
                             <td class="master-only" style="${clusterB}">
                                 <div style="display: flex; gap: 2px;">
