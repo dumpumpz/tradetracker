@@ -1794,8 +1794,8 @@
                 </div>
             </div>
 
-            <!-- Independent Evaluation Setups Library -->
-            <div class="collapsible-section">
+     <!-- Independent Evaluation Setups Library -->
+            <div class="collapsible-section master-only">
                 <div class="collapsible-header">
                     <h2 class="hide-title">Funded Setups</h2>
                     <button class="collapsible-toggle-btn">+</button>
@@ -4097,11 +4097,14 @@ const masterButtons = STATE.isMasterUser ?
             let thead = table.querySelector('thead');
             if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
             
-            const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
-            thead.innerHTML = isTopstep 
-                ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`
-                : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th><th>Note 1</th><th>Note 2</th><th>Note 3</th><th>Pics</th>${actionHeader}</tr>`;
+const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
+            const noteHeaders = isTopstep 
+                ? `<th class="master-only">Note 1</th><th class="master-only">Note 2</th><th class="master-only">Note 3</th>`
+                : `<th>Note 1</th><th>Note 2</th><th>Note 3</th>`;
 
+            thead.innerHTML = isTopstep 
+                ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>Exit Price</th><th>Net PnL</th><th>In</th><th>Out</th>${noteHeaders}<th>Pics</th>${actionHeader}</tr>`
+                : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>Exit Price</th><th>Net PnL</th><th>In</th><th>Out</th>${noteHeaders}<th>Pics</th>${actionHeader}</tr>`;
             if (dayTrades.length === 0) {
                 tbodyElement.innerHTML = `
                 <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
@@ -4231,7 +4234,7 @@ const masterButtons = STATE.isMasterUser ?
                             <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.entry).toFixed(2)}</td>
                             <td style="${clusterB}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
                             <td style="${clusterB}">${parseFloat(t.target || 0).toFixed(2)}</td>
-                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${isTopstep ? contr : contr.toFixed(0)}</td>
+                          <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${isTopstep ? contr : contr.toFixed(0)}</td>
                             <td style="${clusterB}">${isTopstep ? (m.rr_taker || '0.00') : (m.rr_maker || '0.00')}</td> 
   ${(() => {
     let tp1Badge = '';
