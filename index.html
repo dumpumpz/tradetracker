@@ -1994,6 +1994,8 @@
         const CONFIG = {
             FUNDED_ACCOUNTS: ['Lucid 1', 'Lucid 2', 'Lucid 3', 'Lucid 4 - scalp', 'Lucid 5'],
             FUNDED_START: 50000,
+                BLOWN_ACCOUNTS: ['Lucid 4 - scalp'], // <--- ADD THE BLOWN ACCOUNT NAME HERE
+
             FUNDED_TARGET: 53000,
             FUNDED_DRAWDOWN: 2000,
             FUNDED_TRAIL_LOCK_TRIGGER: 52100, 
@@ -2661,6 +2663,9 @@
     const len = CONFIG.FUNDED_ACCOUNTS.length;
     for (let i = 0; i < len; i++) {
         const acc = CONFIG.FUNDED_ACCOUNTS[i];
+
+           // --- ADD THIS LINE: Skip blown accounts from the summary box ---
+        if (CONFIG.BLOWN_ACCOUNTS && CONFIG.BLOWN_ACCOUNTS.includes(acc)) continue;
         const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, maxLoss: 48000, tradesByDay: {} };
         
         const plToday = stats.tradesByDay[todayStr] || 0;
@@ -3423,6 +3428,8 @@ function renderTsMonthlyCalendar() {
 
             let html = '';
             CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
+                        if (CONFIG.BLOWN_ACCOUNTS && CONFIG.BLOWN_ACCOUNTS.includes(acc)) return;
+
                 const stats = FUNDED_STATS_CACHE[acc] || { balance: CONFIG.FUNDED_START, hwm: CONFIG.FUNDED_START, maxLoss: 48000 };
                 
                 const currentBal = stats.balance;
@@ -3497,6 +3504,8 @@ function renderTsMonthlyCalendar() {
                 <div class="acc-grid-container">
             `;
 CONFIG.FUNDED_ACCOUNTS.forEach((acc, i) => {
+        if (CONFIG.BLOWN_ACCOUNTS && CONFIG.BLOWN_ACCOUNTS.includes(acc)) return;
+
     const dynC = getAccountDynamicContracts(acc);
     html += `
         <div class="acc-item">
