@@ -3492,7 +3492,7 @@ function renderTsMonthlyCalendar() {
             container.innerHTML = html;
         }
 
-        function renderFundedAccountRadios() {
+       function renderFundedAccountRadios() {
             const container = document.getElementById('funded-account-radios');
             if (!container) return;
             
@@ -3503,20 +3503,20 @@ function renderTsMonthlyCalendar() {
                 </div>
                 <div class="acc-grid-container">
             `;
-CONFIG.FUNDED_ACCOUNTS.forEach((acc, i) => {
-        if (CONFIG.BLOWN_ACCOUNTS && CONFIG.BLOWN_ACCOUNTS.includes(acc)) return;
 
-    const dynC = getAccountDynamicContracts(acc);
+            CONFIG.FUNDED_ACCOUNTS.forEach((acc, i) => {
+                if (CONFIG.BLOWN_ACCOUNTS && CONFIG.BLOWN_ACCOUNTS.includes(acc)) return;
 
-        const isChecked = acc === 'Lucid 5' ? 'checked' : '';
+                const dynC = getAccountDynamicContracts(acc);
+                const isChecked = acc === 'Lucid 5' ? 'checked' : '';
 
-    html += `
-        <div class="acc-item">
-            <input type="checkbox" id="check-acc-${i}" name="funded-account-target" value="${acc}" class="acc-checkbox" checked>
-            <label for="check-acc-${i}">${acc} <span style="color:#ffc107; font-size:10.5px; font-weight:900;">(${dynC}c)</span></label>
-        </div>
-    `;
-});
+                html += `
+                    <div class="acc-item">
+                        <input type="checkbox" id="check-acc-${i}" name="funded-account-target" value="${acc}" class="acc-checkbox" ${isChecked}>
+                        <label for="check-acc-${i}">${acc} <span style="color:#ffc107; font-size:10.5px; font-weight:900;">(${dynC}c)</span></label>
+                    </div>
+                `;
+            });
             
             html += `</div>`; 
             container.innerHTML = html;
