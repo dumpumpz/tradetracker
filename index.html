@@ -1470,8 +1470,7 @@
         @media (min-width: 769px) {
             body:not(.is-master) table:has(#ts-completed-trades-tbody) {
                 width: auto;
-                min-width: 780px;
-                max-width: 1050px;
+           min-width: 600px; max-width: 850px;
                 margin: 10px auto;
             }
             body:not(.is-master) table:has(#ts-completed-trades-tbody) th,
@@ -4177,7 +4176,7 @@ if (isTopstep && STATE.visibleTsAccounts) {
                 ? (STATE.isMasterUser ? `<th class="master-only">Note 1</th><th class="master-only">Note 2</th><th class="master-only">Note 3</th>` : '')
                 : `<th>Note 1</th><th>Note 2</th><th>Note 3</th>`;
 
-          const totalCols = 12 + (showFundedNotes ? 4 : 0) + (STATE.isMasterUser ? 1 : 0);
+const totalCols = 9 + (showFundedNotes ? 4 : 0) + (STATE.isMasterUser ? 1 : 0);
             const dailyNoteCell = showFundedNotes
                 ? `<td colspan="${totalCols - 6}" class="editable-daily-note hide-mobile ${isTopstep ? 'master-only' : ''}" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>`
                 : `<td colspan="${totalCols - 6}" class="hide-mobile"></td>`;
@@ -4188,10 +4187,9 @@ if (isTopstep && STATE.visibleTsAccounts) {
             
 const picsHeader = showFundedNotes ? `<th class="${isTopstep ? 'master-only' : ''}">Pics</th>` : '';
             const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
-            thead.innerHTML = isTopstep 
-                ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th>${fundedNoteHeader}${picsHeader}${actionHeader}</tr>`
-                : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th>${fundedNoteHeader}${picsHeader}${actionHeader}</tr>`;
-            if (dayTrades.length === 0) {
+         thead.innerHTML = isTopstep 
+                ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>Exit Price</th><th>Net PnL</th><th>In</th>${fundedNoteHeader}${picsHeader}${actionHeader}</tr>`
+                : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>Exit Price</th><th>Net PnL</th><th>In</th>${fundedNoteHeader}${picsHeader}${actionHeader}</tr>`;    if (dayTrades.length === 0) {
                 tbodyElement.innerHTML = `
                 <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
                     <td colspan="3" style="text-align: left; padding: 10px 20px;">
@@ -4326,8 +4324,7 @@ const picsHeader = showFundedNotes ? `<th class="${isTopstep ? 'master-only' : '
                             <td class="editable-completed-cell" data-id="${t.dbId}" data-field="entry" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${parseFloat(t.entry).toFixed(2)}</td>
                             <td style="${clusterB}">${parseFloat(t.stoploss || 0).toFixed(2)}</td>
                             <td style="${clusterB}">${parseFloat(t.target || 0).toFixed(2)}</td>
-                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${isTopstep ? contr : contr.toFixed(0)}</td>
-                            <td style="${clusterB}">${isTopstep ? (m.rr_taker || '0.00') : (m.rr_maker || '0.00')}</td> 
+                           <td class="editable-completed-cell" data-id="${t.dbId}" data-field="${isTopstep ? 'contracts' : 'size'}" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${isTopstep ? contr : contr.toFixed(0)}</td>
                             ${(() => {
                                 let tp1Badge = '';
                                 if (isTopstep) {
@@ -4352,13 +4349,9 @@ const picsHeader = showFundedNotes ? `<th class="${isTopstep ? 'master-only' : '
                                 </td>`;
                             })()}
                             <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; font-weight:bold; ${clusterB}">$${net.toFixed(2)}</td>
-                            <td style="color:${net >= 0 ? 'var(--green-text)' : 'var(--red-text)'}; ${clusterB}">${(((parseFloat(t.exit_price) - parseFloat(t.entry)) / parseFloat(t.entry)) * 100 * (t.type === 'Short' ? -1 : 1)).toFixed(2)}%</td>
                             
                             <td class="editable-completed-cell" data-id="${t.dbId}" data-field="date" contenteditable="${STATE.isMasterUser}" style="color:var(--link-color); font-weight:bold; ${clusterB}">
                                 ${t.date ? new Date(getSafeTimestamp({date: t.date})).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
-                            </td>
-                            <td class="editable-completed-cell" data-id="${t.dbId}" data-field="closed_date" contenteditable="${STATE.isMasterUser}" style="${clusterB}">
-                                ${t.closed_date ? new Date(getSafeTimestamp({closed_date: t.closed_date})).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
                             </td>
                             
                         ${tradeNoteCells}
