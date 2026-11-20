@@ -184,10 +184,9 @@
         .pagination-btn { padding: 6px 12px; font-size: 14px; background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--subtle-text); border-radius: 6px; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; min-width: 80px; }
         .pagination-btn:hover:not(:disabled) { border-color: var(--link-color); color: var(--link-color); }
         .pagination-btn:disabled { cursor: not-allowed; opacity: 0.5; }
-        #sentiment-page-info, #completed-trades-page-info, #ts-completed-trades-page-info, #setups-images-page-info, #ts-setups-images-page-info, #ts-2-setups-images-page-info { font-size: 14px; color: var(--text-color); white-space: nowrap; font-weight: bold;}
+       #sentiment-page-info, #completed-trades-page-info, #ts-completed-trades-page-info, #setups-images-page-info, #ts-setups-images-page-info, #ts-2-setups-images-page-info { font-size: 14px; color: var(--text-color); white-space: nowrap; font-weight: bold;}
 
-        #image-library-container, #setups-image-container, #strategy-image-container, #ts-setups-image-container, #ts-setups-2-image-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 10px; }
-        .library-image-wrapper { position: relative; border: 1px solid var(--border-color); padding: 5px; background: var(--container-bg); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+#image-library-container, #setups-image-container, #strategy-image-container, #ts-setups-image-container, #ts-setups-2-image-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 10px; } .library-image-wrapper { position: relative; border: 1px solid var(--border-color); padding: 5px; background: var(--container-bg); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
         .library-image-wrapper img { width: 100%; object-fit: contain; aspect-ratio: 16 / 9; display: block; border-radius: 2px; cursor: pointer; flex-grow: 1; min-height: 0; }
         .library-image-wrapper:hover .delete-library-image, .library-image-wrapper:hover .edit-caption-btn { opacity: 1; }
         
@@ -1780,8 +1779,7 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Independent Evaluation Setups Library (Master Only) -->
+<!-- Independent Evaluation Setups Library (Master Only) -->
             <div class="collapsible-section master-only">
                 <div class="collapsible-header">
                     <h2 class="hide-title">Funded Setups</h2>
@@ -1806,6 +1804,36 @@
                             <button id="ts-setups-images-prev-page" class="pagination-btn">&lt; Prev</button>
                             <span id="ts-setups-images-page-info"></span>
                             <button id="ts-setups-images-next-page" class="pagination-btn">Next &gt;</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Public Funded Setups 2 Library (Viewable by Everyone) -->
+            <div class="collapsible-section">
+                <div class="collapsible-header">
+                    <h2>Funded Setups 2</h2>
+                    <button class="collapsible-toggle-btn">+</button>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <div id="ts-setups-2-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; background: var(--bg-color);">
+                            <div style="margin-bottom: 10px; font-weight: bold; font-size: 14px;">Review Mode: Add Setup 2 to Specific Day</div>
+                            <div style="display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                                <input type="date" id="ts-setup-2-review-date" style="width: auto; padding: 8px;">
+                                <button type="button" id="ts-2-jump-to-date-btn" style="width: auto; padding: 8px 15px; background-color: var(--purple-bg); color: var(--text-color); border: 1px solid var(--border-color); font-weight: bold; cursor: pointer; border-radius: 4px;">Jump to Date</button>
+                                <label for="ts-setups-2-image-upload" class="image-upload-label" style="margin: 0;">Upload Setup 2 Image</label>
+                                <input type="file" id="ts-setups-2-image-upload" accept="image/*" multiple style="display:none;">
+                            </div>
+                            <div id="ts-setups-2-upload-progress" style="margin-top: 10px;"></div>
+                        </div>
+
+                        <div id="ts-setups-2-image-container"></div>
+                        <button id="ts-2-toggle-all-setups-images" class="toggle-history-btn" style="display:none;">Show All history</button>
+                        <div id="ts-2-setups-images-pagination-controls" class="pagination-controls" style="display: none;">
+                            <button id="ts-2-setups-images-prev-page" class="pagination-btn">&lt; Prev</button>
+                            <span id="ts-2-setups-images-page-info"></span>
+                            <button id="ts-2-setups-images-next-page" class="pagination-btn">Next &gt;</button>
                         </div>
                     </div>
                 </div>
@@ -2303,24 +2331,24 @@
                 }
             }
 
+          const dateInput2 = document.getElementById('ts-setup-2-review-date');
+            if (dateInput2 && dateInput2.value) {
+                dates.add(dateInput2.value);
+            }
+
             if (isTopstep && STATE.isMasterUser && STATE.allTsSetupsImages) {
                 const values = Object.values(STATE.allTsSetupsImages);
-                const len = values.length;
-                for (let i = 0; i < len; i++) {
-                    const img = values[i];
-                    dates.add(getTradingDayString(img.timestamp, img.timestamp));
+                for (let i = 0; i < values.length; i++) {
+                    dates.add(getTradingDayString(values[i].timestamp, values[i].timestamp));
                 }
             }
 
             if (isTopstep && STATE.allTsSetupsImages2) {
                 const values = Object.values(STATE.allTsSetupsImages2);
-                const len = values.length;
-                for (let i = 0; i < len; i++) {
-                    const img = values[i];
-                    dates.add(getTradingDayString(img.timestamp, img.timestamp));
+                for (let i = 0; i < values.length; i++) {
+                    dates.add(getTradingDayString(values[i].timestamp, values[i].timestamp));
                 }
             }
-
             const sorted = Array.from(dates).sort((a, b) => b.localeCompare(a));
             if (isTopstep) {
                 STATE.tsDatesCached = sorted;
@@ -2330,7 +2358,7 @@
         }
 
         function subscribeToFundedData() {
-            if (STATE.isMasterUser) {
+           if (STATE.isMasterUser) {
                 dbRefs.dailyNotes.on('value', (s) => {
                     STATE.dailyNotes = s.val() || {};
                     renderFilteredEvalData();
@@ -2344,6 +2372,12 @@
                 });
             }
 
+            dbRefs.tsSetupsImages2.on('value', (s) => {
+                STATE.allTsSetupsImages2 = s.val() || {};
+                rebuildDatesCache(true);
+                const container = document.getElementById('ts-setups-2-image-container');
+                if (container) renderGenericImageLibrary(STATE.allTsSetupsImages2, container, 'ts_setups_images_2');
+            });
             dbRefs.tsTrades.on('value', s => { 
                 STATE.allTsTrades = s.val() || {}; 
                 renderFilteredEvalData(); 
@@ -3352,24 +3386,18 @@ function renderTsMonthlyCalendar() {
             }
         }
 
-        function jumpToFundedSetupDate(isSecond = false) {
+      function jumpToFundedSetupDate(isSecond = false) {
             const dateInput = document.getElementById(isSecond ? 'ts-setup-2-review-date' : 'ts-setup-review-date');
             const targetDate = dateInput ? dateInput.value : ''; 
-            
-            if (!targetDate) {
-                alert("Please select a date first.");
-                return;
-            }
+            if (!targetDate) { alert("Please select a date first."); return; }
 
             const images = isSecond ? (STATE.allTsSetupsImages2 || {}) : (STATE.allTsSetupsImages || {});
             const allImageIds = Object.keys(images).sort((a, b) => (images[b].timestamp || 0) - (images[a].timestamp || 0));
-            
-            const uniqueDates = isSecond ? getMasterTradingDates(true) : Array.from(new Set(allImageIds.map(id => 
-                getTradingDayString(images[id].timestamp, images[id].timestamp)
-            ))).sort((a, b) => b.localeCompare(a));
+            const uniqueDates = isSecond
+                ? getMasterTradingDates(true)
+                : Array.from(new Set(allImageIds.map(id => getTradingDayString(images[id].timestamp, images[id].timestamp)))).sort((a, b) => b.localeCompare(a));
 
             const targetIndex = uniqueDates.indexOf(targetDate);
-
             if (targetIndex !== -1) {
                 if (isSecond) {
                     STATE.tsSetupsImages2ShowAll = true;
