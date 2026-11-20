@@ -2120,8 +2120,8 @@
  useDynamicSizing: true,       // Loads Dynamic mode by default
        showDashboardDetails: false,  // Loads roadmap & strategy info hidden by default
             activeTab: 'topstep',
-            initializedTabs: { topstep: true }, 
-            visibleTsAccounts: ['Lucid 1', 'Lucid 3',  ], 
+            initializedTabs: { topstep: true },           
+            visibleTsAccounts: ['Lucid 1', 'Lucid 2','Lucid 3', 'Lucid 4 - scalp','Lucid 5'  ], 
             calendarDate: new Date(),
 
             isProcessing: false, masterPassword: null, viewerId: null, usdToAudRate: 1.53, journalText: {}, journalImages: {},  favouriteEntries: {}, setupsData1: {}, setupsData2: {}, generalNotes: {}, selectedDate: null, centerDate: null, journalSaveTimer: null, notesSaveTimer: null, setups1NotesTimer: null, setups2NotesTimer: null, isMerging: false, mergeBaseTradeId: null, modalImageGallery: [], modalImageIndex: -1, imageUploadContext: { id: null, type: null, isTopstep: false },
@@ -2849,9 +2849,9 @@
 
             let html = `<span style="font-size: 11px; color: var(--subtle-text); font-weight: bold; text-transform: uppercase; margin-right: 4px;">Filter Accounts:</span>`;
             
-            CONFIG.FUNDED_ACCOUNTS.forEach(acc => {
-                const isActive = STATE.visibleTsAccounts.includes(acc);
-                const bgColor = isActive ? 'var(--link-color)' : 'var(--card-bg)';
+const activeAccounts = CONFIG.FUNDED_ACCOUNTS.filter(acc => !(CONFIG.BLOWN_ACCOUNTS && CONFIG.BLOWN_ACCOUNTS.includes(acc)));
+            activeAccounts.forEach(acc => {
+const allActive = activeAccounts.every(acc => STATE.visibleTsAccounts.includes(acc));                const bgColor = isActive ? 'var(--link-color)' : 'var(--card-bg)';
                 const textColor = isActive ? '#fff' : 'var(--subtle-text)';
                 const borderColor = isActive ? 'var(--link-color)' : 'var(--border-color)';
                 const fontWeight = isActive ? 'bold' : 'normal';
@@ -2939,8 +2939,9 @@ function renderTsMonthlyCalendar() {
             });
 
             sortedCompleted.forEach(([id, t]) => {
-                if (STATE.visibleTsAccounts && !STATE.visibleTsAccounts.includes(getEvalAccount(t))) return;
-
+const calAcc = getEvalAccount(t);
+                const isCalBlown = CONFIG.BLOWN_ACCOUNTS && CONFIG.BLOWN_ACCOUNTS.includes(calAcc);
+                if (STATE.visibleTsAccounts && !isCalBlown && !STATE.visibleTsAccounts.includes(calAcc)) return;
                 const dayStr = getTradingDayString(t.closed_date || t.date || 0, t.date || 0);
                 if (!dayStr || dayStr === 'Unknown') return;
 
@@ -4147,8 +4148,12 @@ const masterButtons = STATE.isMasterUser ?
 
             let dayTrades = (tradesByDay[targetDateStr] || []).sort((a, b) => getSafeTimestamp(b) - getSafeTimestamp(a));
             
-            if (isTopstep && STATE.visibleTsAccounts) {
-                dayTrades = dayTrades.filter(t => STATE.visibleTsAccounts.includes(getEvalAccount(t)));
+if (isTopstep && STATE.visibleTsAccounts) {
+                dayTrades = dayTrades.filter(t => {
+                    const acc = getEvalAccount(t);
+                    const isBlown = CONFIG.BLOWN_ACCOUNTS && CONFIG.BLOWN_ACCOUNTS.includes(acc);
+                    return isBlown || STATE.visibleTsAccounts.includes(acc);
+                });
             }
             const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
 
@@ -4978,9 +4983,11 @@ const picsHeader = showFundedNotes ? `<th class="${isTopstep ? 'master-only' : '
                         renderFilteredEvalData(); 
                     }
 
-                    if (e.target.id === 'ts-filter-toggle-all') {
-                        if (STATE.visibleTsAccounts.length === CONFIG.FUNDED_ACCOUNTS.length) {
-                            STATE.visibleTsAccounts = [CONFIG.FUNDED_ACCOUNTS[0]]; 
+            if (e.target.id === 'ts-filter-toggle-all') {
+                        const activeAccounts = CONFIG.FUNDED_ACCOUNTS.filter(acc => !(CONFIG.BLOWN_ACCOUNTS && CONFIG.BLOWN_ACCOUNTS.includes(acc)));
+                        const allActive = activeAccounts.every(acc => STATE.visibleTsAccounts.includes(acc));
+                        if (allActive) {
+                            STATE.visibleTsAccounts = [activeAccounts[0]]; 
                         } else {
                             STATE.visibleTsAccounts = [...CONFIG.FUNDED_ACCOUNTS];
                         }
