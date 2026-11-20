@@ -1465,6 +1465,20 @@
         font-size: 6.8px !important;
     }
 }
+
+
+        @media (min-width: 769px) {
+            body:not(.is-master) table:has(#ts-completed-trades-tbody) {
+                width: auto;
+                min-width: 780px;
+                max-width: 1050px;
+                margin: 10px auto;
+            }
+            body:not(.is-master) table:has(#ts-completed-trades-tbody) th,
+            body:not(.is-master) table:has(#ts-completed-trades-tbody) td {
+                padding: 6px 12px;
+            }
+        }
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -2843,15 +2857,16 @@
 
     container.innerHTML = html;
 }
-        function renderAccountFilterPills() {
+       function renderAccountFilterPills() {
             const container = document.getElementById('ts-completed-filter-container');
             if (!container) return;
 
             let html = `<span style="font-size: 11px; color: var(--subtle-text); font-weight: bold; text-transform: uppercase; margin-right: 4px;">Filter Accounts:</span>`;
             
-const activeAccounts = CONFIG.FUNDED_ACCOUNTS.filter(acc => !(CONFIG.BLOWN_ACCOUNTS && CONFIG.BLOWN_ACCOUNTS.includes(acc)));
+            const activeAccounts = CONFIG.FUNDED_ACCOUNTS.filter(acc => !(CONFIG.BLOWN_ACCOUNTS && CONFIG.BLOWN_ACCOUNTS.includes(acc)));
             activeAccounts.forEach(acc => {
-const allActive = activeAccounts.every(acc => STATE.visibleTsAccounts.includes(acc));                const bgColor = isActive ? 'var(--link-color)' : 'var(--card-bg)';
+                const isActive = STATE.visibleTsAccounts.includes(acc);
+                const bgColor = isActive ? 'var(--link-color)' : 'var(--card-bg)';
                 const textColor = isActive ? '#fff' : 'var(--subtle-text)';
                 const borderColor = isActive ? 'var(--link-color)' : 'var(--border-color)';
                 const fontWeight = isActive ? 'bold' : 'normal';
@@ -2873,7 +2888,7 @@ const allActive = activeAccounts.every(acc => STATE.visibleTsAccounts.includes(a
                 `;
             });
 
-            const allActive = STATE.visibleTsAccounts.length === CONFIG.FUNDED_ACCOUNTS.length;
+            const allActive = activeAccounts.every(acc => STATE.visibleTsAccounts.includes(acc));
             html += `
                 <button type="button" id="ts-filter-toggle-all" style="
                     width: auto; 
@@ -4162,9 +4177,10 @@ if (isTopstep && STATE.visibleTsAccounts) {
                 ? (STATE.isMasterUser ? `<th class="master-only">Note 1</th><th class="master-only">Note 2</th><th class="master-only">Note 3</th>` : '')
                 : `<th>Note 1</th><th>Note 2</th><th>Note 3</th>`;
 
+          const totalCols = 12 + (showFundedNotes ? 4 : 0) + (STATE.isMasterUser ? 1 : 0);
             const dailyNoteCell = showFundedNotes
-                ? `<td colspan="15" class="editable-daily-note hide-mobile ${isTopstep ? 'master-only' : ''}" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>`
-                : `<td colspan="15" class="hide-mobile"></td>`;
+                ? `<td colspan="${totalCols - 6}" class="editable-daily-note hide-mobile ${isTopstep ? 'master-only' : ''}" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>`
+                : `<td colspan="${totalCols - 6}" class="hide-mobile"></td>`;
 
             const table = tbodyElement.closest('table');
             let thead = table.querySelector('thead');
@@ -4187,7 +4203,7 @@ const picsHeader = showFundedNotes ? `<th class="${isTopstep ? 'master-only' : '
                     ${dailyNoteCell}
                 </tr>
                 <tr>
-                    <td colspan="25" style="text-align:center; padding:30px; color:var(--subtle-text); font-style:italic;"></td>
+              <td colspan="${totalCols}" style="text-align:center; padding:30px; color:var(--subtle-text); font-style:italic;"></td>
                 </tr>`;
                 return;
             }
@@ -4232,7 +4248,7 @@ const picsHeader = showFundedNotes ? `<th class="${isTopstep ? 'master-only' : '
                 if (isActualCluster) {
                     rowsHtml += `
                     <tr style="border-top: 2px solid #6f42c1;">
-                        <td colspan="25" style="${clusterL} ${clusterBG} padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
+                       <td colspan="${totalCols}" style="${clusterL} ${clusterBG} padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
                            <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
                         </td>
                     </tr>`;
@@ -4265,7 +4281,7 @@ const picsHeader = showFundedNotes ? `<th class="${isTopstep ? 'master-only' : '
 
                     rowsHtml += `
                     <tr class="completed-group-header">
-                        <td colspan="25" style="${clusterL} ${clusterBG} padding: 8px 15px; font-size: 0.95em;">
+                        <td colspan="${totalCols}" style="${clusterL} ${clusterBG} padding: 8px 15px; font-size: 0.95em;">
                             <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items:center;">
                                 <span style="font-weight:bold; color:var(--link-color);">📂 ${groupId} (${gType})</span>
                                 <span style="color:var(--border-color);">|</span>
