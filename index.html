@@ -4175,11 +4175,11 @@ const masterButtons = STATE.isMasterUser ?
             let thead = table.querySelector('thead');
             if (!thead) { thead = document.createElement('thead'); table.insertBefore(thead, tbodyElement); }
             
+const picsHeader = showFundedNotes ? `<th class="${isTopstep ? 'master-only' : ''}">Pics</th>` : '';
             const actionHeader = STATE.isMasterUser ? `<th class="master-only">Act</th>` : '';
             thead.innerHTML = isTopstep 
-                ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th>${fundedNoteHeader}<th>Pics</th>${actionHeader}</tr>`
-                : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th>${fundedNoteHeader}<th>Pics</th>${actionHeader}</tr>`;
-
+                ? `<tr><th class="cell-narrow">Acc/Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Qty</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th>${fundedNoteHeader}${picsHeader}${actionHeader}</tr>`
+                : `<tr><th class="cell-narrow">Sym</th><th>Type</th><th>Entry</th><th>SL</th><th>TP</th><th>Size</th><th>RR</th><th>Exit Price</th><th>Net PnL</th><th>%</th><th>In</th><th>Out</th>${fundedNoteHeader}${picsHeader}${actionHeader}</tr>`;
             if (dayTrades.length === 0) {
                 tbodyElement.innerHTML = `
                 <tr style="background-color: var(--header-bg); border-top: 4px solid var(--border-color);">
@@ -4350,8 +4350,8 @@ const masterButtons = STATE.isMasterUser ?
                                 ${t.closed_date ? new Date(getSafeTimestamp({closed_date: t.closed_date})).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false, hourCycle:'h23'}) : '--'}
                             </td>
                             
-                            ${tradeNoteCells}
-                            <td class="trade-image-thumbnails" style="${clusterB}">${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}</td>
+                        ${tradeNoteCells}
+                            ${showFundedNotes ? `<td class="trade-image-thumbnails ${isTopstep ? 'master-only' : ''}" style="${clusterB}">${renderAttachmentThumbnails(t, t.dbId, 'completed', isTopstep)}</td>` : ''}
                             ${STATE.isMasterUser ? `
                             <td class="master-only" style="${clusterB}">
                                 <div style="display: flex; gap: 2px;">
