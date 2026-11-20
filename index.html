@@ -1478,6 +1478,32 @@
                 padding: 6px 12px;
             }
         }
+
+
+
+
+
+
+
+
+
+
+
+        tr.cluster-spacer,
+        tr.cluster-spacer td {
+            border-left: none !important;
+            border-right: none !important;
+            background: transparent !important;
+            height: 16px !important;
+            padding: 0 !important;
+        }
+        @media (max-width: 768px) {
+            tr.cluster-spacer,
+            tr.cluster-spacer td {
+                height: 10px !important;
+                padding: 0 !important;
+            }
+        }
     </style>
 </head>
 <body style="background-color: #121212;">
@@ -4236,18 +4262,20 @@ const picsHeader = showFundedNotes ? `<th class="${isTopstep ? 'master-only' : '
                 clusters.push(currentCluster);
             }
 
-            clusters.forEach(cluster => {
+clusters.forEach(cluster => {
                 const isActualCluster = cluster.length > 1;
                 const clusterNet = cluster.reduce((sum, t) => sum + parseFloat(t.net_result || 0), 0);
                 
-                const clusterL = isActualCluster ? 'border-left: 6px solid #6f42c1 !important;' : '';
-                const clusterBG = isActualCluster ? 'background-color: rgba(111, 66, 193, 0.03) !important;' : '';
+                const clusterL = '';
+                const clusterBG = '';
+
+                rowsHtml += `<tr class="cluster-spacer"><td colspan="${totalCols}"></td></tr>`;
 
                 if (isActualCluster) {
                     rowsHtml += `
-                    <tr style="border-top: 2px solid #6f42c1;">
-                       <td colspan="${totalCols}" style="${clusterL} ${clusterBG} padding: 5px 15px; font-size: 10px; font-weight: 800; color: #a29bfe; text-transform: uppercase;">
-                           <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
+                    <tr style="background-color: rgba(255, 255, 255, 0.04);">
+                       <td colspan="${totalCols}" style="padding: 6px 15px; font-size: 11px; font-weight: 700; color: var(--subtle-text); text-transform: uppercase;">
+                           Session Net: <span style="color:${clusterNet >= 0 ? 'var(--green-text)' : 'var(--red-text)'}">$${clusterNet.toFixed(2)}</span>
                         </td>
                     </tr>`;
                 }
@@ -4300,8 +4328,7 @@ const picsHeader = showFundedNotes ? `<th class="${isTopstep ? 'master-only' : '
                         const contr = parseFloat(isTopstep ? (t.contracts || t.size || 1) : (t.size || 0));
                         const net = parseFloat(t.net_result || 0);
                         
-                        const isLastRowOfCluster = isLastGroupInCluster && (tIndex === gTrades.length - 1);
-                        const clusterB = isLastRowOfCluster ? 'border-bottom: 3px solid #6f42c1 !important;' : '';
+                  const clusterB = '';
                         
                         const accBadgeHtml = isTopstep ? `<span class="acc-badge" style="font-size: 8px; padding: 1px 3px; margin: 0; line-height: 1.1; border-radius: 2px; display: inline-block; white-space: nowrap;">${getEvalAccount(t)}</span>` : '';
                         const groupBadgeHtml = `<span class="group-badge editable-completed-cell" data-id="${t.dbId}" data-field="groupId" contenteditable="${STATE.isMasterUser}" style="font-size: 8px; background-color: var(--header-bg); padding: 1px 3px; border-radius: 2px; cursor: text; color: var(--link-color); font-weight: bold; border: 1px solid var(--border-color); display: inline-block; margin: 0; line-height: 1.1; white-space: nowrap; max-width: 65px; overflow: hidden; text-overflow: ellipsis;" title="Click to edit Group ID">${t.groupId || 'Ungrouped'}</span>`;
