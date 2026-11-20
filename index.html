@@ -1839,35 +1839,7 @@
                 </div>
             </div>
 
-            <!-- Public Funded Setups 2 Library (Viewable by Everyone) -->
-            <div class="collapsible-section">
-                <div class="collapsible-header">
-                    <h2 class="hide-title">Funded Setups 2</h2>
-                    <button class="collapsible-toggle-btn">+</button>
-                </div>
-                <div class="collapsible-content">
-                    <div class="collapsible-content-inner">
-                        <div id="ts-setups-2-upload-section" class="master-only" style="text-align: center; margin-bottom: 20px; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; background: var(--bg-color);">
-                            <div style="margin-bottom: 10px; font-weight: bold; font-size: 14px;">Review Mode: Add Setup 2 to Specific Day</div>
-                            <div style="display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
-                                <input type="date" id="ts-setup-2-review-date" style="width: auto; padding: 8px;">
-                                <button type="button" id="ts-2-jump-to-date-btn" style="width: auto; padding: 8px 15px; background-color: var(--purple-bg); color: var(--text-color); border: 1px solid var(--border-color); font-weight: bold; cursor: pointer; border-radius: 4px;">Jump to Date</button>
-                                <label for="ts-setups-2-image-upload" class="image-upload-label" style="margin: 0;">Upload Setup 2 Image</label>
-                                <input type="file" id="ts-setups-2-image-upload" accept="image/*" multiple style="display:none;">
-                            </div>
-                            <div id="ts-setups-2-upload-progress" style="margin-top: 10px;"></div>
-                        </div>
-
-                        <div id="ts-setups-2-image-container"></div>
-                        <button id="ts-2-toggle-all-setups-images" class="toggle-history-btn" style="display:none;">Show All history</button>
-                        <div id="ts-2-setups-images-pagination-controls" class="pagination-controls" style="display: none;">
-                            <button id="ts-2-setups-images-prev-page" class="pagination-btn">&lt; Prev</button>
-                            <span id="ts-2-setups-images-page-info"></span>
-                            <button id="ts-2-setups-images-next-page" class="pagination-btn">Next &gt;</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        
             
             <!-- Completed Trades -->
             <div class="collapsible-section">
@@ -2147,7 +2119,8 @@
         const STATE = {
             isMasterUser: false, 
  useDynamicSizing: true,       // Loads Dynamic mode by default
-            showDashboardDetails: false,  // Loads roadmap & strategy info hidden by default            activeTab: 'topstep', 
+       showDashboardDetails: false,  // Loads roadmap & strategy info hidden by default
+            activeTab: 'topstep',
             initializedTabs: { topstep: true }, 
             visibleTsAccounts: ['Lucid 1', 'Lucid 2','Lucid 3', 'Lucid 4 - scalp','Lucid 5'  ], 
             calendarDate: new Date(),
@@ -2321,7 +2294,7 @@
                 dates.add(dateInput2.value);
             }
 
-            const trades = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
+       const trades = isTopstep ? STATE.allTsCompletedTrades : STATE.allCompletedTrades;
             if (trades) {
                 const values = Object.values(trades);
                 const len = values.length;
@@ -2329,11 +2302,6 @@
                     const t = values[i];
                     dates.add(getTradingDayString(t.closed_date || t.date || 0, t.date || 0));
                 }
-            }
-
-          const dateInput2 = document.getElementById('ts-setup-2-review-date');
-            if (dateInput2 && dateInput2.value) {
-                dates.add(dateInput2.value);
             }
 
             if (isTopstep && STATE.isMasterUser && STATE.allTsSetupsImages) {
@@ -2397,12 +2365,7 @@
                 debouncedPerformanceUpdate(); 
             });
 
-            dbRefs.tsSetupsImages2.on('value', (s) => {
-                STATE.allTsSetupsImages2 = s.val() || {};
-                rebuildDatesCache(true);
-                const container = document.getElementById('ts-setups-2-image-container');
-                if (container) renderGenericImageLibrary(STATE.allTsSetupsImages2, container, 'ts_setups_images_2');
-            });
+          
 
             dbRefs.tsSetups1.on('value', s => { 
                 const el = document.getElementById('ts-primary-setups-notes');
