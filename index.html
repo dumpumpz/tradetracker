@@ -1470,7 +1470,7 @@
         @media (min-width: 769px) {
             body:not(.is-master) table:has(#ts-completed-trades-tbody) {
                 width: auto;
-           min-width: 600px; max-width: 850px;
+           min-width: 600px; max-width: 1100px;
                 margin: 10px auto;
             }
             body:not(.is-master) table:has(#ts-completed-trades-tbody) th,
@@ -4203,12 +4203,12 @@ if (isTopstep && STATE.visibleTsAccounts) {
             }
             const safeDateKey = isTopstep ? `ts-${targetDateStr.replace(/[\/\s,]/g, '-')}` : targetDateStr.replace(/[\/\s,]/g, '-');
 
-            const showFundedNotes = !isTopstep || STATE.isMasterUser;
+   const showFundedNotes = !isTopstep || STATE.isMasterUser;
             const fundedNoteHeader = isTopstep
-                ? (STATE.isMasterUser ? `<th class="master-only">Note 1</th><th class="master-only">Note 2</th><th class="master-only">Note 3</th>` : '')
+                ? `<th>Note 1</th>` + (STATE.isMasterUser ? `<th class="master-only">Note 2</th><th class="master-only">Note 3</th>` : '')
                 : `<th>Note 1</th><th>Note 2</th><th>Note 3</th>`;
 
-const totalCols = 9 + (showFundedNotes ? 4 : 0) + (STATE.isMasterUser ? 1 : 0);
+            const totalCols = 10 + (showFundedNotes ? 3 : 0) + (STATE.isMasterUser ? 1 : 0);
             const dailyNoteCell = showFundedNotes
                 ? `<td colspan="${totalCols - 6}" class="editable-daily-note hide-mobile ${isTopstep ? 'master-only' : ''}" data-date-key="${safeDateKey}" contenteditable="${STATE.isMasterUser}" style="font-style:italic; font-size:12px; color:var(--subtle-text);">${STATE.dailyNotes[safeDateKey] || 'Daily note...'}</td>`
                 : `<td colspan="${totalCols - 6}" class="hide-mobile"></td>`;
@@ -4339,11 +4339,13 @@ clusters.forEach(cluster => {
                         const accBadgeHtml = isTopstep ? `<span class="acc-badge" style="font-size: 8px; padding: 1px 3px; margin: 0; line-height: 1.1; border-radius: 2px; display: inline-block; white-space: nowrap;">${getEvalAccount(t)}</span>` : '';
                         const groupBadgeHtml = `<span class="group-badge editable-completed-cell" data-id="${t.dbId}" data-field="groupId" contenteditable="${STATE.isMasterUser}" style="font-size: 8px; background-color: var(--header-bg); padding: 1px 3px; border-radius: 2px; cursor: text; color: var(--link-color); font-weight: bold; border: 1px solid var(--border-color); display: inline-block; margin: 0; line-height: 1.1; white-space: nowrap; max-width: 65px; overflow: hidden; text-overflow: ellipsis;" title="Click to edit Group ID">${t.groupId || 'Ungrouped'}</span>`;
 
-                        const tradeNoteCells = showFundedNotes ? `
-                            <td class="note-cell editable-completed-cell ${isTopstep ? 'master-only' : ''}" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note || ''}</td>
-                            <td class="note-cell editable-completed-cell ${isTopstep ? 'master-only' : ''}" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note2 || ''}</td>
-                            <td class="note-cell editable-completed-cell ${isTopstep ? 'master-only' : ''}" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note3 || ''}</td>
-                        ` : '';
+                 const tradeNoteCells = `
+                            <td class="note-cell editable-completed-cell" data-id="${t.dbId}" data-field="note" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note || ''}</td>
+                            ${showFundedNotes ? `
+                                <td class="note-cell editable-completed-cell ${isTopstep ? 'master-only' : ''}" data-id="${t.dbId}" data-field="note2" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note2 || ''}</td>
+                                <td class="note-cell editable-completed-cell ${isTopstep ? 'master-only' : ''}" data-id="${t.dbId}" data-field="note3" contenteditable="${STATE.isMasterUser}" style="${clusterB}">${t.note3 || ''}</td>
+                            ` : ''}
+                        `;
 
                         rowsHtml += `<tr style="${clusterBG} font-size: 0.85em;">
                             <td class="cell-narrow" style="${clusterL} ${clusterB} vertical-align: middle; padding: 4px 6px;">
