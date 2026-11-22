@@ -1824,8 +1824,8 @@ tr.cluster-spacer,
                     </div>
                 </div>
             </div>
-<!-- Independent Evaluation Setups Library (Master Only) -->
-            <div class="collapsible-section master-only">
+<!-- Independent Evaluation Setups Library -->
+            <div class="collapsible-section">
                 <div class="collapsible-header">
                     <h2 class="hide-title">Funded Setups</h2>
                     <button class="collapsible-toggle-btn">+</button>
@@ -2348,7 +2348,7 @@ tr.cluster-spacer,
                 }
             }
 
-            if (isTopstep && STATE.isMasterUser && STATE.allTsSetupsImages) {
+if (isTopstep && STATE.allTsSetupsImages) {
                 const values = Object.values(STATE.allTsSetupsImages);
                 for (let i = 0; i < values.length; i++) {
                     dates.add(getTradingDayString(values[i].timestamp, values[i].timestamp));
@@ -2370,19 +2370,19 @@ tr.cluster-spacer,
         }
 
         function subscribeToFundedData() {
-           if (STATE.isMasterUser) {
+         if (STATE.isMasterUser) {
                 dbRefs.dailyNotes.on('value', (s) => {
                     STATE.dailyNotes = s.val() || {};
                     renderFilteredEvalData();
                 });
-
-                dbRefs.tsSetupsImages.on('value', (s) => {
-                    STATE.allTsSetupsImages = s.val() || {};
-                    rebuildDatesCache(true);
-                    const container = document.getElementById('ts-setups-image-container');
-                    if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
-                });
             }
+
+            dbRefs.tsSetupsImages.on('value', (s) => {
+                STATE.allTsSetupsImages = s.val() || {};
+                rebuildDatesCache(true);
+                const container = document.getElementById('ts-setups-image-container');
+                if (container) renderGenericImageLibrary(STATE.allTsSetupsImages, container, 'ts_setups_images');
+            });
 
             dbRefs.tsSetupsImages2.on('value', (s) => {
                 STATE.allTsSetupsImages2 = s.val() || {};
@@ -4158,7 +4158,7 @@ const masterButtons = STATE.isMasterUser ?
                 }
 
                 const tsSetupsContainer = document.getElementById('ts-setups-image-container');
-                if (STATE.isMasterUser && tsSetupsContainer && STATE.allTsSetupsImages) {
+                if (tsSetupsContainer && STATE.allTsSetupsImages) {
                     const uniqueImgDates = getMasterTradingDates(true);
                     const imgIndex = uniqueImgDates.indexOf(targetDateStr);
                     if (imgIndex !== -1) {
@@ -6941,9 +6941,12 @@ function getNextVariantForDayAndSession(tradingDay, session, allCompletedTrades,
             const title = h2.textContent.trim();
             if (sectionsToOpen.includes(title)) {
                 const section = h2.closest('.collapsible-section');
-                if (section) {
+       if (section) {
                     if (section.classList.contains('master-only') && !STATE.isMasterUser) {
                         return; 
+                    }
+                    if (title === 'Funded Setups' && !STATE.isMasterUser) {
+                        return;
                     }
                     openCollapsibleSection(section);
                 }
